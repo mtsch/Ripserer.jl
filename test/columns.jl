@@ -1,4 +1,4 @@
-import Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!
+using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!
 
 @testset "columns" begin
     @testset "DiameterSimplexHeap" begin

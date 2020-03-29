@@ -17,6 +17,13 @@ Get the coefficient value of `simplex`. The coefficient is always in the range o
 coef
 
 """
+    set_coef(simplex::AbstractSimplex, val)
+
+Return new `simplex` with new coefficietn value.
+"""
+set_coef
+
+"""
     index(simplex::AbstractSimplex)
 
 Get the combinatorial index of `simplex`. The index is equal to
@@ -75,6 +82,8 @@ end
     bits = n_bits(M)
     :(reinterpret(Int64, sx) & (1 << $bits - 1))
 end
+set_coef(sx::Simplex{M}, value) where M =
+    Simplex{M}(index(sx), value)
 Base.show(io::IO, ent::Simplex{M}) where M =
     print(io, "Simplex{$M}$((index(ent), coef(ent)))");
 
@@ -107,6 +116,8 @@ index(sx::DiameterSimplex) =
     index(sx.simplex)
 coef(sx::DiameterSimplex) =
     coef(sx.simplex)
+set_coef(sx::DiameterSimplex{M}, value) where M =
+    DiameterSimplex{M}(diam(sx), set_coef(sx.simplex, value))
 """
     diam(sx::DiameterSimplex)
 
@@ -167,4 +178,43 @@ function get_vertices!(buff, sx::AbstractSimplex, dim, n_max, binomial)
         n_max = v - 1
     end
     buff
+end
+
+# simplex arithmetic ===================================================================== #
+
+# Mod is handled in set_coef.
+for op in (:+, :-, :*)
+    @eval function (Base.$op)(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M
+        @boundscheck begin
+            index(sx1) == index(sx2) || throw(ArgumentError("simplex indices don't match"))
+        end
+        set_coef(sx1, $op(coef(sx1), coef(sx2)))
+    end
+end
+
+Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) =
+    sx1 * inv(sx2)
+
+@generated function Base.inv(sx::AbstractSimplex{M}) where M
+    err_check = quote
+        coef(sx) == 0 && throw(DomainError(0))
+    end
+    if M > 2
+        inverse_arr = fill(0, M-1)
+        inverse_arr[1] = 1
+        for i in 2:M-1
+            inverse_arr[i] = M - (inverse_arr[M % i] * floor(Int, M / i)) % M;
+        end
+        inverse = (inverse_arr...,)
+
+        quote
+            $err_check
+            set_coef(sx, $inverse[coef(sx)])
+        end
+    else
+        quote
+            $err_check
+            set_coef(sx, coef(sx))
+        end
+    end
 end

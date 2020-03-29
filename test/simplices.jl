@@ -41,4 +41,21 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, diam, get_vertices!
             @test index(get_vertices!(buff, Simplex(i, 1, 2), 0, 10, binomial), binomial) == i
         end
     end
+
+    @testset "arithmetic" begin
+        @test Simplex{3}(1, 1) + Simplex{3}(1, 1) == Simplex{3}(1, 2)
+        @test Simplex{3}(2, 2) + Simplex{3}(2, 1) == Simplex{3}(2, 0)
+        @test Simplex{3}(3, 2) * Simplex{3}(3, 2) == Simplex{3}(3, 1)
+        @test Simplex{3}(4, 1) - Simplex{3}(4, 2) == Simplex{3}(4, 2)
+
+        @test_throws ArgumentError Simplex{3}(4, 1) + Simplex{3}(5, 1)
+        @test_throws MethodError Simplex{3}(4, 1) + Simplex{2}(4, 1)
+
+        @test inv(Simplex{2}(10, 1)) == Simplex{2}(10, 1)
+        for i in 1:16
+            @test inv(Simplex{17}(10, i)) * Simplex{17}(10, i) == Simplex{17}(10, 1)
+        end
+        @test_throws DomainError inv(Simplex{2}(10, 0))
+        @test_throws DomainError inv(Simplex{3}(10, 0))
+    end
 end
