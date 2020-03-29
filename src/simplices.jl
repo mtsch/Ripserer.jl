@@ -117,7 +117,7 @@ index(sx::DiameterSimplex) =
 coef(sx::DiameterSimplex) =
     coef(sx.simplex)
 set_coef(sx::DiameterSimplex{M}, value) where M =
-    DiameterSimplex{M}(diam(sx), set_coef(sx.simplex, value))
+    DiameterSimplex{M}(diam(sx), index(sx), value)
 """
     diam(sx::DiameterSimplex)
 
@@ -192,7 +192,7 @@ for op in (:+, :-, :*)
     end
 end
 
-Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) =
+Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     sx1 * inv(sx2)
 
 @generated function Base.inv(sx::AbstractSimplex{M}) where M

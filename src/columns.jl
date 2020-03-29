@@ -68,6 +68,8 @@ end
     initialize!(column, simplex, dim, dist, binomial)
 
 Initialize column by putting all cofaces of `dim`-dimensional `simplex` on `column`'s heap.
+
+# TODO emergent pairs.
 """
 function initialize!(col::CurrentColumn{M}, simplex, dim, dist, binomial) where M
     heap = col.heap
@@ -77,4 +79,21 @@ function initialize!(col::CurrentColumn{M}, simplex, dim, dist, binomial) where 
         push!(heap, coface(simplex, vertices, v, dist, binomial))
     end
     col
+end
+
+function pop_pivot!(col::CurrentColumn{M}) where M
+    heap = col.heap
+    isempty(heap) && return nothing
+
+    pivot = pop!(heap)
+    while !isempty(heap)
+        if coef(pivot) == 0
+            pivot = pop!(heap)
+        elseif index(top(heap)) == index(pivot)
+            pivot += pop!(heap)
+        else
+            break
+        end
+    end
+    coef(pivot) == 0 ? nothing : pivot
 end

@@ -1,4 +1,4 @@
-using Ripserer: Simplex, DiameterSimplex, index, coef, diam, get_vertices!
+using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, get_vertices!
 
 @testset "simplices" begin
     @testset "Simplex" begin
@@ -19,7 +19,7 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, diam, get_vertices!
             for i in (1, 536, typemax(Int32))
                 c = rand(Int64)
                 d = rand(Float64)
-                @test DiameterSimplex(d, i, c, modulus) === DiameterSimplex{modulus}(d, i, c)
+                @test DiameterSimplex(d, i, c, modulus) == DiameterSimplex{modulus}(d, i, c)
                 @test index(DiameterSimplex(d, i, c, modulus)) == i
                 @test coef(DiameterSimplex(d, i, c, modulus)) == mod(c, modulus)
                 @test diam(DiameterSimplex(d, i, c, modulus)) == d
@@ -29,17 +29,24 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, diam, get_vertices!
         @test_throws DomainError DiameterSimplex(1.0, 1, 1, 6666)
     end
 
-    @testset "index, get_vertices!" begin
+    @testset "index(::Vector), get_vertices!" begin
         buff = Int[]
         @test get_vertices!(buff, Simplex(1, 1, 2), 2, 10, binomial) == [3, 2, 1]
-        @test get_vertices!(buff, Simplex(2, 1, 2), 2, 10, binomial) == [4, 2, 1]
-        @test get_vertices!(buff, Simplex(3, 1, 2), 2, 10, binomial) == [4, 3, 1]
-        @test get_vertices!(buff, Simplex(4, 1, 2), 2, 10, binomial) == [4, 3, 2]
+        @test get_vertices!(buff, Simplex(2, 1, 2), 3, 10, binomial) == [5, 3, 2, 1]
+        @test get_vertices!(buff, Simplex(3, 1, 2), 1, 10, binomial) == [3, 2]
+        @test get_vertices!(buff, Simplex(4, 1, 2), 4, 10, binomial) == [6, 5, 4, 2, 1]
         @test get_vertices!(buff, Simplex(5, 1, 2), 2, 10, binomial) == [5, 2, 1]
 
         for i in 1:10
-            @test index(get_vertices!(buff, Simplex(i, 1, 2), 0, 10, binomial), binomial) == i
+            @test index(get_vertices!(buff, Simplex(i, 1, 2), 0, 10, binomial),
+                        binomial) == i
         end
+    end
+
+    @testset "set_coef" begin
+        @test set_coef(Simplex{3}(2, 1), 2) == Simplex{3}(2, 2)
+        @test set_coef(Simplex{3}(2, 1), 3) == Simplex{3}(2, 0)
+        @test set_coef(DiameterSimplex{5}(1.0, 2, 1), 3) == DiameterSimplex{5}(1.0, 2, 3)
     end
 
     @testset "arithmetic" begin

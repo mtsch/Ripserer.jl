@@ -1,4 +1,4 @@
-using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!
+using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!, pop_pivot!
 
 @testset "columns" begin
     @testset "DiameterSimplexHeap" begin
@@ -71,6 +71,44 @@ using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!
                 initialize!(col, DiameterSimplex{3}(1.0, 1, 1), dim, dist_sp, binomial)
                 @test length(col.heap) == 100 - dim - 1
             end
+        end
+    end
+
+    @testset "pop_pivot!" begin
+        @testset "single element" begin
+            col = CurrentColumn{2}()
+            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+
+            @test pop_pivot!(col) == DiameterSimplex{2}(2.0, 1, 1)
+            @test isempty(col.heap)
+
+            col = CurrentColumn{3}()
+            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
+            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
+
+            @test isnothing(pop_pivot!(col))
+            @test isempty(col.heap)
+        end
+
+        @testset "multiple" begin
+            col = CurrentColumn{5}()
+            push!(col.heap, DiameterSimplex{5}(1.0, 2, 3))
+            push!(col.heap, DiameterSimplex{5}(2.0, 3, 4))
+            push!(col.heap, DiameterSimplex{5}(1.0, 2, 2))
+            push!(col.heap, DiameterSimplex{5}(3.0, 1, 2))
+            push!(col.heap, DiameterSimplex{5}(2.0, 3, 1))
+            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
+            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
+            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
+
+            @test pop_pivot!(col) == DiameterSimplex{5}(3.0, 1, 2)
+            @test pop_pivot!(col) == DiameterSimplex{5}(4.0, 4, 2)
+            @test isnothing(pop_pivot!(col))
         end
     end
 end
