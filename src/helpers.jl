@@ -115,13 +115,13 @@ end
 """
     CompressedSparseMatrix{T}
 
-Compressed immutable sparse matrix data structure that supports efficient column insertion
-via [`push!`](@ref) and column-based indexing.
+Compressed immutable sparse matrix data structure that supports efficient column insertion,
+pushing to the last column via [`push!`](@ref) and iterating over columns.
 It's up to the value type `T` to know about its row position.
 """
 struct CompressedSparseMatrix{T}
     colptr::Vector{Int}
-    values::Vector{T}
+    nzval::Vector{T}
 end
 
 CompressedSparseMatrix{T}() where T =
@@ -130,21 +130,46 @@ CompressedSparseMatrix{T}() where T =
 function Base.show(io::IO, csm::CompressedSparseMatrix{T}) where T
     println(io, "CompressedSparseMatrix{$T}[")
     for i in 1:length(csm)
-        println(io, "  $i: ", csm[i])
+        println(io, "  $i: ", collect(csm[i]))
     end
     print(io, "]")
 end
 
-Base.getindex(csm::CompressedSparseMatrix, i) =
-    @view csm.values[csm.colptr[i]:csm.colptr[i+1]-1]
-
-function Base.push!(csm::CompressedSparseMatrix, vals)
-    append!(csm.values, vals)
-    push!(csm.colptr, length(csm.values)+1)
-    vals
+function Base.push!(csm::CompressedSparseMatrix, value)
+    push!(csm.nzval, value)
+    csm.colptr[end] += 1
+    value
 end
 
+add_column!(csm::CompressedSparseMatrix) =
+    push!(csm.colptr, csm.colptr[end])
 Base.eltype(csm::CompressedSparseMatrix{T}) where T =
     T
 Base.length(csm::CompressedSparseMatrix) =
     length(csm.colptr) - 1
+Base.getindex(csm::CompressedSparseMatrix, i) =
+    CSMColumnIterator(csm, i)
+
+struct CSMColumnIterator{T}
+    csm ::CompressedSparseMatrix{T}
+    idx ::Int
+end
+
+Base.IteratorSize(::Type{CSMColumnIterator}) =
+    Base.HasLength()
+Base.IteratorEltype(::Type{CSMColumnIterator{T}}) where T =
+    Base.HasEltype()
+Base.eltype(::Type{CSMColumnIterator{T}}) where T =
+    T
+Base.length(ci::CSMColumnIterator) =
+    ci.csm.colptr[ci.idx + 1] - ci.csm.colptr[ci.idx]
+
+function Base.iterate(ci::CSMColumnIterator, i=1)
+    colptr = ci.csm.colptr
+    index = i + colptr[ci.idx] - 1
+    if index ≥ colptr[ci.idx + 1]
+        nothing
+    else
+        (ci.csm.nzval[index], i + 1)
+    end
+end
