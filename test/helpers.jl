@@ -1,4 +1,6 @@
-using Ripserer: isprime, Binomial, edges, is_distance_matrix, apply_threshold
+using Ripserer: isprime, Binomial,
+    edges, is_distance_matrix, apply_threshold,
+    CompressedSparseMatrix
 
 @testset "helpers" begin
     @testset "isprime" begin
@@ -101,5 +103,23 @@ using Ripserer: isprime, Binomial, edges, is_distance_matrix, apply_threshold
                 @test issparse(dist_s)
             end
         end
+    end
+
+    @testset "CompressedSparseMatrix" begin
+        csm = CompressedSparseMatrix{Int}()
+        @test length(csm) == 0
+        push!(csm, [1, 2, 3])
+        @test length(csm) == 1
+        push!(csm, [4, 5])
+        @test length(csm) == 2
+        push!(csm, [6, 7, 8, 9])
+        @test length(csm) == 3
+
+        @test csm[1] == [1, 2, 3]
+        @test csm[1] isa SubArray
+        @test csm[2] == [4, 5]
+        @test csm[3] == [6, 7, 8, 9]
+        @test eltype(csm) == Int
+        @test_throws BoundsError csm[4]
     end
 end

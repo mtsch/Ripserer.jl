@@ -110,3 +110,40 @@ function apply_threshold(dist, thresh)
         sparse(dist)
     end
 end
+
+# compressed sparse matrix =============================================================== #
+"""
+    CompressedSparseMatrix{T}
+
+Compressed immutable sparse matrix data structure that supports efficient column insertion
+and column-based indexing. It's up to the value type `T` to store the row position.
+"""
+struct CompressedSparseMatrix{T}
+    colptr::Vector{Int}
+    values::Vector{T}
+end
+
+CompressedSparseMatrix{T}() where T =
+    CompressedSparseMatrix(Int[1], T[])
+
+function Base.show(io::IO, csm::CompressedSparseMatrix{T}) where T
+    println(io, "CompressedSparseMatrix{$T}[")
+    for i in 1:length(csm)
+        println(io, "  $i: ", csm[i])
+    end
+    print(io, "]")
+end
+
+Base.getindex(csm::CompressedSparseMatrix, i) =
+    @view csm.values[csm.colptr[i]:csm.colptr[i+1]-1]
+
+function Base.push!(csm::CompressedSparseMatrix, vals)
+    append!(csm.values, vals)
+    push!(csm.colptr, length(csm.values)+1)
+    vals
+end
+
+Base.eltype(csm::CompressedSparseMatrix{T}) where T =
+    T
+Base.length(csm::CompressedSparseMatrix) =
+    length(csm.colptr) - 1

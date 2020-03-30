@@ -1,11 +1,9 @@
-
 const DiameterSimplexHeap{M} =
     BinaryHeap{DiameterSimplex{M}, DiameterSimplexComparer}
 
 struct CurrentColumn{M}
     heap            ::DiameterSimplexHeap{M}
     vertex_buffer   ::Vector{Int}
-    #neighbor_buffer ::Set{Int}
 end
 CurrentColumn{M}() where M =
     CurrentColumn(DiameterSimplexHeap{M}(), Int[])

@@ -195,6 +195,7 @@ end
 Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     sx1 * inv(sx2)
 
+# Idea: precompute inverses and generate a function with the inverses hard-coded.
 @generated function Base.inv(sx::AbstractSimplex{M}) where M
     err_check = quote
         coef(sx) == 0 && throw(DomainError(0))
