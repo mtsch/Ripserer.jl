@@ -1,12 +1,5 @@
-const DiameterSimplexHeap{M} =
-    BinaryHeap{DiameterSimplex{M}, DiameterSimplexComparer}
-
-struct CurrentColumn{M}
-    heap            ::DiameterSimplexHeap{M}
-    vertex_buffer   ::Vector{Int}
-end
-CurrentColumn{M}() where M =
-    CurrentColumn(DiameterSimplexHeap{M}(), Int[])
+const Column{M, T} =
+    BinaryHeap{DiameterSimplex{M, T}, DiameterSimplexComparer}
 
 function diam(vertices, dist)
     maximum(dist[i, j] for i in vertices, j in vertices)
@@ -63,35 +56,40 @@ function get_common_neighbors(vertices, dist::Matrix)
 end
 
 """
-    initialize!(column, simplex, dim, dist, binomial)
+    initialize!(column, vertex_buffer, simplex, dim, dist, binomial)
 
-Initialize column by putting all cofaces of `dim`-dimensional `simplex` on `column`'s heap.
+Initialize column by putting all cofaces of `dim`-dimensional `simplex` on `column` heap.
 
 # TODO emergent pairs.
+# TODO do we even need the vertex buffer?
 """
-function initialize!(col::CurrentColumn{M}, simplex, dim, dist, binomial) where M
-    heap = col.heap
-    vertices = get_vertices!(col.vertex_buffer, simplex, dim, size(dist, 1), binomial)
+function initialize!(column::Column, #=vertex_buffer,=# simplex, dim, dist, binomial)
+    vertices = get_vertices!(#=vertex_buffer=#Int[], simplex, dim, size(dist, 1), binomial)
     common = get_common_neighbors(vertices, dist)
     for v in common
-        push!(heap, coface(simplex, vertices, v, dist, binomial))
+        push!(column, coface(simplex, vertices, v, dist, binomial))
     end
-    col
+    column
 end
 
-function pop_pivot!(col::CurrentColumn{M}) where M
-    heap = col.heap
-    isempty(heap) && return nothing
+function pop_pivot!(column::Column)
+    isempty(column) && return nothing
 
-    pivot = pop!(heap)
-    while !isempty(heap)
+    pivot = pop!(column)
+    while !isempty(column)
         if coef(pivot) == 0
-            pivot = pop!(heap)
-        elseif index(top(heap)) == index(pivot)
-            pivot += pop!(heap)
+            pivot = pop!(column)
+        elseif index(top(column)) == index(pivot)
+            pivot += pop!(column)
         else
             break
         end
     end
     coef(pivot) == 0 ? nothing : pivot
+end
+
+function pivot(column::Column)
+    pivot = pop_pivot!(column)
+    push!(column, pivot)
+    pivot
 end

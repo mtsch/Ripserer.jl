@@ -116,7 +116,8 @@ end
     CompressedSparseMatrix{T}
 
 Compressed immutable sparse matrix data structure that supports efficient column insertion
-and column-based indexing. It's up to the value type `T` to store the row position.
+via [`push!`](@ref) and column-based indexing.
+It's up to the value type `T` to know about its row position.
 """
 struct CompressedSparseMatrix{T}
     colptr::Vector{Int}

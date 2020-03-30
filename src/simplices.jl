@@ -194,6 +194,8 @@ end
 
 Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     sx1 * inv(sx2)
+Base.:-(sx::AbstractSimplex{M}) where M =
+    set_coef(sx, -coef(sx))
 
 # Idea: precompute inverses and generate a function with the inverses hard-coded.
 @generated function Base.inv(sx::AbstractSimplex{M}) where M

@@ -1,8 +1,8 @@
-using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!, pop_pivot!
+using Ripserer: Column, initialize!, pop_pivot!
 
 @testset "columns" begin
-    @testset "DiameterSimplexHeap" begin
-        column = DiameterSimplexHeap{3}()
+    @testset "a Column is a heap." begin
+        column = Column{3, Float64}()
         @test isempty(column)
 
         push!(column, DiameterSimplex{3}(3.0, 1, 1))
@@ -27,21 +27,21 @@ using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!, pop_pivot!
 
     @testset "initialize!" begin
         @testset "star" begin
-            col = CurrentColumn{5}()
+            col = Column{5, Int}()
             dist = sparse([0 1 0 0;
                            1 0 2 3;
                            0 2 0 0;
                            0 3 0 0])
 
             initialize!(col, DiameterSimplex{5}(1, [2], 1), 0, dist, binomial)
-            @test length(col.heap) == 3
-            @test pop!(col.heap) == DiameterSimplex{5}(1, 1, 1)
-            @test pop!(col.heap) == DiameterSimplex{5}(2, 3, 1)
-            @test pop!(col.heap) == DiameterSimplex{5}(3, 5, 1)
+            @test length(col) == 3
+            @test pop!(col) == DiameterSimplex{5}(1, 1, 1)
+            @test pop!(col) == DiameterSimplex{5}(2, 3, 1)
+            @test pop!(col) == DiameterSimplex{5}(3, 5, 1)
         end
 
         @testset "line cofaces" begin
-            col = CurrentColumn{2}()
+            col = Column{2, Float64}()
             dist = sparse(Float64[0 1 3 4 5 0;
                                   1 0 3 4 5 1;
                                   3 3 0 0 0 1;
@@ -49,10 +49,10 @@ using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!, pop_pivot!
                                   5 5 0 0 0 1;
                                   0 1 1 1 1 1])
             initialize!(col, DiameterSimplex{2}(1.0, [2, 1], 1), 1, dist, binomial)
-            @test length(col.heap) == 3
-            @test pop!(col.heap) == DiameterSimplex{2}(3.0, [3, 2, 1], 1)
-            @test pop!(col.heap) == DiameterSimplex{2}(4.0, [4, 2, 1], 1)
-            @test pop!(col.heap) == DiameterSimplex{2}(5.0, [5, 2, 1], 1)
+            @test length(col) == 3
+            @test pop!(col) == DiameterSimplex{2}(3.0, [3, 2, 1], 1)
+            @test pop!(col) == DiameterSimplex{2}(4.0, [4, 2, 1], 1)
+            @test pop!(col) == DiameterSimplex{2}(5.0, [5, 2, 1], 1)
         end
 
         @testset "full graph" begin
@@ -63,48 +63,48 @@ using Ripserer: DiameterSimplexHeap, CurrentColumn, initialize!, pop_pivot!
             dist_sp = sparse(dist)
 
             for dim in 1:5
-                col = CurrentColumn{3}()
+                col = Column{3, Float64}()
                 initialize!(col, DiameterSimplex{3}(1.0, 1, 1), dim, dist, binomial)
-                @test length(col.heap) == 100 - dim - 1
+                @test length(col) == 100 - dim - 1
 
-                col = CurrentColumn{3}()
+                col = Column{3, Float64}()
                 initialize!(col, DiameterSimplex{3}(1.0, 1, 1), dim, dist_sp, binomial)
-                @test length(col.heap) == 100 - dim - 1
+                @test length(col) == 100 - dim - 1
             end
         end
     end
 
     @testset "pop_pivot!" begin
         @testset "single element" begin
-            col = CurrentColumn{2}()
-            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{2}(2.0, 1, 1))
+            col = Column{2, Float64}()
+            push!(col, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col, DiameterSimplex{2}(2.0, 1, 1))
 
             @test pop_pivot!(col) == DiameterSimplex{2}(2.0, 1, 1)
-            @test isempty(col.heap)
+            @test isempty(col)
 
-            col = CurrentColumn{3}()
-            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
-            push!(col.heap, DiameterSimplex{3}(2.0, 1, 1))
+            col = Column{3, Float64}()
+            push!(col, DiameterSimplex{3}(2.0, 1, 1))
+            push!(col, DiameterSimplex{3}(2.0, 1, 1))
+            push!(col, DiameterSimplex{3}(2.0, 1, 1))
 
             @test isnothing(pop_pivot!(col))
-            @test isempty(col.heap)
+            @test isempty(col)
         end
 
         @testset "multiple" begin
-            col = CurrentColumn{5}()
-            push!(col.heap, DiameterSimplex{5}(1.0, 2, 3))
-            push!(col.heap, DiameterSimplex{5}(2.0, 3, 4))
-            push!(col.heap, DiameterSimplex{5}(1.0, 2, 2))
-            push!(col.heap, DiameterSimplex{5}(3.0, 1, 2))
-            push!(col.heap, DiameterSimplex{5}(2.0, 3, 1))
-            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
-            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
-            push!(col.heap, DiameterSimplex{5}(4.0, 4, 4))
+            col = Column{5, Float64}()
+            push!(col, DiameterSimplex{5}(1.0, 2, 3))
+            push!(col, DiameterSimplex{5}(2.0, 3, 4))
+            push!(col, DiameterSimplex{5}(1.0, 2, 2))
+            push!(col, DiameterSimplex{5}(3.0, 1, 2))
+            push!(col, DiameterSimplex{5}(2.0, 3, 1))
+            push!(col, DiameterSimplex{5}(4.0, 4, 4))
+            push!(col, DiameterSimplex{5}(4.0, 4, 4))
+            push!(col, DiameterSimplex{5}(4.0, 4, 4))
 
             @test pop_pivot!(col) == DiameterSimplex{5}(3.0, 1, 2)
             @test pop_pivot!(col) == DiameterSimplex{5}(4.0, 4, 2)

@@ -61,6 +61,7 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, get_verti
         @test inv(Simplex{2}(10, 1)) == Simplex{2}(10, 1)
         for i in 1:16
             @test inv(Simplex{17}(10, i)) * Simplex{17}(10, i) == Simplex{17}(10, 1)
+            @test Simplex{17}(15, i) + (-Simplex{17}(15, i)) == Simplex{17}(15, 0)
         end
         @test_throws DomainError inv(Simplex{2}(10, 0))
         @test_throws DomainError inv(Simplex{3}(10, 0))
