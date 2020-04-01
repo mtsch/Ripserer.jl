@@ -32,11 +32,11 @@ Get the combinatorial index of `simplex`. The index is equal to
 (i_d, i_{d-1}, ..., 1, 0) \\mapsto \\sum_{k=0^d} \\binom{i_k}{k + 1}.
 ```
 
-    index(vertices, binomial)
+    index(reduction_state, vertices)
 
 Compute the index from a collection of `vertices`. Vertices must be in descending order.
 """
-index(vertices, binomial) =
+index(st::ReductionState, vertices) =
     sum(binomial(vertices[end - l + 1] - 1, l) for l in eachindex(vertices)) + 1
 
 """
@@ -50,9 +50,11 @@ Note that the coefficient and value are stored in a single 8-byte word, so the r
 possible indices is slightly smaller than `typemax(Int64)`, depending on the number of bits
 needed to represent `M`. A simplex has no information about its dimension.
 
-# Constructor:
+# Constructors:
 
     Simplex{M}(index::Integer, value::Integer)
+
+    Simplex{M}(st::ReductionState, vertices, value::Integer)
 """
 primitive type Simplex{M} <: AbstractSimplex{M} 64 end
 
@@ -69,10 +71,8 @@ n_bits(M) =
     bits = n_bits(M)
     :(reinterpret(Simplex{M}, Int64(index) << $bits + mod(coef, $M)))
 end
-Simplex(x, coef, modulus) = Simplex{modulus}(x, coef)
-# This constructor is for debugging and testing only.
-Simplex{M}(vertices::AbstractVector, coef) where M =
-    Simplex{M}(index(vertices, binomial), coef)
+Simplex{M}(st::ReductionState, vertices, coef) where M =
+    Simplex{M}(index(st, vertices), coef)
 
 @generated function index(sx::Simplex{M}) where M
     bits = n_bits(M)
@@ -102,6 +102,8 @@ needed to represent `M`. A simplex has no information about its dimension.
 # Constructor:
 
     DiameterSimplex{M}(diameter::T, index::Integer, value::Integer)
+
+    DiameterSimplex{M}(st::ReductionState, diameter::T, vertices, value::Integer)
 """
 struct DiameterSimplex{M, T} <: AbstractSimplex{M}
     diam    ::T
@@ -109,8 +111,8 @@ struct DiameterSimplex{M, T} <: AbstractSimplex{M}
 end
 DiameterSimplex{M}(diam, x, coef) where M =
     DiameterSimplex(diam, Simplex{M}(x, coef))
-DiameterSimplex(diam, x, coef, modulus) =
-    DiameterSimplex(diam, Simplex{modulus}(x, coef))
+DiameterSimplex{M}(st::ReductionState, diam, vertices, coef) where M =
+    DiameterSimplex(diam, Simplex{M}(st, vertices, coef))
 
 index(sx::DiameterSimplex) =
     index(sx.simplex)
@@ -144,6 +146,7 @@ struct DiameterSimplexComparer end
 DataStructures.compare(dsc::DiameterSimplexComparer, sx1, sx2) =
     dsc(sx1, sx2)
 
+# Find largest integer i between bot and top, for which f(i) is true.
 function Base.findlast(f, bot::Int, top::Int)
     if !f(top)
         count = top - bot
@@ -162,27 +165,40 @@ function Base.findlast(f, bot::Int, top::Int)
 end
 
 """
-    get_vertices!(buffer, simplex::AbstractSimplex, dim, n_max, binomial)
+    get_vertices!(reduction_state, simplex::AbstractSimple)
 
-Copy vertices of `dim`-dimensional `simplex` to `buffer`. `n_max` is the largest possible
-vertex index i.e. the number of points in data set and `binomial` is a function or callable
-object that is used to compute binomial coefficients.
+Copy vertices of `simplex` to `reduction_state`'s vertex cache.
 """
-function get_vertices!(buff, sx::AbstractSimplex, dim, n_max, binomial)
-    resize!(buff, dim + 1)
+function get_vertices!(st::ReductionState, sx::AbstractSimplex)
+    d = dim(st)
+    resize!(st.vertex_cache, d + 1)
     idx = index(sx) - 1
-    for (i, k) in enumerate(dim+1:-1:1)
-        v = findlast(x -> binomial(x, k) ≤ idx, k - 1, n_max)
-        buff[i] = v + 1
-        idx -= binomial(v, k)
+    for (i, k) in enumerate(d+1:-1:1)
+        v = findlast(x -> binomial(st, x, k) ≤ idx, k - 1, n_vertices(st))
+        st.vertex_cache[i] = v + 1
+        idx -= binomial(st, v, k)
         n_max = v - 1
     end
-    buff
+    st.vertex_cache
+end
+
+"""
+    vertices(reduction_state, simplex)
+
+Get vertices of `simplex`. Vertices are only recomputed when the vertex cache in
+`reduction_state` is invalid.
+"""
+function vertices(st::ReductionState{M}, sx::AbstractSimplex{M}) where M
+    # Calculating index from vertices is so much faster that this is worth doing.
+    if length(st.vertex_cache) != dim(st)+1 || index(st, st.vertex_cache) != index(sx)
+        get_vertices!(st, sx)
+    end
+    st.vertex_cache
 end
 
 # simplex arithmetic ===================================================================== #
 
-# Mod is handled in set_coef.
+# Note: mod is handled in set_coef.
 for op in (:+, :-, :*)
     @eval function (Base.$op)(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M
         @boundscheck begin

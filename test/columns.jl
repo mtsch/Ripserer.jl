@@ -1,4 +1,4 @@
-using Ripserer: Column, initialize!, pop_pivot!
+using Ripserer: Column, coboundary, initialize!, pop_pivot!
 
 @testset "columns" begin
     @testset "a Column is a heap." begin
@@ -23,8 +23,60 @@ using Ripserer: Column, initialize!, pop_pivot!
         @test isempty(column)
 
         @test_throws MethodError push!(column, DiameterSimplex{2}(3.0, 1, 1))
+        @test_throws MethodError push!(column, DiameterSimplex{3}(3, 1, 1))
     end
 
+    @testset "coboundary" begin
+        @testset "start" begin
+            st = ReductionState(sparse([0 1 0 0;
+                                        1 0 2 3;
+                                        0 2 0 0;
+                                        0 3 0 0]), 0, 5)
+            cb_set = Set{DiameterSimplex{5, Int}}()
+            for sx in coboundary(st, DiameterSimplex{5}(1, 2, 1))
+                push!(cb_set, sx)
+            end
+            @test cb_set == Set([DiameterSimplex{5}(1, 1, 1),
+                                 DiameterSimplex{5}(2, 3, 1),
+                                 DiameterSimplex{5}(3, 5, 1)])
+        end
+
+        @testset "line cofaces" begin
+            st = ReductionState(sparse(Float64[0 1 3 4 5 0;
+                                               1 0 3 4 5 1;
+                                               3 3 0 0 0 1;
+                                               4 4 0 0 0 1;
+                                               5 5 0 0 0 1;
+                                               0 1 1 1 1 0]), 1, 2)
+            cb_set = Set{DiameterSimplex{2, Float64}}()
+            for sx in coboundary(st, DiameterSimplex{2}(st, 1.0, (2, 1), 1))
+                push!(cb_set, sx)
+            end
+            @test length(cb_set) == 3
+            @test cb_set == Set([DiameterSimplex{2}(st, 3.0, [3, 2, 1], 1),
+                                 DiameterSimplex{2}(st, 4.0, [4, 2, 1], 1),
+                                 DiameterSimplex{2}(st, 5.0, [5, 2, 1], 1)])
+        end
+
+        @testset "full graph" begin
+            dist = ones(100, 100)
+            for i in 1:size(dist, 1)
+                dist[i, i] = 0
+            end
+            st = ReductionState(sparse(dist), 5, 3)
+
+            for d in 1:5
+                st.dim[] = d
+                cob = DiameterSimplex{3, Float64}[]
+                for sx in coboundary(st, DiameterSimplex{3}(1.0, 10, 1))
+                    push!(cob, sx)
+                end
+                @test length(cob) == 100 - d - 1
+            end
+        end
+    end
+
+    #=
     @testset "initialize!" begin
         @testset "star" begin
             col = Column{5, Int}()
@@ -73,6 +125,7 @@ using Ripserer: Column, initialize!, pop_pivot!
             end
         end
     end
+    =#
 
     @testset "pop_pivot!" begin
         @testset "single element" begin

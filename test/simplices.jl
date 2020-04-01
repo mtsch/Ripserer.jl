@@ -1,45 +1,49 @@
-using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, get_vertices!
+using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices
 
 @testset "simplices" begin
     @testset "Simplex" begin
-        for modulus in (2, 17, 7487)
+        for M in (2, 17, 7487)
             for i in (1, 536, typemax(Int32))
                 c = rand(Int64)
-                @test Simplex(i, c, modulus) === Simplex{modulus}(i, c)
-                @test index(Simplex(i, c, modulus)) == i
-                @test coef(Simplex(i, c, modulus)) == mod(c, modulus)
+                @test index(Simplex{M}(i, c)) == i
+                @test coef(Simplex{M}(i, c)) == mod(c, M)
             end
         end
-        @test_throws DomainError Simplex(1, 1, 4)
-        @test_throws DomainError Simplex(1, 1, 7497)
+        @test_throws DomainError Simplex{-3}(1, 1)
+        @test_throws DomainError Simplex{7497}(1, 1)
     end
 
     @testset "DiameterSimplex" begin
-        for modulus in (2, 17, 7487)
+        for M in (2, 17, 7487)
             for i in (1, 536, typemax(Int32))
                 c = rand(Int64)
                 d = rand(Float64)
-                @test DiameterSimplex(d, i, c, modulus) == DiameterSimplex{modulus}(d, i, c)
-                @test index(DiameterSimplex(d, i, c, modulus)) == i
-                @test coef(DiameterSimplex(d, i, c, modulus)) == mod(c, modulus)
-                @test diam(DiameterSimplex(d, i, c, modulus)) == d
+                @test index(DiameterSimplex{M}(d, i, c)) == i
+                @test coef(DiameterSimplex{M}(d, i, c)) == mod(c, M)
+                @test diam(DiameterSimplex{M}(d, i, c)) == d
             end
         end
-        @test_throws DomainError DiameterSimplex(1.0, 1, 1, 1)
-        @test_throws DomainError DiameterSimplex(1.0, 1, 1, 6666)
+        @test_throws DomainError DiameterSimplex{1}(1.0, 1, 1)
+        @test_throws DomainError DiameterSimplex{6666}(1.0, 1, 1)
     end
 
-    @testset "index(::Vector), get_vertices!" begin
+    @testset "index(::Vector), vertices" begin
+        st = ReductionState(rand_dist_matrix(10), 5, 2)
         buff = Int[]
-        @test get_vertices!(buff, Simplex(1, 1, 2), 2, 10, binomial) == [3, 2, 1]
-        @test get_vertices!(buff, Simplex(2, 1, 2), 3, 10, binomial) == [5, 3, 2, 1]
-        @test get_vertices!(buff, Simplex(3, 1, 2), 1, 10, binomial) == [3, 2]
-        @test get_vertices!(buff, Simplex(4, 1, 2), 4, 10, binomial) == [6, 5, 4, 2, 1]
-        @test get_vertices!(buff, Simplex(5, 1, 2), 2, 10, binomial) == [5, 2, 1]
+        st.dim[] = 2
+        @test vertices(st, Simplex{2}(1, 1)) == [3, 2, 1]
+        st.dim[] = 3
+        @test vertices(st, Simplex{2}(2, 1)) == [5, 3, 2, 1]
+        st.dim[] = 1
+        @test vertices(st, Simplex{2}(3, 1)) == [3, 2]
+        st.dim[] = 4
+        @test vertices(st, Simplex{2}(4, 1)) == [6, 5, 4, 2, 1]
+        st.dim[] = 2
+        @test vertices(st, Simplex{2}(5, 1)) == [5, 2, 1]
 
+        st.dim[] = 5
         for i in 1:10
-            @test index(get_vertices!(buff, Simplex(i, 1, 2), 0, 10, binomial),
-                        binomial) == i
+            @test index(st, vertices(st, Simplex{2}(i, 1))) == i
         end
     end
 

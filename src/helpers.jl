@@ -1,53 +1,3 @@
-"""
-    isprime(n)
-
-Return `true` if `n` is a prime number.
-"""
-function isprime(n)
-    if iseven(n) || n < 2
-        n == 2
-    else
-        p = 3
-        q = n / p
-        while p ≤ q
-            iszero(n % p) && return false
-            p += 2
-            q = n / p
-        end
-        true
-    end
-end
-
-"""
-    Binomial(n_max, k_max)
-
-Table of precomputed binomial coefficients up to `n_max` and `k_max`. Can be called like a
-function and should be identical to [`binomial`](@ref) for values of `0 ≤ n ≤ n_max` and
-`0 ≤ k ≤ k_max`
-"""
-struct Binomial
-    table::Matrix{Int64}
-end
-
-function Binomial(n, k)
-    table = zeros(Int, n+1, k+1)
-    for i in 1:n+1
-	table[i, 1] = 1;
-	for j in 2:min(i, k+1)
-	    table[i, j] = table[i-1, j-1] + table[i-1, j];
-	    if (i <= k)
-                table[i, i] = 1
-            end
-        end
-    end
-    Binomial(table)
-end
-
-Base.show(io::IO, bin::Binomial) =
-    print(io, "Binomial$(size(bin.table) .- 1)")
-(bin::Binomial)(n, k) =
-    bin.table[n+1, k+1]
-
 # distance matrix stuff ================================================================== #
 """
     edge_lt(e1, e2) =
@@ -117,6 +67,7 @@ end
 
 Compressed immutable sparse matrix data structure that supports efficient column insertion,
 pushing to the last column via [`push!`](@ref) and iterating over columns.
+
 It's up to the value type `T` to know about its row position.
 """
 struct CompressedSparseMatrix{T}
@@ -173,3 +124,128 @@ function Base.iterate(ci::CSMColumnIterator, i=1)
         (ci.csm.nzval[index], i + 1)
     end
 end
+# state ================================================================================== #
+"""
+    isprime(n)
+
+Return `true` if `n` is a prime number.
+"""
+function isprime(n)
+    if iseven(n) || n < 2
+        n == 2
+    else
+        p = 3
+        q = n / p
+        while p ≤ q
+            iszero(n % p) && return false
+            p += 2
+            q = n / p
+        end
+        true
+    end
+end
+
+"""
+    Binomial(n_max, k_max)
+
+Table of precomputed binomial coefficients up to `n_max` and `k_max`. Can be called like a
+function and should be identical to [`binomial`](@ref) for values of `0 ≤ n ≤ n_max` and
+`0 ≤ k ≤ k_max`
+"""
+struct Binomial
+    table::Matrix{Int64}
+end
+
+function Binomial(n, k)
+    table = zeros(Int, n+1, k+1)
+    for i in 1:n+1
+	table[i, 1] = 1;
+	for j in 2:min(i, k+1)
+	    table[i, j] = table[i-1, j-1] + table[i-1, j];
+	    if (i <= k)
+                table[i, i] = 1
+            end
+        end
+    end
+    Binomial(table)
+end
+
+Base.show(io::IO, bin::Binomial) =
+    print(io, "Binomial$(size(bin.table) .- 1)")
+(bin::Binomial)(n, k) =
+    bin.table[n+1, k+1]
+
+"""
+    ReductionState{M, T, A<:AbstractArray{T}}
+
+This type holds the information about the current state in reduction algorithm.
+
+# Constructor
+
+    ReductionState(distance_matrix, dim, modulus)
+
+"""
+struct ReductionState{M, T, A<:AbstractArray{T}}
+    dist         ::A
+    binomial     ::Binomial
+    dim          ::Ref{Int}
+    vertex_cache ::Vector{Int}
+end
+
+function ReductionState(dist::A, dim::Int, modulus::Int) where {T, A<:AbstractArray{T}}
+    is_distance_matrix(dist) ||
+        throw(ArgumentError("`dist` must be a distance matrix"))
+    isprime(modulus) ||
+        throw(ArgumentError("`modulus` must be prime"))
+    dim ≥ 0 ||
+        throw(ArgumentError("`dim` must be positive"))
+    ReductionState{modulus, T, A}(dist, Binomial(size(dist, 1), dim+2),
+                                  Ref(dim), Int[])
+end
+
+"""
+    n_vertices(reduction_state)
+
+Get number of vertices in `reduction_state`.
+"""
+n_vertices(st::ReductionState) =
+    size(st.dist, 1)
+
+dim(st::ReductionState) =
+    st.dim[]
+
+function set_dim!(st::ReductionState, dim)
+    @warn "TODO: Binomial not updated!"
+    st.dim[] = dim
+end
+
+"""
+    dist(reduction_state, i, j)
+
+Get the distance between vertex `i` and vertex `j`.
+"""
+dist(st::ReductionState, i, j) =
+    st.dist[i, j] # should return Inf?
+
+"""
+    diam(reduction_state, vertices)
+
+Get diameter of vertex set `vertices`.
+"""
+function diam(st::ReductionState, vertices)
+    @warn "test me if you use me"
+    n = n_vertices(st)
+    maximum(dist(st, i, j) for i in 1:n-1 for j in i+1:n)
+end
+
+"""
+    is_connected(reduction_state, vertex, vertices)
+
+Check if `vertex` is connected to `vertices` i.e. if the distance to all other vertices
+is ≥ 0. If `vertex in vertices`, this function returns `false`.
+"""
+is_connected(st::ReductionState, vertex, vertices) =
+    !any(iszero, dist(st, v, vertex) for v in vertices)
+
+Base.binomial(st::ReductionState, n, k) =
+    st.binomial(n, k)
