@@ -1,66 +1,3 @@
-# distance matrix stuff ================================================================== #
-"""
-    edge_lt(e1, e2) =
-
-Compare edges like DiameterSimplexComparer.
-
-* by increasing diameter,
-* by decreasing combinatorial index.
-"""
-edge_lt((e1, i1), (e2, i2)) =
-    e1 < e2 || e1 == e2 && i1 > i2
-
-"""
-    edges(dist, binomial)
-
-Get edges in distance matrix `dist`, sorted by decresing length and increasing index.
-"""
-function edges(dist::AbstractMatrix{T}) where T
-    n = size(dist, 1)
-    res = Tuple{T, Tuple{Int, Int}}[]
-    for j in 1:n, i in j+1:n
-        push!(res, (dist[i, j], (i, j)))
-    end
-    sort!(res, lt=edge_lt)
-end
-
-function edges(dist::AbstractSparseMatrix{T}) where T
-    res = Tuple{T, Tuple{Int, Int}}[]
-    I, J, V = findnz(dist)
-    for (i, j) in zip(I, J)
-        i > j || continue
-        push!(res, (dist[i, j], (i, j)))
-    end
-    sort!(res, lt=edge_lt)
-end
-
-"""
-    is_distance_matrix(dist)
-
-Return true if dist is a valid distance matrix.
-"""
-is_distance_matrix(dist) =
-    issymmetric(dist) && all(iszero(dist[i, i]) for i in 1:size(dist, 1))
-
-"""
-    apply_threshold(dist, thresh)
-
-Convert matrix `dist` to sparse matrix with no entries larger than `thresh`.
-"""
-function apply_threshold(dist, thresh)
-    n = size(dist, 1)
-    for i in 1:n, j in i+1:n
-        if dist[i, j] > thresh
-            dist[i, j] = dist[j, i] = 0
-        end
-    end
-    if dist isa SparseMatrixCSC
-        dropzeros!(dist)
-    else
-        sparse(dist)
-    end
-end
-
 # compressed sparse matrix =============================================================== #
 """
     CompressedSparseMatrix{T}
@@ -249,3 +186,70 @@ is_connected(st::ReductionState, vertex, vertices) =
 
 Base.binomial(st::ReductionState, n, k) =
     st.binomial(n, k)
+
+# distance matrix stuff ================================================================== #
+"""
+    edge_lt(e1, e2) =
+
+Compare edges like DiameterSimplexComparer.
+
+* by increasing diameter,
+* by decreasing combinatorial index.
+"""
+edge_lt((e1, i1), (e2, i2)) =
+    e1 < e2 || e1 == e2 && i1 > i2
+
+"""
+    edges(reduction_state)
+
+Get edges in distance matrix in `reduction_state`,
+sorted by decresing length and increasing index.
+"""
+edges(rs::ReductionState) =
+    edges(rs.dist)
+
+function edges(dist::AbstractMatrix{T}) where T
+    n = size(dist, 1)
+    res = Tuple{T, Tuple{Int, Int}}[]
+    for j in 1:n, i in j+1:n
+        push!(res, (dist[i, j], (i, j)))
+    end
+    sort!(res, lt=edge_lt)
+end
+
+function edges(dist::AbstractSparseMatrix{T}) where T
+    res = Tuple{T, Tuple{Int, Int}}[]
+    I, J, V = findnz(dist)
+    for (i, j) in zip(I, J)
+        i > j || continue
+        push!(res, (dist[i, j], (i, j)))
+    end
+    sort!(res, lt=edge_lt)
+end
+
+"""
+    is_distance_matrix(dist)
+
+Return true if dist is a valid distance matrix.
+"""
+is_distance_matrix(dist) =
+    issymmetric(dist) && all(iszero(dist[i, i]) for i in 1:size(dist, 1))
+
+"""
+    apply_threshold(dist, thresh)
+
+Convert matrix `dist` to sparse matrix with no entries larger than `thresh`.
+"""
+function apply_threshold(dist, thresh)
+    n = size(dist, 1)
+    for i in 1:n, j in i+1:n
+        if dist[i, j] > thresh
+            dist[i, j] = dist[j, i] = 0
+        end
+    end
+    if dist isa SparseMatrixCSC
+        dropzeros!(dist)
+    else
+        sparse(dist)
+    end
+end

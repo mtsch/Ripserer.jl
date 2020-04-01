@@ -1,4 +1,6 @@
-using Ripserer: Column, coboundary, initialize!, pop_pivot!
+using Ripserer: Column, coboundary, pop_pivot!,
+    compute_0_dim_pairs!,
+    ReductionMatrices, compute_pairs!
 
 @testset "columns" begin
     @testset "a Column is a heap." begin
@@ -163,5 +165,70 @@ using Ripserer: Column, coboundary, initialize!, pop_pivot!
             @test pop_pivot!(col) == DiameterSimplex{5}(4.0, 4, 2)
             @test isnothing(pop_pivot!(col))
         end
+    end
+
+    @testset "compute_0_dim_pairs!" begin
+        @testset "dense Int" begin
+            dist = [0 1 2;
+                    1 0 3;
+                    2 3 0]
+            st = ReductionState(dist, 1, 2)
+            critical_edges = DiameterSimplex{2, Int64}[]
+            res = compute_0_dim_pairs!(st, critical_edges)
+
+            @test res == [(0, 1),
+                          (0, 2),
+                          (0, typemax(Int))]
+            @test critical_edges == [DiameterSimplex{2}(3, 3, 1)]
+        end
+
+        @testset "sparse Float64" begin
+            dist = sparse(Float64[0 2 0 0 5 0;
+                                  2 0 4 6 0 0;
+                                  0 4 0 3 0 0;
+                                  0 6 3 0 1 0;
+                                  5 0 0 1 0 0;
+                                  0 0 0 0 0 0])
+            st = ReductionState(dist, 1, 3)
+            critical_edges = DiameterSimplex{3, Float64}[]
+            res = compute_0_dim_pairs!(st, critical_edges)
+
+            @test res == [(0.0, 1.0),
+                          (0.0, 2.0),
+                          (0.0, 3.0),
+                          (0.0, 4.0),
+                          (0.0, Inf),
+                          (0.0, Inf)]
+            @test critical_edges == [DiameterSimplex{3}(6.0, 5, 1),
+                                     DiameterSimplex{3}(5.0, 7, 1)]
+        end
+    end
+
+    @testset "compute_pairs!" begin
+        # 1 -- 2
+        # |    |
+        # 4 -- 3
+        dist = Float64[0 1 2 1;
+                       1 0 1 2;
+                       2 1 0 1;
+                       1 2 1 0]
+        st = ReductionState(dist, 1, 2)
+        columns = DiameterSimplex{2, Float64}[]
+        compute_0_dim_pairs!(st, columns)
+
+        rm = ReductionMatrices(st)
+        res = compute_pairs!(rm, columns, 1)
+
+        @test res == [(1.0, 2.0)]
+    end
+
+    @test "ripser" begin
+        dist = rand_dist_matrix(100)
+        st = ReductionState(dist, 1, 2)
+        columns = DiameterSimplex{2, Float64}[]
+        compute_0_dim_pairs!(st, columns)
+
+        rmx = ReductionMatrices(st)
+        res = compute_pairs!(rmx, columns, 1)
     end
 end

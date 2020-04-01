@@ -202,7 +202,7 @@ end
 for op in (:+, :-, :*)
     @eval function (Base.$op)(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M
         @boundscheck begin
-            index(sx1) == index(sx2) || throw(ArgumentError("simplex indices don't match"))
+            # index(sx1) == index(sx2) || throw(ArgumentError("simplex indices don't match"))
         end
         set_coef(sx1, $op(coef(sx1), coef(sx2)))
     end

@@ -61,22 +61,6 @@ coboundary(st, simplex) =
 const Column{M, T} =
     BinaryHeap{DiameterSimplex{M, T}, DiameterSimplexComparer}
 
-"""
-    initialize!(column, vertex_buffer, simplex, dim, dist, binomial)
-
-Initialize column by putting all cofaces of `dim`-dimensional `simplex` on `column` heap.
-
-# TODO emergent pairs.
-"""
-function initialize!(column::Column, #=vertex_buffer,=# simplex, dim, dist, binomial)
-    vertices = get_vertices!(#=vertex_buffer=#Int[], simplex, dim, size(dist, 1), binomial)
-    common = get_common_neighbors(vertices, dist)
-    for v in common
-        push!(column, coface(simplex, vertices, v, dist, binomial))
-    end
-    column
-end
-
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
 
@@ -95,36 +79,118 @@ end
 
 function pivot(column::Column)
     pivot = pop_pivot!(column)
-    push!(column, pivot)
+    if !isnothing(pivot)
+        push!(column, pivot)
+    end
     pivot
 end
 
-struct ReductionMatrices{M, T}
-    reduction_matrix ::CompressedSparseMatrix{DiameterSimplex{M, T}}
-    pivot_index      ::Dict{T, Simplex{M, T}}
-    working_column   ::Column{M, T}
+# main algo stuff ======================================================================== #
+struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
+    state             ::R
+    reduction_matrix  ::CompressedSparseMatrix{DiameterSimplex{M, T}}
+    column_index      ::Dict{Int, Int} # index(sx) => column index of reduction_matrix
+    working_column    ::Column{M, T}
+    reduction_entries ::Column{M, T}
 end
 
-function reconstruct!(pivot, reduction_matrix, index, dim, dist, binomial)
-    # greš po indeksih v matriki, dodaš vse koboundarije, sproti addaš
-    # cofacets of simplex
-    for simplex in reduction_matrix[index]
+ReductionMatrices(st::ReductionState{M, T}) where {M, T} =
+    ReductionMatrices(st, CompressedSparseMatrix{DiameterSimplex{M, T}}(),
+                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}())
+
+"""
+    add!(rm::ReductionMatrices, index)
+
+Add column with column index `index` multiplied by the correct factor to `working_column`.
+Also record the addition in `reduction_matrix`.
+"""
+# add mora vedet katere simplekse je dodal, ne njihovih coboundaryjev
+function add!(rm::ReductionMatrices, index)
+    inv_pivot = inv(pivot(rm.working_column))
+    for simplex in rm.reduction_matrix[index]
+        push!(rm.reduction_entries, -simplex * inv_pivot)
+        for coface in coboundary(rm.state, simplex)
+            push!(rm.working_column, -coface * inv_pivot)
+        end
+    end
+    pivot(rm.working_column)
+end
+
+function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
+    # initialize!(rm, column_simplex)
+    while !isempty(rm.working_column)
+        pop!(rm.working_column)
+    end
+    while !isempty(rm.reduction_entries)
+        pop!(rm.reduction_entries)
+    end
+
+    for coface in coboundary(rm.state, column_simplex)
+        push!(rm.working_column, coface)
+    end
+    # end initialize
+
+    add_column!(rm.reduction_matrix)
+    push!(rm.reduction_matrix, column_simplex)
+
+    current_pivot = pivot(rm.working_column)
+    while !isnothing(current_pivot) && haskey(rm.column_index, index(current_pivot))
+        current_pivot = add!(rm, rm.column_index[index(current_pivot)])
+    end
+    if isnothing(current_pivot)
+        #println("reduced")
+    else
+        death = diam(current_pivot)
+        birth = diam(column_simplex)
+        #println("int. ($birth, $death)")
+        if death > birth
+            push!(res, (birth, death))
+        end
+
+        rm.column_index[index(current_pivot)] = length(rm.reduction_matrix)
+        current_entry = pop_pivot!(rm.reduction_entries)
+        while !isnothing(current_entry)
+            # tukaj se pusha simplekse IZ KATERIH SI RAČUNAL COBOUNDARY!!
+            push!(rm.reduction_matrix, current_entry)
+            current_entry = pop_pivot!(rm.reduction_entries)
+        end
     end
 end
 
-# za add:
-# * naštimaš drug stolpec
-# * vzameš vn pivot od obeh -> se izničta
-# * ponavljaš dokler se izničujeta
-# * fukneš vse iz col2 na col1
+"""
+    compute_0_dim_pairs!(reduction_state, columns)
 
-# boljš:
-# * greš po matriki in mečeš vse na col1
-# * popneš pivot
-# * če še obstaja je treba več dodajat
-function add!(col1, col2, reduction_matrix, index, dim, dist, binomial)
-    pivot = pop_pivot!(col)
-    for other in reduction_matrix[index]
-        initialize!(col2, other, dim, dist, binomial)
+Compute 0-dimensional persistent homology using Kruskal's Algorithm.
+"""
+function compute_0_dim_pairs!(st::ReductionState{M, T},
+                              columns::AbstractVector{DiameterSimplex{M, T}}) where {M, T}
+    dset = IntDisjointSets(n_vertices(st))
+    res = Tuple{T, T}[]
+
+    for (l, (u, v)) in edges(st)
+        i = find_root(dset, u)
+        j = find_root(dset, v)
+        if i ≠ j
+            union!(dset, i, j)
+            if l > 0
+                push!(res, (zero(T), T(l)))
+            end
+        else
+            push!(columns, DiameterSimplex{M}(st, T(l), (u, v), 1))
+        end
     end
+    for _ in 1:num_groups(dset)
+        push!(res, (zero(T), typemax(T)))
+    end
+    reverse!(columns)
+    res
+end
+
+function compute_pairs!(rm::ReductionMatrices{M, T}, columns_to_reduce, dim) where {M, T}
+    res = Tuple{T, T}[]
+    rm.state.dim[] = dim
+    for column in columns_to_reduce
+        reduce_working_column!(rm, res, column)
+    end
+    res
 end
