@@ -5,12 +5,12 @@
 Get coface by adding `new_vertex` to `simplex`.
 """
 function coface(st::ReductionState{M, T}, simplex::DiameterSimplex{M, T},
-                new_vertex) where {M, T}
-    vxs = vertices(st, simplex)
+                new_vertex, dim) where {M, T}
+    vxs = vertices(st, simplex, dim)
 
     index = 0
     new_vertex_done = false
-    k = dim(st) + 2
+    k = dim + 2
     i = 1
     diameter = diam(simplex)
     coefficient = coef(simplex)
@@ -33,6 +33,7 @@ end
 struct CoboundaryIterator{M, T, R<:ReductionState{M, T}}
     state   ::R
     simplex ::DiameterSimplex{M, T}
+    dim     ::Int
 end
 
 Base.IteratorSize(::Type{CoboundaryIterator}) =
@@ -43,19 +44,19 @@ Base.eltype(::Type{CoboundaryIterator{M, T}}) where {M, T} =
     DiameterSimplex{M, T}
 
 function Base.iterate(ni::CoboundaryIterator, i = 1) where {M, T}
-    vxs = vertices(ni.state, ni.simplex)
+    vxs = vertices(ni.state, ni.simplex, ni.dim)
     while i <= n_vertices(ni.state) && !is_connected(ni.state, i, vxs)
         i += 1
     end
     if i > n_vertices(ni.state)
         nothing
     else
-        coface(ni.state, ni.simplex, i), i + 1
+        coface(ni.state, ni.simplex, i, ni.dim), i + 1
     end
 end
 
-coboundary(st, simplex) =
-    CoboundaryIterator(st, simplex)
+coboundary(st, simplex, dim) =
+    CoboundaryIterator(st, simplex, dim)
 
 # columns ================================================================================ #
 const Column{M, T} =
@@ -92,11 +93,12 @@ struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
     column_index      ::Dict{Int, Int} # index(sx) => column index of reduction_matrix
     working_column    ::Column{M, T}
     reduction_entries ::Column{M, T}
+    current_dim       ::Ref{Int}
 end
 
-ReductionMatrices(st::ReductionState{M, T}) where {M, T} =
+ReductionMatrices(st::ReductionState{M, T}, dim) where {M, T} =
     ReductionMatrices(st, CompressedSparseMatrix{DiameterSimplex{M, T}}(),
-                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}())
+                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}(), Ref(dim))
 
 """
     add!(rm::ReductionMatrices, index)
@@ -109,7 +111,7 @@ function add!(rm::ReductionMatrices, index)
     inv_pivot = inv(pivot(rm.working_column))
     for simplex in rm.reduction_matrix[index]
         push!(rm.reduction_entries, -simplex * inv_pivot)
-        for coface in coboundary(rm.state, simplex)
+        for coface in coboundary(rm.state, simplex, rm.current_dim[])
             push!(rm.working_column, -coface * inv_pivot)
         end
     end
@@ -125,7 +127,7 @@ function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
         pop!(rm.reduction_entries)
     end
 
-    for coface in coboundary(rm.state, column_simplex)
+    for coface in coboundary(rm.state, column_simplex, rm.current_dim[])
         push!(rm.working_column, coface)
     end
     # end initialize
@@ -188,9 +190,24 @@ end
 
 function compute_pairs!(rm::ReductionMatrices{M, T}, columns_to_reduce, dim) where {M, T}
     res = Tuple{T, T}[]
-    rm.state.dim[] = dim
+    rm.current_dim[] = dim
     for column in columns_to_reduce
         reduce_working_column!(rm, res, column)
     end
     res
+end
+
+function ripserer(dist, dim_max, modulus) # todo thresholding
+    st = ReductionState{modulus}(dist, dim_max)
+    push!(res, compute_0_dim_pairs!(st, columns))
+
+    if dim_max > 0
+        rm = ReductionMatrices(st, 1)
+        for dim in 1:dim_max
+            push!(res, compute_pairs!(rm, columns, dim))
+            if dim < dim_max
+                error("not implemented for dim > 1")
+            end
+        end
+    end
 end

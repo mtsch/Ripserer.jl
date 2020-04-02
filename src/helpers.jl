@@ -115,29 +115,28 @@ Base.show(io::IO, bin::Binomial) =
 """
     ReductionState{M, T, A<:AbstractArray{T}}
 
-This type holds the information about the current state in reduction algorithm.
+This type holds the information about the input values.
 
 # Constructor
 
-    ReductionState(distance_matrix, dim, modulus)
+    ReductionState{M}(distance_matrix, dim_max)
 
 """
 struct ReductionState{M, T, A<:AbstractArray{T}}
     dist         ::A
     binomial     ::Binomial
-    dim          ::Ref{Int}
+    dim_max      ::Int
     vertex_cache ::Vector{Int}
 end
 
-function ReductionState(dist::A, dim::Int, modulus::Int) where {T, A<:AbstractArray{T}}
+function ReductionState{M}(dist::A, dim_max::Int) where {M, T, A<:AbstractArray{T}}
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    isprime(modulus) ||
+    isprime(M) ||
         throw(ArgumentError("`modulus` must be prime"))
-    dim ≥ 0 ||
-        throw(ArgumentError("`dim` must be positive"))
-    ReductionState{modulus, T, A}(dist, Binomial(size(dist, 1), dim+2),
-                                  Ref(dim), Int[])
+    dim_max ≥ 0 ||
+        throw(ArgumentError("`dim_max` must be positive"))
+    ReductionState{M, T, A}(dist, Binomial(size(dist, 1), dim_max+2), dim_max, Int[])
 end
 
 """
@@ -148,13 +147,8 @@ Get number of vertices in `reduction_state`.
 n_vertices(st::ReductionState) =
     size(st.dist, 1)
 
-dim(st::ReductionState) =
-    st.dim[]
-
-function set_dim!(st::ReductionState, dim)
-    @warn "TODO: Binomial not updated!"
-    st.dim[] = dim
-end
+dim_max(st::ReductionState) =
+    st.dim_max
 
 """
     dist(reduction_state, i, j)

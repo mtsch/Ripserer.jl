@@ -28,22 +28,16 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices
     end
 
     @testset "index(::Vector), vertices" begin
-        st = ReductionState(rand_dist_matrix(10), 5, 2)
+        st = ReductionState{2}(rand_dist_matrix(10), 5)
         buff = Int[]
-        st.dim[] = 2
-        @test vertices(st, Simplex{2}(1, 1)) == [3, 2, 1]
-        st.dim[] = 3
-        @test vertices(st, Simplex{2}(2, 1)) == [5, 3, 2, 1]
-        st.dim[] = 1
-        @test vertices(st, Simplex{2}(3, 1)) == [3, 2]
-        st.dim[] = 4
-        @test vertices(st, Simplex{2}(4, 1)) == [6, 5, 4, 2, 1]
-        st.dim[] = 2
-        @test vertices(st, Simplex{2}(5, 1)) == [5, 2, 1]
+        @test vertices(st, Simplex{2}(1, 1), 2) == [3, 2, 1]
+        @test vertices(st, Simplex{2}(2, 1), 3) == [5, 3, 2, 1]
+        @test vertices(st, Simplex{2}(3, 1), 1) == [3, 2]
+        @test vertices(st, Simplex{2}(4, 1), 4) == [6, 5, 4, 2, 1]
+        @test vertices(st, Simplex{2}(5, 1), 2) == [5, 2, 1]
 
-        st.dim[] = 5
         for i in 1:10
-            @test index(st, vertices(st, Simplex{2}(i, 1))) == i
+            @test index(st, vertices(st, Simplex{2}(i, 1), 5)) == i
         end
     end
 
@@ -54,18 +48,14 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices
     end
 
     @testset "arithmetic" begin
-        @test Simplex{3}(1, 1) + Simplex{3}(1, 1) == Simplex{3}(1, 2)
-        @test Simplex{3}(2, 2) + Simplex{3}(2, 1) == Simplex{3}(2, 0)
+        @test Simplex{3}(3, 2) * Simplex{3}(4, 2) == Simplex{3}(3, 1)
         @test Simplex{3}(3, 2) * Simplex{3}(3, 2) == Simplex{3}(3, 1)
-        @test Simplex{3}(4, 1) - Simplex{3}(4, 2) == Simplex{3}(4, 2)
 
-        @test_throws ArgumentError Simplex{3}(4, 1) + Simplex{3}(5, 1)
         @test_throws MethodError Simplex{3}(4, 1) + Simplex{2}(4, 1)
 
         @test inv(Simplex{2}(10, 1)) == Simplex{2}(10, 1)
         for i in 1:16
             @test inv(Simplex{17}(10, i)) * Simplex{17}(10, i) == Simplex{17}(10, 1)
-            @test Simplex{17}(15, i) + (-Simplex{17}(15, i)) == Simplex{17}(15, 0)
         end
         @test_throws DomainError inv(Simplex{2}(10, 0))
         @test_throws DomainError inv(Simplex{3}(10, 0))

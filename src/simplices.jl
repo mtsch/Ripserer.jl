@@ -169,11 +169,11 @@ end
 
 Copy vertices of `simplex` to `reduction_state`'s vertex cache.
 """
-function get_vertices!(st::ReductionState, sx::AbstractSimplex)
-    d = dim(st)
-    resize!(st.vertex_cache, d + 1)
+function get_vertices!(st::ReductionState, sx::AbstractSimplex, dim)
+    dim
+    resize!(st.vertex_cache, dim + 1)
     idx = index(sx) - 1
-    for (i, k) in enumerate(d+1:-1:1)
+    for (i, k) in enumerate(dim+1:-1:1)
         v = findlast(x -> binomial(st, x, k) ≤ idx, k - 1, n_vertices(st))
         st.vertex_cache[i] = v + 1
         idx -= binomial(st, v, k)
@@ -188,10 +188,10 @@ end
 Get vertices of `simplex`. Vertices are only recomputed when the vertex cache in
 `reduction_state` is invalid.
 """
-function vertices(st::ReductionState{M}, sx::AbstractSimplex{M}) where M
+function vertices(st::ReductionState{M}, sx::AbstractSimplex{M}, dim) where M
     # Calculating index from vertices is so much faster that this is worth doing.
-    if length(st.vertex_cache) != dim(st)+1 || index(st, st.vertex_cache) != index(sx)
-        get_vertices!(st, sx)
+    if length(st.vertex_cache) != dim+1 || index(st, st.vertex_cache) != index(sx)
+        get_vertices!(st, sx, dim)
     end
     st.vertex_cache
 end
@@ -201,9 +201,6 @@ end
 # Note: mod is handled in set_coef.
 for op in (:+, :-, :*)
     @eval function (Base.$op)(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M
-        @boundscheck begin
-            # index(sx1) == index(sx2) || throw(ArgumentError("simplex indices don't match"))
-        end
         set_coef(sx1, $op(coef(sx1), coef(sx2)))
     end
 end

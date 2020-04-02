@@ -1,6 +1,6 @@
 using Ripserer:
     edges, is_distance_matrix, apply_threshold,
-    isprime, Binomial, ReductionState, n_vertices, dim, dist, is_connected,
+    isprime, Binomial, ReductionState, n_vertices, dist, is_connected,
     CompressedSparseMatrix, add_column!
 
 @testset "helpers" begin
@@ -99,12 +99,11 @@ using Ripserer:
         end
 
         @testset "ReductionState" begin
-            st = ReductionState([0 1 2 0;
-                                 1 0 3 0;
-                                 2 3 0 0;
-                                 0 0 0 0], 1, 3)
+            st = ReductionState{3}([0 1 2 0;
+                                    1 0 3 0;
+                                    2 3 0 0;
+                                    0 0 0 0], 1)
             @test n_vertices(st) == 4
-            @test dim(st) == 1
             @test dist(st, 3, 3) == 0
             @test dist(st, 1, 2) == 1
             @test dist(st, 1, 2) == 1
