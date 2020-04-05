@@ -29,6 +29,12 @@ function Base.push!(csm::CompressedSparseMatrix, value)
     value
 end
 
+function Base.empty!(csm::CompressedSparseMatrix)
+    empty!(csm.nzval)
+    empty!(csm.colptr)
+    push!(csm.colptr, 1)
+end
+
 add_column!(csm::CompressedSparseMatrix) =
     push!(csm.colptr, csm.colptr[end])
 Base.eltype(csm::CompressedSparseMatrix{T}) where T =
@@ -154,29 +160,38 @@ dim_max(st::ReductionState) =
     dist(reduction_state, i, j)
 
 Get the distance between vertex `i` and vertex `j`.
+`i` can also be a collection of vertices.
 """
-dist(st::ReductionState, i, j) =
-    st.dist[i, j] # should return Inf?
+dist(st::ReductionState, i::Int, j::Int) =
+    st.dist[i, j]
 
 """
-    diam(reduction_state, vertices)
+    max_dist(reduction_state, vertices, vertex)
 
-Get diameter of vertex set `vertices`.
+Get the maximum distance from `vertices` to `vertex`.
 """
-function diam(st::ReductionState, vertices)
-    @warn "test me if you use me"
-    n = n_vertices(st)
-    maximum(dist(st, i, j) for i in 1:n-1 for j in i+1:n)
+function max_dist(st::ReductionState{M, T}, us, v::Int) where {M, T}
+    res = typemin(T)
+    for u in us
+        res = max(res, dist(st, u, v))
+    end
+    res
 end
 
 """
-    is_connected(reduction_state, vertex, vertices)
+    is_connected(reduction_state, vertices, vertex)
 
 Check if `vertex` is connected to `vertices` i.e. if the distance to all other vertices
 is ≥ 0. If `vertex in vertices`, this function returns `false`.
 """
-is_connected(st::ReductionState, vertex, vertices) =
-    !any(iszero, dist(st, v, vertex) for v in vertices)
+function is_connected(st::ReductionState, us, v)
+    for u in us
+        if iszero(dist(st, u, v))
+            return false
+        end
+    end
+    true
+end
 
 Base.binomial(st::ReductionState, n, k) =
     st.binomial(n, k)

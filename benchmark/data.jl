@@ -1,3 +1,7 @@
+using Distances
+using Random
+using LinearAlgebra
+
 function torus(n)
     r = range(-1, 1, length = n+1)[1:end-1]
     pts = [(i, j) for i in r for j in r]
@@ -13,6 +17,11 @@ function torus(n)
         dist[i, i] = 0
     end
     dist
+end
+
+function rand_sphere(n, dim=2)
+    pts = mapslices(normalize, rand(dim, n), dims=1)
+    pairwise(Euclidean(), pts)
 end
 
 dist_torus = torus(10)

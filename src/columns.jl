@@ -7,19 +7,18 @@ Get coface by adding `new_vertex` to `simplex`.
 function coface(st::ReductionState{M, T}, simplex::DiameterSimplex{M, T},
                 new_vertex, dim) where {M, T}
     vxs = vertices(st, simplex, dim)
+    diameter = max(diam(simplex), max_dist(st, vxs, new_vertex))
 
     index = 0
     new_vertex_done = false
     k = dim + 2
     i = 1
-    diameter = diam(simplex)
     coefficient = coef(simplex)
     while k > 0
         if !new_vertex_done && (k == 1 || new_vertex > vxs[i])
             new_vertex_done = true
             index += binomial(st, new_vertex - 1, k)
-            diameter = max(diameter, maximum(dist(st, new_vertex, j) for j in vxs))
-            coefficient = (k % 1 == 1 ? M - 1 : 1) * coefficient % M
+            coefficient = (k % 2 == 1 ? M - 1 : 1) * coefficient % M
             k -= 1
         else
             index += binomial(st, vxs[i] - 1, k)
@@ -43,15 +42,15 @@ Base.IteratorEltype(::Type{CoboundaryIterator}) =
 Base.eltype(::Type{CoboundaryIterator{M, T}}) where {M, T} =
     DiameterSimplex{M, T}
 
-function Base.iterate(ni::CoboundaryIterator, i = 1) where {M, T}
+function Base.iterate(ni::CoboundaryIterator, i = n_vertices(ni.state))
     vxs = vertices(ni.state, ni.simplex, ni.dim)
-    while i <= n_vertices(ni.state) && !is_connected(ni.state, i, vxs)
-        i += 1
+    while i > 0 && !is_connected(ni.state, vxs, i)
+        i -= 1
     end
-    if i > n_vertices(ni.state)
+    if i < 1
         nothing
     else
-        coface(ni.state, ni.simplex, i, ni.dim), i + 1
+        coface(ni.state, ni.simplex, i, ni.dim), i - 1
     end
 end
 
@@ -93,12 +92,12 @@ struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
     column_index      ::Dict{Int, Int} # index(sx) => column index of reduction_matrix
     working_column    ::Column{M, T}
     reduction_entries ::Column{M, T}
-    current_dim       ::Ref{Int}
+    dim               ::Int
 end
 
 ReductionMatrices(st::ReductionState{M, T}, dim) where {M, T} =
     ReductionMatrices(st, CompressedSparseMatrix{DiameterSimplex{M, T}}(),
-                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}(), Ref(dim))
+                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}(), dim)
 
 """
     add!(rm::ReductionMatrices, index)
@@ -107,44 +106,46 @@ Add column with column index `index` multiplied by the correct factor to `workin
 Also record the addition in `reduction_matrix`.
 """
 # add mora vedet katere simplekse je dodal, ne njihovih coboundaryjev
-function add!(rm::ReductionMatrices, index)
+function add!(rm::ReductionMatrices, idx)
     inv_pivot = inv(pivot(rm.working_column))
-    for simplex in rm.reduction_matrix[index]
+    for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * inv_pivot)
-        for coface in coboundary(rm.state, simplex, rm.current_dim[])
+        for coface in coboundary(rm.state, simplex, rm.dim)
             push!(rm.working_column, -coface * inv_pivot)
         end
     end
     pivot(rm.working_column)
 end
 
-function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
-    # initialize!(rm, column_simplex)
-    while !isempty(rm.working_column)
-        pop!(rm.working_column)
-    end
-    while !isempty(rm.reduction_entries)
-        pop!(rm.reduction_entries)
-    end
+function initialize!(rm::ReductionMatrices, column_simplex)
+    empty!(rm.working_column.valtree)
+    empty!(rm.reduction_entries.valtree)
 
-    for coface in coboundary(rm.state, column_simplex, rm.current_dim[])
+    for coface in coboundary(rm.state, column_simplex, rm.dim)
+        if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
+            return coface
+        end
+    end
+    for coface in coboundary(rm.state, column_simplex, rm.dim)
         push!(rm.working_column, coface)
     end
-    # end initialize
+    pivot(rm.working_column)
+end
+
+function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
+    current_pivot = initialize!(rm, column_simplex)
 
     add_column!(rm.reduction_matrix)
     push!(rm.reduction_matrix, column_simplex)
 
-    current_pivot = pivot(rm.working_column)
     while !isnothing(current_pivot) && haskey(rm.column_index, index(current_pivot))
         current_pivot = add!(rm, rm.column_index[index(current_pivot)])
     end
     if isnothing(current_pivot)
-        #println("reduced")
+        push!(res, (birth, typemax(T)))
     else
         death = diam(current_pivot)
         birth = diam(column_simplex)
-        #println("int. ($birth, $death)")
         if death > birth
             push!(res, (birth, death))
         end
@@ -152,7 +153,6 @@ function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
         rm.column_index[index(current_pivot)] = length(rm.reduction_matrix)
         current_entry = pop_pivot!(rm.reduction_entries)
         while !isnothing(current_entry)
-            # tukaj se pusha simplekse IZ KATERIH SI RAČUNAL COBOUNDARY!!
             push!(rm.reduction_matrix, current_entry)
             current_entry = pop_pivot!(rm.reduction_entries)
         end
@@ -164,12 +164,12 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 """
-function compute_0_dim_pairs!(st::ReductionState{M, T},
-                              columns::AbstractVector{DiameterSimplex{M, T}}) where {M, T}
+function compute_0_dim_pairs!(st::ReductionState{M, T}, simplices, columns) where {M, T}
     dset = IntDisjointSets(n_vertices(st))
     res = Tuple{T, T}[]
 
     for (l, (u, v)) in edges(st)
+        push!(simplices, DiameterSimplex{M}(st, l, (u, v), 1))
         i = find_root(dset, u)
         j = find_root(dset, v)
         if i ≠ j
@@ -188,26 +188,63 @@ function compute_0_dim_pairs!(st::ReductionState{M, T},
     res
 end
 
-function compute_pairs!(rm::ReductionMatrices{M, T}, columns_to_reduce, dim) where {M, T}
+function compute_pairs!(rm::ReductionMatrices{M, T}, columns) where {M, T}
     res = Tuple{T, T}[]
-    rm.current_dim[] = dim
-    for column in columns_to_reduce
+    for column in columns
         reduce_working_column!(rm, res, column)
     end
     res
 end
 
-function ripserer(dist, dim_max, modulus) # todo thresholding
-    st = ReductionState{modulus}(dist, dim_max)
-    push!(res, compute_0_dim_pairs!(st, columns))
+# move me.
+function diam(st::ReductionState{M, T}, vertices) where {M, T}
+    n = length(vertices)
+    res = typemin(T)
+    for i in 1:n, j in i+1:n
+        d = dist(st, vertices[j], vertices[i])
+        if d == 0
+            return typemax(T)
+        else
+            res = max(res, d)
+        end
+    end
+    res
+end
 
-    if dim_max > 0
-        rm = ReductionMatrices(st, 1)
-        for dim in 1:dim_max
-            push!(res, compute_pairs!(rm, columns, dim))
-            if dim < dim_max
-                error("not implemented for dim > 1")
+function assemble_columns!(rm::ReductionMatrices{M, T}, simplices, columns) where {M, T}
+    empty!(columns)
+    new_simplices = DiameterSimplex{M, T}[]
+
+    for simplex in simplices
+        for coface in coboundary(rm.state, simplex, rm.dim)
+            push!(new_simplices, coface)
+            if !haskey(rm.column_index, index(coface))
+                push!(columns, coface)
             end
         end
     end
+    copy!(simplices, unique!(new_simplices))
+    sort!(unique!(columns), lt=DiameterSimplexComparer(), rev=true)
+    columns
+end
+
+ripserer(dists, dim_max=1, modulus=2) =
+    ripserer(dists, dim_max, Val(modulus))
+
+function ripserer(dists::AbstractMatrix{T}, dim_max, ::Val{M}) where {M, T}
+    st = ReductionState{M}(dists, dim_max)
+    res = Vector{Tuple{T, T}}[]
+    simplices = DiameterSimplex{M, T}[]
+    columns = DiameterSimplex{M, T}[]
+
+    push!(res, compute_0_dim_pairs!(st, simplices, columns))
+
+    for dim in 1:dim_max
+        rm = ReductionMatrices(st, dim)
+        push!(res, compute_pairs!(rm, columns))
+        if dim < dim_max
+            assemble_columns!(rm, simplices, columns)
+        end
+    end
+    res
 end

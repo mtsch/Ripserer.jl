@@ -36,8 +36,13 @@ Get the combinatorial index of `simplex`. The index is equal to
 
 Compute the index from a collection of `vertices`. Vertices must be in descending order.
 """
-index(st::ReductionState, vertices) =
-    sum(binomial(vertices[end - l + 1] - 1, l) for l in eachindex(vertices)) + 1
+function index(st::ReductionState, vertices)
+    res = 0
+    for l in eachindex(vertices)
+        res += binomial(st, vertices[end - l + 1] - 1, l)
+    end
+    res + 1
+end
 
 """
     Simplex{M}
@@ -147,6 +152,7 @@ DataStructures.compare(dsc::DiameterSimplexComparer, sx1, sx2) =
     dsc(sx1, sx2)
 
 # Find largest integer i between bot and top, for which f(i) is true.
+#=
 function Base.findlast(f, bot::Int, top::Int)
     if !f(top)
         count = top - bot
@@ -164,17 +170,40 @@ function Base.findlast(f, bot::Int, top::Int)
     top
 end
 
+find_max_vertex(st, idx, k) =
+    findlast(x -> binomial(st, x, k) ≤ idx, k - 1, n_vertices(st))
+=#
+
+function find_max_vertex(st, idx, k)
+    top = n_vertices(st)
+    bot = k - 1
+    if !(binomial(st, top, k) ≤ idx)
+        count = top - bot
+        while count > 0
+            step = fld(count, 2)
+            mid = top - step
+            if !(binomial(st, mid, k) ≤ idx)
+                top = mid - 1
+                count -= step + 1
+            else
+                count = step
+            end
+        end
+    end
+    top
+end
+
 """
     get_vertices!(reduction_state, simplex::AbstractSimple)
 
 Copy vertices of `simplex` to `reduction_state`'s vertex cache.
 """
 function get_vertices!(st::ReductionState, sx::AbstractSimplex, dim)
-    dim
     resize!(st.vertex_cache, dim + 1)
     idx = index(sx) - 1
     for (i, k) in enumerate(dim+1:-1:1)
-        v = findlast(x -> binomial(st, x, k) ≤ idx, k - 1, n_vertices(st))
+        v = find_max_vertex(st, idx, k)
+
         st.vertex_cache[i] = v + 1
         idx -= binomial(st, v, k)
         n_max = v - 1
