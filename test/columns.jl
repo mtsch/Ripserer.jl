@@ -256,5 +256,28 @@ using Ripserer: Column, coboundary, pop_pivot!,
             @test dim3 == [(7, 8)]
             @test dim4 == []
         end
+
+        @testset "projective plane" begin
+            projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
+                                1 0 2 2 2 1 2 1 2 1 2 2 2;
+                                1 2 0 2 2 2 1 2 1 1 2 2 2;
+                                1 2 2 0 2 1 2 2 1 2 2 2 1;
+                                1 2 2 2 0 2 1 1 2 2 2 2 1;
+                                1 1 2 1 2 0 2 2 2 1 1 2 1;
+                                1 2 1 2 1 2 0 2 2 1 1 2 1;
+                                1 1 2 2 1 2 2 0 2 1 2 1 1;
+                                1 2 1 1 2 2 2 2 0 1 2 1 1;
+                                2 1 1 2 2 1 1 1 1 0 1 1 2;
+                                2 2 2 2 2 1 1 2 2 1 0 2 1;
+                                2 2 2 2 2 2 2 1 1 1 2 0 1;
+                                2 2 2 1 1 1 1 1 1 2 1 1 0]
+
+            _, dim1_2, dim2_2 = ripserer(projective_plane, 2)
+            _, dim1_3, dim2_3 = ripserer(projective_plane, 2, 3)
+            @test dim1_2 == [(1, 2)]
+            @test dim2_2 == [(1, 2)]
+            @test isempty(dim1_3)
+            @test isempty(dim2_3)
+        end
     end
 end

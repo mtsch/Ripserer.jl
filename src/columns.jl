@@ -89,7 +89,8 @@ end
 struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
     state             ::R
     reduction_matrix  ::CompressedSparseMatrix{DiameterSimplex{M, T}}
-    column_index      ::Dict{Int, Int} # index(sx) => column index of reduction_matrix
+    column_index      ::Dict{Int, Tuple{Int, Int}} # index(sx) => column index of reduction_matrix
+                                       # should be sx => column index of reduction_matrix
     working_column    ::Column{M, T}
     reduction_entries ::Column{M, T}
     dim               ::Int
@@ -97,7 +98,7 @@ end
 
 ReductionMatrices(st::ReductionState{M, T}, dim) where {M, T} =
     ReductionMatrices(st, CompressedSparseMatrix{DiameterSimplex{M, T}}(),
-                      Dict{Int, Int}(), Column{M, T}(), Column{M, T}(), dim)
+                      Dict{Int, Tuple{Int, Int}}(), Column{M, T}(), Column{M, T}(), dim)
 
 """
     add!(rm::ReductionMatrices, index)
@@ -106,12 +107,12 @@ Add column with column index `index` multiplied by the correct factor to `workin
 Also record the addition in `reduction_matrix`.
 """
 # add mora vedet katere simplekse je dodal, ne njihovih coboundaryjev
-function add!(rm::ReductionMatrices, idx)
-    inv_pivot = inv(pivot(rm.working_column))
+function add!(rm::ReductionMatrices, idx, coef)
+    λ = pivot(rm.working_column) / coef
     for simplex in rm.reduction_matrix[idx]
-        push!(rm.reduction_entries, -simplex * inv_pivot)
+        push!(rm.reduction_entries, -simplex * λ)
         for coface in coboundary(rm.state, simplex, rm.dim)
-            push!(rm.working_column, -coface * inv_pivot)
+            push!(rm.working_column, -coface * λ)
         end
     end
     pivot(rm.working_column)
@@ -139,7 +140,9 @@ function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
     push!(rm.reduction_matrix, column_simplex)
 
     while !isnothing(current_pivot) && haskey(rm.column_index, index(current_pivot))
-        current_pivot = add!(rm, rm.column_index[index(current_pivot)])
+        old_pivot = current_pivot
+        current_pivot = add!(rm, rm.column_index[index(current_pivot)]...)
+        @assert old_pivot != current_pivot
     end
     if isnothing(current_pivot)
         push!(res, (birth, typemax(T)))
@@ -150,7 +153,8 @@ function reduce_working_column!(rm::ReductionMatrices, res, column_simplex)
             push!(res, (birth, death))
         end
 
-        rm.column_index[index(current_pivot)] = length(rm.reduction_matrix)
+        rm.column_index[index(current_pivot)] = (length(rm.reduction_matrix),
+                                                 coef(current_pivot))
         current_entry = pop_pivot!(rm.reduction_entries)
         while !isnothing(current_entry)
             push!(rm.reduction_matrix, current_entry)
@@ -217,6 +221,7 @@ function assemble_columns!(rm::ReductionMatrices{M, T}, simplices, columns) wher
 
     for simplex in simplices
         for coface in coboundary(rm.state, simplex, rm.dim)
+            coface = set_coef(coface, 1)
             push!(new_simplices, coface)
             if !haskey(rm.column_index, index(coface))
                 push!(columns, coface)

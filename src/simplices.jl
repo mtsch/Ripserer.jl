@@ -236,6 +236,8 @@ end
 
 Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     sx1 * inv(sx2)
+Base.:/(sx1::AbstractSimplex{M}, coef::Int) where M =
+    sx1 * inv(Simplex{M}(1, coef))
 Base.:-(sx::AbstractSimplex{M}) where M =
     set_coef(sx, -coef(sx))
 
