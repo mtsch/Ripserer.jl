@@ -8,7 +8,6 @@ using Ripserer
 include("data.jl")
 
 @testset "Ripserer" begin
-    include("helpers.jl")
-    include("simplices.jl")
-    include("columns.jl")
+    include("rips.jl")
+    include("reduction.jl")
 end

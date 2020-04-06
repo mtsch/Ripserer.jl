@@ -1,8 +1,45 @@
-using Ripserer: Column, coboundary, pop_pivot!,
+using Ripserer:
+    CompressedSparseMatrix, add_column!,
+    Column, coboundary, pop_pivot!,
     compute_0_dim_pairs!,
-    ReductionMatrices, compute_pairs!
+    ReductionMatrix, compute_pairs!
 
-@testset "columns" begin
+@testset "reduction" begin
+    @testset "CompressedSparseMatrix" begin
+        csm = CompressedSparseMatrix{Int}()
+        @test length(csm) == 0
+
+        add_column!(csm)
+        push!(csm, 1)
+        push!(csm, 2)
+        push!(csm, 3)
+        push!(csm, 4)
+
+        add_column!(csm)
+        push!(csm, 0)
+        push!(csm, 0)
+        push!(csm, 0)
+
+        add_column!(csm)
+
+        add_column!(csm)
+        push!(csm, 1)
+
+        @test length(csm[1]) == 4
+        @test collect(csm[1]) == [1, 2, 3, 4]
+
+        @test length(csm[2]) == 3
+        @test all(iszero, csm[2])
+
+        @test length(csm[3]) == 0
+        @test eltype(collect(csm[3])) === Int
+
+        @test length(csm[4]) == 1
+        @test first(csm[4]) == 1
+
+        @test length(csm) == 4
+    end
+
     @testset "a Column is a heap." begin
         column = Column{3, Float64}()
         @test isempty(column)
@@ -26,69 +63,6 @@ using Ripserer: Column, coboundary, pop_pivot!,
 
         @test_throws MethodError push!(column, Simplex{2}(3.0, 1, 1))
         @test_throws MethodError push!(column, Simplex{3}(3, 1, 1))
-    end
-
-    @testset "coboundary" begin
-        @testset "start" begin
-            st = ReductionState{5}(sparse([0 1 0 0;
-                                           1 0 2 3;
-                                           0 2 0 0;
-                                           0 3 0 0]), 0)
-            cb_set = Set{Simplex{5, Int}}()
-            for sx in coboundary(st, Simplex{5}(1, 2, 1), 0)
-                push!(cb_set, sx)
-            end
-            @test cb_set == Set([Simplex{5}(1, 1, 4),
-                                 Simplex{5}(2, 3, 1),
-                                 Simplex{5}(3, 5, 1)])
-        end
-
-        @testset "line cofaces" begin
-            st = ReductionState{2}(sparse(Float64[0 1 3 4 5 0;
-                                                  1 0 3 4 5 1;
-                                                  3 3 0 0 0 1;
-                                                  4 4 0 0 0 1;
-                                                  5 5 0 0 0 1;
-                                                  0 1 1 1 1 0]), 1)
-            cb_set = Set{Simplex{2, Float64}}()
-            for sx in coboundary(st, Simplex{2}(st, 1.0, (2, 1), 1), 1)
-                push!(cb_set, sx)
-            end
-            @test length(cb_set) == 3
-            @test cb_set == Set([Simplex{2}(st, 3.0, [3, 2, 1], 1),
-                                 Simplex{2}(st, 4.0, [4, 2, 1], 1),
-                                 Simplex{2}(st, 5.0, [5, 2, 1], 1)])
-        end
-
-        @testset "full graph" begin
-            dist = ones(100, 100)
-            for i in 1:size(dist, 1)
-                dist[i, i] = 0
-            end
-            st = ReductionState{3}(sparse(dist), 5)
-
-            for dim in 1:5
-                cob = Simplex{3, Float64}[]
-                for sx in coboundary(st, Simplex{3}(1.0, 10, 1), dim)
-                    push!(cob, sx)
-                end
-                # should be reverse sorted?
-                @test issorted(index.(cob), rev=true)
-                @test length(cob) == 100 - dim - 1
-            end
-        end
-
-        @testset "diameters" begin
-            dist = torus(25)
-            st = ReductionState{2}(dist, 3)
-            for dim in 1:3
-                diameter = diam(st, dim+1:-1:1)
-                sx = Simplex{2}(st, diameter, 1, 1)
-                for coface in coboundary(st, sx, dim)
-                    @test diam(coface) == diam(st, vertices(st, coface, dim+1))
-                end
-            end
-        end
     end
 
     @testset "pop_pivot!" begin
@@ -130,15 +104,16 @@ using Ripserer: Column, coboundary, pop_pivot!,
         end
     end
 
+    #=
     @testset "compute_0_dim_pairs!" begin
         @testset "dense Int" begin
             dist = [0 1 2;
                     1 0 3;
                     2 3 0]
-            state = ReductionState{2}(dist, 0)
+            scx = RipsComplex{2}(dist, 0)
             simplices = Simplex{2, Int}[]
             critical_edges = Simplex{2, Int}[]
-            res = compute_0_dim_pairs!(state, simplices, critical_edges)
+            res = compute_0_dim_pairs!(scx, simplices, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
@@ -153,10 +128,10 @@ using Ripserer: Column, coboundary, pop_pivot!,
                                   0 6 3 0 1 0;
                                   5 0 0 1 0 0;
                                   0 0 0 0 0 0])
-            state = ReductionState{3}(dist, 0)
+            scx = RipsComplex{3}(dist, 0)
             simplices = Simplex{3, Float64}[]
             critical_edges = Simplex{3, Float64}[]
-            res = compute_0_dim_pairs!(state, simplices, critical_edges)
+            res = compute_0_dim_pairs!(scx, simplices, critical_edges)
 
             @test res == [(0.0, 1.0),
                           (0.0, 2.0),
@@ -177,16 +152,17 @@ using Ripserer: Column, coboundary, pop_pivot!,
                        1 0 1 2;
                        2 1 0 1;
                        1 2 1 0]
-        state = ReductionState{2}(dist, 1)
+        scx = RipsComplex{2}(dist, 1)
         simplices = Simplex{2, Float64}[]
         columns = Simplex{2, Float64}[]
-        compute_0_dim_pairs!(state, simplices, columns)
-        matrices = ReductionMatrices(state, 1)
+        compute_0_dim_pairs!(scx, simplices, columns)
+        matrices = ReductionMatrix(scx, 1)
 
         res = compute_pairs!(matrices, columns)
 
         @test res == [(1.0, 2.0)]
     end
+    =#
 
     @testset "ripserer" begin
         @testset "full matrix, no threshold" begin

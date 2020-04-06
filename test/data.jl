@@ -1,8 +1,29 @@
-using Distances
-using Random
-using LinearAlgebra
+"""
+    rand_dist_matrix(n, [sparse])
 
+Construct a random distance matrix with `n` rows and columns.
+"""
+function rand_dist_matrix(n)
+    A = rand(n, n)
+    A .+= A'
+    A -= Diagonal(A)
+    A
+end
+function rand_dist_matrix(n, sparse)
+    A = sprand(n, n, sparse/2)
+    A .+= A'
+    A -= Diagonal(A)
+    dropzeros!(A)
+    A
+end
+
+"""
+    torus(n)
+
+Construct a torus distance matrix with `n` points. The points are equidistant.
+"""
 function torus(n)
+    n = floor(Int, sqrt(n))
     r = range(-1, 1, length = n+1)[1:end-1]
     pts = [(i, j) for i in r for j in r]
     dist = fill(Inf, length(pts), length(pts))
@@ -18,10 +39,3 @@ function torus(n)
     end
     dist
 end
-
-function rand_sphere(n, dim=2)
-    pts = mapslices(normalize, rand(dim, n), dims=1)
-    pairwise(Euclidean(), pts)
-end
-
-dist_torus = torus(10)
