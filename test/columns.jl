@@ -7,25 +7,25 @@ using Ripserer: Column, coboundary, pop_pivot!,
         column = Column{3, Float64}()
         @test isempty(column)
 
-        push!(column, DiameterSimplex{3}(3.0, 1, 1))
-        push!(column, DiameterSimplex{3}(3.0, 2, 1))
-        push!(column, DiameterSimplex{3}(1.0, 3, 1))
-        push!(column, DiameterSimplex{3}(2.0, 4, 1))
-        push!(column, DiameterSimplex{3}(2.0, 4, 1))
+        push!(column, Simplex{3}(3.0, 1, 1))
+        push!(column, Simplex{3}(3.0, 2, 1))
+        push!(column, Simplex{3}(1.0, 3, 1))
+        push!(column, Simplex{3}(2.0, 4, 1))
+        push!(column, Simplex{3}(2.0, 4, 1))
         @test length(column) == 5
         @test !isempty(column)
 
-        @test top(column) == DiameterSimplex{3}(1.0, 3, 1)
-        @test pop!(column) == DiameterSimplex{3}(1.0, 3, 1)
+        @test top(column) == Simplex{3}(1.0, 3, 1)
+        @test pop!(column) == Simplex{3}(1.0, 3, 1)
         @test length(column) == 4
-        @test pop!(column) == DiameterSimplex{3}(2.0, 4, 1)
-        @test pop!(column) == DiameterSimplex{3}(2.0, 4, 1)
-        @test pop!(column) == DiameterSimplex{3}(3.0, 2, 1)
-        @test pop!(column) == DiameterSimplex{3}(3.0, 1, 1)
+        @test pop!(column) == Simplex{3}(2.0, 4, 1)
+        @test pop!(column) == Simplex{3}(2.0, 4, 1)
+        @test pop!(column) == Simplex{3}(3.0, 2, 1)
+        @test pop!(column) == Simplex{3}(3.0, 1, 1)
         @test isempty(column)
 
-        @test_throws MethodError push!(column, DiameterSimplex{2}(3.0, 1, 1))
-        @test_throws MethodError push!(column, DiameterSimplex{3}(3, 1, 1))
+        @test_throws MethodError push!(column, Simplex{2}(3.0, 1, 1))
+        @test_throws MethodError push!(column, Simplex{3}(3, 1, 1))
     end
 
     @testset "coboundary" begin
@@ -34,13 +34,13 @@ using Ripserer: Column, coboundary, pop_pivot!,
                                            1 0 2 3;
                                            0 2 0 0;
                                            0 3 0 0]), 0)
-            cb_set = Set{DiameterSimplex{5, Int}}()
-            for sx in coboundary(st, DiameterSimplex{5}(1, 2, 1), 0)
+            cb_set = Set{Simplex{5, Int}}()
+            for sx in coboundary(st, Simplex{5}(1, 2, 1), 0)
                 push!(cb_set, sx)
             end
-            @test cb_set == Set([DiameterSimplex{5}(1, 1, 4),
-                                 DiameterSimplex{5}(2, 3, 1),
-                                 DiameterSimplex{5}(3, 5, 1)])
+            @test cb_set == Set([Simplex{5}(1, 1, 4),
+                                 Simplex{5}(2, 3, 1),
+                                 Simplex{5}(3, 5, 1)])
         end
 
         @testset "line cofaces" begin
@@ -50,14 +50,14 @@ using Ripserer: Column, coboundary, pop_pivot!,
                                                   4 4 0 0 0 1;
                                                   5 5 0 0 0 1;
                                                   0 1 1 1 1 0]), 1)
-            cb_set = Set{DiameterSimplex{2, Float64}}()
-            for sx in coboundary(st, DiameterSimplex{2}(st, 1.0, (2, 1), 1), 1)
+            cb_set = Set{Simplex{2, Float64}}()
+            for sx in coboundary(st, Simplex{2}(st, 1.0, (2, 1), 1), 1)
                 push!(cb_set, sx)
             end
             @test length(cb_set) == 3
-            @test cb_set == Set([DiameterSimplex{2}(st, 3.0, [3, 2, 1], 1),
-                                 DiameterSimplex{2}(st, 4.0, [4, 2, 1], 1),
-                                 DiameterSimplex{2}(st, 5.0, [5, 2, 1], 1)])
+            @test cb_set == Set([Simplex{2}(st, 3.0, [3, 2, 1], 1),
+                                 Simplex{2}(st, 4.0, [4, 2, 1], 1),
+                                 Simplex{2}(st, 5.0, [5, 2, 1], 1)])
         end
 
         @testset "full graph" begin
@@ -68,8 +68,8 @@ using Ripserer: Column, coboundary, pop_pivot!,
             st = ReductionState{3}(sparse(dist), 5)
 
             for dim in 1:5
-                cob = DiameterSimplex{3, Float64}[]
-                for sx in coboundary(st, DiameterSimplex{3}(1.0, 10, 1), dim)
+                cob = Simplex{3, Float64}[]
+                for sx in coboundary(st, Simplex{3}(1.0, 10, 1), dim)
                     push!(cob, sx)
                 end
                 # should be reverse sorted?
@@ -83,7 +83,7 @@ using Ripserer: Column, coboundary, pop_pivot!,
             st = ReductionState{2}(dist, 3)
             for dim in 1:3
                 diameter = diam(st, dim+1:-1:1)
-                sx = DiameterSimplex{2}(st, diameter, 1, 1)
+                sx = Simplex{2}(st, diameter, 1, 1)
                 for coface in coboundary(st, sx, dim)
                     @test diam(coface) == diam(st, vertices(st, coface, dim+1))
                 end
@@ -94,19 +94,19 @@ using Ripserer: Column, coboundary, pop_pivot!,
     @testset "pop_pivot!" begin
         @testset "single element" begin
             col = Column{2, Float64}()
-            push!(col, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col, DiameterSimplex{2}(2.0, 1, 1))
-            push!(col, DiameterSimplex{2}(2.0, 1, 1))
+            push!(col, Simplex{2}(2.0, 1, 1))
+            push!(col, Simplex{2}(2.0, 1, 1))
+            push!(col, Simplex{2}(2.0, 1, 1))
+            push!(col, Simplex{2}(2.0, 1, 1))
+            push!(col, Simplex{2}(2.0, 1, 1))
 
-            @test pop_pivot!(col) == DiameterSimplex{2}(2.0, 1, 1)
+            @test pop_pivot!(col) == Simplex{2}(2.0, 1, 1)
             @test isempty(col)
 
             col = Column{3, Float64}()
-            push!(col, DiameterSimplex{3}(2.0, 1, 1))
-            push!(col, DiameterSimplex{3}(2.0, 1, 1))
-            push!(col, DiameterSimplex{3}(2.0, 1, 1))
+            push!(col, Simplex{3}(2.0, 1, 1))
+            push!(col, Simplex{3}(2.0, 1, 1))
+            push!(col, Simplex{3}(2.0, 1, 1))
 
             @test isnothing(pop_pivot!(col))
             @test isempty(col)
@@ -114,17 +114,17 @@ using Ripserer: Column, coboundary, pop_pivot!,
 
         @testset "multiple" begin
             col = Column{5, Float64}()
-            push!(col, DiameterSimplex{5}(1.0, 2, 3))
-            push!(col, DiameterSimplex{5}(2.0, 3, 4))
-            push!(col, DiameterSimplex{5}(1.0, 2, 2))
-            push!(col, DiameterSimplex{5}(3.0, 1, 2))
-            push!(col, DiameterSimplex{5}(2.0, 3, 1))
-            push!(col, DiameterSimplex{5}(4.0, 4, 4))
-            push!(col, DiameterSimplex{5}(4.0, 4, 4))
-            push!(col, DiameterSimplex{5}(4.0, 4, 4))
+            push!(col, Simplex{5}(1.0, 2, 3))
+            push!(col, Simplex{5}(2.0, 3, 4))
+            push!(col, Simplex{5}(1.0, 2, 2))
+            push!(col, Simplex{5}(3.0, 1, 2))
+            push!(col, Simplex{5}(2.0, 3, 1))
+            push!(col, Simplex{5}(4.0, 4, 4))
+            push!(col, Simplex{5}(4.0, 4, 4))
+            push!(col, Simplex{5}(4.0, 4, 4))
 
-            @test pop_pivot!(col) == DiameterSimplex{5}(3.0, 1, 2)
-            @test pop_pivot!(col) == DiameterSimplex{5}(4.0, 4, 2)
+            @test pop_pivot!(col) == Simplex{5}(3.0, 1, 2)
+            @test pop_pivot!(col) == Simplex{5}(4.0, 4, 2)
             @test isnothing(pop_pivot!(col))
             @test isnothing(pop_pivot!(col))
         end
@@ -136,14 +136,14 @@ using Ripserer: Column, coboundary, pop_pivot!,
                     1 0 3;
                     2 3 0]
             state = ReductionState{2}(dist, 0)
-            simplices = DiameterSimplex{2, Int}[]
-            critical_edges = DiameterSimplex{2, Int}[]
+            simplices = Simplex{2, Int}[]
+            critical_edges = Simplex{2, Int}[]
             res = compute_0_dim_pairs!(state, simplices, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
                           (0, typemax(Int))]
-            @test critical_edges == [DiameterSimplex{2}(3, 3, 1)]
+            @test critical_edges == [Simplex{2}(3, 3, 1)]
         end
 
         @testset "sparse Float64" begin
@@ -154,8 +154,8 @@ using Ripserer: Column, coboundary, pop_pivot!,
                                   5 0 0 1 0 0;
                                   0 0 0 0 0 0])
             state = ReductionState{3}(dist, 0)
-            simplices = DiameterSimplex{3, Float64}[]
-            critical_edges = DiameterSimplex{3, Float64}[]
+            simplices = Simplex{3, Float64}[]
+            critical_edges = Simplex{3, Float64}[]
             res = compute_0_dim_pairs!(state, simplices, critical_edges)
 
             @test res == [(0.0, 1.0),
@@ -164,8 +164,8 @@ using Ripserer: Column, coboundary, pop_pivot!,
                           (0.0, 4.0),
                           (0.0, Inf),
                           (0.0, Inf)]
-            @test critical_edges == [DiameterSimplex{3}(6.0, 5, 1),
-                                     DiameterSimplex{3}(5.0, 7, 1)]
+            @test critical_edges == [Simplex{3}(6.0, 5, 1),
+                                     Simplex{3}(5.0, 7, 1)]
         end
     end
 
@@ -178,8 +178,8 @@ using Ripserer: Column, coboundary, pop_pivot!,
                        2 1 0 1;
                        1 2 1 0]
         state = ReductionState{2}(dist, 1)
-        simplices = DiameterSimplex{2, Float64}[]
-        columns = DiameterSimplex{2, Float64}[]
+        simplices = Simplex{2, Float64}[]
+        columns = Simplex{2, Float64}[]
         compute_0_dim_pairs!(state, simplices, columns)
         matrices = ReductionMatrices(state, 1)
 

@@ -4,7 +4,7 @@
 
 Get coface by adding `new_vertex` to `simplex`.
 """
-function coface(st::ReductionState{M, T}, simplex::DiameterSimplex{M, T},
+function coface(st::ReductionState{M, T}, simplex::Simplex{M, T},
                 new_vertex, dim) where {M, T}
     vxs = vertices(st, simplex, dim)
     diameter = max(diam(simplex), max_dist(st, vxs, new_vertex))
@@ -26,12 +26,12 @@ function coface(st::ReductionState{M, T}, simplex::DiameterSimplex{M, T},
             k -= 1
         end
     end
-    DiameterSimplex{M}(diameter, index + 1, coefficient)
+    Simplex{M}(diameter, index + 1, coefficient)
 end
 
 struct CoboundaryIterator{M, T, R<:ReductionState{M, T}}
     state   ::R
-    simplex ::DiameterSimplex{M, T}
+    simplex ::Simplex{M, T}
     dim     ::Int
 end
 
@@ -40,7 +40,7 @@ Base.IteratorSize(::Type{CoboundaryIterator}) =
 Base.IteratorEltype(::Type{CoboundaryIterator}) =
     Base.HasEltype()
 Base.eltype(::Type{CoboundaryIterator{M, T}}) where {M, T} =
-    DiameterSimplex{M, T}
+    Simplex{M, T}
 
 function Base.iterate(ni::CoboundaryIterator, i = n_vertices(ni.state))
     vxs = vertices(ni.state, ni.simplex, ni.dim)
@@ -59,7 +59,7 @@ coboundary(st, simplex, dim) =
 
 # columns ================================================================================ #
 const Column{M, T} =
-    BinaryHeap{DiameterSimplex{M, T}, DiameterSimplexComparer}
+    BinaryHeap{Simplex{M, T}, SimplexComparer}
 
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
@@ -88,7 +88,7 @@ end
 # main algo stuff ======================================================================== #
 struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
     state             ::R
-    reduction_matrix  ::CompressedSparseMatrix{DiameterSimplex{M, T}}
+    reduction_matrix  ::CompressedSparseMatrix{Simplex{M, T}}
     column_index      ::Dict{Int, Tuple{Int, Int}} # index(sx) => column index of reduction_matrix
                                        # should be sx => column index of reduction_matrix
     working_column    ::Column{M, T}
@@ -97,7 +97,7 @@ struct ReductionMatrices{M, T, R<:ReductionState{M, T}}
 end
 
 ReductionMatrices(st::ReductionState{M, T}, dim) where {M, T} =
-    ReductionMatrices(st, CompressedSparseMatrix{DiameterSimplex{M, T}}(),
+    ReductionMatrices(st, CompressedSparseMatrix{Simplex{M, T}}(),
                       Dict{Int, Tuple{Int, Int}}(), Column{M, T}(), Column{M, T}(), dim)
 
 """
@@ -173,7 +173,7 @@ function compute_0_dim_pairs!(st::ReductionState{M, T}, simplices, columns) wher
     res = Tuple{T, T}[]
 
     for (l, (u, v)) in edges(st)
-        push!(simplices, DiameterSimplex{M}(st, l, (u, v), 1))
+        push!(simplices, Simplex{M}(st, l, (u, v), 1))
         i = find_root(dset, u)
         j = find_root(dset, v)
         if i ≠ j
@@ -182,7 +182,7 @@ function compute_0_dim_pairs!(st::ReductionState{M, T}, simplices, columns) wher
                 push!(res, (zero(T), T(l)))
             end
         else
-            push!(columns, DiameterSimplex{M}(st, T(l), (u, v), 1))
+            push!(columns, Simplex{M}(st, T(l), (u, v), 1))
         end
     end
     for _ in 1:num_groups(dset)
@@ -217,7 +217,7 @@ end
 
 function assemble_columns!(rm::ReductionMatrices{M, T}, simplices, columns) where {M, T}
     empty!(columns)
-    new_simplices = DiameterSimplex{M, T}[]
+    new_simplices = Simplex{M, T}[]
 
     for simplex in simplices
         for coface in coboundary(rm.state, simplex, rm.dim)
@@ -229,7 +229,7 @@ function assemble_columns!(rm::ReductionMatrices{M, T}, simplices, columns) wher
         end
     end
     copy!(simplices, unique!(new_simplices))
-    sort!(unique!(columns), lt=DiameterSimplexComparer(), rev=true)
+    sort!(unique!(columns), lt=SimplexComparer(), rev=true)
     columns
 end
 
@@ -239,8 +239,8 @@ ripserer(dists, dim_max=1, modulus=2) =
 function ripserer(dists::AbstractMatrix{T}, dim_max, ::Val{M}) where {M, T}
     st = ReductionState{M}(dists, dim_max)
     res = Vector{Tuple{T, T}}[]
-    simplices = DiameterSimplex{M, T}[]
-    columns = DiameterSimplex{M, T}[]
+    simplices = Simplex{M, T}[]
+    columns = Simplex{M, T}[]
 
     push!(res, compute_0_dim_pairs!(st, simplices, columns))
 

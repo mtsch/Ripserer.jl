@@ -1,15 +1,17 @@
 """
-    AbstractSimplex{M}
+    AbstractSimplex{M, T}
 
 An abstract type for representing simplices. A simplex must support the following functions:
 
     index(sx)::Int
     coef(sx)::Int
+    set_coef(sx)::typeof(sx)
+    diam(sx)::T
 """
-abstract type AbstractSimplex{M} end
+abstract type AbstractSimplex{M, T} end
 
 """
-    coef(simplex::AbstractSimplex{M})
+    coef(simplex::AbstractSimplex)
 
 Get the coefficient value of `simplex`. The coefficient is always in the range of
 `0 ≤ coef(simplex) < M`.
@@ -19,9 +21,16 @@ coef
 """
     set_coef(simplex::AbstractSimplex, val)
 
-Return new `simplex` with new coefficietn value.
+Return new `simplex` with new coefficient value.
 """
 set_coef
+
+"""
+    diam(sx::Simplex)
+
+Get the diameter of simplex.
+"""
+diam
 
 """
     index(simplex::AbstractSimplex)
@@ -45,134 +54,56 @@ function index(st::ReductionState, vertices)
 end
 
 """
-    Simplex{M}
+    n_bits(::Val{M})
 
-A simplex is represented by its combinatorial index (accessed by the `index` function) and
-coefficient value (accessed by `coef`). The type parameter `M` represents the modulus of the
-field of coefficients.
-
-Note that the coefficient and value are stored in a single 8-byte word, so the range of
-possible indices is slightly smaller than `typemax(Int64)`, depending on the number of bits
-needed to represent `M`. A simplex has no information about its dimension.
-
-# Constructors:
-
-    Simplex{M}(index::Integer, value::Integer)
-
-    Simplex{M}(st::ReductionState, vertices, value::Integer)
+Get numer of bits needed to represent number mod `M`.
 """
-primitive type Simplex{M} <: AbstractSimplex{M} 64 end
-
-"""
-    n_bits(M)
-
-Return the number of bits needed to represent an integer mod `M`.
-"""
-n_bits(M) =
+n_bits(::Val{M}) where M =
     floor(Int, log2(M-1)) + 1
 
-@generated function Simplex{M}(index, coef) where M
+struct Simplex{M, T} <: AbstractSimplex{M, T}
+    diam       ::T
+    index_coef ::Int64
+end
+
+@generated function Simplex{M}(diam::T, index, coef) where {M, T}
     isprime(M) || throw(DomainError(M, "modulus not prime"))
-    bits = n_bits(M)
-    :(reinterpret(Simplex{M}, Int64(index) << $bits + mod(coef, $M)))
+    bits = n_bits(Val(M))
+    :(Simplex{M, T}(diam, Int64(index) << $bits + mod(coef, $M)))
 end
-Simplex{M}(st::ReductionState, vertices, coef) where M =
-    Simplex{M}(index(st, vertices), coef)
+Simplex{M}(st::ReductionState{M}, diam, vertices, coef) where M =
+    Simplex{M}(diam, index(st, vertices), coef)
 
-@generated function index(sx::Simplex{M}) where M
-    bits = n_bits(M)
-    :(reinterpret(Int64, sx) >> $bits)
-end
-@generated function coef(sx::Simplex{M}) where M
-    bits = n_bits(M)
-    :(reinterpret(Int64, sx) & (1 << $bits - 1))
-end
-set_coef(sx::Simplex{M}, value) where M =
-    Simplex{M}(index(sx), value)
-Base.show(io::IO, ent::Simplex{M}) where M =
-    print(io, "Simplex{$M}$((index(ent), coef(ent)))");
+index(sx::Simplex{M}) where M =
+    sx.index_coef >> n_bits(Val(M))
 
-"""
-    DiameterSimplex{M, T}
+coef(sx::Simplex{M}) where M =
+    sx.index_coef & (1 << n_bits(Val(M)) - 1)
 
-A simplex with a diameter is represented by its diameter (accesse by the `diam` function),
-combinatorial index (accessed by `index`) and coefficient value (accessed by `coef`). The
-type parameter `M` represents the modulus of the field of coefficients and `T` represents
-the type of diameter.
-
-Note that the coefficient and value are stored in a single 8-byte word, so the range of
-possible indices is slightly smaller than `typemax(Int64)`, depending on the number of bits
-needed to represent `M`. A simplex has no information about its dimension.
-
-# Constructor:
-
-    DiameterSimplex{M}(diameter::T, index::Integer, value::Integer)
-
-    DiameterSimplex{M}(st::ReductionState, diameter::T, vertices, value::Integer)
-"""
-struct DiameterSimplex{M, T} <: AbstractSimplex{M}
-    diam    ::T
-    simplex ::Simplex{M}
-end
-DiameterSimplex{M}(diam, x, coef) where M =
-    DiameterSimplex(diam, Simplex{M}(x, coef))
-DiameterSimplex{M}(st::ReductionState, diam, vertices, coef) where M =
-    DiameterSimplex(diam, Simplex{M}(st, vertices, coef))
-
-index(sx::DiameterSimplex) =
-    index(sx.simplex)
-coef(sx::DiameterSimplex) =
-    coef(sx.simplex)
-set_coef(sx::DiameterSimplex{M}, value) where M =
-    DiameterSimplex{M}(diam(sx), index(sx), value)
-"""
-    diam(sx::DiameterSimplex)
-
-Get the diameter of simplex.
-"""
-diam(sx::DiameterSimplex) =
+diam(sx::Simplex) =
     sx.diam
-Base.show(io::IO, sx::DiameterSimplex) =
-    print(io, "DiameterSimplex$((diam(sx), index(sx), coef(sx)))")
+
+set_coef(sx::Simplex{M}, value) where M =
+    Simplex{M}(diam(sx), index(sx), value)
+
+Base.show(io::IO, sx::Simplex{M}) where M =
+    print(io, "Simplex{", M, "}", (diam(sx), index(sx), coef(sx)));
 
 """
-    DiameterSimplexComparer
+    SimplexComparer
 
-Ordering on `DiameterSimplex` by
+Ordering on `AbstractSimplex` by
 
 * increasing diameter,
 * decreasing combinatorial index.
 """
-struct DiameterSimplexComparer end
+struct SimplexComparer end
 
-(::DiameterSimplexComparer)(sx1, sx2) =
+(::SimplexComparer)(sx1, sx2) =
     diam(sx1) < diam(sx2) || diam(sx1) == diam(sx2) && index(sx1) > index(sx2)
 
-DataStructures.compare(dsc::DiameterSimplexComparer, sx1, sx2) =
-    dsc(sx1, sx2)
-
-# Find largest integer i between bot and top, for which f(i) is true.
-#=
-function Base.findlast(f, bot::Int, top::Int)
-    if !f(top)
-        count = top - bot
-        while count > 0
-            step = count ÷ 2
-            mid = top - step
-            if !f(mid)
-                top = mid - 1
-                count -= step + 1
-            else
-                count = step
-            end
-        end
-    end
-    top
-end
-
-find_max_vertex(st, idx, k) =
-    findlast(x -> binomial(st, x, k) ≤ idx, k - 1, n_vertices(st))
-=#
+DataStructures.compare(sc::SimplexComparer, sx1, sx2) =
+    sc(sx1, sx2)
 
 function find_max_vertex(st, idx, k)
     top = n_vertices(st)
