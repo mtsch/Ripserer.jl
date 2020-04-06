@@ -1,4 +1,4 @@
-using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices
+using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices, inv_mod
 
 @testset "simplices" begin
     @testset "Simplex" begin
@@ -48,16 +48,17 @@ using Ripserer: Simplex, DiameterSimplex, index, coef, set_coef, diam, vertices
     end
 
     @testset "arithmetic" begin
-        @test Simplex{3}(3, 2) * Simplex{3}(4, 2) == Simplex{3}(3, 1)
-        @test Simplex{3}(3, 2) * Simplex{3}(3, 2) == Simplex{3}(3, 1)
+        @test Simplex{3}(3, 2) * 2 == Simplex{3}(3, 1)
+        @test 2 * Simplex{3}(3, 2) == Simplex{3}(3, 1)
+        @test -Simplex{5}(1, 1) == Simplex{5}(1, 4)
 
-        @test_throws MethodError Simplex{3}(4, 1) + Simplex{2}(4, 1)
+        @test inv_mod(Val(2), 1) == 1
+        @test_throws DomainError inv_mod(Val(4), 1)
+        @test_throws DivideError inv_mod(Val(3), 0)
 
-        @test inv(Simplex{2}(10, 1)) == Simplex{2}(10, 1)
         for i in 1:16
-            @test inv(Simplex{17}(10, i)) * Simplex{17}(10, i) == Simplex{17}(10, 1)
+            @test Simplex{17}(10, i) / i == Simplex{17}(10, 1)
+            @test -Simplex{17}(8, i) == Simplex{17}(8, 17 - i)
         end
-        @test_throws DomainError inv(Simplex{2}(10, 0))
-        @test_throws DomainError inv(Simplex{3}(10, 0))
     end
 end

@@ -4,14 +4,18 @@ using SparseArrays
 
 const SUITE = BenchmarkGroup()
 
-dist = sparse(ones(1000, 1000))
-for i in 1:size(dist, 1)
-    dist[i, i] = 0
-end
-dropzeros!(dist)
+include(joinpath(@__DIR__, "../test/data.jl"))
 
-col = Ripserer.CurrentColumn{3}()
-binom = Ripserer.Binomial(1000, 1000)
+t1024 = torus(1024)
+t512 = torus(512)
+t256 = torus(256)
+t128 = torus(128)
 
-SUITE["initialization"] = @benchmarkable Ripserer.initialize!(
-    $col, $(DiameterSimplex{3}(1.0, 10, 1)), 5, $dist, $binom)
+SUITE["torus 1024, dim_max = 1, modulus = 2"] = @benchmarkable ripserer($t1024, 1, 2), evals=1
+SUITE["torus 1024, dim_max = 1, modulus = 7"] = @benchmarkable ripserer($t1024, 1, 7), evals=1
+#SUITE["torus 512,  dim_max = 2, modulus = 2"] = @benchmarkable ripserer($t512, 2, 2)
+#SUITE["torus 512,  dim_max = 2, modulus = 7"] = @benchmarkable ripserer($t512, 2, 7)
+SUITE["torus 256,  dim_max = 3, modulus = 2"] = @benchmarkable ripserer($t256, 3, 2)
+SUITE["torus 256,  dim_max = 3, modulus = 7"] = @benchmarkable ripserer($t256, 3, 7)
+SUITE["torus 128,  dim_max = 4, modulus = 2"] = @benchmarkable ripserer($t128, 4, 2)
+SUITE["torus 128,  dim_max = 4, modulus = 7"] = @benchmarkable ripserer($t128, 4, 7)

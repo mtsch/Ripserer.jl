@@ -189,95 +189,108 @@ using Ripserer: Column, coboundary, pop_pivot!,
     end
 
     @testset "ripserer" begin
-        @testset "icosahedron" begin
-            icosahedron = Float64[0  1  2  2  1  2  1  1  2  2  1  3;
-                                  1  0  3  2  1  1  2  1  2  1  2  2;
-                                  2  3  0  1  2  2  1  2  1  2  1  1;
-                                  2  2  1  0  3  2  1  1  2  1  2  1;
-                                  1  1  2  3  0  1  2  2  1  2  1  2;
-                                  2  1  2  2  1  0  3  2  1  1  2  1;
-                                  1  2  1  1  2  3  0  1  2  2  1  2;
-                                  1  1  2  1  2  2  1  0  3  1  2  2;
-                                  2  2  1  2  1  1  2  3  0  2  1  1;
-                                  2  1  2  1  2  1  2  1  2  0  3  1;
-                                  1  2  1  2  1  2  1  2  1  3  0  2;
-                                  3  2  1  1  2  1  2  2  1  1  2  0]
+        @testset "full matrix, no threshold" begin
+            @testset "icosahedron" begin
+                icosahedron = Float64[0 1 2 2 1 2 1 1 2 2 1 3;
+                                      1 0 3 2 1 1 2 1 2 1 2 2;
+                                      2 3 0 1 2 2 1 2 1 2 1 1;
+                                      2 2 1 0 3 2 1 1 2 1 2 1;
+                                      1 1 2 3 0 1 2 2 1 2 1 2;
+                                      2 1 2 2 1 0 3 2 1 1 2 1;
+                                      1 2 1 1 2 3 0 1 2 2 1 2;
+                                      1 1 2 1 2 2 1 0 3 1 2 2;
+                                      2 2 1 2 1 1 2 3 0 2 1 1;
+                                      2 1 2 1 2 1 2 1 2 0 3 1;
+                                      1 2 1 2 1 2 1 2 1 3 0 2;
+                                      3 2 1 1 2 1 2 2 1 1 2 0]
 
-            res = ripserer(icosahedron, 2)
-            @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
-            @test isempty(res[2])
-            @test res[3] == [(1.0, 2.0)]
-        end
-        @testset "torus 16" begin
-            dim0, dim1, dim2 = ripserer(torus(16), 2)
+                res = ripserer(icosahedron, 2)
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test isempty(res[2])
+                @test res[3] == [(1.0, 2.0)]
+            end
 
-            @test length(dim0) == 16
+            @testset "torus 16" begin
+                dim0, dim1, dim2 = ripserer(torus(16), 2)
 
-            @test all(x -> first(x) ≈ 0.5, dim1)
-            @test sum(x -> last(x) ≈ 1, dim1) == 2
-            @test sum(x -> isapprox(last(x), 0.71, atol=0.1), dim1) == 15
+                @test length(dim0) == 16
 
-            @test last(only(dim2)) == 1
-        end
-        @testset "torus 100" begin
-            dim0, dim1 = ripserer(torus(100), 1)
+                @test all(x -> first(x) ≈ 0.5, dim1)
+                @test sum(x -> last(x) ≈ 1, dim1) == 2
+                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), dim1) == 15
 
-            @test length(dim0) == 100
+                @test last(only(dim2)) == 1
+            end
 
-            deaths = sort(last.(dim1))
-            @test deaths[end] ≈ 0.8
-            @test deaths[end-1] ≈ 0.8
-            @test deaths[end-2] < 0.5
-        end
-        @testset "cycle" begin
-            cycle = [0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1;
-                     1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2;
-                     2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3;
-                     3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4;
-                     4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5;
-                     5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6;
-                     6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7;
-                     7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8;
-                     8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9;
-                     9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8;
-                     8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7;
-                     7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6;
-                     6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5;
-                     5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4;
-                     4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3;
-                     3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2;
-                     2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1;
-                     1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0]
+            @testset "torus 100" begin
+                dim0, dim1 = ripserer(torus(100), 1)
 
-            dim0, dim1, dim2, dim3, dim4 = ripserer(cycle, 4)
-            @test dim0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
-            @test dim1 == [(1, 6)]
-            @test dim2 == fill((6, 7), 5)
-            @test dim3 == [(7, 8)]
-            @test dim4 == []
-        end
+                @test length(dim0) == 100
 
-        @testset "projective plane" begin
-            projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
-                                1 0 2 2 2 1 2 1 2 1 2 2 2;
-                                1 2 0 2 2 2 1 2 1 1 2 2 2;
-                                1 2 2 0 2 1 2 2 1 2 2 2 1;
-                                1 2 2 2 0 2 1 1 2 2 2 2 1;
-                                1 1 2 1 2 0 2 2 2 1 1 2 1;
-                                1 2 1 2 1 2 0 2 2 1 1 2 1;
-                                1 1 2 2 1 2 2 0 2 1 2 1 1;
-                                1 2 1 1 2 2 2 2 0 1 2 1 1;
-                                2 1 1 2 2 1 1 1 1 0 1 1 2;
-                                2 2 2 2 2 1 1 2 2 1 0 2 1;
-                                2 2 2 2 2 2 2 1 1 1 2 0 1;
-                                2 2 2 1 1 1 1 1 1 2 1 1 0]
+                deaths = sort(last.(dim1))
+                @test deaths[end] ≈ 0.8
+                @test deaths[end-1] ≈ 0.8
+                @test deaths[end-2] < 0.5
+            end
 
-            _, dim1_2, dim2_2 = ripserer(projective_plane, 2)
-            _, dim1_3, dim2_3 = ripserer(projective_plane, 2, 3)
-            @test dim1_2 == [(1, 2)]
-            @test dim2_2 == [(1, 2)]
-            @test isempty(dim1_3)
-            @test isempty(dim2_3)
+            @testset "cycle" begin
+                cycle = [0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1;
+                         1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2;
+                         2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3;
+                         3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4;
+                         4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5;
+                         5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6;
+                         6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7;
+                         7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8;
+                         8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9;
+                         9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8;
+                         8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7;
+                         7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6;
+                         6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5;
+                         5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4;
+                         4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3;
+                         3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2;
+                         2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1;
+                         1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0]
+
+                dim0, dim1, dim2, dim3, dim4 = ripserer(cycle, 4)
+                @test dim0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
+                @test dim1 == [(1, 6)]
+                @test dim2 == fill((6, 7), 5)
+                @test dim3 == [(7, 8)]
+                @test dim4 == []
+
+                dim0_7, dim1_7, dim2_7, dim3_7, dim4_7 = ripserer(cycle, 4, 7)
+                @test all(dim0 .== dim0_7)
+                @test all(dim1 .== dim1_7)
+                @test all(dim2 .== dim2_7)
+                @test all(dim3 .== dim3_7)
+                @test all(dim4 .== dim4_7)
+            end
+
+            @testset "projective plane (modulus)" begin
+                # taken from ripser/examples
+                projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
+                                    1 0 2 2 2 1 2 1 2 1 2 2 2;
+                                    1 2 0 2 2 2 1 2 1 1 2 2 2;
+                                    1 2 2 0 2 1 2 2 1 2 2 2 1;
+                                    1 2 2 2 0 2 1 1 2 2 2 2 1;
+                                    1 1 2 1 2 0 2 2 2 1 1 2 1;
+                                    1 2 1 2 1 2 0 2 2 1 1 2 1;
+                                    1 1 2 2 1 2 2 0 2 1 2 1 1;
+                                    1 2 1 1 2 2 2 2 0 1 2 1 1;
+                                    2 1 1 2 2 1 1 1 1 0 1 1 2;
+                                    2 2 2 2 2 1 1 2 2 1 0 2 1;
+                                    2 2 2 2 2 2 2 1 1 1 2 0 1;
+                                    2 2 2 1 1 1 1 1 1 2 1 1 0]
+
+                _, dim1_2, dim2_2 = ripserer(projective_plane, 2)
+                _, dim1_3, dim2_3 = ripserer(projective_plane, 2, 3)
+                @test dim1_2 == [(1, 2)]
+                @test dim2_2 == [(1, 2)]
+                @test isempty(dim1_3)
+                @test isempty(dim2_3)
+            end
         end
     end
 end

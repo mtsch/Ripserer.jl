@@ -226,27 +226,32 @@ function vertices(st::ReductionState{M}, sx::AbstractSimplex{M}, dim) where M
 end
 
 # simplex arithmetic ===================================================================== #
-
-# Note: mod is handled in set_coef.
-for op in (:+, :-, :*)
-    @eval function (Base.$op)(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M
-        set_coef(sx1, $op(coef(sx1), coef(sx2)))
-    end
-end
-
-Base.:/(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
-    sx1 * inv(sx2)
-Base.:/(sx1::AbstractSimplex{M}, coef::Int) where M =
-    sx1 * inv(Simplex{M}(1, coef))
-Base.:-(sx::AbstractSimplex{M}) where M =
+Base.:+(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
+    set_coef(sx1, coef(sx1) + coef(sx2))
+Base.:-(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
+    set_coef(sx1, coef(sx1) - coef(sx2))
+Base.:*(sx::AbstractSimplex, λ) =
+    set_coef(sx, coef(sx) * λ)
+Base.:*(λ, sx::AbstractSimplex) =
+    set_coef(sx, λ * coef(sx))
+Base.:-(sx::AbstractSimplex) =
     set_coef(sx, -coef(sx))
+Base.:/(sx::AbstractSimplex{M}, λ) where M =
+    set_coef(sx, coef(sx) * inv_mod(Val(M), λ))
 
+"""
+    inv_mod(::Val{M}, i)
+
+Multiplicative inverse of `i` mod `M`.
+"""
 # Idea: precompute inverses and generate a function with the inverses hard-coded.
-@generated function Base.inv(sx::AbstractSimplex{M}) where M
+@generated function inv_mod(::Val{M}, i) where M
     err_check = quote
-        coef(sx) == 0 && throw(DomainError(0))
+        i == 0 && throw(DivideError())
     end
     if M > 2
+        isprime(M) || throw(DomainError(M, "modulus not prime"))
+
         inverse_arr = fill(0, M-1)
         inverse_arr[1] = 1
         for i in 2:M-1
@@ -256,12 +261,12 @@ Base.:-(sx::AbstractSimplex{M}) where M =
 
         quote
             $err_check
-            set_coef(sx, $inverse[coef(sx)])
+            $inverse[i]
         end
     else
         quote
             $err_check
-            set_coef(sx, coef(sx))
+            i
         end
     end
 end

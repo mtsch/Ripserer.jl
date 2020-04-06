@@ -107,8 +107,8 @@ Add column with column index `index` multiplied by the correct factor to `workin
 Also record the addition in `reduction_matrix`.
 """
 # add mora vedet katere simplekse je dodal, ne njihovih coboundaryjev
-function add!(rm::ReductionMatrices, idx, coef)
-    λ = pivot(rm.working_column) / coef
+function add!(rm::ReductionMatrices, idx, other_coef)
+    λ = coef(pivot(rm.working_column) / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
         for coface in coboundary(rm.state, simplex, rm.dim)
