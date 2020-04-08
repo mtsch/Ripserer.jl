@@ -104,7 +104,6 @@ using Ripserer:
         end
     end
 
-    #=
     @testset "compute_0_dim_pairs!" begin
         @testset "dense Int" begin
             dist = [0 1 2;
@@ -121,6 +120,7 @@ using Ripserer:
             @test critical_edges == [Simplex{2}(3, 3, 1)]
         end
 
+        #=
         @testset "sparse Float64" begin
             dist = sparse(Float64[0 2 0 0 5 0;
                                   2 0 4 6 0 0;
@@ -142,44 +142,12 @@ using Ripserer:
             @test critical_edges == [Simplex{3}(6.0, 5, 1),
                                      Simplex{3}(5.0, 7, 1)]
         end
+        =#
     end
-
-    @testset "compute_pairs!" begin
-        # 1 -- 2
-        # |    |
-        # 4 -- 3
-        dist = Float64[0 1 2 1;
-                       1 0 1 2;
-                       2 1 0 1;
-                       1 2 1 0]
-        scx = RipsComplex{2}(dist, 1)
-        simplices = Simplex{2, Float64}[]
-        columns = Simplex{2, Float64}[]
-        compute_0_dim_pairs!(scx, simplices, columns)
-        matrices = ReductionMatrix(scx, 1)
-
-        res = compute_pairs!(matrices, columns)
-
-        @test res == [(1.0, 2.0)]
-    end
-    =#
 
     @testset "ripserer" begin
         @testset "full matrix, no threshold" begin
             @testset "icosahedron" begin
-                icosahedron = Float64[0 1 2 2 1 2 1 1 2 2 1 3;
-                                      1 0 3 2 1 1 2 1 2 1 2 2;
-                                      2 3 0 1 2 2 1 2 1 2 1 1;
-                                      2 2 1 0 3 2 1 1 2 1 2 1;
-                                      1 1 2 3 0 1 2 2 1 2 1 2;
-                                      2 1 2 2 1 0 3 2 1 1 2 1;
-                                      1 2 1 1 2 3 0 1 2 2 1 2;
-                                      1 1 2 1 2 2 1 0 3 1 2 2;
-                                      2 2 1 2 1 1 2 3 0 2 1 1;
-                                      2 1 2 1 2 1 2 1 2 0 3 1;
-                                      1 2 1 2 1 2 1 2 1 3 0 2;
-                                      3 2 1 1 2 1 2 2 1 1 2 0]
-
                 res = ripserer(icosahedron, 2)
                 @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
                 @test isempty(res[2])

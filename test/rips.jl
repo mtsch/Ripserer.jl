@@ -162,64 +162,64 @@ using Ripserer:
     end
 
     @testset "coboundary" begin
-        @testset "start" begin
-            scx = RipsComplex{5}(sparse([0 1 0 0;
-                                         1 0 2 3;
-                                         0 2 0 0;
-                                         0 3 0 0]), 0)
-            cb_set = Set{Simplex{5, Int}}()
-            for sx in coboundary(scx, Simplex{5}(1, 2, 1), 0)
-                push!(cb_set, sx)
-            end
-            @test cb_set == Set([Simplex{5}(1, 1, 4),
-                                 Simplex{5}(2, 3, 1),
-                                 Simplex{5}(3, 5, 1)])
-        end
-
         @testset "line cofaces" begin
-            scx = RipsComplex{2}(sparse(Float64[0 1 3 4 5 0;
-                                                1 0 3 4 5 1;
-                                                3 3 0 0 0 1;
-                                                4 4 0 0 0 1;
-                                                5 5 0 0 0 1;
-                                                0 1 1 1 1 0]), 1)
-            cb_set = Set{Simplex{2, Float64}}()
+            scx = RipsComplex{2}(Float64[0 1 3 4 5;
+                                         1 0 3 4 5;
+                                         3 3 0 9 9;
+                                         4 4 9 0 9;
+                                         5 5 9 9 0], 1)
+            cb = Simplex{2, Float64}[]
             for sx in coboundary(scx, Simplex{2}(scx, 1.0, (2, 1), 1), 1)
-                push!(cb_set, sx)
+                push!(cb, sx)
             end
-            @test length(cb_set) == 3
-            @test cb_set == Set([Simplex{2}(scx, 3.0, [3, 2, 1], 1),
-                                 Simplex{2}(scx, 4.0, [4, 2, 1], 1),
-                                 Simplex{2}(scx, 5.0, [5, 2, 1], 1)])
+            @test cb == [Simplex{2}(scx, 5.0, (5, 2, 1), 1),
+                         Simplex{2}(scx, 4.0, (4, 2, 1), 1),
+                         Simplex{2}(scx, 3.0, (3, 2, 1), 1)]
         end
 
         @testset "full graph" begin
-            dist = ones(100, 100)
-            for i in 1:size(dist, 1)
-                dist[i, i] = 0
+            n = 100
+            dists = ones(n, n)
+            for i in 1:size(dists, 1)
+                dists[i, i] = 0
             end
-            scx = RipsComplex{3}(sparse(dist), 5)
+            scx = RipsComplex{3}(dists, 5)
 
             for dim in 1:5
                 cob = Simplex{3, Float64}[]
-                for sx in coboundary(scx, Simplex{3}(1.0, 10, 1), dim)
+                sx = Simplex{3}(1.0, 10, 1)
+                for c in coboundary(scx, sx, dim)
                     push!(cob, sx)
                 end
-                # should be reverse sorted?
-                @test issorted(index.(cob), rev=true)
-                @test length(cob) == 100 - dim - 1
+                sx_vxs = vertices(scx, sx, dim)
+                all(x -> issubset(sx_vxs, vertices(scx, x, dim+1)), cob)
+                @test length(cob) == n - dim - 1
             end
         end
 
-        @testset "diameters" begin
-            dist = torus(25)
-            scx = RipsComplex{2}(dist, 3)
-            for dim in 1:3
-                diameter = diam(scx, dim+1:-1:1)
-                sx = Simplex{2}(scx, diameter, 1, 1)
-                for coface in coboundary(scx, sx, dim)
-                    @test diam(coface) == diam(scx, vertices(scx, coface, dim+1))
-                end
+        @testset "icosahedron" begin
+            dim = 2
+            scx = RipsComplex{7}(icosahedron, 4)
+
+            sx_vxs = (10, 3, 1)
+            sx = Simplex{7}(scx, diam(scx, sx_vxs), sx_vxs, 1)
+            for cf in coboundary(scx, sx, dim)
+                cf_vxs = vertices(scx, cf, dim+1)
+                @test diam(cf) == diam(scx, cf_vxs)
+                @test issubset(sx_vxs, cf_vxs)
+            end
+        end
+
+        @testset "torus" begin
+            dim = 2
+            scx = RipsComplex{3}(torus(16), 4)
+
+            sx_vxs = (16, 8, 1)
+            sx = Simplex{3}(scx, diam(scx, sx_vxs), sx_vxs, 1)
+            for cf in coboundary(scx, sx, dim)
+                cf_vxs = vertices(scx, cf, dim+1)
+                @test diam(cf) == diam(scx, cf_vxs)
+                @test issubset(sx_vxs, cf_vxs)
             end
         end
     end

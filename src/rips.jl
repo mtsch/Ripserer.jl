@@ -53,8 +53,8 @@ end
 end
 Simplex{M, T}(diam::T, index, coef) where {M, T} =
     Simplex{M}(diam, index, coef)
-Simplex{M}(st::SimplicialComplex{M}, diam, vertices, coef) where M =
-    Simplex{M}(diam, index(st, vertices), coef)
+Simplex{M}(scx::SimplicialComplex{M}, diam, vertices, coef) where M =
+    Simplex{M}(diam, index(scx, vertices), coef)
 
 @generated function index(sx::Simplex{M}) where M
     shift = n_bits(M)

@@ -72,7 +72,7 @@ end
 const Column{M, T} =
     BinaryMinHeap{Simplex{M, T}}
 
-function pop_pivot!(column::Column)
+@timed function pop_pivot!(column::Column)
     isempty(column) && return nothing
 
     pivot = pop!(column)
@@ -117,7 +117,7 @@ ReductionMatrix(scx::SimplicialComplex{M, T}, dim) where {M, T} =
 Add column with column index `index` multiplied by the correct factor to `working_column`.
 Also record the addition in `reduction_matrix`.
 """
-function add!(rm::ReductionMatrix, idx, other_coef)
+@timed function add!(rm::ReductionMatrix, idx, other_coef)
     λ = coef(pivot(rm.working_column) / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
@@ -128,7 +128,7 @@ function add!(rm::ReductionMatrix, idx, other_coef)
     pivot(rm.working_column)
 end
 
-function initialize!(rm::ReductionMatrix, column_simplex)
+@timed function initialize!(rm::ReductionMatrix, column_simplex)
     empty!(rm.working_column.valtree)
     empty!(rm.reduction_entries.valtree)
 
@@ -137,13 +137,14 @@ function initialize!(rm::ReductionMatrix, column_simplex)
             return coface
         end
     end
+
     for coface in coboundary(rm.complex, column_simplex, rm.dim)
         push!(rm.working_column, coface)
     end
     pivot(rm.working_column)
 end
 
-function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
+@timed function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
     current_pivot = initialize!(rm, column_simplex)
 
     add_column!(rm.reduction_matrix)
@@ -176,14 +177,15 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 """
-function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, simplices, columns) where {M, T}
+@timed function compute_0_dim_pairs!(scx::SimplicialComplex{M, T},
+                                     simplices, columns) where {M, T}
     dset = IntDisjointSets(length(scx))
     res = Tuple{T, T}[]
 
     for (l, (u, v)) in edges(scx)
         push!(simplices, Simplex{M}(scx, l, (u, v), 1))
-        i = find_root(dset, u)
-        j = find_root(dset, v)
+        i = find_root!(dset, u)
+        j = find_root!(dset, v)
         if i ≠ j
             union!(dset, i, j)
             if l > 0
@@ -200,7 +202,7 @@ function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, simplices, columns) 
     res
 end
 
-function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
+@timed function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     res = Tuple{T, T}[]
     for column in columns
         reduce_working_column!(rm, res, column)
@@ -208,7 +210,8 @@ function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     res
 end
 
-function assemble_columns!(rm::ReductionMatrix{M, T}, simplices, columns) where {M, T}
+@timed function assemble_columns!(rm::ReductionMatrix{M, T},
+                                  simplices, columns) where {M, T}
     empty!(columns)
     new_simplex_diam = fill(zero(T), binomial(rm.complex, length(rm.complex), rm.dim+2))
 
