@@ -1,6 +1,6 @@
 using Ripserer:
     edges, is_distance_matrix, apply_threshold,
-    isprime, Binomial, RipsComplex, dist, is_connected,
+    isprime, Binomial, RipsComplex, dist,
     Simplex, index, coef, set_coef, diam, vertices, inv_mod,
     coboundary
 
@@ -108,9 +108,6 @@ using Ripserer:
             @test dist(scx, 3, 3) == 0
             @test dist(scx, 1, 2) == 1
             @test dist(scx, 1, 2) == 1
-            @test is_connected(scx, 1, 2)
-            @test !is_connected(scx, 3, 3)
-            @test !is_connected(scx, 2, 4)
         end
     end
 

@@ -17,7 +17,7 @@ and does not need to hold information about its dimension or the vertices it inc
 abstract type AbstractSimplex{M, T} end
 
 """
-    coef(simplex::AbstractSimplex)
+    coef(simplex::AbstractSimplex{M})
 
 Get the coefficient value of `simplex`. The coefficient is always in the range of
 `0 ≤ coef(simplex) < M`.
@@ -25,9 +25,9 @@ Get the coefficient value of `simplex`. The coefficient is always in the range o
 coef
 
 """
-    set_coef(simplex::AbstractSimplex, val)
+    set_coef(simplex::AbstractSimplex, value)
 
-Return new `simplex` with new coefficient value.
+Return new `simplex` with new coefficient `value`.
 """
 set_coef
 
@@ -44,7 +44,7 @@ diam
 Get the combinatorial index of `simplex`. The index is equal to
 
 ```math
-(i_d, i_{d-1}, ..., 1, 0) \\mapsto \\sum_{k=0^d} \\binom{i_k}{k + 1}.
+(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k}.
 ```
 
     index(complex::SimplicialComplex, vertices)
@@ -70,17 +70,12 @@ type.
     Base.binomial(::SimplicialComplex, n, k)::Int (optional)
 
     dim_max(::SimplicialComplex)::Int
+
+    threshold(::SimplicialComplex)::T
 """
 abstract type SimplicialComplex{M, T, S<:AbstractSimplex{M, T}} end
 
 Base.eltype(::SimplicialComplex{M, T, S}) where {M, T, S} = S
-
-"""
-    length(complex::SimplicialComplex)
-
-Get number of vertices in `complex`.
-"""
-length
 
 """
     dist(complex::SimplicialComplex, i, j)
@@ -105,8 +100,7 @@ Base.binomial(::SimplicialComplex, n, k) =
 
 Get the maximum dimension of simplices in `scx`.
 """
-dim_max(scx::SimplicialComplex) =
-    scx.dim_max
+dim_max
 
 """
     threshold(scx::SimplicialComplex)
@@ -203,20 +197,10 @@ function max_dist(scx::SimplicialComplex{M, T}, us, v::Integer) where {M, T}
 end
 
 """
-    is_connected(complex, vertices, vertex)
+    find_max_vertex(complex, idx, k)
 
-Check if `vertex` is connected to `vertices` i.e. if the distance to all other vertices
-is ≥ 0. If `vertex in vertices`, this function returns `false`.
+Find largest vertex index of vertex for which `binomial(i, k) ≤ idx` holds.
 """
-function is_connected(scx::SimplicialComplex, us, v)
-    for u in us
-        if iszero(dist(scx, u, v))
-            return false
-        end
-    end
-    true
-end
-
 function find_max_vertex(scx::SimplicialComplex, idx, k)
     top = length(scx)
     bot = k - 1
@@ -286,6 +270,12 @@ Base.IteratorEltype(::Type{CoboundaryIterator}) =
 Base.eltype(::Type{CoboundaryIterator{M, T, S}}) where {M, T, S} =
     S
 
+"""
+    coboundary(complex, simplex, dim)
+
+Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
+decreasing order by index.
+"""
 coboundary(scx::SimplicialComplex, simplex::AbstractSimplex, dim) =
     CoboundaryIterator(scx, simplex, dim)
 
