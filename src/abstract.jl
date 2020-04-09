@@ -108,6 +108,15 @@ Get the maximum dimension of simplices in `scx`.
 dim_max(scx::SimplicialComplex) =
     scx.dim_max
 
+"""
+    threshold(scx::SimplicialComplex)
+
+Get the threshold of `scx`. Simplices with diameter strictly larger than this value will be
+ignored.
+"""
+threshold(scx::SimplicialComplex{M, T}) where {M, T} =
+    typemax(T)
+
 # implementation ========================================================================= #
 Base.isless(sx1, sx2) =
     diam(sx1) < diam(sx2) || diam(sx1) == diam(sx2) && index(sx1) > index(sx2)
