@@ -134,6 +134,7 @@ function initialize!(rm::ReductionMatrix, column_simplex)
 
     for coface in coboundary(rm.complex, column_simplex, rm.dim)
         if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
+            empty!(rm.working_column.valtree)
             return coface
         end
         push!(rm.working_column, coface)

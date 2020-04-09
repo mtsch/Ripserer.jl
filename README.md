@@ -6,5 +6,3 @@ A Julia reimplementation of [ripser](https://github.com/Ripser/ripser). Work in 
 
 * thresholding
 * representative cocycles
-* `all_cofaces = false`
-* performance

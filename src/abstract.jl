@@ -268,7 +268,6 @@ struct CoboundaryIterator{M, T, S<:AbstractSimplex{M, T}, C<:SimplicialComplex{M
     complex     ::C
     simplex     ::S
     dim         ::Int
-    all_cofaces ::Bool
 end
 
 Base.IteratorSize(::Type{CoboundaryIterator}) =
@@ -279,7 +278,7 @@ Base.eltype(::Type{CoboundaryIterator{M, T, S}}) where {M, T, S} =
     S
 
 coboundary(scx::SimplicialComplex, simplex::AbstractSimplex, dim) =
-    CoboundaryIterator(scx, simplex, dim, true)
+    CoboundaryIterator(scx, simplex, dim)
 
 function Base.iterate(ci::CoboundaryIterator{M},
                       st = (length(ci.complex),
