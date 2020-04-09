@@ -30,7 +30,7 @@ n_bits(M) =
 """
     Simplex{M, T} <: AbstractSimplex{M, T}
 
-The basic simplex type with coefficient values from `Z_M`, integers modulo `M`.
+The vanilla simplex type with coefficient values from `Z_M`, integers modulo `M`.
 `index` and `coef` are packed into a single `UInt64`.
 
 # Constructor
@@ -53,8 +53,8 @@ end
 end
 Simplex{M, T}(diam::T, index, coef) where {M, T} =
     Simplex{M}(diam, index, coef)
-Simplex{M}(scx::SimplicialComplex{M}, diam, vertices, coef) where M =
-    Simplex{M}(diam, index(scx, vertices), coef)
+Simplex{M}(flt::AbstractFiltration{M}, diam, vertices, coef) where M =
+    Simplex{M}(diam, index(flt, vertices), coef)
 
 @generated function index(sx::Simplex{M}) where M
     shift = n_bits(M)
@@ -152,10 +152,10 @@ end
 function Binomial(n, k)
     table = zeros(Int, n+1, k+1)
     for i in 1:n+1
-	table[i, 1] = 1;
-	for j in 2:min(i, k+1)
-	    table[i, j] = table[i-1, j-1] + table[i-1, j];
-	    if (i <= k)
+        table[i, 1] = 1;
+        for j in 2:min(i, k+1)
+            table[i, j] = table[i-1, j-1] + table[i-1, j];
+            if (i <= k)
                 table[i, i] = 1
             end
         end
@@ -170,24 +170,24 @@ Base.show(io::IO, bin::Binomial) =
 
 # rips complex =========================================================================== #
 """
-    RipsComplex{M, T, A<:AbstractArray{T}}
+    RipsFiltration{M, T, A<:AbstractArray{T}}
 
 This type holds the information about the input values.
 
 # Constructor
 
-    RipsComplex{M}(distance_matrix, dim_max)
+    RipsFiltration{M}(distance_matrix, dim_max)
 
 """
-struct RipsComplex{M, T, A<:AbstractArray{T}} <: SimplicialComplex{M, T, Simplex{M, T}}
+struct RipsFiltration{M, T, A<:AbstractArray{T}} <: AbstractFiltration{M, T, Simplex{M, T}}
     dist         ::A
     binomial     ::Binomial
     dim_max      ::Int
     threshold    ::T
     vertex_cache ::Vector{Int}
 
-    function RipsComplex{M}(dist::A, dim_max::Integer,
-                            threshold=typemax(T)) where {M, T, A<:AbstractArray{T}}
+    function RipsFiltration{M}(dist::A, dim_max::Integer,
+                               threshold=typemax(T)) where {M, T, A<:AbstractArray{T}}
         is_distance_matrix(dist) ||
             throw(ArgumentError("`dist` must be a distance matrix"))
         isprime(M) ||
@@ -198,20 +198,20 @@ struct RipsComplex{M, T, A<:AbstractArray{T}} <: SimplicialComplex{M, T, Simplex
     end
 end
 
-Base.length(rips::RipsComplex) =
+Base.length(rips::RipsFiltration) =
     size(rips.dist, 1)
 
-dist(rips::RipsComplex, i::Integer, j::Integer) =
+dist(rips::RipsFiltration, i::Integer, j::Integer) =
     rips.dist[i, j]
 
-Base.binomial(rips::RipsComplex, n, k) =
+Base.binomial(rips::RipsFiltration, n, k) =
     rips.binomial(n, k)
 
-edges(rips::RipsComplex) =
+edges(rips::RipsFiltration) =
     edges(rips.dist, threshold(rips))
 
-dim_max(rips::RipsComplex) =
+dim_max(rips::RipsFiltration) =
     rips.dim_max
 
-threshold(rips::RipsComplex) =
+threshold(rips::RipsFiltration) =
     rips.threshold

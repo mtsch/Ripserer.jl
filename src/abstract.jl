@@ -47,68 +47,68 @@ Get the combinatorial index of `simplex`. The index is equal to
 (i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k}.
 ```
 
-    index(complex::SimplicialComplex, vertices)
+    index(filtration::AbstractFiltration, vertices)
 
 Compute the index from a collection of `vertices`. Vertices must be in descending order.
 """
 index
 
 """
-    SimplicialComplex{M, T, S<:AbstractSimplex{M, T}}
+    AbstractFiltration{M, T, S<:AbstractSimplex{M, T}}
 
 An abstract type that holds information about the distances between vertices and the simplex
 type.
 
 # Interface
 
-    Base.length(::SimplicialComplex)::Int
+    Base.length(::AbstractFiltration)::Int
 
-    dist(::SimplicialComplex, ::Int, ::Int)::T
+    dist(::AbstractFiltration, ::Int, ::Int)::T
 
-    edges(::SimplicialComplex)::iteratble of Tuple{T, {Int, Int}}
+    edges(::AbstractFiltration)::iteratble of Tuple{T, {Int, Int}}
 
-    Base.binomial(::SimplicialComplex, n, k)::Int (optional)
+    Base.binomial(::AbstractFiltration, n, k)::Int (optional)
 
-    dim_max(::SimplicialComplex)::Int
+    dim_max(::AbstractFiltration)::Int
 
-    threshold(::SimplicialComplex)::T
+    threshold(::AbstractFiltration)::T
 """
-abstract type SimplicialComplex{M, T, S<:AbstractSimplex{M, T}} end
+abstract type AbstractFiltration{M, T, S<:AbstractSimplex{M, T}} end
 
-Base.eltype(::SimplicialComplex{M, T, S}) where {M, T, S} = S
+Base.eltype(::AbstractFiltration{M, T, S}) where {M, T, S} = S
 
 """
-    dist(complex::SimplicialComplex, i, j)
+    dist(filtration::AbstractFiltration, i, j)
 
 Get the distance between vertex `i` and vertex `j`.
 """
 dist
 
 """
-    edges(complex::SimplicialComplex)
+    edges(filtration::AbstractFiltration)
 
-Get edges in distance matrix in `complex`,
+Get edges in distance matrix in `filtration`,
 sorted by decresing length and increasing index.
 """
 edges
 
-Base.binomial(::SimplicialComplex, n, k) =
+Base.binomial(::AbstractFiltration, n, k) =
     binomial(n, k)
 
 """
-    dim_max(scx::SimplicialComplex)
+    dim_max(flt::AbstractFiltration)
 
-Get the maximum dimension of simplices in `scx`.
+Get the maximum dimension of simplices in `flt`.
 """
 dim_max
 
 """
-    threshold(scx::SimplicialComplex)
+    threshold(flt::AbstractFiltration)
 
-Get the threshold of `scx`. Simplices with diameter strictly larger than this value will be
+Get the threshold of `flt`. Simplices with diameter strictly larger than this value will be
 ignored.
 """
-threshold(scx::SimplicialComplex{M, T}) where {M, T} =
+threshold(flt::AbstractFiltration{M, T}) where {M, T} =
     typemax(T)
 
 # implementation ========================================================================= #
@@ -161,19 +161,19 @@ Multiplicative inverse of `i` mod `M`.
     end
 end
 
-function index(scx::SimplicialComplex, vertices)
+function index(flt::AbstractFiltration, vertices)
     res = 0
     for l in eachindex(vertices)
-        res += binomial(scx, vertices[end - l + 1] - 1, l)
+        res += binomial(flt, vertices[end - l + 1] - 1, l)
     end
     res + 1
 end
 
-function diam(scx::SimplicialComplex{M, T}, vertices) where {M, T}
+function diam(flt::AbstractFiltration{M, T}, vertices) where {M, T}
     n = length(vertices)
     res = typemin(T)
     for i in 1:n, j in i+1:n
-        d = dist(scx, vertices[j], vertices[i])
+        d = dist(flt, vertices[j], vertices[i])
         if d == 0
             return typemax(T)
         else
@@ -184,32 +184,32 @@ function diam(scx::SimplicialComplex{M, T}, vertices) where {M, T}
 end
 
 """
-    max_dist(complex, vertices, vertex)
+    max_dist(filtration, vertices, vertex)
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-function max_dist(scx::SimplicialComplex{M, T}, us, v::Integer) where {M, T}
+function max_dist(flt::AbstractFiltration{M, T}, us, v::Integer) where {M, T}
     res = typemin(T)
     for u in us
-        res = max(res, dist(scx, u, v))
+        res = max(res, dist(flt, u, v))
     end
     res
 end
 
 """
-    find_max_vertex(complex, idx, k)
+    find_max_vertex(filtration, idx, k)
 
 Find largest vertex index of vertex for which `binomial(i, k) ≤ idx` holds.
 """
-function find_max_vertex(scx::SimplicialComplex, idx, k)
-    top = length(scx)
+function find_max_vertex(flt::AbstractFiltration, idx, k)
+    top = length(flt)
     bot = k - 1
-    if !(binomial(scx, top, k) ≤ idx)
+    if !(binomial(flt, top, k) ≤ idx)
         count = top - bot
         while count > 0
             step = fld(count, 2)
             mid = top - step
-            if !(binomial(scx, mid, k) ≤ idx)
+            if !(binomial(flt, mid, k) ≤ idx)
                 top = mid - 1
                 count -= step + 1
             else
@@ -221,44 +221,44 @@ function find_max_vertex(scx::SimplicialComplex, idx, k)
 end
 
 """
-    get_vertices!(complex, index)
+    get_vertices!(filtration, index)
 
-Copy vertices of simplex with `index` to `complex`'s vertex cache.
+Copy vertices of simplex with `index` to `filtration`'s vertex cache.
 """
-function get_vertices!(scx::SimplicialComplex, index, dim)
-    resize!(scx.vertex_cache, dim + 1)
+function get_vertices!(flt::AbstractFiltration, index, dim)
+    resize!(flt.vertex_cache, dim + 1)
     index = index - 1
     for (i, k) in enumerate(dim+1:-1:1)
-        v = find_max_vertex(scx, index, k)
+        v = find_max_vertex(flt, index, k)
 
-        scx.vertex_cache[i] = v + 1
-        index -= binomial(scx, v, k)
+        flt.vertex_cache[i] = v + 1
+        index -= binomial(flt, v, k)
         n_max = v - 1
     end
-    scx.vertex_cache
+    flt.vertex_cache
 end
 
 """
-    vertices(complex, simplex, dim)
+    vertices(filtration, simplex, dim)
 
-    vertices(complex, index, dim)
+    vertices(filtration, index, dim)
 
 Get vertices of `simplex`. Vertices are only recomputed when the vertex cache in
-`complex` is invalid.
+`filtration` is invalid.
 """
-vertices(scx::SimplicialComplex{M}, sx::AbstractSimplex{M}, dim) where M =
-    vertices(scx, index(sx), dim)
-function vertices(scx::SimplicialComplex, idx::Integer, dim)
+vertices(flt::AbstractFiltration{M}, sx::AbstractSimplex{M}, dim) where M =
+    vertices(flt, index(sx), dim)
+function vertices(flt::AbstractFiltration, idx::Integer, dim)
     # Calculating index from vertices is so much faster that this is worth doing.
-    if length(scx.vertex_cache) != dim+1 || index(scx, scx.vertex_cache) != idx
-        get_vertices!(scx, idx, dim)
+    if length(flt.vertex_cache) != dim+1 || index(flt, flt.vertex_cache) != idx
+        get_vertices!(flt, idx, dim)
     end
-    scx.vertex_cache
+    flt.vertex_cache
 end
 
 # coboundary ============================================================================= #
-struct CoboundaryIterator{M, T, S<:AbstractSimplex{M, T}, C<:SimplicialComplex{M, T, S}}
-    complex     ::C
+struct CoboundaryIterator{M, T, S<:AbstractSimplex{M, T}, F<:AbstractFiltration{M, T, S}}
+    filtration  ::F
     simplex     ::S
     dim         ::Int
 end
@@ -271,34 +271,34 @@ Base.eltype(::Type{CoboundaryIterator{M, T, S}}) where {M, T, S} =
     S
 
 """
-    coboundary(complex, simplex, dim)
+    coboundary(filtration, simplex, dim)
 
 Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
 decreasing order by index.
 """
-coboundary(scx::SimplicialComplex, simplex::AbstractSimplex, dim) =
-    CoboundaryIterator(scx, simplex, dim)
+coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim) =
+    CoboundaryIterator(flt, simplex, dim)
 
 function Base.iterate(ci::CoboundaryIterator{M},
-                      st = (length(ci.complex),
+                      st = (length(ci.filtration),
                             ci.dim + 1,
                             index(ci.simplex) - 1,
                             0)) where M
     v, k, idx_below, idx_above = st
     v -= 1
-    while v > 0 && v >= k && binomial(ci.complex, v, k) <= idx_below
-        idx_below -= binomial(ci.complex, v, k)
-        idx_above += binomial(ci.complex, v, k + 1)
+    while v > 0 && v >= k && binomial(ci.filtration, v, k) <= idx_below
+        idx_below -= binomial(ci.filtration, v, k)
+        idx_above += binomial(ci.filtration, v, k + 1)
         v -= 1; k -= 1
     end
     if v < k
         nothing
     else
-        vxs = vertices(ci.complex, ci.simplex, ci.dim)
-        diameter = max(diam(ci.simplex), max_dist(ci.complex, vxs, v+1))
+        vxs = vertices(ci.filtration, ci.simplex, ci.dim)
+        diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
 
         coefficient = (k % 2 == 1 ? 1 : M - 1) * coef(ci.simplex) % M
-        new_index = idx_above + binomial(ci.complex, v, k + 1) + idx_below + 1
-        eltype(ci.complex)(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
+        new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
+        eltype(ci.filtration)(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
     end
 end

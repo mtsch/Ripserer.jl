@@ -109,9 +109,9 @@ using Ripserer:
             dist = [0 1 2;
                     1 0 3;
                     2 3 0]
-            scx = RipsComplex{2}(dist, 0)
+            flt = RipsFiltration{2}(dist, 0)
             critical_edges = Simplex{2, Int}[]
-            res = compute_0_dim_pairs!(scx, critical_edges)
+            res = compute_0_dim_pairs!(flt, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
@@ -127,10 +127,10 @@ using Ripserer:
                                   0 6 3 0 1 0;
                                   5 0 0 1 0 0;
                                   0 0 0 0 0 0])
-            scx = RipsComplex{3}(dist, 0)
+            flt = RipsFiltration{3}(dist, 0)
             simplices = Simplex{3, Float64}[]
             critical_edges = Simplex{3, Float64}[]
-            res = compute_0_dim_pairs!(scx, simplices, critical_edges)
+            res = compute_0_dim_pairs!(flt, simplices, critical_edges)
 
             @test res == [(0.0, 1.0),
                           (0.0, 2.0),
