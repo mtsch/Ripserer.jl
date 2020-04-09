@@ -1,7 +1,7 @@
 using Ripserer:
     edges, is_distance_matrix, apply_threshold,
-    isprime, Binomial, RipsComplex, dist, is_connected,
-    Simplex, index, coef, set_coef, diam, vertices, inv_mod,
+    isprime, Binomial, dist,
+    set_coef, inv_mod,
     coboundary
 
 @testset "rips" begin
@@ -99,18 +99,15 @@ using Ripserer:
             end
         end
 
-        @testset "RipsComplex" begin
-            scx = RipsComplex{3}([0 1 2 0;
+        @testset "RipsFiltration" begin
+            flt = RipsFiltration{3}([0 1 2 0;
                                   1 0 3 0;
                                   2 3 0 0;
                                   0 0 0 0], 1)
-            @test length(scx) == 4
-            @test dist(scx, 3, 3) == 0
-            @test dist(scx, 1, 2) == 1
-            @test dist(scx, 1, 2) == 1
-            @test is_connected(scx, 1, 2)
-            @test !is_connected(scx, 3, 3)
-            @test !is_connected(scx, 2, 4)
+            @test length(flt) == 4
+            @test dist(flt, 3, 3) == 0
+            @test dist(flt, 1, 2) == 1
+            @test dist(flt, 1, 2) == 1
         end
     end
 
@@ -129,15 +126,15 @@ using Ripserer:
     end
 
     @testset "index(::Vector), vertices" begin
-        scx = RipsComplex{2}(rand_dist_matrix(10), 5)
-        @test vertices(scx, Simplex{2}(rand(), 1, 1), 2) == [3, 2, 1]
-        @test vertices(scx, Simplex{2}(rand(), 2, 1), 3) == [5, 3, 2, 1]
-        @test vertices(scx, Simplex{2}(rand(), 3, 1), 1) == [3, 2]
-        @test vertices(scx, Simplex{2}(rand(), 4, 1), 4) == [6, 5, 4, 2, 1]
-        @test vertices(scx, Simplex{2}(rand(), 5, 1), 2) == [5, 2, 1]
+        flt = RipsFiltration{2}(rand_dist_matrix(10), 5)
+        @test vertices(flt, Simplex{2}(rand(), 1, 1), 2) == [3, 2, 1]
+        @test vertices(flt, Simplex{2}(rand(), 2, 1), 3) == [5, 3, 2, 1]
+        @test vertices(flt, Simplex{2}(rand(), 3, 1), 1) == [3, 2]
+        @test vertices(flt, Simplex{2}(rand(), 4, 1), 4) == [6, 5, 4, 2, 1]
+        @test vertices(flt, Simplex{2}(rand(), 5, 1), 2) == [5, 2, 1]
 
         for i in 1:10
-            @test index(scx, vertices(scx, Simplex{2}(rand(), i, 1), 5)) == i
+            @test index(flt, vertices(flt, Simplex{2}(rand(), i, 1), 5)) == i
         end
     end
 
@@ -163,18 +160,18 @@ using Ripserer:
 
     @testset "coboundary" begin
         @testset "line cofaces" begin
-            scx = RipsComplex{2}(Float64[0 1 3 4 5;
+            flt = RipsFiltration{2}(Float64[0 1 3 4 5;
                                          1 0 3 4 5;
                                          3 3 0 9 9;
                                          4 4 9 0 9;
                                          5 5 9 9 0], 1)
             cb = Simplex{2, Float64}[]
-            for sx in coboundary(scx, Simplex{2}(scx, 1.0, (2, 1), 1), 1)
+            for sx in coboundary(flt, Simplex{2}(flt, 1.0, (2, 1), 1), 1)
                 push!(cb, sx)
             end
-            @test cb == [Simplex{2}(scx, 5.0, (5, 2, 1), 1),
-                         Simplex{2}(scx, 4.0, (4, 2, 1), 1),
-                         Simplex{2}(scx, 3.0, (3, 2, 1), 1)]
+            @test cb == [Simplex{2}(flt, 5.0, (5, 2, 1), 1),
+                         Simplex{2}(flt, 4.0, (4, 2, 1), 1),
+                         Simplex{2}(flt, 3.0, (3, 2, 1), 1)]
         end
 
         @testset "full graph" begin
@@ -183,42 +180,42 @@ using Ripserer:
             for i in 1:size(dists, 1)
                 dists[i, i] = 0
             end
-            scx = RipsComplex{3}(dists, 5)
+            flt = RipsFiltration{3}(dists, 5)
 
             for dim in 1:5
                 cob = Simplex{3, Float64}[]
                 sx = Simplex{3}(1.0, 10, 1)
-                for c in coboundary(scx, sx, dim)
+                for c in coboundary(flt, sx, dim)
                     push!(cob, sx)
                 end
-                sx_vxs = vertices(scx, sx, dim)
-                all(x -> issubset(sx_vxs, vertices(scx, x, dim+1)), cob)
+                sx_vxs = vertices(flt, sx, dim)
+                all(x -> issubset(sx_vxs, vertices(flt, x, dim+1)), cob)
                 @test length(cob) == n - dim - 1
             end
         end
 
         @testset "icosahedron" begin
             dim = 2
-            scx = RipsComplex{7}(icosahedron, 4)
+            flt = RipsFiltration{7}(icosahedron, 4)
 
             sx_vxs = (10, 3, 1)
-            sx = Simplex{7}(scx, diam(scx, sx_vxs), sx_vxs, 1)
-            for cf in coboundary(scx, sx, dim)
-                cf_vxs = vertices(scx, cf, dim+1)
-                @test diam(cf) == diam(scx, cf_vxs)
+            sx = Simplex{7}(flt, diam(flt, sx_vxs), sx_vxs, 1)
+            for cf in coboundary(flt, sx, dim)
+                cf_vxs = vertices(flt, cf, dim+1)
+                @test diam(cf) == diam(flt, cf_vxs)
                 @test issubset(sx_vxs, cf_vxs)
             end
         end
 
         @testset "torus" begin
             dim = 2
-            scx = RipsComplex{3}(torus(16), 4)
+            flt = RipsFiltration{3}(torus(16), 4)
 
             sx_vxs = (16, 8, 1)
-            sx = Simplex{3}(scx, diam(scx, sx_vxs), sx_vxs, 1)
-            for cf in coboundary(scx, sx, dim)
-                cf_vxs = vertices(scx, cf, dim+1)
-                @test diam(cf) == diam(scx, cf_vxs)
+            sx = Simplex{3}(flt, diam(flt, sx_vxs), sx_vxs, 1)
+            for cf in coboundary(flt, sx, dim)
+                cf_vxs = vertices(flt, cf, dim+1)
+                @test diam(cf) == diam(flt, cf_vxs)
                 @test issubset(sx_vxs, cf_vxs)
             end
         end

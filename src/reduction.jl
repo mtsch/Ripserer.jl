@@ -29,12 +29,6 @@ function Base.push!(csm::CompressedSparseMatrix, value)
     value
 end
 
-function Base.empty!(csm::CompressedSparseMatrix)
-    empty!(csm.nzval)
-    empty!(csm.colptr)
-    push!(csm.colptr, 1)
-end
-
 add_column!(csm::CompressedSparseMatrix) =
     push!(csm.colptr, csm.colptr[end])
 Base.eltype(csm::CompressedSparseMatrix{T}) where T =
@@ -72,6 +66,12 @@ end
 const Column{M, T} =
     BinaryMinHeap{Simplex{M, T}}
 
+"""
+    pop_pivot!(column)
+
+Pop the pivot from `column`. If there are multiple simplices of with the same index on the
+top of the column, sum them together. If they sum to 0 pop the next column.
+"""
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
 
@@ -88,6 +88,11 @@ function pop_pivot!(column::Column)
     coef(pivot) == 0 ? nothing : pivot
 end
 
+"""
+    pivot(column)
+
+Return the pivot of the column.
+"""
 function pivot(column::Column)
     pivot = pop_pivot!(column)
     if !isnothing(pivot)
@@ -97,8 +102,8 @@ function pivot(column::Column)
 end
 
 # reduction matrix ======================================================================= #
-struct ReductionMatrix{M, T, C<:SimplicialComplex{M, T}}
-    complex           ::C
+struct ReductionMatrix{M, T, F<:AbstractFiltration{M, T}}
+    filtration        ::F
     reduction_matrix  ::CompressedSparseMatrix{Simplex{M, T}}
     column_index      ::Dict{Int, Tuple{Int, Int}}
     working_column    ::Column{M, T}
@@ -106,23 +111,23 @@ struct ReductionMatrix{M, T, C<:SimplicialComplex{M, T}}
     dim               ::Int
 end
 
-ReductionMatrix(scx::SimplicialComplex{M, T}, dim) where {M, T} =
-    ReductionMatrix(scx, CompressedSparseMatrix{Simplex{M, T}}(),
+ReductionMatrix(flt::AbstractFiltration{M, T}, dim) where {M, T} =
+    ReductionMatrix(flt, CompressedSparseMatrix{Simplex{M, T}}(),
                     Dict{Int, Tuple{Int, Int}}(),
                     Column{M, T}(), Column{M, T}(), dim)
 
 """
     add!(rm::ReductionMatrix, index)
 
-Add column with column index `index` multiplied by the correct factor to `working_column`.
-Also record the addition in `reduction_matrix`.
+Add column with column `index` multiplied by the correct factor to `rm.working_column`.
+Also record the addition in `rm.reduction_entries`.
 """
 function add!(rm::ReductionMatrix, idx, other_coef)
     λ = coef(pivot(rm.working_column) / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
-        for coface in coboundary(rm.complex, simplex, rm.dim)
-            if diam(coface) ≤ threshold(rm.complex)
+        for coface in coboundary(rm.filtration, simplex, rm.dim)
+            if diam(coface) ≤ threshold(rm.filtration)
                 push!(rm.working_column, -coface * λ)
             end
         end
@@ -130,12 +135,18 @@ function add!(rm::ReductionMatrix, idx, other_coef)
     pivot(rm.working_column)
 end
 
+"""
+    initialize!(rm::ReductionMatrix, column_simplex)
+
+Initialize `rm.working_column` by emptying it and `reduction_entries` and pushing the
+coboundary of `column_simplex` to `rm.working_column`.
+"""
 function initialize!(rm::ReductionMatrix, column_simplex)
     empty!(rm.working_column.valtree)
     empty!(rm.reduction_entries.valtree)
 
-    for coface in coboundary(rm.complex, column_simplex, rm.dim)
-        if diam(coface) ≤ threshold(rm.complex)
+    for coface in coboundary(rm.filtration, column_simplex, rm.dim)
+        if diam(coface) ≤ threshold(rm.filtration)
             if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
                 empty!(rm.working_column.valtree)
                 return coface
@@ -147,6 +158,12 @@ function initialize!(rm::ReductionMatrix, column_simplex)
     pivot(rm.working_column)
 end
 
+"""
+    reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
+
+Reduce the working column by adding other columns to it until it has the lowest pivot.
+Record resulting persistence intervals in `res`.
+"""
 function reduce_working_column!(rm::ReductionMatrix{M, T}, res, column_simplex) where {M, T}
     current_pivot = initialize!(rm, column_simplex)
 
@@ -180,11 +197,11 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 """
-function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, columns) where {M, T}
-    dset = IntDisjointSets(length(scx))
+function compute_0_dim_pairs!(flt::AbstractFiltration{M, T}, columns) where {M, T}
+    dset = IntDisjointSets(length(flt))
     res = Tuple{T, T}[]
 
-    for (l, (u, v)) in edges(scx)
+    for (l, (u, v)) in edges(flt)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j
@@ -193,7 +210,7 @@ function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, columns) where {M, T
                 push!(res, (zero(T), T(l)))
             end
         else
-            push!(columns, Simplex{M}(scx, T(l), (u, v), 1))
+            push!(columns, Simplex{M}(flt, T(l), (u, v), 1))
         end
     end
     for _ in 1:num_groups(dset)
@@ -203,6 +220,11 @@ function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, columns) where {M, T
     res
 end
 
+"""
+    compute_pairs!(rm::ReductionMatrix, columns)
+
+Compute persistence pairs by reducing `columns` (list of simplices).
+"""
 function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     res = Tuple{T, T}[]
     for column in columns
@@ -211,15 +233,20 @@ function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     res
 end
 
+"""
+    assemble_columns!(rm::ReductionMatrix, columns)
+
+Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
+"""
 function assemble_columns!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     empty!(columns)
-    n_simplices = binomial(rm.complex, length(rm.complex), rm.dim + 2)
-    S = eltype(rm.complex)
+    n_simplices = binomial(rm.filtration, length(rm.filtration), rm.dim + 2)
+    S = eltype(rm.filtration)
 
     for idx in 1:n_simplices
         if !haskey(rm.column_index, idx)
-            sx = S(diam(rm.complex, vertices(rm.complex, idx, rm.dim+1)), idx, 1)
-            if diam(sx) ≤ threshold(rm.complex)
+            sx = S(diam(rm.filtration, vertices(rm.filtration, idx, rm.dim+1)), idx, 1)
+            if diam(sx) ≤ threshold(rm.filtration)
                 push!(columns, sx)
             end
         end
@@ -228,19 +255,34 @@ function assemble_columns!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     columns
 end
 
+"""
+    ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T))
+
+    ripserer(flt::AbstractFiltration)
+
+Compute the persistent homology of metric space represented by `dists` or filtration
+represented by `flt`.
+
+# Settings
+
+`dim_max`: compute persistent homology up to this dimension.
+`modulus`: compute persistent homology with coefficients in the prime field of inether
+           mod `modulus`.
+`threshold`: compute persistent homology up to diameter smaller than threshold.
+"""
 ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T)) where T =
-    ripserer(RipsComplex{modulus}(dists, dim_max, threshold))
+    ripserer(RipsFiltration{modulus}(dists, dim_max, threshold))
 
-function ripserer(scx::SimplicialComplex{M, T}) where {M, T}
+function ripserer(flt::AbstractFiltration{M, T}) where {M, T}
     res = Vector{Tuple{T, T}}[]
-    columns = eltype(scx)[]
+    columns = eltype(flt)[]
 
-    push!(res, compute_0_dim_pairs!(scx, columns))
+    push!(res, compute_0_dim_pairs!(flt, columns))
 
-    for dim in 1:dim_max(scx)
-        rm = ReductionMatrix(scx, dim)
+    for dim in 1:dim_max(flt)
+        rm = ReductionMatrix(flt, dim)
         push!(res, compute_pairs!(rm, columns))
-        if dim < dim_max(scx)
+        if dim < dim_max(flt)
             assemble_columns!(rm, columns)
         end
     end
