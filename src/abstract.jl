@@ -185,7 +185,7 @@ end
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-function max_dist(scx::SimplicialComplex{M, T}, us, v::Int) where {M, T}
+function max_dist(scx::SimplicialComplex{M, T}, us, v::Integer) where {M, T}
     res = typemin(T)
     for u in us
         res = max(res, dist(scx, u, v))
@@ -255,7 +255,7 @@ Get vertices of `simplex`. Vertices are only recomputed when the vertex cache in
 """
 vertices(scx::SimplicialComplex{M}, sx::AbstractSimplex{M}, dim) where M =
     vertices(scx, index(sx), dim)
-function vertices(scx::SimplicialComplex, idx::Int, dim)
+function vertices(scx::SimplicialComplex, idx::Integer, dim)
     # Calculating index from vertices is so much faster that this is worth doing.
     if length(scx.vertex_cache) != dim+1 || index(scx, scx.vertex_cache) != idx
         get_vertices!(scx, idx, dim)

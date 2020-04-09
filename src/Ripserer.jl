@@ -1,7 +1,8 @@
 module Ripserer
 
-using SparseArrays
+using Compat
 using LinearAlgebra
+using SparseArrays
 
 using DataStructures
 using TimerOutputs
