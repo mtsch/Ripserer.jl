@@ -1,3 +1,4 @@
+using Compat
 using LinearAlgebra
 using SparseArrays
 using Test

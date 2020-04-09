@@ -58,12 +58,12 @@ Simplex{M}(scx::SimplicialComplex{M}, diam, vertices, coef) where M =
 
 @generated function index(sx::Simplex{M}) where M
     shift = n_bits(M)
-    :(reinterpret(Int, sx.index_coef >> $shift))
+    :(reinterpret(Int64, sx.index_coef >> $shift))
 end
 
 @generated function coef(sx::Simplex{M}) where M
     mask = 1 << n_bits(M) - 1
-    :(reinterpret(Int, sx.index_coef & $mask))
+    :(reinterpret(Int64, sx.index_coef & $mask))
 end
 
 diam(sx::Simplex) =
@@ -183,7 +183,7 @@ struct RipsComplex{M, T, A<:AbstractArray{T}} <: SimplicialComplex{M, T, Simplex
     dim_max      ::Int
     vertex_cache ::Vector{Int}
 
-    function RipsComplex{M}(dist::A, dim_max::Int) where {M, T, A<:AbstractArray{T}}
+    function RipsComplex{M}(dist::A, dim_max::Integer) where {M, T, A<:AbstractArray{T}}
         is_distance_matrix(dist) ||
             throw(ArgumentError("`dist` must be a distance matrix"))
         isprime(M) ||
@@ -197,7 +197,7 @@ end
 Base.length(rips::RipsComplex) =
     size(rips.dist, 1)
 
-dist(rips::RipsComplex, i::Int, j::Int) =
+dist(rips::RipsComplex, i::Integer, j::Integer) =
     rips.dist[i, j]
 
 Base.binomial(rips::RipsComplex, n, k) =
