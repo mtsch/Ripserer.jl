@@ -147,92 +147,127 @@ using Ripserer:
     @testset "ripserer" begin
         @testset "full matrix, no threshold" begin
             @testset "icosahedron" begin
-                res = ripserer(icosahedron, 2)
+                res = ripserer(icosahedron, dim_max=2)
                 @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
 
             @testset "torus 16" begin
-                dim0, dim1, dim2 = ripserer(torus(16), 2)
+                d0, d1, d2 = ripserer(torus(16), dim_max=2)
 
-                @test length(dim0) == 16
+                @test length(d0) == 16
 
-                @test all(x -> first(x) ≈ 0.5, dim1)
-                @test sum(x -> last(x) ≈ 1, dim1) == 2
-                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), dim1) == 15
+                @test all(x -> first(x) ≈ 0.5, d1)
+                @test sum(x -> last(x) ≈ 1, d1) == 2
+                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), d1) == 15
 
-                @test last(only(dim2)) == 1
+                @test last(only(d2)) == 1
             end
 
             @testset "torus 100" begin
-                dim0, dim1 = ripserer(torus(100), 1)
+                d0, d1 = ripserer(torus(100), dim_max=1)
 
-                @test length(dim0) == 100
+                @test length(d0) == 100
 
-                deaths = sort(last.(dim1))
+                deaths = sort(last.(d1))
                 @test deaths[end] ≈ 0.8
                 @test deaths[end-1] ≈ 0.8
                 @test deaths[end-2] < 0.5
             end
 
             @testset "cycle" begin
-                cycle = [0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1;
-                         1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2;
-                         2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3;
-                         3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4;
-                         4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5;
-                         5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7 6;
-                         6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8 7;
-                         7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9 8;
-                         8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8 9;
-                         9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7 8;
-                         8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6 7;
-                         7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5 6;
-                         6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4 5;
-                         5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3 4;
-                         4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2 3;
-                         3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1 2;
-                         2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1;
-                         1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0]
+                d0, d1, d2, d3, d4 = ripserer(cycle, dim_max=4)
+                @test d0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
+                @test d1 == [(1, 6)]
+                @test d2 == fill((6, 7), 5)
+                @test d3 == [(7, 8)]
+                @test d4 == []
 
-                dim0, dim1, dim2, dim3, dim4 = ripserer(cycle, 4)
-                @test dim0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
-                @test dim1 == [(1, 6)]
-                @test dim2 == fill((6, 7), 5)
-                @test dim3 == [(7, 8)]
-                @test dim4 == []
-
-                dim0_7, dim1_7, dim2_7, dim3_7, dim4_7 = ripserer(cycle, 4, 7)
-                @test all(dim0 .== dim0_7)
-                @test all(dim1 .== dim1_7)
-                @test all(dim2 .== dim2_7)
-                @test all(dim3 .== dim3_7)
-                @test all(dim4 .== dim4_7)
+                d0_7, d1_7, d2_7, d3_7, d4_7 = ripserer(cycle, dim_max=4, modulus=7)
+                @test all(d0 .== d0_7)
+                @test all(d1 .== d1_7)
+                @test all(d2 .== d2_7)
+                @test all(d3 .== d3_7)
+                @test all(d4 .== d4_7)
             end
 
             @testset "projective plane (modulus)" begin
-                # taken from ripser/examples
-                projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
-                                    1 0 2 2 2 1 2 1 2 1 2 2 2;
-                                    1 2 0 2 2 2 1 2 1 1 2 2 2;
-                                    1 2 2 0 2 1 2 2 1 2 2 2 1;
-                                    1 2 2 2 0 2 1 1 2 2 2 2 1;
-                                    1 1 2 1 2 0 2 2 2 1 1 2 1;
-                                    1 2 1 2 1 2 0 2 2 1 1 2 1;
-                                    1 1 2 2 1 2 2 0 2 1 2 1 1;
-                                    1 2 1 1 2 2 2 2 0 1 2 1 1;
-                                    2 1 1 2 2 1 1 1 1 0 1 1 2;
-                                    2 2 2 2 2 1 1 2 2 1 0 2 1;
-                                    2 2 2 2 2 2 2 1 1 1 2 0 1;
-                                    2 2 2 1 1 1 1 1 1 2 1 1 0]
+                _, d1_2, d2_2 = ripserer(projective_plane, dim_max=2)
+                _, d1_3, d2_3 = ripserer(projective_plane, dim_max=2, modulus=3)
+                @test d1_2 == [(1, 2)]
+                @test d2_2 == [(1, 2)]
+                @test isempty(d1_3)
+                @test isempty(d2_3)
+            end
+        end
 
-                _, dim1_2, dim2_2 = ripserer(projective_plane, 2)
-                _, dim1_3, dim2_3 = ripserer(projective_plane, 2, 3)
-                @test dim1_2 == [(1, 2)]
-                @test dim2_2 == [(1, 2)]
-                @test isempty(dim1_3)
-                @test isempty(dim2_3)
+        @testset "full matrix, with threshold" begin
+            @testset "icosahedron, high thresh" begin
+                res = ripserer(icosahedron, threshold=2, dim_max=2)
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test isempty(res[2])
+                @test res[3] == [(1.0, 2.0)]
+            end
+
+            @testset "icosahedron, med thresh" begin
+                res = ripserer(icosahedron, dim_max=2, threshold=1)
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test isempty(res[2])
+                @test res[3] == [(1.0, Inf)]
+            end
+
+            @testset "icosahedron, low thresh" begin
+                res = ripserer(icosahedron, dim_max=2, threshold=0.5)
+                @test res[1] == fill((0.0, Inf), 12)
+                @test isempty(res[2])
+                @test isempty(res[3])
+            end
+
+            @testset "torus 16, high threshold" begin
+                d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=2)
+
+                @test length(d0) == 16
+
+                @test all(x -> first(x) ≈ 0.5, d1)
+                @test sum(x -> last(x) ≈ 1, d1) == 2
+                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), d1) == 15
+
+                @test last(only(d2)) == 1
+            end
+
+            @testset "torus 16, med threshold" begin
+                d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.9)
+
+                @test length(d0) == 16
+
+                @test all(x -> first(x) ≈ 0.5, d1)
+                @test sum(x -> last(x) == Inf, d1) == 2
+                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), d1) == 15
+
+                @test last(only(d2)) == Inf
+            end
+
+            @testset "torus 16, low threshold" begin
+                d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.5)
+
+                @test length(d0) == 16
+
+                @test all(x -> first(x) ≈ 0.5, d1)
+                @test all(x -> last(x) == Inf, d1)
+
+                @test isempty(d2)
+            end
+
+            @testset "projective plane (modulus), med threshold" begin
+                _, d1_2, d2_2 = ripserer(projective_plane,
+                                         dim_max=2, threshold=1)
+                _, d1_3, d2_3 = ripserer(projective_plane,
+                                         dim_max=2, modulus=3, threshold=1)
+                @test d1_2 == [(1, typemax(Int))]
+                @test d2_2 == [(1, typemax(Int))]
+                @test isempty(d1_3)
+                @test isempty(d2_3)
             end
         end
     end

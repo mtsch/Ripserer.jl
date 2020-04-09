@@ -122,7 +122,9 @@ function add!(rm::ReductionMatrix, idx, other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
         for coface in coboundary(rm.complex, simplex, rm.dim)
-            push!(rm.working_column, -coface * λ)
+            if diam(coface) ≤ threshold(rm.complex)
+                push!(rm.working_column, -coface * λ)
+            end
         end
     end
     pivot(rm.working_column)
@@ -133,11 +135,13 @@ function initialize!(rm::ReductionMatrix, column_simplex)
     empty!(rm.reduction_entries.valtree)
 
     for coface in coboundary(rm.complex, column_simplex, rm.dim)
-        if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
-            empty!(rm.working_column.valtree)
-            return coface
+        if diam(coface) ≤ threshold(rm.complex)
+            if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
+                empty!(rm.working_column.valtree)
+                return coface
+            end
+            push!(rm.working_column, coface)
         end
-        push!(rm.working_column, coface)
     end
 
     pivot(rm.working_column)
@@ -214,15 +218,18 @@ function assemble_columns!(rm::ReductionMatrix{M, T}, columns) where {M, T}
 
     for idx in 1:n_simplices
         if !haskey(rm.column_index, idx)
-            push!(columns, S(diam(rm.complex, vertices(rm.complex, idx, rm.dim+1)), idx, 1))
+            sx = S(diam(rm.complex, vertices(rm.complex, idx, rm.dim+1)), idx, 1)
+            if diam(sx) ≤ threshold(rm.complex)
+                push!(columns, sx)
+            end
         end
     end
     sort!(columns, rev=true)
     columns
 end
 
-ripserer(dists::AbstractMatrix, dim_max=1, modulus=2) =
-    ripserer(RipsComplex{modulus}(dists, dim_max))
+ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T)) where T =
+    ripserer(RipsComplex{modulus}(dists, dim_max, threshold))
 
 function ripserer(scx::SimplicialComplex{M, T}) where {M, T}
     res = Vector{Tuple{T, T}}[]

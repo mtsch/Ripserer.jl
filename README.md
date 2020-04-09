@@ -8,5 +8,5 @@ A Julia reimplementation of [ripser](https://github.com/Ripser/ripser). Work in 
 
 ## TODO
 
-* thresholding
 * representative cocycles
+* sparse filtration

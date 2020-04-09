@@ -89,21 +89,23 @@ Compare edges like DiameterSimplexComparer.
 edge_lt((e1, i1), (e2, i2)) =
     e1 < e2 || e1 == e2 && i1 > i2
 
-function edges(dist::AbstractMatrix{T}) where T
+function edges(dist::AbstractMatrix{T}, thresh=typemax(T)) where T
     n = size(dist, 1)
     res = Tuple{T, Tuple{Int, Int}}[]
     for j in 1:n, i in j+1:n
-        push!(res, (dist[i, j], (i, j)))
+        l = dist[i, j]
+        l ≤ thresh && push!(res, (l, (i, j)))
     end
     sort!(res, lt=edge_lt)
 end
 
-function edges(dist::AbstractSparseMatrix{T}) where T
+function edges(dist::AbstractSparseMatrix{T}, thresh=typemax(T)) where T
     res = Tuple{T, Tuple{Int, Int}}[]
     I, J, V = findnz(dist)
     for (i, j) in zip(I, J)
         i > j || continue
-        push!(res, (dist[i, j], (i, j)))
+        l = dist[i, j]
+        l ≤ thresh && push!(res, (l, (i, j)))
     end
     sort!(res, lt=edge_lt)
 end
@@ -181,16 +183,18 @@ struct RipsComplex{M, T, A<:AbstractArray{T}} <: SimplicialComplex{M, T, Simplex
     dist         ::A
     binomial     ::Binomial
     dim_max      ::Int
+    threshold    ::T
     vertex_cache ::Vector{Int}
 
-    function RipsComplex{M}(dist::A, dim_max::Integer) where {M, T, A<:AbstractArray{T}}
+    function RipsComplex{M}(dist::A, dim_max::Integer,
+                            threshold=typemax(T)) where {M, T, A<:AbstractArray{T}}
         is_distance_matrix(dist) ||
             throw(ArgumentError("`dist` must be a distance matrix"))
         isprime(M) ||
             throw(ArgumentError("`modulus` must be prime"))
         dim_max ≥ 0 ||
             throw(ArgumentError("`dim_max` must be positive"))
-        new{M, T, A}(dist, Binomial(size(dist, 1), dim_max+2), dim_max, Int[])
+        new{M, T, A}(dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
     end
 end
 
@@ -204,7 +208,10 @@ Base.binomial(rips::RipsComplex, n, k) =
     rips.binomial(n, k)
 
 edges(rips::RipsComplex) =
-    edges(rips.dist)
+    edges(rips.dist, threshold(rips))
 
 dim_max(rips::RipsComplex) =
     rips.dim_max
+
+threshold(rips::RipsComplex) =
+    rips.threshold
