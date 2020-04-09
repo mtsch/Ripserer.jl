@@ -185,7 +185,7 @@ end
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-@timed function max_dist(scx::SimplicialComplex{M, T}, us, v::Int) where {M, T}
+function max_dist(scx::SimplicialComplex{M, T}, us, v::Int) where {M, T}
     res = typemin(T)
     for u in us
         res = max(res, dist(scx, u, v))
@@ -199,7 +199,7 @@ end
 Check if `vertex` is connected to `vertices` i.e. if the distance to all other vertices
 is ≥ 0. If `vertex in vertices`, this function returns `false`.
 """
-@timed function is_connected(scx::SimplicialComplex, us, v)
+function is_connected(scx::SimplicialComplex, us, v)
     for u in us
         if iszero(dist(scx, u, v))
             return false
@@ -208,7 +208,7 @@ is ≥ 0. If `vertex in vertices`, this function returns `false`.
     true
 end
 
-@timed function find_max_vertex(scx::SimplicialComplex, idx, k)
+function find_max_vertex(scx::SimplicialComplex, idx, k)
     top = length(scx)
     bot = k - 1
     if !(binomial(scx, top, k) ≤ idx)
@@ -228,42 +228,47 @@ end
 end
 
 """
-    get_vertices!(complex, simplex::AbstractSimple)
+    get_vertices!(complex, index)
 
-Copy vertices of `simplex` to `complex`'s vertex cache.
+Copy vertices of simplex with `index` to `complex`'s vertex cache.
 """
-@timed function get_vertices!(scx::SimplicialComplex, sx::AbstractSimplex, dim)
+function get_vertices!(scx::SimplicialComplex, index, dim)
     resize!(scx.vertex_cache, dim + 1)
-    idx = index(sx) - 1
+    index = index - 1
     for (i, k) in enumerate(dim+1:-1:1)
-        v = find_max_vertex(scx, idx, k)
+        v = find_max_vertex(scx, index, k)
 
         scx.vertex_cache[i] = v + 1
-        idx -= binomial(scx, v, k)
+        index -= binomial(scx, v, k)
         n_max = v - 1
     end
     scx.vertex_cache
 end
 
 """
-    vertices(complex, simplex)
+    vertices(complex, simplex, dim)
+
+    vertices(complex, index, dim)
 
 Get vertices of `simplex`. Vertices are only recomputed when the vertex cache in
 `complex` is invalid.
 """
-@timed function vertices(scx::SimplicialComplex{M}, sx::AbstractSimplex{M}, dim) where M
+vertices(scx::SimplicialComplex{M}, sx::AbstractSimplex{M}, dim) where M =
+    vertices(scx, index(sx), dim)
+function vertices(scx::SimplicialComplex, idx::Int, dim)
     # Calculating index from vertices is so much faster that this is worth doing.
-    if length(scx.vertex_cache) != dim+1 || index(scx, scx.vertex_cache) != index(sx)
-        get_vertices!(scx, sx, dim)
+    if length(scx.vertex_cache) != dim+1 || index(scx, scx.vertex_cache) != idx
+        get_vertices!(scx, idx, dim)
     end
     scx.vertex_cache
 end
 
 # coboundary ============================================================================= #
 struct CoboundaryIterator{M, T, S<:AbstractSimplex{M, T}, C<:SimplicialComplex{M, T, S}}
-    complex ::C
-    simplex ::S
-    dim     ::Int
+    complex     ::C
+    simplex     ::S
+    dim         ::Int
+    all_cofaces ::Bool
 end
 
 Base.IteratorSize(::Type{CoboundaryIterator}) =
@@ -273,14 +278,14 @@ Base.IteratorEltype(::Type{CoboundaryIterator}) =
 Base.eltype(::Type{CoboundaryIterator{M, T, S}}) where {M, T, S} =
     S
 
-coboundary(scx, simplex, dim) =
-    CoboundaryIterator(scx, simplex, dim)
+coboundary(scx::SimplicialComplex, simplex::AbstractSimplex, dim) =
+    CoboundaryIterator(scx, simplex, dim, true)
 
-@timed "coboundary" function Base.iterate(ci::CoboundaryIterator{M},
-                                          st = (length(ci.complex),
-                                                ci.dim + 1,
-                                                index(ci.simplex) - 1,
-                                                0)) where M
+function Base.iterate(ci::CoboundaryIterator{M},
+                      st = (length(ci.complex),
+                            ci.dim + 1,
+                            index(ci.simplex) - 1,
+                            0)) where M
     v, k, idx_below, idx_above = st
     v -= 1
     while v > 0 && v >= k && binomial(ci.complex, v, k) <= idx_below
@@ -295,11 +300,7 @@ coboundary(scx, simplex, dim) =
         diameter = max(diam(ci.simplex), max_dist(ci.complex, vxs, v+1))
 
         coefficient = (k % 2 == 1 ? 1 : M - 1) * coef(ci.simplex) % M
-        if v > 0
         new_index = idx_above + binomial(ci.complex, v, k + 1) + idx_below + 1
-        else
-        new_index = idx_above + binomial(ci.complex, v, k + 1) + idx_below + 1
-        end
         eltype(ci.complex)(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
     end
 end

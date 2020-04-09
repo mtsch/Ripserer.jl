@@ -72,7 +72,7 @@ end
 const Column{M, T} =
     BinaryMinHeap{Simplex{M, T}}
 
-@timed function pop_pivot!(column::Column)
+function pop_pivot!(column::Column)
     isempty(column) && return nothing
 
     pivot = pop!(column)
@@ -117,7 +117,7 @@ ReductionMatrix(scx::SimplicialComplex{M, T}, dim) where {M, T} =
 Add column with column index `index` multiplied by the correct factor to `working_column`.
 Also record the addition in `reduction_matrix`.
 """
-@timed function add!(rm::ReductionMatrix, idx, other_coef)
+function add!(rm::ReductionMatrix, idx, other_coef)
     λ = coef(pivot(rm.working_column) / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
@@ -128,7 +128,7 @@ Also record the addition in `reduction_matrix`.
     pivot(rm.working_column)
 end
 
-@timed function initialize!(rm::ReductionMatrix, column_simplex)
+function initialize!(rm::ReductionMatrix, column_simplex)
     empty!(rm.working_column.valtree)
     empty!(rm.reduction_entries.valtree)
 
@@ -136,15 +136,13 @@ end
         if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
             return coface
         end
-    end
-
-    for coface in coboundary(rm.complex, column_simplex, rm.dim)
         push!(rm.working_column, coface)
     end
+
     pivot(rm.working_column)
 end
 
-@timed function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
+function reduce_working_column!(rm::ReductionMatrix{M, T}, res, column_simplex) where {M, T}
     current_pivot = initialize!(rm, column_simplex)
 
     add_column!(rm.reduction_matrix)
@@ -177,13 +175,11 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 """
-@timed function compute_0_dim_pairs!(scx::SimplicialComplex{M, T},
-                                     simplices, columns) where {M, T}
+function compute_0_dim_pairs!(scx::SimplicialComplex{M, T}, columns) where {M, T}
     dset = IntDisjointSets(length(scx))
     res = Tuple{T, T}[]
 
     for (l, (u, v)) in edges(scx)
-        push!(simplices, Simplex{M}(scx, l, (u, v), 1))
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j
@@ -202,7 +198,7 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
     res
 end
 
-@timed function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
+function compute_pairs!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     res = Tuple{T, T}[]
     for column in columns
         reduce_working_column!(rm, res, column)
@@ -210,26 +206,15 @@ end
     res
 end
 
-@timed function assemble_columns!(rm::ReductionMatrix{M, T},
-                                  simplices, columns) where {M, T}
+function assemble_columns!(rm::ReductionMatrix{M, T}, columns) where {M, T}
     empty!(columns)
-    new_simplex_diam = fill(zero(T), binomial(rm.complex, length(rm.complex), rm.dim+2))
+    n_simplices = binomial(rm.complex, length(rm.complex), rm.dim + 2)
+    S = eltype(rm.complex)
 
-    for simplex in simplices
-        for coface in coboundary(rm.complex, simplex, rm.dim)
-            coface = set_coef(coface, 1)
-            idx = index(coface)
-            if new_simplex_diam[idx] == 0
-                new_simplex_diam[idx] = diam(coface)
-                if !haskey(rm.column_index, idx)
-                    push!(columns, coface)
-                end
-            end
+    for idx in 1:n_simplices
+        if !haskey(rm.column_index, idx)
+            push!(columns, S(diam(rm.complex, vertices(rm.complex, idx, rm.dim+1)), idx, 1))
         end
-    end
-    resize!(simplices, length(new_simplex_diam))
-    for i in eachindex(simplices)
-        simplices[i] = Simplex{M}(new_simplex_diam[i], i, 1)
     end
     sort!(columns, rev=true)
     columns
@@ -240,16 +225,15 @@ ripserer(dists::AbstractMatrix, dim_max=1, modulus=2) =
 
 function ripserer(scx::SimplicialComplex{M, T}) where {M, T}
     res = Vector{Tuple{T, T}}[]
-    simplices = eltype(scx)[]
     columns = eltype(scx)[]
 
-    push!(res, compute_0_dim_pairs!(scx, simplices, columns))
+    push!(res, compute_0_dim_pairs!(scx, columns))
 
     for dim in 1:dim_max(scx)
         rm = ReductionMatrix(scx, dim)
         push!(res, compute_pairs!(rm, columns))
         if dim < dim_max(scx)
-            assemble_columns!(rm, simplices, columns)
+            assemble_columns!(rm, columns)
         end
     end
     res

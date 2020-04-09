@@ -110,9 +110,8 @@ using Ripserer:
                     1 0 3;
                     2 3 0]
             scx = RipsComplex{2}(dist, 0)
-            simplices = Simplex{2, Int}[]
             critical_edges = Simplex{2, Int}[]
-            res = compute_0_dim_pairs!(scx, simplices, critical_edges)
+            res = compute_0_dim_pairs!(scx, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
