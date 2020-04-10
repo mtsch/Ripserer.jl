@@ -75,7 +75,21 @@ type.
 """
 abstract type AbstractFiltration{M, T, S<:AbstractSimplex{M, T}} end
 
-Base.eltype(::AbstractFiltration{M, T, S}) where {M, T, S} = S
+function Base.show(io::IO, flt::AbstractFiltration{M, T}) where {M, T}
+    print(io, typeof(flt).name, "(length=$(length(flt)), modulus=$M")
+    if threshold(flt) < typemax(T)
+        print(io, ", threshold=$(threshold(flt))")
+    end
+    print(io, ", dim_max=$(dim_max(flt)), eltype=$(eltype(flt)))")
+end
+
+Base.eltype(::AbstractFiltration{M, T, S}) where {M, T, S} =
+    S
+
+SparseArrays.issparse(flt::AbstractFiltration) =
+    issparse(typeof(flt))
+SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration =
+    false
 
 """
     dist(filtration::AbstractFiltration, i, j)
