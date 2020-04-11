@@ -163,11 +163,14 @@ default_threshold(dists) =
     RipsFiltration{M, T, A<:AbstractArray{T}}
 
 This type holds the information about the input values.
+The distance matrix has to be a dense matrix.
 
 # Constructor
 
-    RipsFiltration{M}(distance_matrix, dim_max, [threshold=typemax(T)])
-
+    RipsFiltration(distance_matrix;
+                   dim_max=1,
+                   modulus=2,
+                   threshold = default_threshold(dist))
 """
 struct RipsFiltration{M, T, A<:AbstractArray{T}}<:
     AbstractFiltration{M, T, Simplex{M, T}}
@@ -218,11 +221,15 @@ threshold(rips::RipsFiltration) =
     SparseRipsFiltration{M, T, A<:AbstractArray{T}}
 
 This type holds the information about the input values.
+The distance matrix will be converted to a sparse matrix with all values greater than
+threshold deleted. Off-diagonal zeros in the matrix are treaded as `typemax(T)`.
 
 # Constructor
 
-    SparseRipsFiltration{M}(distance_matrix, dim_max, [threshold=typemax(T)])
-
+    SparseRipsFiltration(distance_matrix;
+                         dim_max=1,
+                         modulus=2,
+                         threshold = default_threshold(dist))
 """
 struct SparseRipsFiltration{M, T, A<:AbstractSparseArray{T}}<:
     AbstractFiltration{M, T, Simplex{M, T}}
@@ -257,8 +264,12 @@ Base.length(rips::SparseRipsFiltration) =
     size(rips.dist, 1)
 
 function dist(rips::SparseRipsFiltration{M, T}, i::Integer, j::Integer) where {M, T}
-    res = rips.dist[i, j]
-    iszero(res) ? typemax(T) : res
+    if i == j
+        zero(T)
+    else
+        res = rips.dist[i, j]
+        iszero(res) ? typemax(T) : res
+    end
 end
 
 Base.binomial(rips::SparseRipsFiltration, n, k) =

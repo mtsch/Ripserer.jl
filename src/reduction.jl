@@ -266,7 +266,7 @@ represented by `flt`.
 # Settings
 
 `dim_max`: compute persistent homology up to this dimension.
-`modulus`: compute persistent homology with coefficients in the prime field of inether
+`modulus`: compute persistent homology with coefficients in the prime field of inetgers
            mod `modulus`.
 `threshold`: compute persistent homology up to diameter smaller than threshold.
 """

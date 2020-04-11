@@ -137,7 +137,7 @@ using Ripserer:
                                   2 3 0 4;
                                   9 9 4 0], modulus=3)
                 @test length(flt) == 4
-                @test dist(flt, 3, 3) == (issparse(Filtration) ? typemax(Int) : 0)
+                @test dist(flt, 3, 3) == 0
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == 3
@@ -147,7 +147,7 @@ using Ripserer:
                                   1 0 3;
                                   2 3 0], threshold=2)
                 @test length(flt) == 3
-                @test dist(flt, 3, 3) == (issparse(Filtration) ? typemax(Int) : 0)
+                @test dist(flt, 3, 3) == 0
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == (issparse(Filtration) ? typemax(Int) : 3)
