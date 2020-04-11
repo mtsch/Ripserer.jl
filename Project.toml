@@ -15,7 +15,8 @@ julia = "1"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Test"]
+test = ["Aqua", "Distances", "Test"]
