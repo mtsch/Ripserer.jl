@@ -206,6 +206,7 @@ function max_dist(flt::AbstractFiltration{M, T}, us, v::Integer) where {M, T}
     res = typemin(T)
     for u in us
         res = max(res, dist(flt, u, v))
+        res == typemax(T) && break
     end
     res
 end
@@ -300,7 +301,7 @@ function Base.iterate(ci::CoboundaryIterator{M},
                             0)) where M
     v, k, idx_below, idx_above = st
     v -= 1
-    while v > 0 && v >= k && binomial(ci.filtration, v, k) <= idx_below
+    while v > 0 && v ≥ k && binomial(ci.filtration, v, k) ≤ idx_below
         idx_below -= binomial(ci.filtration, v, k)
         idx_above += binomial(ci.filtration, v, k + 1)
         v -= 1; k -= 1
@@ -311,7 +312,7 @@ function Base.iterate(ci::CoboundaryIterator{M},
         vxs = vertices(ci.filtration, ci.simplex, ci.dim)
         diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
 
-        coefficient = (k % 2 == 1 ? 1 : M - 1) * coef(ci.simplex) % M
+        coefficient = (k % 2 == 1 ? 1 : M - 1) * coef(ci.simplex)
         new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
         eltype(ci.filtration)(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
     end

@@ -132,20 +132,20 @@ using Ripserer:
         typename = string(Filtration)
         @testset "$typename" begin
             @testset "length, dist, threshold" begin
-                flt = Filtration{3}([0 1 2 0;
-                                     1 0 3 0;
-                                     2 3 0 0;
-                                     0 0 0 0], 1)
+                flt = Filtration([0 1 2 9;
+                                  1 0 3 9;
+                                  2 3 0 4;
+                                  9 9 4 0], modulus=3)
                 @test length(flt) == 4
                 @test dist(flt, 3, 3) == (issparse(Filtration) ? typemax(Int) : 0)
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == 3
-                @test threshold(flt) == typemax(Int)
+                @test threshold(flt) == 4
 
-                flt = Filtration{3}([0 1 2;
-                                     1 0 3;
-                                     2 3 0], 1, 2)
+                flt = Filtration([0 1 2;
+                                  1 0 3;
+                                  2 3 0], threshold=2)
                 @test length(flt) == 3
                 @test dist(flt, 3, 3) == (issparse(Filtration) ? typemax(Int) : 0)
                 @test dist(flt, 1, 2) == 1
@@ -154,7 +154,7 @@ using Ripserer:
                 @test threshold(flt) == 2
             end
             @testset "index(::Vector), vertices" begin
-                flt = Filtration{2}(rand_dist_matrix(10), 5)
+                flt = Filtration(rand_dist_matrix(10), dim_max=5, modulus=2)
                 @test vertices(flt, Simplex{2}(rand(), 1, 1), 2) == [3, 2, 1]
                 @test vertices(flt, Simplex{2}(rand(), 2, 1), 3) == [5, 3, 2, 1]
                 @test vertices(flt, Simplex{2}(rand(), 3, 1), 1) == [3, 2]
@@ -167,11 +167,11 @@ using Ripserer:
             end
             @testset "coboundary" begin
                 @testset "line cofaces" begin
-                    flt = Filtration{2}(Float64[0 1 3 4 5;
-                                                1 0 3 4 5;
-                                                3 3 0 9 9;
-                                                4 4 9 0 9;
-                                                5 5 9 9 0], 1)
+                    flt = Filtration(Float64[0 1 3 4 5;
+                                             1 0 3 4 5;
+                                             3 3 0 9 9;
+                                             4 4 9 0 9;
+                                             5 5 9 9 0])
                     cb = Simplex{2, Float64}[]
                     for sx in coboundary(flt, Simplex{2}(flt, 1.0, (2, 1), 1), 1)
                         push!(cb, sx)
@@ -186,7 +186,7 @@ using Ripserer:
                     for i in 1:size(dists, 1)
                         dists[i, i] = 0
                     end
-                    flt = Filtration{3}(dists, 5)
+                    flt = Filtration(dists, dim_max=5, modulus=3)
 
                     for dim in 1:5
                         cob = Simplex{3, Float64}[]
@@ -201,7 +201,7 @@ using Ripserer:
                 end
                 @testset "icosahedron" begin
                     dim = 2
-                    flt = Filtration{7}(icosahedron, 4)
+                    flt = Filtration(icosahedron, dim_max=4, modulus=7)
 
                     sx_vxs = (10, 3, 1)
                     sx = Simplex{7}(flt, diam(flt, sx_vxs), sx_vxs, 1)
@@ -213,7 +213,7 @@ using Ripserer:
                 end
                 @testset "torus" begin
                     dim = 2
-                    flt = Filtration{3}(torus(16), 4)
+                    flt = Filtration(torus(16), dim_max=4, modulus=3)
 
                     sx_vxs = (16, 8, 1)
                     sx = Simplex{3}(flt, diam(flt, sx_vxs), sx_vxs, 1)

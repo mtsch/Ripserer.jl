@@ -270,8 +270,13 @@ represented by `flt`.
            mod `modulus`.
 `threshold`: compute persistent homology up to diameter smaller than threshold.
 """
-ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T)) where T =
-    ripserer(RipsFiltration{modulus}(dists, dim_max, threshold))
+function ripserer(dists::AbstractMatrix; kwargs...)
+    if issparse(dists)
+        ripserer(SparseRipsFiltration(dists; kwargs...))
+    else
+        ripserer(RipsFiltration(dists; kwargs...))
+    end
+end
 
 function ripserer(flt::AbstractFiltration{M, T}) where {M, T}
     res = Vector{Tuple{T, T}}[]
