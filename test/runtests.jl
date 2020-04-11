@@ -8,7 +8,11 @@ using DataStructures
 using Ripserer
 include("data.jl")
 
+using Aqua
+
 @testset "Ripserer" begin
+    Aqua.test_all(Ripserer)
+
     include("rips.jl")
     include("reduction.jl")
 end

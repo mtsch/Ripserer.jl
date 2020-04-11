@@ -134,9 +134,9 @@ Base.:+(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     set_coef(sx1, coef(sx1) + coef(sx2))
 Base.:-(sx1::AbstractSimplex{M}, sx2::AbstractSimplex{M}) where M =
     set_coef(sx1, coef(sx1) - coef(sx2))
-Base.:*(sx::AbstractSimplex, λ) =
+Base.:*(sx::AbstractSimplex, λ::Integer) =
     set_coef(sx, coef(sx) * λ)
-Base.:*(λ, sx::AbstractSimplex) =
+Base.:*(λ::Integer, sx::AbstractSimplex) =
     set_coef(sx, λ * coef(sx))
 Base.:-(sx::AbstractSimplex) =
     set_coef(sx, -coef(sx))
