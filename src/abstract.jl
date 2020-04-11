@@ -187,12 +187,8 @@ function diam(flt::AbstractFiltration{M, T}, vertices) where {M, T}
     n = length(vertices)
     res = typemin(T)
     for i in 1:n, j in i+1:n
-        d = dist(flt, vertices[j], vertices[i])
-        if d == 0
-            return typemax(T)
-        else
-            res = max(res, d)
-        end
+        res = max(res, dist(flt, vertices[j], vertices[i]))
+        res > threshold(flt) && return typemax(T)
     end
     res
 end
@@ -206,7 +202,7 @@ function max_dist(flt::AbstractFiltration{M, T}, us, v::Integer) where {M, T}
     res = typemin(T)
     for u in us
         res = max(res, dist(flt, u, v))
-        res == typemax(T) && break
+        res > threshold(flt) && return typemax(T)
     end
     res
 end

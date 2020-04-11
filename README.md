@@ -5,8 +5,10 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/cc709npw3lp76yc8?svg=true)](https://ci.appveyor.com/project/mtsch/ripserer-jl)
 
 A Julia reimplementation of [ripser](https://github.com/Ripser/ripser). Work in progress.
+The code works and the performance is not bad but the interfaces and file structure may
+change at any time.
 
 ## TODO
 
-* representative cocycles
-* sparse filtration
+* Representative (co)cycles.
+* Optimize sparse filtrations.
