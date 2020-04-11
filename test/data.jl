@@ -1,3 +1,7 @@
+using Distances
+using LinearAlgebra
+using SparseArrays
+
 """
     rand_dist_matrix(n, [sparse])
 
@@ -15,29 +19,6 @@ function rand_dist_matrix(n, sparse)
     A -= Diagonal(A)
     dropzeros!(A)
     A
-end
-
-"""
-    torus(n)
-
-Construct a torus distance matrix with `n` points. The points are equidistant.
-"""
-function torus(n)
-    n = floor(Int, sqrt(n))
-    r = range(-1, 1, length = n+1)[1:end-1]
-    pts = [(i, j) for i in r for j in r]
-    dist = fill(Inf, length(pts), length(pts))
-    for i in 1:length(pts), j in i+1:length(pts)
-        for x_offset in -2:2:2, y_offset in -2:2:2
-            x1, y1 = pts[i]
-            x2, y2 = pts[j] .+ (x_offset, y_offset)
-            dist[i, j] = dist[j, i] = min(√((x1-x2)^2 + (y1-y2)^2), dist[i, j])
-        end
-    end
-    for i in 1:length(pts)
-        dist[i, i] = 0
-    end
-    dist
 end
 
 # Distances on an icosahedron graph with edge length 1.
@@ -88,3 +69,71 @@ projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
                     2 2 2 2 2 1 1 2 2 1 0 2 1;
                     2 2 2 2 2 2 2 1 1 1 2 0 1;
                     2 2 2 1 1 1 1 1 1 2 1 1 0]
+
+function rand_n_sphere(n, dim)
+    points = mapslices(normalize, randn(dim+1, n), dims=1)
+    pairwise(Euclidean(), points)
+end
+
+"""
+    torus_dist(pts)
+
+Calculate distances between points on [-1,1]×[-1,1] as if they were on a flat torus.
+"""
+function torus_dist(pts)
+    n = size(pts, 2)
+    dist = fill(Inf, (n, n))
+    for i in 1:n
+        for j in i+1:n
+            for x_offset in -2:2:2, y_offset in -2:2:2
+                off = [x_offset, y_offset]
+                dst = evaluate(Euclidean(), pts[:, i], pts[:, j] .+ off)
+                dist[i, j] = dist[j, i] = min(dist[i, j], dst)
+            end
+        end
+        dist[i, i] = 0
+    end
+    dist
+end
+
+"""
+    torus(n)
+
+Construct a torus distance matrix with `n` points. The points are equidistant.
+"""
+function torus(n)
+    n = floor(Int, sqrt(n))
+    r = range(-1, 1, length = n+1)[1:end-1]
+    pts = fill(0.0, (2, n*n))
+    i = 1
+    for x in r, y in r
+        pts[1, i] = x
+        pts[2, i] = y
+        i += 1
+    end
+    torus_dist(pts)
+end
+
+"""
+    rand_torus(n)
+
+Construct a random torus distance matrix with `n` points.
+"""
+function rand_torus(n)
+    pts = rand(2, n) .* 2 .- 1
+    torus_dist(pts)
+end
+
+"""
+    disconnected_tori(n, m)
+
+Construct `m` random toruses with `n` points each.
+"""
+function disconnected_tori(n, m)
+    dist = zeros(n*m, n*m)
+    for i in 1:n:n*m
+        dist[i:i+n-1, i:i+n-1] .= rand_torus(n)
+    end
+    perm = shuffle(1:n*m)
+    sparse(dist[perm, perm])
+end
