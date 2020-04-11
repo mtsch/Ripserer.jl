@@ -46,7 +46,7 @@ struct Simplex{M, T} <: AbstractSimplex{M, T}
         new{M, T}(diam, index_coef)
 end
 
-@generated function Simplex{M}(diam::T, index, coef) where {M, T}
+@generated function Simplex{M}(diam::T, index::Integer, coef::Integer) where {M, T}
     isprime(M) || throw(DomainError(M, "modulus not prime"))
     bits = n_bits(M)
     :(Simplex{M, T}(diam, UInt64(index) << $bits + mod(coef, $M)))
@@ -118,25 +118,6 @@ Return true if dist is a valid distance matrix.
 is_distance_matrix(dist) =
     issymmetric(dist) && all(iszero(dist[i, i]) for i in 1:size(dist, 1))
 
-"""
-    apply_threshold(dist, thresh)
-
-Convert matrix `dist` to sparse matrix with no entries larger than `thresh`.
-"""
-function apply_threshold(dist, thresh)
-    n = size(dist, 1)
-    for i in 1:n, j in i+1:n
-        if dist[i, j] > thresh
-            dist[i, j] = dist[j, i] = 0
-        end
-    end
-    if dist isa SparseMatrixCSC
-        dropzeros!(dist)
-    else
-        sparse(dist)
-    end
-end
-
 # binomial table ========================================================================= #
 """
     Binomial(n_max, k_max)
@@ -170,31 +151,48 @@ Base.show(io::IO, bin::Binomial) =
 
 # rips complex =========================================================================== #
 """
+    default_threshold(dists)
+
+The default threshold is equal to the radius of the input space. At this threshold, all
+vertices are connected to a vertex `x` and the homology becomes trivial.
+"""
+default_threshold(dists) =
+    minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
+
+"""
     RipsFiltration{M, T, A<:AbstractArray{T}}
 
 This type holds the information about the input values.
 
 # Constructor
 
-    RipsFiltration{M}(distance_matrix, dim_max)
+    RipsFiltration{M}(distance_matrix, dim_max, [threshold=typemax(T)])
 
 """
-struct RipsFiltration{M, T, A<:AbstractArray{T}} <: AbstractFiltration{M, T, Simplex{M, T}}
+struct RipsFiltration{M, T, A<:AbstractArray{T}}<:
+    AbstractFiltration{M, T, Simplex{M, T}}
+
     dist         ::A
     binomial     ::Binomial
     dim_max      ::Int
     threshold    ::T
     vertex_cache ::Vector{Int}
 
-    function RipsFiltration{M}(dist::A, dim_max::Integer,
-                               threshold=typemax(T)) where {M, T, A<:AbstractArray{T}}
+    function RipsFiltration(dist::AbstractArray{T};
+                            dim_max::Integer=1,
+                            modulus=2,
+                            threshold=default_threshold(dist)) where T
+
         is_distance_matrix(dist) ||
             throw(ArgumentError("`dist` must be a distance matrix"))
-        isprime(M) ||
+        isprime(modulus) ||
             throw(ArgumentError("`modulus` must be prime"))
         dim_max ≥ 0 ||
-            throw(ArgumentError("`dim_max` must be positive"))
-        new{M, T, A}(dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
+            throw(ArgumentError("`dim_max` must be non-negative"))
+        !issparse(dist) ||
+            throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
+        new{modulus, T, typeof(dist)}(
+            dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
     end
 end
 
@@ -215,3 +213,65 @@ dim_max(rips::RipsFiltration) =
 
 threshold(rips::RipsFiltration) =
     rips.threshold
+
+"""
+    SparseRipsFiltration{M, T, A<:AbstractArray{T}}
+
+This type holds the information about the input values.
+
+# Constructor
+
+    SparseRipsFiltration{M}(distance_matrix, dim_max, [threshold=typemax(T)])
+
+"""
+struct SparseRipsFiltration{M, T, A<:AbstractSparseArray{T}}<:
+    AbstractFiltration{M, T, Simplex{M, T}}
+
+    dist         ::A
+    binomial     ::Binomial
+    dim_max      ::Int
+    threshold    ::T
+    vertex_cache ::Vector{Int}
+
+    function SparseRipsFiltration(dist::AbstractArray{T};
+                                  dim_max::Integer=1,
+                                  modulus=2,
+                                  threshold=default_threshold(dist)) where T
+
+        is_distance_matrix(dist) ||
+            throw(ArgumentError("`dist` must be a distance matrix"))
+        isprime(modulus) ||
+            throw(ArgumentError("`modulus` must be prime"))
+        dim_max ≥ 0 ||
+            throw(ArgumentError("`dim_max` must be non-negative"))
+
+        # We need to make a copy beacuse we're editing the matrix.
+        new_dist = sparse(dist)
+        SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
+        new{modulus, T, typeof(new_dist)}(
+            new_dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
+    end
+end
+
+Base.length(rips::SparseRipsFiltration) =
+    size(rips.dist, 1)
+
+function dist(rips::SparseRipsFiltration{M, T}, i::Integer, j::Integer) where {M, T}
+    res = rips.dist[i, j]
+    iszero(res) ? typemax(T) : res
+end
+
+Base.binomial(rips::SparseRipsFiltration, n, k) =
+    rips.binomial(n, k)
+
+edges(rips::SparseRipsFiltration) =
+    edges(rips.dist, threshold(rips))
+
+dim_max(rips::SparseRipsFiltration) =
+    rips.dim_max
+
+threshold(rips::SparseRipsFiltration) =
+    rips.threshold
+
+SparseArrays.issparse(::Type{SparseRipsFiltration}) =
+    true

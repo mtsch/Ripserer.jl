@@ -11,6 +11,6 @@ include("rips.jl")
 include("reduction.jl")
 
 export ripserer,
-    AbstractFiltration, RipsFiltration, AbstractSimplex, Simplex,
-    diam, index, coef, vertices
+    AbstractFiltration, RipsFiltration, SparseRipsFiltration, AbstractSimplex, Simplex,
+    diam, index, coef, vertices, dim_max, threshold, dist
 end

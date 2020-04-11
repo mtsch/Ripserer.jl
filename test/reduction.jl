@@ -85,7 +85,6 @@ using Ripserer:
             @test isnothing(pop_pivot!(col))
             @test isempty(col)
         end
-
         @testset "multiple" begin
             col = Column{5, Float64}()
             push!(col, Simplex{5}(1.0, 2, 3))
@@ -109,7 +108,7 @@ using Ripserer:
             dist = [0 1 2;
                     1 0 3;
                     2 3 0]
-            flt = RipsFiltration{2}(dist, 0)
+            flt = RipsFiltration(dist, dim_max=0, threshold=3)
             critical_edges = Simplex{2, Int}[]
             res = compute_0_dim_pairs!(flt, critical_edges)
 
@@ -118,30 +117,6 @@ using Ripserer:
                           (0, typemax(Int))]
             @test critical_edges == [Simplex{2}(3, 3, 1)]
         end
-
-        #=
-        @testset "sparse Float64" begin
-            dist = sparse(Float64[0 2 0 0 5 0;
-                                  2 0 4 6 0 0;
-                                  0 4 0 3 0 0;
-                                  0 6 3 0 1 0;
-                                  5 0 0 1 0 0;
-                                  0 0 0 0 0 0])
-            flt = RipsFiltration{3}(dist, 0)
-            simplices = Simplex{3, Float64}[]
-            critical_edges = Simplex{3, Float64}[]
-            res = compute_0_dim_pairs!(flt, simplices, critical_edges)
-
-            @test res == [(0.0, 1.0),
-                          (0.0, 2.0),
-                          (0.0, 3.0),
-                          (0.0, 4.0),
-                          (0.0, Inf),
-                          (0.0, Inf)]
-            @test critical_edges == [Simplex{3}(6.0, 5, 1),
-                                     Simplex{3}(5.0, 7, 1)]
-        end
-        =#
     end
 
     @testset "ripserer" begin
@@ -152,7 +127,6 @@ using Ripserer:
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
-
             @testset "torus 16" begin
                 d0, d1, d2 = ripserer(torus(16), dim_max=2)
 
@@ -164,7 +138,6 @@ using Ripserer:
 
                 @test last(only(d2)) == 1
             end
-
             @testset "torus 100" begin
                 d0, d1 = ripserer(torus(100), dim_max=1)
 
@@ -175,7 +148,6 @@ using Ripserer:
                 @test deaths[end-1] ≈ 0.8
                 @test deaths[end-2] < 0.5
             end
-
             @testset "cycle" begin
                 d0, d1, d2, d3, d4 = ripserer(cycle, dim_max=4)
                 @test d0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
@@ -191,7 +163,6 @@ using Ripserer:
                 @test all(d3 .== d3_7)
                 @test all(d4 .== d4_7)
             end
-
             @testset "projective plane (modulus)" begin
                 _, d1_2, d2_2 = ripserer(projective_plane, dim_max=2)
                 _, d1_3, d2_3 = ripserer(projective_plane, dim_max=2, modulus=3)
@@ -209,21 +180,18 @@ using Ripserer:
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
-
             @testset "icosahedron, med thresh" begin
                 res = ripserer(icosahedron, dim_max=2, threshold=1)
                 @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
                 @test isempty(res[2])
                 @test res[3] == [(1.0, Inf)]
             end
-
             @testset "icosahedron, low thresh" begin
                 res = ripserer(icosahedron, dim_max=2, threshold=0.5)
                 @test res[1] == fill((0.0, Inf), 12)
                 @test isempty(res[2])
                 @test isempty(res[3])
             end
-
             @testset "torus 16, high threshold" begin
                 d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=2)
 
@@ -235,7 +203,6 @@ using Ripserer:
 
                 @test last(only(d2)) == 1
             end
-
             @testset "torus 16, med threshold" begin
                 d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.9)
 
@@ -247,7 +214,6 @@ using Ripserer:
 
                 @test last(only(d2)) == Inf
             end
-
             @testset "torus 16, low threshold" begin
                 d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.5)
 
@@ -258,8 +224,44 @@ using Ripserer:
 
                 @test isempty(d2)
             end
-
             @testset "projective plane (modulus), med threshold" begin
+                _, d1_2, d2_2 = ripserer(projective_plane,
+                                         dim_max=2, threshold=1)
+                _, d1_3, d2_3 = ripserer(projective_plane,
+                                         dim_max=2, modulus=3, threshold=1)
+                @test d1_2 == [(1, typemax(Int))]
+                @test d2_2 == [(1, typemax(Int))]
+                @test isempty(d1_3)
+                @test isempty(d2_3)
+            end
+        end
+
+        @testset "sparse matrix" begin
+            @testset "icosahedron" begin
+                flt = SparseRipsFiltration(icosahedron, dim_max=2, threshold=2)
+                res = ripserer(flt)
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test isempty(res[2])
+                @test res[3] == [(1.0, 2.0)]
+            end
+            @testset "torus 16" begin
+                dists = sparse(torus(16))
+                SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 1)
+
+                d0, d1, d2 = ripserer(torus(16), dim_max=2)
+
+                @test length(d0) == 16
+
+                @test all(x -> first(x) ≈ 0.5, d1)
+                @test sum(x -> last(x) ≈ 1, d1) == 2
+                @test sum(x -> isapprox(last(x), 0.71, atol=0.1), d1) == 15
+
+                @test last(only(d2)) == 1
+            end
+            @testset "projective plane (modulus), med threshold" begin
+                dists = sparse(projective_plane)
+                SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 2)
+
                 _, d1_2, d2_2 = ripserer(projective_plane,
                                          dim_max=2, threshold=1)
                 _, d1_3, d2_3 = ripserer(projective_plane,
