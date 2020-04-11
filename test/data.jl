@@ -1,5 +1,6 @@
 using Distances
 using LinearAlgebra
+using SparseArrays
 
 """
     rand_dist_matrix(n, [sparse])
@@ -121,4 +122,18 @@ Construct a random torus distance matrix with `n` points.
 function rand_torus(n)
     pts = rand(2, n) .* 2 .- 1
     torus_dist(pts)
+end
+
+"""
+    disconnected_tori(n, m)
+
+Construct `m` random toruses with `n` points each.
+"""
+function disconnected_tori(n, m)
+    dist = zeros(n*m, n*m)
+    for i in 1:n:n*m
+        dist[i:i+n-1, i:i+n-1] .= rand_torus(n)
+    end
+    perm = shuffle(1:n*m)
+    sparse(dist[perm, perm])
 end
