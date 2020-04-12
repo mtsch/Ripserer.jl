@@ -24,44 +24,45 @@ end
 
 Representation of finite field, integers modulo `M`.
 """
-struct PrimeField{M} <: Integer
-    value::Int
+primitive type PrimeField{M} <: Integer 64 end
 
-    @generated function PrimeField{M}(value::Integer) where M
-        isprime(M) || throw(DomainError(M, "modulus not prime"))
-        if M == 2
-            Expr(:new, :(PrimeField{$M}), :(Int(value) & 1))
-        else
-            Expr(:new, :(PrimeField{$M}), :(Int(value) % $M + ifelse(signbit(value), $M, 0)))
-        end
+@generated function PrimeField{M}(value::Integer) where M
+    isprime(M) || throw(DomainError(M, "modulus not prime"))
+    if M == 2
+        :(reinterpret(PrimeField{$M}, value & 1))
+    else
+        :(reinterpret(PrimeField{$M}, value % $M + ifelse(signbit(value), $M, 0)))
     end
 end
+
+Base.show(io::IO, i::PrimeField{M}) where M =
+    print(io, i, " mod ", M)
 
 PrimeField{M}(i::PrimeField{M}) where M =
     i
 Base.Int(i::PrimeField) =
-    i.value
+    reinterpret(Int, i)
 
 for op in (:+, :-, :*)
     @eval (Base.$op)(i::PrimeField{M}, j::PrimeField{M}) where M =
-        PrimeField{M}($op(i.value, j.value))
+        PrimeField{M}($op(Int(i), Int(j)))
 end
 
 Base.:/(i::PrimeField{M}, j::PrimeField{M}) where M =
     i * inv(j)
 Base.:-(i::PrimeField{M}) where M =
-    PrimeField{M}(-i.value)
+    reinterpret(PrimeField{M}, M - Int(i))
 Base.zero(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(0)
+    reinterpret(PrimeField{M}, 0)
 Base.one(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(1)
+    reinterpret(PrimeField{M}, 1)
 Base.promote_rule(::Type{PrimeField{M}}, ::Type{Int}) where {M} =
     PrimeField{M}
 
 # Idea: precompute inverses and generate a function with the inverses hard-coded.
 @generated function Base.inv(i::PrimeField{M}) where M
     err_check = quote
-        i == PrimeField{M}(0) && throw(DivideError())
+        iszero(i) && throw(DivideError())
     end
     if M != 2
         isprime(M) || throw(DomainError(M, "modulus not prime"))
@@ -80,7 +81,7 @@ Base.promote_rule(::Type{PrimeField{M}}, ::Type{Int}) where {M} =
     else
         quote
             $err_check
-            PrimeField{2}(i)
+            i
         end
     end
 end
@@ -113,7 +114,13 @@ struct Simplex{M, T} <: AbstractSimplex{PrimeField{M}, T}
         bits = n_bits(M)
         Expr(:new, :(Simplex{$M, $T}),
              :diam,
-             :(UInt64(index) << $bits + mod(Int(coef), $M)))
+             :(UInt64(index) << $bits + coef % M - ifelse(signbit(coef), M, 0)))
+    end
+    @generated function Simplex{M, T}(diam::T, index::Integer, coef::PrimeField{M}) where {M, T}
+        bits = n_bits(M)
+        Expr(:new, :(Simplex{$M, $T}),
+             :diam,
+             :(UInt64(index) << $bits + Int(coef)))
     end
 end
 
@@ -131,7 +138,7 @@ end
 
 @generated function coef(sx::Simplex{M}) where M
     mask = 1 << n_bits(M) - 1
-    :(PrimeField{$M}(sx.index_coef & $mask))
+    :(reinterpret(PrimeField{$M}, sx.index_coef & $mask))
 end
 
 diam(sx::Simplex) =
