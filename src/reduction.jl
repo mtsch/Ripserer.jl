@@ -123,12 +123,12 @@ Add column with column `index` multiplied by the correct factor to `rm.working_c
 Also record the addition in `rm.reduction_entries`.
 """
 function add!(rm::ReductionMatrix, idx, other_coef)
-    λ = coef(pivot(rm.working_column) / other_coef)
+    λ = -coef(pivot(rm.working_column) / other_coef)
     for simplex in rm.reduction_matrix[idx]
-        push!(rm.reduction_entries, -simplex * λ)
+        push!(rm.reduction_entries, simplex * λ)
         for coface in coboundary(rm.filtration, simplex, rm.dim)
             if diam(coface) ≤ threshold(rm.filtration)
-                push!(rm.working_column, -coface * λ)
+                push!(rm.working_column, coface * λ)
             end
         end
     end

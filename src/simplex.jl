@@ -29,7 +29,11 @@ struct PrimeField{M} <: Integer
 
     @generated function PrimeField{M}(value::Integer) where M
         isprime(M) || throw(DomainError(M, "modulus not prime"))
-        Expr(:new, :(PrimeField{$M}), :(mod(value, M)))
+        if M == 2
+            Expr(:new, :(PrimeField{$M}), :(Int(value) & 1))
+        else
+            Expr(:new, :(PrimeField{$M}), :(Int(value) % $M + ifelse(signbit(value), $M, 0)))
+        end
     end
 end
 
