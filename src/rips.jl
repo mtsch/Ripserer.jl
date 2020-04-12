@@ -1,82 +1,3 @@
-# basic simplex ========================================================================== #
-"""
-    isprime(n)
-
-Return `true` if `n` is a prime number.
-"""
-function isprime(n)
-    if iseven(n) || n < 2
-        n == 2
-    else
-        p = 3
-        q = n / p
-        while p ≤ q
-            iszero(n % p) && return false
-            p += 2
-            q = n / p
-        end
-        true
-    end
-end
-
-"""
-    n_bits(M)
-
-Get numer of bits needed to represent number mod `M`.
-"""
-n_bits(M) =
-    floor(Int, log2(M-1)) + 1
-
-"""
-    Simplex{M, T} <: AbstractSimplex{M, T}
-
-The vanilla simplex type with coefficient values from `Z_M`, integers modulo `M`.
-`index` and `coef` are packed into a single `UInt64`.
-
-# Constructor
-
-    Simplex{M}(::T, index::Integer, coef::Integer)
-"""
-struct Simplex{M, T} <: AbstractSimplex{M, T}
-    diam       ::T
-    index_coef ::UInt64
-
-    # Prevent accidentally creating simplex with Simplex{M, T}(::T, ::Int)
-    Simplex{M, T}(diam::T, index_coef::UInt64) where {M, T} =
-        new{M, T}(diam, index_coef)
-end
-
-@generated function Simplex{M}(diam::T, index::Integer, coef::Integer) where {M, T}
-    isprime(M) || throw(DomainError(M, "modulus not prime"))
-    bits = n_bits(M)
-    :(Simplex{M, T}(diam, UInt64(index) << $bits + mod(coef, $M)))
-end
-Simplex{M, T}(diam::T, index, coef) where {M, T} =
-    Simplex{M}(diam, index, coef)
-Simplex{M}(flt::AbstractFiltration{M}, diam, vertices, coef) where M =
-    Simplex{M}(diam, index(flt, vertices), coef)
-
-@generated function index(sx::Simplex{M}) where M
-    shift = n_bits(M)
-    :(reinterpret(Int64, sx.index_coef >> $shift))
-end
-
-@generated function coef(sx::Simplex{M}) where M
-    mask = 1 << n_bits(M) - 1
-    :(reinterpret(Int64, sx.index_coef & $mask))
-end
-
-diam(sx::Simplex) =
-    sx.diam
-
-@generated function set_coef(sx::Simplex{M, T}, value) where {M, T}
-    mask = ~(1 << n_bits(M) - 1)
-    :(Simplex{M, T}(diam(sx), sx.index_coef & $mask + mod(value, M)))
-end
-
-Base.show(io::IO, sx::Simplex{M}) where M =
-    print(io, "Simplex{", M, "}", (diam(sx), index(sx), coef(sx)))
-
 # distance matrix stuff ================================================================== #
 """
     edge_lt(e1, e2) =
@@ -160,7 +81,7 @@ default_threshold(dists) =
     minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
 
 """
-    RipsFiltration{M, T, A<:AbstractArray{T}}
+    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
 
 This type holds the information about the input values.
 The distance matrix has to be a dense matrix.
@@ -170,33 +91,37 @@ The distance matrix has to be a dense matrix.
     RipsFiltration(distance_matrix;
                    dim_max=1,
                    modulus=2,
-                   threshold = default_threshold(dist))
+                   threshold=default_threshold(dist),
+                   eltype=Simplex{modulus, T})
 """
-struct RipsFiltration{M, T, A<:AbstractArray{T}}<:
-    AbstractFiltration{M, T, Simplex{M, T}}
+struct RipsFiltration{T, S<:AbstractSimplex{<:Any, T}, A<:AbstractArray{T}}<:
+    AbstractFiltration{T, S}
 
     dist         ::A
     binomial     ::Binomial
     dim_max      ::Int
     threshold    ::T
     vertex_cache ::Vector{Int}
+end
 
-    function RipsFiltration(dist::AbstractArray{T};
-                            dim_max::Integer=1,
-                            modulus=2,
-                            threshold=default_threshold(dist)) where T
+function RipsFiltration(dist::AbstractArray{T};
+                        dim_max::Integer=1,
+                        modulus=2,
+                        threshold=default_threshold(dist),
+                        eltype::DataType=Simplex{modulus, T}) where T
 
-        is_distance_matrix(dist) ||
-            throw(ArgumentError("`dist` must be a distance matrix"))
-        isprime(modulus) ||
-            throw(ArgumentError("`modulus` must be prime"))
-        dim_max ≥ 0 ||
-            throw(ArgumentError("`dim_max` must be non-negative"))
-        !issparse(dist) ||
-            throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
-        new{modulus, T, typeof(dist)}(
-            dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
-    end
+    is_distance_matrix(dist) ||
+        throw(ArgumentError("`dist` must be a distance matrix"))
+    isprime(modulus) ||
+        throw(ArgumentError("`modulus` must be prime"))
+    dim_max ≥ 0 ||
+        throw(ArgumentError("`dim_max` must be non-negative"))
+    eltype <: AbstractSimplex{<:Any, T} ||
+        throw(ArgumentError("`eltype` must be a subtype of `AbstractSimplex`"))
+    !issparse(dist) ||
+        throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
+    RipsFiltration{T, eltype, typeof(dist)}(
+        dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
 end
 
 Base.length(rips::RipsFiltration) =
@@ -218,7 +143,7 @@ threshold(rips::RipsFiltration) =
     rips.threshold
 
 """
-    SparseRipsFiltration{M, T, A<:AbstractArray{T}}
+    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
 
 This type holds the information about the input values.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -229,41 +154,46 @@ threshold deleted. Off-diagonal zeros in the matrix are treaded as `typemax(T)`.
     SparseRipsFiltration(distance_matrix;
                          dim_max=1,
                          modulus=2,
-                         threshold = default_threshold(dist))
+                         threshold = default_threshold(dist),
+                         eltype=Simplex{modulus, T})
 """
-struct SparseRipsFiltration{M, T, A<:AbstractSparseArray{T}}<:
-    AbstractFiltration{M, T, Simplex{M, T}}
+struct SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}, A<:AbstractSparseArray{T}}<:
+    AbstractFiltration{T, S}
 
     dist         ::A
     binomial     ::Binomial
     dim_max      ::Int
     threshold    ::T
     vertex_cache ::Vector{Int}
+end
 
-    function SparseRipsFiltration(dist::AbstractArray{T};
-                                  dim_max::Integer=1,
-                                  modulus=2,
-                                  threshold=default_threshold(dist)) where T
+function SparseRipsFiltration(dist::AbstractArray{T};
+                              dim_max::Integer=1,
+                              modulus=2,
+                              threshold=default_threshold(dist),
+                              eltype::DataType=Simplex{modulus, T}) where T
 
-        is_distance_matrix(dist) ||
-            throw(ArgumentError("`dist` must be a distance matrix"))
-        isprime(modulus) ||
-            throw(ArgumentError("`modulus` must be prime"))
-        dim_max ≥ 0 ||
-            throw(ArgumentError("`dim_max` must be non-negative"))
+    is_distance_matrix(dist) ||
+        throw(ArgumentError("`dist` must be a distance matrix"))
+    isprime(modulus) ||
+        throw(ArgumentError("`modulus` must be prime"))
+    dim_max ≥ 0 ||
+        throw(ArgumentError("`dim_max` must be non-negative"))
+    eltype <: AbstractSimplex{<:Any, T} ||
+        throw(ArgumentError("`eltype` must be a subtype of `AbstractSimplex`"))
 
-        # We need to make a copy beacuse we're editing the matrix.
-        new_dist = sparse(dist)
-        SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
-        new{modulus, T, typeof(new_dist)}(
-            new_dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
-    end
+    # We need to make a copy beacuse we're editing the matrix.
+    new_dist = sparse(dist)
+    SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
+
+    SparseRipsFiltration{T, eltype, typeof(new_dist)}(
+        new_dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
 end
 
 Base.length(rips::SparseRipsFiltration) =
     size(rips.dist, 1)
 
-function dist(rips::SparseRipsFiltration{M, T}, i::Integer, j::Integer) where {M, T}
+function dist(rips::SparseRipsFiltration{T}, i::Integer, j::Integer) where T
     if i == j
         zero(T)
     else

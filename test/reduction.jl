@@ -40,34 +40,9 @@ using Ripserer:
         @test length(csm) == 4
     end
 
-    @testset "a Column is a heap." begin
-        column = Column{3, Float64}()
-        @test isempty(column)
-
-        push!(column, Simplex{3}(3.0, 1, 1))
-        push!(column, Simplex{3}(3.0, 2, 1))
-        push!(column, Simplex{3}(1.0, 3, 1))
-        push!(column, Simplex{3}(2.0, 4, 1))
-        push!(column, Simplex{3}(2.0, 4, 1))
-        @test length(column) == 5
-        @test !isempty(column)
-
-        @test top(column) == Simplex{3}(1.0, 3, 1)
-        @test pop!(column) == Simplex{3}(1.0, 3, 1)
-        @test length(column) == 4
-        @test pop!(column) == Simplex{3}(2.0, 4, 1)
-        @test pop!(column) == Simplex{3}(2.0, 4, 1)
-        @test pop!(column) == Simplex{3}(3.0, 2, 1)
-        @test pop!(column) == Simplex{3}(3.0, 1, 1)
-        @test isempty(column)
-
-        @test_throws MethodError push!(column, Simplex{2}(3.0, 1, 1))
-        @test_throws MethodError push!(column, Simplex{3}(3, 1, 1))
-    end
-
     @testset "pop_pivot!" begin
         @testset "single element" begin
-            col = Column{2, Float64}()
+            col = Column{Simplex{2, Float64}}()
             push!(col, Simplex{2}(2.0, 1, 1))
             push!(col, Simplex{2}(2.0, 1, 1))
             push!(col, Simplex{2}(2.0, 1, 1))
@@ -77,7 +52,7 @@ using Ripserer:
             @test pop_pivot!(col) == Simplex{2}(2.0, 1, 1)
             @test isempty(col)
 
-            col = Column{3, Float64}()
+            col = Column{Simplex{3, Float64}}()
             push!(col, Simplex{3}(2.0, 1, 1))
             push!(col, Simplex{3}(2.0, 1, 1))
             push!(col, Simplex{3}(2.0, 1, 1))
@@ -86,7 +61,7 @@ using Ripserer:
             @test isempty(col)
         end
         @testset "multiple" begin
-            col = Column{5, Float64}()
+            col = Column{Simplex{5, Float64}}()
             push!(col, Simplex{5}(1.0, 2, 3))
             push!(col, Simplex{5}(2.0, 3, 4))
             push!(col, Simplex{5}(1.0, 2, 2))
@@ -95,6 +70,8 @@ using Ripserer:
             push!(col, Simplex{5}(4.0, 4, 4))
             push!(col, Simplex{5}(4.0, 4, 4))
             push!(col, Simplex{5}(4.0, 4, 4))
+            push!(col, Simplex{5}(5.0, 4, 4))
+            push!(col, Simplex{5}(5.0, 4, 1))
 
             @test pop_pivot!(col) == Simplex{5}(3.0, 1, 2)
             @test pop_pivot!(col) == Simplex{5}(4.0, 4, 2)

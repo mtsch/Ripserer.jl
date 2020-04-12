@@ -6,7 +6,9 @@ using SparseArrays
 
 using DataStructures
 
+include("interface.jl")
 include("abstract.jl")
+include("simplex.jl")
 include("rips.jl")
 include("reduction.jl")
 

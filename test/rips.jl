@@ -1,7 +1,6 @@
 using Ripserer:
     edges, is_distance_matrix,
     isprime, n_bits, Binomial,
-    set_coef, inv_mod,
     coboundary
 
 @testset "rips" begin
@@ -64,74 +63,17 @@ using Ripserer:
             end
         end
     end
-
-    @testset "helpers" begin
-        @testset "isprime" begin
-            @test !isprime(1)
-            @test isprime(2)
-            @test isprime(3)
-            @test !isprime(4)
-            @test isprime(5)
-            @test !isprime(6)
-            @test isprime(7)
-            @test !isprime(8)
-            @test !isprime(9)
-            @test !isprime(10)
-            @test isprime(11)
-        end
-        @testset "n_bits" begin
-            @test n_bits(2) == 1
-            @test n_bits(3) == 2
-            @test n_bits(7) == 3
-            @test n_bits(Int64(typemax(UInt32))) == 32
-        end
-        @testset "Binomial" begin
-            bin = Binomial(10, 15)
-            for n in 1:10, k in 1:15
-                @test bin(n, k) == binomial(n, k)
-            end
-        end
-    end
-
-    @testset "Simplex" begin
-        @testset "index, diam, coef, set_coef" begin
-            for M in (2, 17, 7487)
-                for i in (1, 536, typemax(Int32))
-                    c = rand(Int64)
-                    d = rand(Float64)
-                    @test index(Simplex{M}(d, i, c)) == i
-                    @test coef(Simplex{M}(d, i, c)) == mod(c, M)
-                    @test diam(Simplex{M}(d, i, c)) == d
-                end
-            end
-            @test_throws DomainError Simplex{-3}(rand(), 1, 1)
-            @test_throws DomainError Simplex{7497}(rand(), 1, 1)
-
-            @test set_coef(Simplex{3}(1, 2, 1), 2) == Simplex{3}(1, 2, 2)
-            @test set_coef(Simplex{2}(2, 2, 1), 3) == Simplex{2}(2, 2, 1)
-        end
-        @testset "arithmetic" begin
-            @test Simplex{3}(1.0, 3, 2) * 2 == Simplex{3}(1.0, 3, 1)
-            @test 2 * Simplex{3}(2.0, 3, 2) == Simplex{3}(2.0, 3, 1)
-            @test -Simplex{5}(10, 1, 1) == Simplex{5}(10, 1, 4)
-
-            @test inv_mod(Val(2), 1) == 1
-            @test_throws DomainError inv_mod(Val(4), 1)
-            @test_throws DivideError inv_mod(Val(3), 0)
-
-            for i in 1:16
-                @test Simplex{17}(i*10, 10, i) / i == Simplex{17}(i*10, 10, 1)
-                @test -Simplex{17}(i*10, 8, i) == Simplex{17}(i*10, 8, 17 - i)
-                @test coef(Simplex{17}(1.0, 1, i) - Simplex{17}(1.0, 1, 17-i)) ==
-                    coef(Simplex{17}(1.0, 1, i) + -Simplex{17}(1.0, 1, 17-i))
-            end
+    @testset "Binomial" begin
+        bin = Binomial(10, 15)
+        for n in 1:10, k in 1:15
+            @test bin(n, k) == binomial(n, k)
         end
     end
 
     for Filtration in (RipsFiltration, SparseRipsFiltration)
         typename = string(Filtration)
         @testset "$typename" begin
-            @testset "length, dist, threshold" begin
+            @testset "length, dist, threshold, eltype" begin
                 flt = Filtration([0 1 2 9;
                                   1 0 3 9;
                                   2 3 0 4;
@@ -142,16 +84,18 @@ using Ripserer:
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == 3
                 @test threshold(flt) == 4
+                @test eltype(flt) === Simplex{3, Int}
 
                 flt = Filtration([0 1 2;
                                   1 0 3;
-                                  2 3 0], threshold=2)
+                                  2 3 0], threshold=2, eltype=Simplex{5, Int})
                 @test length(flt) == 3
                 @test dist(flt, 3, 3) == 0
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == (issparse(Filtration) ? typemax(Int) : 3)
                 @test threshold(flt) == 2
+                @test eltype(flt) === Simplex{5, Int}
             end
             @testset "index(::Vector), vertices" begin
                 flt = Filtration(rand_dist_matrix(10), dim_max=5, modulus=2)
