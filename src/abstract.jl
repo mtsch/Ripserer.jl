@@ -146,7 +146,7 @@ function Base.iterate(ci::CoboundaryIterator,
         vxs = vertices(ci.filtration, ci.simplex, ci.dim)
         diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
 
-        coefficient = -coef(ci.simplex)
+        coefficient = k % 2 == 1 ? -coef(ci.simplex) : coef(ci.simplex)
         new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
         S = eltype(ci.filtration)
 

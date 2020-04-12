@@ -124,7 +124,6 @@ Also record the addition in `rm.reduction_entries`.
 """
 function add!(rm::ReductionMatrix, idx, other_coef)
     λ = coef(pivot(rm.working_column) / other_coef)
-    @show coef(pivot(rm.working_column)), other_coef, λ
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, -simplex * λ)
         for coface in coboundary(rm.filtration, simplex, rm.dim)
