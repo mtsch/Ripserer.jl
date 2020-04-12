@@ -35,7 +35,7 @@ using Ripserer: PrimeField, isprime, n_bits, set_coef
         @test PrimeField{13}(10) / 2 == PrimeField{13}(5)
 
         for i in 1:10
-            @test inv(PrimeField{11}(i)).value == invmod(i, 11)
+            @test inv(PrimeField{11}(i)) == invmod(i, 11)
         end
 
         @test_throws DomainError PrimeField{4}(1)

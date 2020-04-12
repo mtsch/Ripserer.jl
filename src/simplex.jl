@@ -20,6 +20,16 @@ function isprime(n)
 end
 
 """
+    modprime(i, M)
+
+Like `mod`, but with prime, i.e. positive `M`.
+"""
+function modprime(i, M)
+    i = i % M
+    i + ifelse(signbit(i), M, 0)
+end
+
+"""
     PrimeField{M} <: Integer
 
 Representation of finite field, integers modulo `M`.
@@ -31,15 +41,15 @@ primitive type PrimeField{M} <: Integer 64 end
     if M == 2
         :(reinterpret(PrimeField{$M}, value & 1))
     else
-        :(reinterpret(PrimeField{$M}, value % $M + ifelse(signbit(value), $M, 0)))
+        :(reinterpret(PrimeField{$M}, modprime(value, $M)))
     end
 end
-
-Base.show(io::IO, i::PrimeField{M}) where M =
-    print(io, i, " mod ", M)
-
 PrimeField{M}(i::PrimeField{M}) where M =
     i
+
+Base.show(io::IO, i::PrimeField{M}) where M =
+    print(io, Int(i), " mod ", M)
+
 Base.Int(i::PrimeField) =
     reinterpret(Int, i)
 
@@ -114,7 +124,7 @@ struct Simplex{M, T} <: AbstractSimplex{PrimeField{M}, T}
         bits = n_bits(M)
         Expr(:new, :(Simplex{$M, $T}),
              :diam,
-             :(UInt64(index) << $bits + coef % M - ifelse(signbit(coef), M, 0)))
+             :(UInt64(index) << $bits + modprime(coef, $M)))
     end
     @generated function Simplex{M, T}(diam::T, index::Integer, coef::PrimeField{M}) where {M, T}
         bits = n_bits(M)
