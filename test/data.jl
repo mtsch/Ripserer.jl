@@ -1,6 +1,7 @@
 using Distances
 using LinearAlgebra
 using SparseArrays
+using Random
 
 """
     rand_dist_matrix(n, [sparse])

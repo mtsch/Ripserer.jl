@@ -1,4 +1,4 @@
-module BenchTorusEquidistant
+module BenchTorus
 using Ripserer
 using BenchmarkTools
 include(joinpath(@__DIR__, "../test/data.jl"))
@@ -24,4 +24,4 @@ for (npoints, dim_max) in ((1024, 1), (128, 2), (64, 4))
 end
 end
 
-BenchTorusEquidistant.suite
+BenchTorus.suite
