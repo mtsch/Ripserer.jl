@@ -193,31 +193,38 @@ function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
 end
 
 """
-    compute_0_dim_pairs!(reduction_state, columns)
+    compute_0_dim_pairs!(filtration, columns)
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
+If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
+`threshold(filtration)`.
 """
 function compute_0_dim_pairs!(flt::AbstractFiltration{T}, columns) where T
     dset = IntDisjointSets(length(flt))
     res = Tuple{T, T}[]
+    # We only collect simplices if the filtration is sparse.
+    simplices = issparse(flt) ? eltype(flt)[] : nothing
 
     for (l, (u, v)) in edges(flt)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-        if i ≠ j
-            union!(dset, i, j)
-            if l > 0
-                push!(res, (zero(T), T(l)))
+        if l ≤ threshold(flt)
+            issparse(flt) && push!(simplices, eltype(flt)(flt, T(l), (u, v), 1))
+            if i ≠ j
+                union!(dset, i, j)
+                if l > 0
+                    push!(res, (zero(T), T(l)))
+                end
+            else
+                push!(columns, eltype(flt)(flt, T(l), (u, v), 1))
             end
-        else
-            push!(columns, eltype(flt)(flt, T(l), (u, v), 1))
         end
     end
     for _ in 1:num_groups(dset)
         push!(res, (zero(T), infinity(flt)))
     end
     reverse!(columns)
-    res
+    res, simplices
 end
 
 """
@@ -234,11 +241,12 @@ function compute_pairs!(rm::ReductionMatrix{T}, columns) where T
 end
 
 """
-    assemble_columns!(rm::ReductionMatrix, columns)
+    assemble_columns!(rm::ReductionMatrix, columns, simplices)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
-function assemble_columns!(rm::ReductionMatrix{T}, columns) where T
+# This method is used when filtration is _not_ sparse.
+function assemble_columns!(rm::ReductionMatrix{T}, columns, ::Nothing) where T
     empty!(columns)
     n_simplices = binomial(rm.filtration, length(rm.filtration), rm.dim + 2)
     S = eltype(rm.filtration)
@@ -256,6 +264,25 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns) where T
             end
         end
     end
+    sort!(columns, rev=true)
+    columns
+end
+
+function assemble_columns!(rm::ReductionMatrix{T}, columns, simplices) where T
+    empty!(columns)
+    new_simplices = eltype(simplices)[]
+
+    for simplex in simplices
+        for coface in coboundary(rm.filtration, simplex, rm.dim, false)
+            if diam(coface) ≤ threshold(rm.filtration)
+                push!(new_simplices, coface)
+                if !haskey(rm.column_index, index(coface))
+                    push!(columns, coface)
+                end
+            end
+        end
+    end
+    copy!(simplices, new_simplices)
     sort!(columns, rev=true)
     columns
 end
@@ -287,13 +314,14 @@ function ripserer(flt::AbstractFiltration{T}) where T
     res = Vector{Tuple{T, T}}[]
     columns = eltype(flt)[]
 
-    push!(res, compute_0_dim_pairs!(flt, columns))
+    res_0, simplices = compute_0_dim_pairs!(flt, columns)
+    push!(res, res_0)
 
     for dim in 1:dim_max(flt)
         rm = ReductionMatrix(flt, dim)
         push!(res, compute_pairs!(rm, columns))
         if dim < dim_max(flt)
-            assemble_columns!(rm, columns)
+            assemble_columns!(rm, columns, simplices)
         end
     end
     res

@@ -109,7 +109,7 @@ function vertices(flt::AbstractFiltration, idx::Integer, dim)
 end
 
 # coboundary ============================================================================= #
-struct CoboundaryIterator{T, S<:AbstractSimplex{<:Any, T}, F<:AbstractFiltration{T, S}}
+struct CoboundaryIterator{A, T, S<:AbstractSimplex{<:Any, T}, F<:AbstractFiltration{T, S}}
     filtration ::F
     simplex    ::S
     dim        ::Int
@@ -128,13 +128,18 @@ Base.eltype(::Type{CoboundaryIterator{<:Any, S}}) where S =
 Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
 decreasing order by index.
 """
-coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim) =
-    CoboundaryIterator(flt, simplex, dim)
+coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim, all_cofaces=true) =
+    CoboundaryIterator{all_cofaces, disttype(flt),
+                       typeof(simplex), typeof(flt)}(flt, simplex, dim)
 
-function Base.iterate(ci::CoboundaryIterator,
-                      st = (length(ci.filtration), ci.dim + 1, index(ci.simplex) - 1, 0))
+function Base.iterate(ci::CoboundaryIterator{all_cofaces},
+                      st = (length(ci.filtration), ci.dim + 1,
+                            index(ci.simplex) - 1, 0)) where all_cofaces
     v, k, idx_below, idx_above = st
     v -= 1
+    if !all_cofaces && binomial(ci.filtration, v, k) ≤ idx_below
+        return nothing
+    end
     while v > 0 && v ≥ k && binomial(ci.filtration, v, k) ≤ idx_below
         idx_below -= binomial(ci.filtration, v, k)
         idx_above += binomial(ci.filtration, v, k + 1)

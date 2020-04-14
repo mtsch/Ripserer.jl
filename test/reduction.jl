@@ -87,7 +87,7 @@ using Ripserer:
                     2 3 0]
             flt = RipsFiltration(dist, dim_max=0, threshold=3)
             critical_edges = Simplex{2, Int}[]
-            res = compute_0_dim_pairs!(flt, critical_edges)
+            res, _ = compute_0_dim_pairs!(flt, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
@@ -225,7 +225,7 @@ using Ripserer:
                 dists = sparse(torus(16))
                 SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 1)
 
-                d0, d1, d2 = ripserer(torus(16), dim_max=2)
+                d0, d1, d2 = ripserer(dists, dim_max=2)
 
                 @test length(d0) == 16
 
@@ -239,10 +239,8 @@ using Ripserer:
                 dists = sparse(projective_plane)
                 SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 2)
 
-                _, d1_2, d2_2 = ripserer(projective_plane,
-                                         dim_max=2, threshold=1)
-                _, d1_3, d2_3 = ripserer(projective_plane,
-                                         dim_max=2, modulus=3, threshold=1)
+                _, d1_2, d2_2 = ripserer(dists, dim_max=2, threshold=1)
+                _, d1_3, d2_3 = ripserer(dists, dim_max=2, modulus=3, threshold=1)
                 @test d1_2 == [(1, typemax(Int))]
                 @test d2_2 == [(1, typemax(Int))]
                 @test isempty(d1_3)

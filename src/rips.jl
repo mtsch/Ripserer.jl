@@ -214,5 +214,5 @@ dim_max(rips::SparseRipsFiltration) =
 threshold(rips::SparseRipsFiltration) =
     rips.threshold
 
-SparseArrays.issparse(::Type{SparseRipsFiltration}) =
+SparseArrays.issparse(::Type{<:SparseRipsFiltration}) =
     true
