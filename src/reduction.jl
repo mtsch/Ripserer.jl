@@ -243,8 +243,12 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns) where T
     n_simplices = binomial(rm.filtration, length(rm.filtration), rm.dim + 2)
     S = eltype(rm.filtration)
 
+    simplices = trues(n_simplices)
+    for k in keys(rm.column_index)
+        @inbounds simplices[k] = false
+    end
     for idx in 1:n_simplices
-        if !haskey(rm.column_index, idx)
+        if simplices[idx]
             sx = S(diam(rm.filtration, vertices(rm.filtration, idx, rm.dim + 1)), idx, 1)
             if diam(sx) ≤ threshold(rm.filtration)
                 push!(columns, sx)
