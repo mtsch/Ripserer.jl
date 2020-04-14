@@ -128,9 +128,10 @@ Base.eltype(::Type{CoboundaryIterator{<:Any, S}}) where S =
 Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
 decreasing order by index.
 """
-coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim, all_cofaces=true) =
-    CoboundaryIterator{all_cofaces, disttype(flt),
-                       typeof(simplex), typeof(flt)}(flt, simplex, dim)
+coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim, ::Val{false}) =
+    CoboundaryIterator{false, disttype(flt), typeof(simplex), typeof(flt)}(flt, simplex, dim)
+coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim) =
+    CoboundaryIterator{true, disttype(flt), typeof(simplex), typeof(flt)}(flt, simplex, dim)
 
 function Base.iterate(ci::CoboundaryIterator{all_cofaces},
                       st = (length(ci.filtration), ci.dim + 1,

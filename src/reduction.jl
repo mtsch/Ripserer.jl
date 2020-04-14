@@ -273,7 +273,7 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns, simplices) where T
     new_simplices = eltype(simplices)[]
 
     for simplex in simplices
-        for coface in coboundary(rm.filtration, simplex, rm.dim, false)
+        for coface in coboundary(rm.filtration, simplex, rm.dim, Val(false))
             if diam(coface) ≤ threshold(rm.filtration)
                 push!(new_simplices, coface)
                 if !haskey(rm.column_index, index(coface))
