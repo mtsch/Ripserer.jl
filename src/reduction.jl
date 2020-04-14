@@ -247,6 +247,7 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns) where T
     for k in keys(rm.column_index)
         @inbounds simplices[k] = false
     end
+    sizehint!(columns, sum(simplices))
     for idx in 1:n_simplices
         if simplices[idx]
             sx = S(diam(rm.filtration, vertices(rm.filtration, idx, rm.dim + 1)), idx, 1)
