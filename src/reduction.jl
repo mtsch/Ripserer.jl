@@ -63,8 +63,17 @@ function Base.iterate(ci::CSMColumnIterator, i=1)
 end
 
 # columns ================================================================================ #
-const Column{S} =
-    BinaryMinHeap{S}
+struct Column{S<:AbstractSimplex}
+    heap::BinaryMinHeap{S}
+
+    Column{S}() where S<:AbstractSimplex =
+        new{S}(BinaryMinHeap{S}())
+end
+
+Base.empty!(col::Column) =
+    empty!(col.heap.valtree)
+Base.isempty(col::Column) =
+    isempty(col.heap)
 
 """
     pop_pivot!(column)
@@ -74,13 +83,14 @@ top of the column, sum them together. If they sum to 0 pop the next column.
 """
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
+    heap = column.heap
 
-    pivot = pop!(column)
-    while !isempty(column)
+    pivot = pop!(heap)
+    while !isempty(heap)
         if coef(pivot) == 0
-            pivot = pop!(column)
-        elseif index(top(column)) == index(pivot)
-            pivot += pop!(column)
+            pivot = pop!(heap)
+        elseif index(top(heap)) == index(pivot)
+            pivot += pop!(heap)
         else
             break
         end
@@ -94,11 +104,29 @@ end
 Return the pivot of the column.
 """
 function pivot(column::Column)
-    pivot = pop_pivot!(column)
-    if !isnothing(pivot)
-        push!(column, pivot)
+    heap = column.heap
+    while !isempty(heap) && coef(top(heap)) == 0
+        pop!(heap)
+    end
+    vt = heap.valtree
+    if length(heap) ≥ 3 && index(vt[1]) != index(vt[2]) && index(vt[1]) != index(vt[3])
+        pivot = @inbounds vt[1]
+    else
+        pivot = pop_pivot!(column)
+        if !isnothing(pivot)
+            push!(column, pivot)
+        end
     end
     pivot
+end
+
+function Base.push!(column::Column{S}, sx::S) where S
+    heap = column.heap
+    if !isempty(heap) && index(top(heap)) == index(sx)
+        heap.valtree[1] += sx
+    else
+        push!(heap, sx)
+    end
 end
 
 # reduction matrix ======================================================================= #
@@ -142,13 +170,13 @@ Initialize `rm.working_column` by emptying it and `reduction_entries` and pushin
 coboundary of `column_simplex` to `rm.working_column`.
 """
 function initialize!(rm::ReductionMatrix, column_simplex)
-    empty!(rm.working_column.valtree)
-    empty!(rm.reduction_entries.valtree)
+    empty!(rm.working_column)
+    empty!(rm.reduction_entries)
 
     for coface in coboundary(rm.filtration, column_simplex, rm.dim)
         if diam(coface) ≤ threshold(rm.filtration)
             if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
-                empty!(rm.working_column.valtree)
+                empty!(rm.working_column)
                 return coface
             end
             push!(rm.working_column, coface)
