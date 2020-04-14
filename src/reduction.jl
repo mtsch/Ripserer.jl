@@ -108,7 +108,7 @@ function pivot(column::Column)
     while !isempty(heap) && coef(top(heap)) == 0
         pop!(heap)
     end
-    vt = heap.vtree
+    vt = heap.valtree
     if length(heap) ≥ 3 && index(vt[1]) != index(vt[2]) && index(vt[1]) != index(vt[3])
         pivot = @inbounds vt[1]
     else
