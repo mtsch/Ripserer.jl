@@ -1,6 +1,7 @@
 module Ripserer
 
 using Compat
+using Future: copy!
 using LinearAlgebra
 using SparseArrays
 
