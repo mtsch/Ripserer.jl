@@ -127,7 +127,7 @@ end
 Base.length(rips::RipsFiltration) =
     size(rips.dist, 1)
 
-dist(rips::RipsFiltration, i::Integer, j::Integer) =
+@inline dist(rips::RipsFiltration, i::Integer, j::Integer) =
     rips.dist[i, j]
 
 Base.binomial(rips::RipsFiltration, n, k) =
@@ -193,13 +193,9 @@ end
 Base.length(rips::SparseRipsFiltration) =
     size(rips.dist, 1)
 
-function dist(rips::SparseRipsFiltration{T}, i::Integer, j::Integer) where T
-    if i == j
-        zero(T)
-    else
-        res = rips.dist[i, j]
-        iszero(res) ? typemax(T) : res
-    end
+@inline function dist(rips::SparseRipsFiltration{T}, i::Integer, j::Integer) where T
+    res = rips.dist[i, j]
+    ifelse(i == j, zero(T), ifelse(iszero(res), typemax(T), res))
 end
 
 Base.binomial(rips::SparseRipsFiltration, n, k) =

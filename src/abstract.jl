@@ -39,10 +39,11 @@ end
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-function max_dist(flt::AbstractFiltration, us, v::Integer)
+@inline function max_dist(flt::AbstractFiltration, us, v::Integer)
     res = typemin(disttype(flt))
     for u in us
-        res = max(res, dist(flt, u, v))
+        @inbounds d = dist(flt, u, v)
+        res = ifelse(res > d, res, d)
         res > threshold(flt) && return infinity(flt)
     end
     res
