@@ -106,14 +106,14 @@ function vertices(flt::AbstractFiltration, idx::Integer, dim)
 end
 
 # coboundary ============================================================================= #
-struct CoboundaryIterator{A, T, S<:AbstractSimplex{<:Any, T}, F<:AbstractFiltration{T, S}}
+struct CoboundaryIterator{A, S<:AbstractSimplex, F<:AbstractFiltration{<:Any, S}}
     filtration ::F
     simplex    ::S
     dim        ::Int
 
     function CoboundaryIterator{A}(flt, sx, dim) where A
         dim ≤ flt.dim_max + 1 || throw(ArgumentError("`dim` is larger than `dim_max + 1`"))
-        new{A, typeof(flt), typeof(sx)}(flt, sx, dim)
+        new{A, typeof(sx), typeof(flt)}(flt, sx, dim)
     end
 end
 
@@ -125,10 +125,14 @@ Base.eltype(::Type{CoboundaryIterator{<:Any, S}}) where S =
     S
 
 """
-    coboundary(filtration, simplex, dim)
+    coboundary(filtration, simplex, dim, [all_cofaces])
 
 Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
 decreasing order by index.
+
+If `all_cofaces` is `::Val{false}`, only return cofaces where the added vertex has an index
+higher than all other vertices. This is used in sparse `assemble_columns!` to find all
+simplices.
 """
 coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim, ::Val{false}) =
     CoboundaryIterator{false}(flt, simplex, dim)
