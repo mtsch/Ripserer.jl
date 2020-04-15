@@ -74,6 +74,8 @@ Base.empty!(col::Column) =
     empty!(col.heap.valtree)
 Base.isempty(col::Column) =
     isempty(col.heap)
+DataStructures.top(col::Column) =
+    top(col.heap)
 
 """
     pop_pivot!(column)
@@ -167,14 +169,14 @@ function initialize!(rm::ReductionMatrix, column_simplex)
 
     for coface in coboundary(rm.filtration, column_simplex, rm.dim)
         if diam(coface) ≤ threshold(rm.filtration)
-            if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
+            if diam(coface) == diam(column_simplex) && !haskey(rm.column_index,
+                                                               index(coface))
                 empty!(rm.working_column)
                 return coface
             end
             push!(rm.working_column, coface)
         end
     end
-
     pivot(rm.working_column)
 end
 
@@ -196,8 +198,8 @@ function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
     if isnothing(current_pivot)
         push!(res, (diam(column_simplex), infinity(rm.filtration)))
     else
-        death = diam(current_pivot)
         birth = diam(column_simplex)
+        death = diam(current_pivot)
         if death > birth
             push!(res, (birth, death))
         end
@@ -210,6 +212,7 @@ function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
             current_entry = pop_pivot!(rm.reduction_entries)
         end
     end
+    rm
 end
 
 """
@@ -318,9 +321,10 @@ represented by `flt`.
 # Settings
 
 `dim_max`: compute persistent homology up to this dimension.
-`modulus`: compute persistent homology with coefficients in the prime field of inetgers
+`modulus`: compute persistent homology with coefficients in the prime field of integers
            mod `modulus`.
 `threshold`: compute persistent homology up to diameter smaller than threshold.
+             Defaults to radius of input space.
 """
 function ripserer(dists::AbstractMatrix; kwargs...)
     if issparse(dists)

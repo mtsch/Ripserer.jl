@@ -24,11 +24,12 @@ function index(flt::AbstractFiltration, vertices)
     res + 1
 end
 
-function diam(flt::AbstractFiltration, vertices)
+@propagate_inbounds function diam(flt::AbstractFiltration, vertices)
     n = length(vertices)
     res = typemin(disttype(flt))
     for i in 1:n, j in i+1:n
-        @inbounds res = max(res, dist(flt, vertices[j], vertices[i]))
+        d = dist(flt, vertices[j], vertices[i])
+        res = ifelse(res > d, res, d)
         res > threshold(flt) && return infinity(flt)
     end
     res
@@ -39,10 +40,10 @@ end
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-@inline function max_dist(flt::AbstractFiltration, us, v::Integer)
+@propagate_inbounds function max_dist(flt::AbstractFiltration, us, v::Integer)
     res = typemin(disttype(flt))
     for u in us
-        @inbounds d = dist(flt, u, v)
+        d = dist(flt, u, v)
         res = ifelse(res > d, res, d)
         res > threshold(flt) && return infinity(flt)
     end
