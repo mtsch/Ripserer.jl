@@ -2,6 +2,9 @@ module Ripserer
 
 using Compat
 using Future: copy!
+
+using Base: @propagate_inbounds
+
 using LinearAlgebra
 using SparseArrays
 

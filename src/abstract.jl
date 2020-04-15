@@ -54,23 +54,18 @@ end
 
 Find largest vertex index of vertex for which `binomial(i, k) ≤ idx` holds.
 """
-function find_max_vertex(flt::AbstractFiltration, idx, k)
-    top = length(flt)
-    bot = k - 1
-    if !(binomial(flt, top, k) ≤ idx)
-        count = top - bot
-        while count > 0
-            step = fld(count, 2)
-            mid = top - step
-            if !(binomial(flt, mid, k) ≤ idx)
-                top = mid - 1
-                count -= step + 1
-            else
-                count = step
-            end
+function find_max_vertex(flt::AbstractFiltration, idx, k, n_max)
+    hi = n_max + 1
+    lo = k - 1
+    @inbounds while lo < hi - 1
+        m = lo + ((hi - lo) >>> 0x01)
+        if binomial(flt, m, k) ≤ idx
+            lo = m
+        else
+            hi = m
         end
     end
-    top
+    lo
 end
 
 """
@@ -81,8 +76,9 @@ Copy vertices of simplex with `index` to `filtration`'s vertex cache.
 function get_vertices!(flt::AbstractFiltration, index, dim)
     resize!(flt.vertex_cache, dim + 1)
     index = index - 1
-    for (i, k) in enumerate(dim+1:-1:1)
-        v = find_max_vertex(flt, index, k)
+    v = length(flt)
+    @inbounds for (i, k) in enumerate(dim+1:-1:1)
+        v = find_max_vertex(flt, index, k, v-1)
 
         flt.vertex_cache[i] = v + 1
         index -= binomial(flt, v, k)
@@ -103,7 +99,7 @@ vertices(flt::AbstractFiltration{<:Any, S}, sx::S, dim) where S =
     vertices(flt, index(sx), dim)
 function vertices(flt::AbstractFiltration, idx::Integer, dim)
     # Calculating index from vertices is so much faster that this is worth doing.
-    if length(flt.vertex_cache) != dim+1 || index(flt, flt.vertex_cache) != idx
+    @inbounds if length(flt.vertex_cache) != dim+1 || index(flt, flt.vertex_cache) != idx
         get_vertices!(flt, idx, dim)
     end
     flt.vertex_cache

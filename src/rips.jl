@@ -67,7 +67,7 @@ end
 
 Base.show(io::IO, bin::Binomial) =
     print(io, "Binomial$(size(bin.table) .- 1)")
-(bin::Binomial)(n, k) =
+@propagate_inbounds (bin::Binomial)(n, k) =
     bin.table[n+1, k+1]
 
 # rips complex =========================================================================== #
@@ -130,7 +130,7 @@ Base.length(rips::RipsFiltration) =
 @inline dist(rips::RipsFiltration, i::Integer, j::Integer) =
     rips.dist[i, j]
 
-Base.binomial(rips::RipsFiltration, n, k) =
+@propagate_inbounds Base.binomial(rips::RipsFiltration, n, k) =
     rips.binomial(n, k)
 
 edges(rips::RipsFiltration) =
@@ -198,7 +198,7 @@ Base.length(rips::SparseRipsFiltration) =
     ifelse(i == j, zero(T), ifelse(iszero(res), typemax(T), res))
 end
 
-Base.binomial(rips::SparseRipsFiltration, n, k) =
+@propagate_inbounds Base.binomial(rips::SparseRipsFiltration, n, k) =
     rips.binomial(n, k)
 
 edges(rips::SparseRipsFiltration) =

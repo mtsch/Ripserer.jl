@@ -105,17 +105,9 @@ Return the pivot of the column.
 """
 function pivot(column::Column)
     heap = column.heap
-    while !isempty(heap) && coef(top(heap)) == 0
-        pop!(heap)
-    end
-    vt = heap.valtree
-    if length(heap) ≥ 3 && index(vt[1]) != index(vt[2]) && index(vt[1]) != index(vt[3])
-        pivot = @inbounds vt[1]
-    else
-        pivot = pop_pivot!(column)
-        if !isnothing(pivot)
-            push!(column, pivot)
-        end
+    pivot = pop_pivot!(column)
+    if !isnothing(pivot)
+        push!(column, pivot)
     end
     pivot
 end
@@ -150,8 +142,8 @@ ReductionMatrix(flt::AbstractFiltration{T, S}, dim) where {C, T, S<:AbstractSimp
 Add column with column `index` multiplied by the correct factor to `rm.working_column`.
 Also record the addition in `rm.reduction_entries`.
 """
-function add!(rm::ReductionMatrix, idx, other_coef)
-    λ = -coef(pivot(rm.working_column) / other_coef)
+function add!(rm::ReductionMatrix, current_pivot, idx, other_coef)
+    λ = -coef(current_pivot / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, simplex * λ)
         for coface in coboundary(rm.filtration, simplex, rm.dim)
@@ -199,7 +191,7 @@ function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
     push!(rm.reduction_matrix, column_simplex)
 
     while !isnothing(current_pivot) && haskey(rm.column_index, index(current_pivot))
-        current_pivot = add!(rm, rm.column_index[index(current_pivot)]...)
+        current_pivot = add!(rm, current_pivot, rm.column_index[index(current_pivot)]...)
     end
     if isnothing(current_pivot)
         push!(res, (diam(column_simplex), infinity(rm.filtration)))
