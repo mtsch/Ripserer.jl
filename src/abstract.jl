@@ -16,7 +16,7 @@ Base.:/(sx::AbstractSimplex{C}, λ::Number) where C =
     set_coef(sx, coef(sx) * inv(C(λ)))
 
 # filtration stuff ======================================================================= #
-function index(flt::AbstractFiltration, vertices)
+@propagate_inbounds function index(flt::AbstractFiltration, vertices)
     res = 0
     for l in eachindex(vertices)
         res += binomial(flt, vertices[end - l + 1] - 1, l)
