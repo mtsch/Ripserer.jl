@@ -18,5 +18,6 @@ include("reduction.jl")
 
 export ripserer,
     AbstractFiltration, RipsFiltration, SparseRipsFiltration, AbstractSimplex, Simplex,
-    diam, index, coef, vertices, dim_max, threshold, dist
+    coef, set_coef, index, diam,
+    vertices, dim_max, threshold, dist, edges
 end

@@ -16,6 +16,11 @@ Base.:/(sx::AbstractSimplex{C}, λ::Number) where C =
     set_coef(sx, coef(sx) * inv(C(λ)))
 
 # filtration stuff ======================================================================= #
+"""
+    index(filtration::AbstractFiltration, vertices)
+
+Compute the index from a collection of `vertices`. Vertices must be in descending order.
+"""
 @propagate_inbounds function index(flt::AbstractFiltration, vertices)
     res = 0
     for l in eachindex(vertices)

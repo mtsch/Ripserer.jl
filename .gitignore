@@ -11,3 +11,6 @@ Manifest.toml
 
 # Profiling scripts.
 profile/
+
+# Built docs
+docs/build/

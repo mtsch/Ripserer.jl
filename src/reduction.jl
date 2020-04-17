@@ -3,7 +3,7 @@
     CompressedSparseMatrix{T}
 
 Compressed immutable sparse matrix data structure that supports efficient column insertion,
-pushing to the last column via [`push!`](@ref) and iterating over columns.
+pushing to the last column via [`Base.push!`](@ref) and iterating over columns.
 
 It's up to the value type `T` to know about its row position.
 """
@@ -313,18 +313,15 @@ end
 """
     ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T))
 
-    ripserer(flt::AbstractFiltration)
+Compute the persistent homology of metric space represented by `dists`.
 
-Compute the persistent homology of metric space represented by `dists` or filtration
-represented by `flt`.
+# Keyoword Arguments
 
-# Settings
-
-`dim_max`: compute persistent homology up to this dimension.
-`modulus`: compute persistent homology with coefficients in the prime field of integers
-           mod `modulus`.
-`threshold`: compute persistent homology up to diameter smaller than threshold.
-             Defaults to radius of input space.
+* `dim_max`: compute persistent homology up to this dimension.
+* `modulus`: compute persistent homology with coefficients in the prime field of integers
+             mod `modulus`.
+* `threshold`: compute persistent homology up to diameter smaller than threshold.
+               Defaults to radius of input space.
 """
 function ripserer(dists::AbstractMatrix; kwargs...)
     if issparse(dists)
@@ -334,6 +331,11 @@ function ripserer(dists::AbstractMatrix; kwargs...)
     end
 end
 
+"""
+    ripserer(filtration::AbstractFiltration)
+
+Compute persistent homology from `filtration` object.
+"""
 function ripserer(flt::AbstractFiltration{T}) where T
     res = Vector{Tuple{T, T}}[]
     columns = eltype(flt)[]
