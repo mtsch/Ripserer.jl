@@ -1,5 +1,7 @@
 # Ripserer.jl
 
+_Efficient computation of persistent homology._
+
 [![Coverage Status](https://coveralls.io/repos/github/mtsch/Ripserer.jl/badge.svg?branch=master)](https://coveralls.io/github/mtsch/Ripserer.jl?branch=master)
 [![codecov](https://codecov.io/gh/mtsch/Ripserer.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/mtsch/Ripserer.jl)
 [![Build Status](https://travis-ci.org/mtsch/Ripserer.jl.svg?branch=master)](https://travis-ci.org/mtsch/Ripserer.jl)

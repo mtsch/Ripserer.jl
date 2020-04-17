@@ -43,8 +43,8 @@ is_distance_matrix(dist) =
     Binomial(n_max, k_max)
 
 Table of precomputed binomial coefficients up to `n_max` and `k_max`. Can be called like a
-function and should be identical to [`binomial`](@ref) for values of `0 ≤ n ≤ n_max` and
-`0 ≤ k ≤ k_max`
+function and should be identical to [`Base.binomial`](@ref) for values of `0 ≤ n ≤ n_max`
+and `0 ≤ k ≤ k_max`
 """
 struct Binomial
     table::Matrix{Int64}
@@ -153,7 +153,7 @@ threshold deleted. Off-diagonal zeros in the matrix are treaded as `typemax(T)`.
     SparseRipsFiltration(distance_matrix;
                          dim_max=1,
                          modulus=2,
-                         threshold = default_threshold(dist),
+                         threshold=default_threshold(dist),
                          eltype=Simplex{modulus, T})
 """
 struct SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}, A<:AbstractSparseArray{T}}<:

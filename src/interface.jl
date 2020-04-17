@@ -1,19 +1,18 @@
 """
     AbstractSimplex{C, T}
 
-An abstract type for representing simplices. It is represented by a combinatorial index
-and does not need to hold information about its dimension or the vertices it includes.
+An abstract type for representing simplices. A simplex is represented by its diameter,
+combinatorial index and coefficient value. It does not need to hold information about its
+dimension or the vertices it includes.
+
 `T` is the type of distance and `C` is the coefficient type.
 
 # Interface
 
-    index(sx)::Int
-
-    coef(sx)::C
-
-    set_coef(sx)::typeof(sx)
-
-    diam(sx)::T
+* `index(::AbstractSimplex)`
+* `coef(::AbstractSimplex)`
+* `set_coef(::AbstractSimplex{C}, ::C)`
+* `diam(::AbstractSimplex)`
 """
 abstract type AbstractSimplex{C, T} end
 
@@ -34,29 +33,21 @@ set_coef
 """
     diam(simplex::AbstractSimplex)
 
-    diam(flt::AbstractFiltration, vertices)
-
-    diam(flt::AbstractFiltration, vertices, vertex)
-
-Get the diameter of `simplex` or list of vertices. If additional `vertex` is given, only
-calculate max distance from `vertices` to `vertex`.
+Get the diameter of `simplex`.
 """
-diam
+diam(::AbstractSimplex)
 
 """
     index(simplex::AbstractSimplex)
 
-Get the combinatorial index of `simplex`. The index is equal to
+Get the combinatorial index of `simplex`. The index of is equal to
 
 ```math
-(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k}.
+(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
 ```
-
-    index(filtration::AbstractFiltration, vertices)
-
-Compute the index from a collection of `vertices`. Vertices must be in descending order.
+where `i_k` are the simplex vertex indices.
 """
-index
+index(::AbstractSimplex)
 
 """
     AbstractFiltration{T, S<:AbstractSimplex{C, T}}
@@ -66,17 +57,13 @@ type.
 
 # Interface
 
-    Base.length(::AbstractFiltration)::Int
-
-    dist(::AbstractFiltration, ::Int, ::Int)::T
-
-    edges(::AbstractFiltration)::iteratble of Tuple{T, {Int, Int}}
-
-    Base.binomial(::AbstractFiltration, n, k)::Int (optional)
-
-    dim_max(::AbstractFiltration)::Int
-
-    threshold(::AbstractFiltration)::T
+* `Base.length(::AbstractFiltration)`
+* `dist(::AbstractFiltration, ::Integer, ::Integer)`
+* `edges(::AbstractFiltration)`
+* `dim_max(::AbstractFiltration)`
+* `diam(::AbstractFiltration, iterable)` - optional, defaults to diameter of vertex set.
+* `Base.binomial(::AbstractFiltration, n, k)` - optional, but recommended.
+* `threshold(::AbstractFiltration)` - optional, defaults to `typemax(T)`.
 """
 abstract type AbstractFiltration{T, S<:AbstractSimplex{<:Any, T}} end
 
@@ -95,6 +82,19 @@ disttype(::AbstractFiltration{T}) where T =
 infinity(::AbstractFiltration{T}) where T =
     typemax(T)
 
+"""
+    length(filtration::AbstractFiltration)
+
+Number of vertices in `filtration`.
+"""
+Base.length(::AbstractFiltration)
+
+"""
+    SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration
+
+Return true if `A` is a sparse filtration. A filtration should be sparse if most simplices
+are to be skipped. Defaults to `false`.
+"""
 SparseArrays.issparse(flt::AbstractFiltration) =
     issparse(typeof(flt))
 SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration =
@@ -110,18 +110,23 @@ dist
 """
     edges(filtration::AbstractFiltration)
 
-Get edges in distance matrix in `filtration`,
-sorted by decresing length and increasing index.
+Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
+combinatorial index.
 """
 edges
 
-Base.binomial(::AbstractFiltration, n, k) =
+"""
+    binomial(filtration::AbstractFiltration, n, k)
+
+An abstract filtration may have binomial coefficients precomputed for better performance.
+"""
+Base.binomial(flt::AbstractFiltration, n, k) =
     binomial(n, k)
 
 """
-    dim_max(flt::AbstractFiltration)
+    dim_max(filtration::AbstractFiltration)
 
-Get the maximum dimension of simplices in `flt`.
+Get the maximum dimension of simplices in `filtration`.
 """
 dim_max
 
@@ -133,3 +138,12 @@ ignored.
 """
 threshold(flt::AbstractFiltration) =
     infinity(flt)
+
+"""
+    diam(flt::AbstractFiltration, vertices)
+    diam(flt::AbstractFiltration, vertices, vertex)
+
+Get the diameter of list of vertices i.e. diameter of simplex with `vertices`. If
+additional `vertex` is given, only calculate max distance from `vertices` to `vertex`.
+"""
+diam(::AbstractFiltration, ::Any)
