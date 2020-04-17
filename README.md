@@ -42,5 +42,5 @@ where `birth` and `death` are of the type `eltype(dists)`.
 
 One of the goals of this project is to make it easy to extend with new filtration and
 simplex types. A subtype of `AbstractFiltration` or `AbstractSimplex` should only _need_ to
-implement the interface functions found in [`src/interface.jl`][src/interface.jl]. Other
+implement the interface functions found in [`src/interface.jl`](src/interface.jl). Other
 functions may need to be overloaded to improve performance.
