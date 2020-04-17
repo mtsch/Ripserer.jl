@@ -16,7 +16,7 @@ Base.:/(sx::AbstractSimplex{C}, λ::Number) where C =
     set_coef(sx, coef(sx) * inv(C(λ)))
 
 # filtration stuff ======================================================================= #
-function index(flt::AbstractFiltration, vertices)
+@propagate_inbounds function index(flt::AbstractFiltration, vertices)
     res = 0
     for l in eachindex(vertices)
         res += binomial(flt, vertices[end - l + 1] - 1, l)
@@ -24,11 +24,12 @@ function index(flt::AbstractFiltration, vertices)
     res + 1
 end
 
-function diam(flt::AbstractFiltration, vertices)
+@propagate_inbounds function diam(flt::AbstractFiltration, vertices)
     n = length(vertices)
     res = typemin(disttype(flt))
     for i in 1:n, j in i+1:n
-        res = max(res, dist(flt, vertices[j], vertices[i]))
+        d = dist(flt, vertices[j], vertices[i])
+        res = ifelse(res > d, res, d)
         res > threshold(flt) && return infinity(flt)
     end
     res
@@ -39,10 +40,11 @@ end
 
 Get the maximum distance from `vertices` to `vertex`.
 """
-function max_dist(flt::AbstractFiltration, us, v::Integer)
+@propagate_inbounds function max_dist(flt::AbstractFiltration, us, v::Integer)
     res = typemin(disttype(flt))
     for u in us
-        res = max(res, dist(flt, u, v))
+        d = dist(flt, u, v)
+        res = ifelse(res > d, res, d)
         res > threshold(flt) && return infinity(flt)
     end
     res
@@ -53,23 +55,18 @@ end
 
 Find largest vertex index of vertex for which `binomial(i, k) ≤ idx` holds.
 """
-function find_max_vertex(flt::AbstractFiltration, idx, k)
-    top = length(flt)
-    bot = k - 1
-    if !(binomial(flt, top, k) ≤ idx)
-        count = top - bot
-        while count > 0
-            step = fld(count, 2)
-            mid = top - step
-            if !(binomial(flt, mid, k) ≤ idx)
-                top = mid - 1
-                count -= step + 1
-            else
-                count = step
-            end
+@propagate_inbounds function find_max_vertex(flt::AbstractFiltration, idx, k, n_max)
+    hi = n_max + 1
+    lo = k - 1
+    while lo < hi - 1
+        m = lo + ((hi - lo) >>> 0x01)
+        if binomial(flt, m, k) ≤ idx
+            lo = m
+        else
+            hi = m
         end
     end
-    top
+    lo
 end
 
 """
@@ -80,8 +77,9 @@ Copy vertices of simplex with `index` to `filtration`'s vertex cache.
 function get_vertices!(flt::AbstractFiltration, index, dim)
     resize!(flt.vertex_cache, dim + 1)
     index = index - 1
-    for (i, k) in enumerate(dim+1:-1:1)
-        v = find_max_vertex(flt, index, k)
+    v = length(flt)
+    @inbounds for (i, k) in enumerate(dim+1:-1:1)
+        v = find_max_vertex(flt, index, k, v-1)
 
         flt.vertex_cache[i] = v + 1
         index -= binomial(flt, v, k)
@@ -109,10 +107,15 @@ function vertices(flt::AbstractFiltration, idx::Integer, dim)
 end
 
 # coboundary ============================================================================= #
-struct CoboundaryIterator{A, T, S<:AbstractSimplex{<:Any, T}, F<:AbstractFiltration{T, S}}
+struct CoboundaryIterator{A, S<:AbstractSimplex, F<:AbstractFiltration{<:Any, S}}
     filtration ::F
     simplex    ::S
     dim        ::Int
+
+    function CoboundaryIterator{A}(flt, sx, dim) where A
+        dim ≤ flt.dim_max + 1 || throw(ArgumentError("`dim` is larger than `dim_max + 1`"))
+        new{A, typeof(sx), typeof(flt)}(flt, sx, dim)
+    end
 end
 
 Base.IteratorSize(::Type{CoboundaryIterator}) =
@@ -123,39 +126,46 @@ Base.eltype(::Type{CoboundaryIterator{<:Any, S}}) where S =
     S
 
 """
-    coboundary(filtration, simplex, dim)
+    coboundary(filtration, simplex, dim, [all_cofaces])
 
 Return an iterator that iterates over all cofaces of `simplex` of dimension `dim + 1` in
 decreasing order by index.
+
+If `all_cofaces` is `::Val{false}`, only return cofaces where the added vertex has an index
+higher than all other vertices. This is used in sparse `assemble_columns!` to find all
+simplices.
 """
 coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim, ::Val{false}) =
-    CoboundaryIterator{false, disttype(flt), typeof(simplex), typeof(flt)}(flt, simplex, dim)
+    CoboundaryIterator{false}(flt, simplex, dim)
 coboundary(flt::AbstractFiltration, simplex::AbstractSimplex, dim) =
-    CoboundaryIterator{true, disttype(flt), typeof(simplex), typeof(flt)}(flt, simplex, dim)
+    CoboundaryIterator{true}(flt, simplex, dim)
 
 function Base.iterate(ci::CoboundaryIterator{all_cofaces},
                       st = (length(ci.filtration), ci.dim + 1,
                             index(ci.simplex) - 1, 0)) where all_cofaces
-    v, k, idx_below, idx_above = st
-    v -= 1
-    if !all_cofaces && binomial(ci.filtration, v, k) ≤ idx_below
-        return nothing
-    end
-    while v > 0 && v ≥ k && binomial(ci.filtration, v, k) ≤ idx_below
-        idx_below -= binomial(ci.filtration, v, k)
-        idx_above += binomial(ci.filtration, v, k + 1)
-        v -= 1; k -= 1
-    end
-    if v < k
-        nothing
-    else
-        vxs = vertices(ci.filtration, ci.simplex, ci.dim)
-        diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
+    # bounds are checked in constructor
+    @inbounds begin
+        v, k, idx_below, idx_above = st
+        v -= 1
+        if !all_cofaces && binomial(ci.filtration, v, k) ≤ idx_below
+            return nothing
+        end
+        while v > 0 && v ≥ k && binomial(ci.filtration, v, k) ≤ idx_below
+            idx_below -= binomial(ci.filtration, v, k)
+            idx_above += binomial(ci.filtration, v, k + 1)
+            v -= 1; k -= 1
+        end
+        if v < k
+            nothing
+        else
+            vxs = vertices(ci.filtration, ci.simplex, ci.dim)
+            diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
 
-        coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
-        new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
-        S = eltype(ci.filtration)
+            coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
+            new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
+            S = eltype(ci.filtration)
 
-        S(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
+            S(diameter, new_index, coefficient), (v, k, idx_below, idx_above)
+        end
     end
 end

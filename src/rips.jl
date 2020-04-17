@@ -13,7 +13,7 @@ edge_lt((e1, i1), (e2, i2)) =
 function edges(dist::AbstractMatrix{T}, thresh=typemax(T)) where T
     n = size(dist, 1)
     res = Tuple{T, Tuple{Int, Int}}[]
-    for j in 1:n, i in j+1:n
+    @inbounds for j in 1:n, i in j+1:n
         l = dist[i, j]
         l ≤ thresh && push!(res, (l, (i, j)))
     end
@@ -23,9 +23,8 @@ end
 function edges(dist::AbstractSparseMatrix{T}, thresh=typemax(T)) where T
     res = Tuple{T, Tuple{Int, Int}}[]
     I, J, V = findnz(dist)
-    for (i, j) in zip(I, J)
+    for (i, j, l) in zip(I, J, V)
         i > j || continue
-        l = dist[i, j]
         l ≤ thresh && push!(res, (l, (i, j)))
     end
     sort!(res, lt=edge_lt)
@@ -67,7 +66,7 @@ end
 
 Base.show(io::IO, bin::Binomial) =
     print(io, "Binomial$(size(bin.table) .- 1)")
-(bin::Binomial)(n, k) =
+@propagate_inbounds (bin::Binomial)(n, k) =
     bin.table[n+1, k+1]
 
 # rips complex =========================================================================== #
@@ -127,10 +126,10 @@ end
 Base.length(rips::RipsFiltration) =
     size(rips.dist, 1)
 
-dist(rips::RipsFiltration, i::Integer, j::Integer) =
+@propagate_inbounds dist(rips::RipsFiltration, i::Integer, j::Integer) =
     rips.dist[i, j]
 
-Base.binomial(rips::RipsFiltration, n, k) =
+@propagate_inbounds Base.binomial(rips::RipsFiltration, n, k) =
     rips.binomial(n, k)
 
 edges(rips::RipsFiltration) =
@@ -193,16 +192,13 @@ end
 Base.length(rips::SparseRipsFiltration) =
     size(rips.dist, 1)
 
-function dist(rips::SparseRipsFiltration{T}, i::Integer, j::Integer) where T
-    if i == j
-        zero(T)
-    else
-        res = rips.dist[i, j]
-        iszero(res) ? typemax(T) : res
-    end
+@propagate_inbounds function dist(rips::SparseRipsFiltration{T},
+                                  i::Integer, j::Integer) where T
+    res = rips.dist[i, j]
+    ifelse(i == j, zero(T), ifelse(iszero(res), typemax(T), res))
 end
 
-Base.binomial(rips::SparseRipsFiltration, n, k) =
+@propagate_inbounds Base.binomial(rips::SparseRipsFiltration, n, k) =
     rips.binomial(n, k)
 
 edges(rips::SparseRipsFiltration) =
