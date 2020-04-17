@@ -32,9 +32,14 @@ Return new `simplex` with new coefficient `value`.
 set_coef
 
 """
-    diam(sx::AbstractSimplex)
+    diam(simplex::AbstractSimplex)
 
-Get the diameter of simplex.
+    diam(flt::AbstractFiltration, vertices)
+
+    diam(flt::AbstractFiltration, vertices, vertex)
+
+Get the diameter of `simplex` or list of vertices. If additional `vertex` is given, only
+calculate max distance from `vertices` to `vertex`.
 """
 diam
 

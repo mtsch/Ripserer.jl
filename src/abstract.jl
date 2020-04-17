@@ -35,12 +35,7 @@ end
     res
 end
 
-"""
-    max_dist(filtration, vertices, vertex)
-
-Get the maximum distance from `vertices` to `vertex`.
-"""
-@propagate_inbounds function max_dist(flt::AbstractFiltration, us, v::Integer)
+@propagate_inbounds function diam(flt::AbstractFiltration, us, v::Integer)
     res = typemin(disttype(flt))
     for u in us
         d = dist(flt, u, v)
@@ -159,7 +154,7 @@ function Base.iterate(ci::CoboundaryIterator{all_cofaces},
             nothing
         else
             vxs = vertices(ci.filtration, ci.simplex, ci.dim)
-            diameter = max(diam(ci.simplex), max_dist(ci.filtration, vxs, v+1))
+            diameter = max(diam(ci.simplex), diam(ci.filtration, vxs, v+1))
 
             coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
             new_index = idx_above + binomial(ci.filtration, v, k + 1) + idx_below + 1
