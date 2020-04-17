@@ -7,6 +7,7 @@ _Efficient computation of persistent homology._
 [![Build Status](https://travis-ci.org/mtsch/Ripserer.jl.svg?branch=master)](https://travis-ci.org/mtsch/Ripserer.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/cc709npw3lp76yc8?svg=true)](https://ci.appveyor.com/project/mtsch/ripserer-jl)
 [![Aqua QA](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/tkf/Aqua.jl)
+[![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://mtsch.github.io/Ripserer.jl/dev)
 
 A Julia reimplementation of the [ripser](https://github.com/Ripser/ripser) algorithm for
 persistent homology. This package is not a direct translation and might do or name some
