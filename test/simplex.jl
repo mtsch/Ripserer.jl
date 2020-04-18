@@ -21,10 +21,10 @@ using Ripserer: PrimeField, is_prime, prime_check, n_bits
             @test_throws DomainError prime_check(Val(1))
             @test_throws DomainError prime_check(Val(2047))
             # This makes sure prime_check is a noop.
-            @inferred Nothing prime_check(Val(2))
-            @inferred Nothing prime_check(Val(17))
-            @inferred Nothing prime_check(Val(31))
-            @inferred Nothing prime_check(Val(8191))
+            @test prime_check(Val(2)) isa Nothing
+            @test prime_check(Val(17)) isa Nothing
+            @test prime_check(Val(31)) isa Nothing
+            @test prime_check(Val(8191)) isa Nothing
         end
         @testset "n_bits" begin
             @test n_bits(2) == 1

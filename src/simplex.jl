@@ -50,8 +50,13 @@ Representation of finite field, integers modulo `M`.
 struct PrimeField{M} <: Integer
     value::Int
 
-    PrimeField{M}(value::Integer; check_mod=true) where M =
-        new{M}(mod_prime(value, Val(M)))
+    function PrimeField{M}(value::Integer; check_mod=true) where M
+        if check_mod
+            new{M}(mod_prime(value, Val(M)))
+        else
+            new{M}(value)
+        end
+    end
 end
 PrimeField{M}(i::PrimeField{M}) where M =
     i
@@ -126,14 +131,20 @@ struct Simplex{M, T} <: AbstractSimplex{PrimeField{M}, T}
     diam       ::T
     index_coef ::UInt64
 
-    @generated function Simplex{M, T}(diam::T, index::Integer, coef::Integer) where {M, T}
+    @generated function Simplex{M, T}(
+        diam::T, index::Integer, coef::Integer
+    ) where {M, T}
+
         prime_check(Val(M))
         bits = n_bits(M)
         Expr(:new, :(Simplex{M, T}),
              :diam,
              :(UInt64(index) << $bits + mod_prime(coef, Val(M))))
     end
-    @generated function Simplex{M, T}(diam::T, index::Integer, coef::PrimeField{M}) where {M, T}
+    @generated function Simplex{M, T}(
+        diam::T, index::Integer, coef::PrimeField{M}
+    ) where {M, T}
+
         bits = n_bits(M)
         Expr(:new, :(Simplex{M, T}),
              :diam,
