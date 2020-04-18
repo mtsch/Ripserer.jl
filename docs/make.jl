@@ -2,10 +2,15 @@ using Documenter
 using Ripserer
 using SparseArrays
 
-makedocs(sitename="Ripserer",
+makedocs(sitename="Ripserer.jl",
+         format = Documenter.HTML(
+             # Use clean URLs, unless built as a "local" build
+             prettyurls = !("local" in ARGS),
+             assets = ["assets/favicon.ico"],
+         ),
          pages=[
-             "index.md",
-             "api.md",
+             "Home" => "index.md",
+             "API" => "api.md",
          ])
 
 deploydocs(

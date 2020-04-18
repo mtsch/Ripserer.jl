@@ -1,4 +1,4 @@
-# Ripserer
+# Ripserer.jl
 
 _Efficient computation of persistent homology._
 
