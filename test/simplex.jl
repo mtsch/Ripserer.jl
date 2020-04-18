@@ -1,19 +1,30 @@
-using Ripserer: PrimeField, isprime, n_bits, set_coef
+using Ripserer: PrimeField, is_prime, prime_check, n_bits
 
 @testset "simplex.jl" begin
     @testset "helpers" begin
-        @testset "isprime" begin
-            @test !isprime(1)
-            @test isprime(2)
-            @test isprime(3)
-            @test !isprime(4)
-            @test isprime(5)
-            @test !isprime(6)
-            @test isprime(7)
-            @test !isprime(8)
-            @test !isprime(9)
-            @test !isprime(10)
-            @test isprime(11)
+        @testset "is_prime" begin
+            @test !is_prime(1)
+            @test is_prime(2)
+            @test is_prime(3)
+            @test !is_prime(4)
+            @test is_prime(5)
+            @test !is_prime(6)
+            @test is_prime(7)
+            @test !is_prime(8)
+            @test !is_prime(9)
+            @test !is_prime(10)
+            @test is_prime(11)
+        end
+        @testset "primecheck" begin
+            @test_throws DomainError prime_check(Val(-2))
+            @test_throws DomainError prime_check(Val(-1))
+            @test_throws DomainError prime_check(Val(1))
+            @test_throws DomainError prime_check(Val(2047))
+            # This makes sure prime_check is a noop.
+            @inferred Nothing prime_check(Val(2))
+            @inferred Nothing prime_check(Val(17))
+            @inferred Nothing prime_check(Val(31))
+            @inferred Nothing prime_check(Val(8191))
         end
         @testset "n_bits" begin
             @test n_bits(2) == 1

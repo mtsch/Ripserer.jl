@@ -1,7 +1,6 @@
 using Ripserer:
     edges, is_distance_matrix,
-    isprime, n_bits, Binomial,
-    coboundary
+    Binomial, coboundary
 
 @testset "rips" begin
     @testset "distancematrix" begin

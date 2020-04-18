@@ -111,7 +111,7 @@ function RipsFiltration(dist::AbstractArray{T};
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    isprime(modulus) ||
+    is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
     dim_max ≥ 0 ||
         throw(ArgumentError("`dim_max` must be non-negative"))
@@ -174,7 +174,7 @@ function SparseRipsFiltration(dist::AbstractArray{T};
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    isprime(modulus) ||
+    is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
     dim_max ≥ 0 ||
         throw(ArgumentError("`dim_max` must be non-negative"))
