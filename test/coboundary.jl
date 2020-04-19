@@ -1,5 +1,17 @@
 using Ripserer: Binomial, Coboundary, vertices
 
+struct FakeFiltration <: AbstractFiltration{Int, Simplex{2, Int}} end
+Ripserer.diam(::FakeFiltration, args...) =
+    1
+Ripserer.n_vertices(::FakeFiltration) =
+    20
+
+struct FakeFiltrationWithThreshold <: AbstractFiltration{Int, Simplex{2, Int}} end
+Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
+    v ≤ 10 ? 1 : ∞
+Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
+    20
+
 @testset "coboundary" begin
     @testset "Binomial" begin
         bin = Binomial(10, 15)
@@ -13,18 +25,6 @@ using Ripserer: Binomial, Coboundary, vertices
     end
 
     @testset "coboundary" begin
-        struct FakeFiltration <: AbstractFiltration{Int, Simplex{2, Int}} end
-        Ripserer.diam(::FakeFiltration, args...) =
-            1
-        Ripserer.n_vertices(::FakeFiltration) =
-            20
-
-        struct FakeFiltrationWithThreshold <: AbstractFiltration{Int, Simplex{2, Int}} end
-        Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
-            v ≤ 10 ? 1 : ∞
-        Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
-            20
-
         @testset "vertices, index" begin
             coboundary = Coboundary(FakeFiltration(), 10)
             @test vertices(coboundary, Simplex{2}(rand(Int), 1, 1), 2) == [3, 2, 1]
