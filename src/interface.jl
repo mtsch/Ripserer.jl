@@ -1,3 +1,4 @@
+# simplices ============================================================================== #
 """
     AbstractSimplex{C, T}
 
@@ -49,6 +50,24 @@ where `i_k` are the simplex vertex indices.
 """
 index(::AbstractSimplex)
 
+# simplex arithmetic ===================================================================== #
+Base.isless(sx1, sx2) =
+    diam(sx1) < diam(sx2) || diam(sx1) == diam(sx2) && index(sx1) > index(sx2)
+
+Base.:+(sx1::A, sx2::A) where A<:AbstractSimplex =
+    set_coef(sx1, coef(sx1) + coef(sx2))
+Base.:-(sx1::A, sx2::A) where A<:AbstractSimplex =
+    set_coef(sx1, coef(sx1) - coef(sx2))
+Base.:*(sx::AbstractSimplex, λ::Number) =
+    set_coef(sx, coef(sx) * λ)
+Base.:*(λ::Number, sx::AbstractSimplex) =
+    set_coef(sx, λ::Number * coef(sx))
+Base.:-(sx::AbstractSimplex) =
+    set_coef(sx, -coef(sx))
+Base.:/(sx::AbstractSimplex{C}, λ::Number) where C =
+    set_coef(sx, coef(sx) * inv(C(λ)))
+
+# filtrations ============================================================================ #
 """
     AbstractFiltration{T, S<:AbstractSimplex{C, T}}
 
@@ -57,37 +76,38 @@ type.
 
 # Interface
 
-* `Base.length(::AbstractFiltration)`
-* `dist(::AbstractFiltration, ::Integer, ::Integer)`
-* `edges(::AbstractFiltration)`
-* `dim_max(::AbstractFiltration)`
-* `diam(::AbstractFiltration, iterable)` - optional, defaults to diameter of vertex set.
-* `Base.binomial(::AbstractFiltration, n, k)` - optional, but recommended.
-* `threshold(::AbstractFiltration)` - optional, defaults to `typemax(T)`.
+* `n_vertices(::AbstractFiltration)` - return number of vertices in filtration.
+* `edges(::AbstractFiltration)` - return all edges in filtration as `(l, (i, j))` where `l`
+  is the edge length and `i` and `j` are its endpoints.
+* `diam(::AbstractFiltration, vs)` - diameter of simplex with vertices in `vs`. Should
+  return `Infinity()` if simplex is above threshold.
+* `diam(::AbstractFiltration, sx::AbstractSimplex, vs, u)` - diameter of simplex `sx` with
+  vertices in `vs` and an added vertex `u`. Should return `Infinity()` if simplex is above
+  threshold.
+* `SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration` - optional, defaults to
+  `false`. Should be `true` if most of the simplices are expected to be skipped.
 """
 abstract type AbstractFiltration{T, S<:AbstractSimplex{<:Any, T}} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
-    print(io, typeof(flt), "(length=$(length(flt))")
-    if threshold(flt) < infinity(flt)
+    print(io, typeof(flt), "(n_vertices=$(n_vertices(flt))")
+    if threshold(flt) < ∞
         print(io, ", threshold=$(threshold(flt))")
     end
-    print(io, ", dim_max=$(dim_max(flt)))")
+    println(io, ")")
 end
 
 Base.eltype(::AbstractFiltration{<:Any, S}) where S =
     S
-disttype(::AbstractFiltration{T}) where T =
+dist_type(::AbstractFiltration{T}) where T =
     T
-infinity(::AbstractFiltration{T}) where T =
-    typemax(T)
 
 """
-    length(filtration::AbstractFiltration)
+    n_vertices(filtration::AbstractFiltration)
 
 Number of vertices in `filtration`.
 """
-Base.length(::AbstractFiltration)
+n_vertices(::AbstractFiltration)
 
 """
     SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration
@@ -101,43 +121,12 @@ SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration =
     false
 
 """
-    dist(filtration::AbstractFiltration, i, j)
-
-Get the distance between vertex `i` and vertex `j`.
-"""
-dist
-
-"""
     edges(filtration::AbstractFiltration)
 
 Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
 combinatorial index.
 """
 edges
-
-"""
-    binomial(filtration::AbstractFiltration, n, k)
-
-An abstract filtration may have binomial coefficients precomputed for better performance.
-"""
-Base.binomial(flt::AbstractFiltration, n, k) =
-    binomial(n, k)
-
-"""
-    dim_max(filtration::AbstractFiltration)
-
-Get the maximum dimension of simplices in `filtration`.
-"""
-dim_max
-
-"""
-    threshold(flt::AbstractFiltration)
-
-Get the threshold of `flt`. Simplices with diameter strictly larger than this value will be
-ignored.
-"""
-threshold(flt::AbstractFiltration) =
-    infinity(flt)
 
 """
     diam(flt::AbstractFiltration, vertices)

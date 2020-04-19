@@ -154,10 +154,6 @@ end
 
 Simplex{M}(diam::T, index, coef) where {M, T} =
     Simplex{M, T}(diam, index, coef)
-Simplex{M}(flt::AbstractFiltration{T}, diam, vertices, coef) where {M, T} =
-    Simplex{M, T}(diam, index(flt, vertices), coef)
-Simplex{M, T}(flt::AbstractFiltration{T}, diam, vertices, coef) where {M, T} =
-    Simplex{M, T}(diam, index(flt, vertices), coef)
 
 @generated function index(sx::Simplex{M}) where M
     shift = n_bits(M)

@@ -3,17 +3,20 @@ using LinearAlgebra
 using SparseArrays
 using Test
 
+using Aqua
 using DataStructures
+using Distances
 
 using Ripserer
-include("data.jl")
 
-using Aqua
+include("data.jl")
 
 @testset "Ripserer" begin
     Aqua.test_all(Ripserer)
 
+    include("convenience.jl")
     include("simplex.jl")
     include("rips.jl")
+    include("coboundary.jl")
     include("reduction.jl")
 end

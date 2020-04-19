@@ -1,6 +1,6 @@
 using Ripserer:
     CompressedSparseMatrix, add_column!,
-    Column, coboundary, pop_pivot!,
+    Column, pop_pivot!,
     compute_0_dim_pairs!,
     ReductionMatrix, compute_pairs!
 
@@ -85,13 +85,14 @@ using Ripserer:
             dist = [0 1 2;
                     1 0 3;
                     2 3 0]
-            flt = RipsFiltration(dist, dim_max=0, threshold=3)
+            flt = RipsFiltration(dist, threshold=3)
+            coboundary = Coboundary(flt, 0)
             critical_edges = Simplex{2, Int}[]
-            res, _ = compute_0_dim_pairs!(flt, critical_edges)
+            res, _ = compute_0_dim_pairs!(coboundary, critical_edges)
 
             @test res == [(0, 1),
                           (0, 2),
-                          (0, typemax(Int))]
+                          (0, ∞)]
             @test critical_edges == [Simplex{2}(3, 3, 1)]
         end
     end
@@ -100,7 +101,7 @@ using Ripserer:
         @testset "full matrix, no threshold" begin
             @testset "icosahedron" begin
                 res = ripserer(icosahedron, dim_max=2)
-                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, ∞)]
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
@@ -127,7 +128,7 @@ using Ripserer:
             end
             @testset "cycle" begin
                 d0, d1, d2, d3, d4 = ripserer(cycle, dim_max=4)
-                @test d0 == [fill((0, 1), size(cycle, 1) - 1); (0, typemax(Int))]
+                @test d0 == [fill((0, 1), size(cycle, 1) - 1); (0, ∞)]
                 @test d1 == [(1, 6)]
                 @test d2 == fill((6, 7), 5)
                 @test d3 == [(7, 8)]
@@ -153,19 +154,19 @@ using Ripserer:
         @testset "full matrix, with threshold" begin
             @testset "icosahedron, high thresh" begin
                 res = ripserer(icosahedron, threshold=2, dim_max=2)
-                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, ∞)]
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
             @testset "icosahedron, med thresh" begin
                 res = ripserer(icosahedron, dim_max=2, threshold=1)
-                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, ∞)]
                 @test isempty(res[2])
-                @test res[3] == [(1.0, Inf)]
+                @test res[3] == [(1.0, ∞)]
             end
             @testset "icosahedron, low thresh" begin
                 res = ripserer(icosahedron, dim_max=2, threshold=0.5)
-                @test res[1] == fill((0.0, Inf), 12)
+                @test res[1] == fill((0.0, ∞), 12)
                 @test isempty(res[2])
                 @test isempty(res[3])
             end
@@ -186,10 +187,10 @@ using Ripserer:
                 @test length(d0) == 16
 
                 @test all(x -> first(x) ≈ 0.5, d1)
-                @test sum(x -> last(x) == Inf, d1) == 2
+                @test sum(x -> last(x) == ∞, d1) == 2
                 @test sum(x -> isapprox(last(x), 0.71, atol=0.1), d1) == 15
 
-                @test last(only(d2)) == Inf
+                @test last(only(d2)) == ∞
             end
             @testset "torus 16, low threshold" begin
                 d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.5)
@@ -197,7 +198,7 @@ using Ripserer:
                 @test length(d0) == 16
 
                 @test all(x -> first(x) ≈ 0.5, d1)
-                @test all(x -> last(x) == Inf, d1)
+                @test all(x -> last(x) == ∞, d1)
 
                 @test isempty(d2)
             end
@@ -206,8 +207,8 @@ using Ripserer:
                                          dim_max=2, threshold=1)
                 _, d1_3, d2_3 = ripserer(projective_plane,
                                          dim_max=2, modulus=3, threshold=1)
-                @test d1_2 == [(1, typemax(Int))]
-                @test d2_2 == [(1, typemax(Int))]
+                @test d1_2 == [(1, ∞)]
+                @test d2_2 == [(1, ∞)]
                 @test isempty(d1_3)
                 @test isempty(d2_3)
             end
@@ -215,9 +216,9 @@ using Ripserer:
 
         @testset "sparse matrix" begin
             @testset "icosahedron" begin
-                flt = SparseRipsFiltration(icosahedron, dim_max=2, threshold=2)
-                res = ripserer(flt)
-                @test res[1] == [fill((0.0, 1.0), 11); (0.0, Inf)]
+                flt = SparseRipsFiltration(icosahedron, threshold=2)
+                res = ripserer(flt, dim_max=2)
+                @test res[1] == [fill((0.0, 1.0), 11); (0.0, ∞)]
                 @test isempty(res[2])
                 @test res[3] == [(1.0, 2.0)]
             end
@@ -241,8 +242,8 @@ using Ripserer:
 
                 _, d1_2, d2_2 = ripserer(dists, dim_max=2, threshold=1)
                 _, d1_3, d2_3 = ripserer(dists, dim_max=2, modulus=3, threshold=1)
-                @test d1_2 == [(1, typemax(Int))]
-                @test d2_2 == [(1, typemax(Int))]
+                @test d1_2 == [(1, ∞)]
+                @test d2_2 == [(1, ∞)]
                 @test isempty(d1_3)
                 @test isempty(d2_3)
             end

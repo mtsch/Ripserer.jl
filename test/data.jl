@@ -97,6 +97,13 @@ function torus_dist(pts)
     dist
 end
 
+function torus_points(n, R=2, r=1)
+    n = floor(Int, sqrt(n))
+    [((R + r*cos(θ))*cos(φ), (R + r*cos(θ))*sin(φ), r*sin(θ))
+     for θ in range(0, 2π, length=n+1)[1:end-1]
+     for φ in range(0, 2π, length=n+1)[1:end-1]]
+end
+
 """
     torus(n)
 
