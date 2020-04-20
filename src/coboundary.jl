@@ -59,8 +59,8 @@ Base.binomial(cob::Coboundary, n, k) =
     cob.binomial(n, k)
 dim_max(cob::Coboundary) =
     cob.dim_max
-diam(cob::Coboundary, args...) =
-    diam(cob.filtration, args...)
+diam(cob::Coboundary, sx, vs, u) =
+    diam(cob.filtration, sx, vs, u)
 n_vertices(cob::Coboundary) =
     n_vertices(cob.filtration)
 

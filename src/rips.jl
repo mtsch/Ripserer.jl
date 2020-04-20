@@ -12,8 +12,10 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
     res = typemin(dist_type(flt))
     for i in 1:n, j in i+1:n
         d = dist(flt, vertices[j], vertices[i])
+        if d == ∞ || d > threshold(flt)
+            return ∞
+        end
         res = ifelse(res > d, res, d)
-        res > threshold(flt) && return ∞
     end
     res
 end
@@ -22,8 +24,10 @@ end
     res = diam(sx)
     for u in us
         d = dist(flt, u, v)
+        if d == ∞ || d > threshold(flt)
+            return ∞
+        end
         res = ifelse(res > d, res, d)
-        res > threshold(flt) && return ∞
     end
     res
 end
