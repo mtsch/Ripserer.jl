@@ -2,7 +2,7 @@
     AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
 
 An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
-`dist(::AbstractFlagFiltration, i, j)` instead of `diam`.
+`dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Infinity}` instead of `diam`.
 `diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
 """
 abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
@@ -36,6 +36,14 @@ edges(flt::AbstractFlagFiltration) =
     filter(x -> x[1] ≤ threshold(flt), edges(flt.dist))
 
 """
+    dist(::AbstractFlagFiltration, u, v)
+
+Return the distance between vertices `u` and `v`. If the distance is higher than the
+threshold, return `Infinity()` instead.
+"""
+dist
+
+"""
     default_rips_threshold(dists)
 
 The default threshold is equal to the radius of the input space. At this threshold, all
@@ -45,7 +53,7 @@ default_rips_threshold(dists) =
     minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
 
 """
-    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
+    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
 
 # Constructor
 
@@ -91,7 +99,7 @@ threshold(rips::RipsFiltration) =
     rips.threshold
 
 """
-    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
+    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
 
 This type holds the information about the input values.
 The distance matrix will be converted to a sparse matrix with all values greater than

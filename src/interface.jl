@@ -46,7 +46,7 @@ Get the combinatorial index of `simplex`. The index of is equal to
 ```math
 (i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
 ```
-where `i_k` are the simplex vertex indices.
+where ``i_k`` are the simplex vertex indices.
 """
 index(::AbstractSimplex)
 

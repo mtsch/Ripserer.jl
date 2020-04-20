@@ -41,11 +41,11 @@ AbstractFiltration
 ```
 
 ```@docs
-length(::AbstractFiltration)
+AbstractFlagFiltration
 ```
 
 ```@docs
-dist
+n_vertices
 ```
 
 ```@docs
@@ -53,19 +53,7 @@ edges
 ```
 
 ```@docs
-dim_max
-```
-
-```@docs
 diam(::AbstractFiltration, ::Any)
-```
-
-```@docs
-binomial(::AbstractFiltration, ::Any, ::Any)
-```
-
-```@docs
-threshold
 ```
 
 ```@docs
