@@ -20,6 +20,17 @@ even better.
 The goal of this project is to learn how [ripser](https://github.com/Ripser/ripser) works
 and to make it easy to play with extensions.
 
+## Installation
+
+This package is still under development and is currently unregistered. To install it, run
+
+```
+julia> using Pkg
+julia> Pkg.add("https://github.com/mtsch/Ripserer.jl")
+```
+
+While the package is fully functional, its internals and API are subject to change.
+
 ## Usage
 
 ```julia
