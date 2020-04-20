@@ -80,8 +80,6 @@ Base.empty!(col::Column) =
     empty!(col.heap.valtree)
 Base.isempty(col::Column) =
     isempty(col.heap)
-DataStructures.top(col::Column) =
-    top(col.heap)
 
 """
     pop_pivot!(column::Column)

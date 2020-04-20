@@ -90,11 +90,7 @@ type.
 abstract type AbstractFiltration{T, S<:AbstractSimplex{<:Any, T}} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
-    print(io, typeof(flt), "(n_vertices=$(n_vertices(flt))")
-    if threshold(flt) < ∞
-        print(io, ", threshold=$(threshold(flt))")
-    end
-    println(io, ")")
+    print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
 Base.eltype(::AbstractFiltration{<:Any, S}) where S =

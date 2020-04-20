@@ -196,7 +196,7 @@ function Base.iterate(
             diameter = diam(ci.coboundary, ci.simplex, vxs, v+1)
         end
     end
-    if isfinite(diameter)
+    if diameter != ∞
         coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
         new_index = idx_above + binomial(ci.coboundary, v, k + 1) + idx_below + 1
 

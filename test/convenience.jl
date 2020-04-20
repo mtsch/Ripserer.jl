@@ -87,7 +87,9 @@ using Ripserer: Infinity, ∞, edges, is_distance_matrix, distances
         @test ismissing(∞ > missing)
         @test ismissing(∞ < missing)
         @test !isless(∞, missing)
-        @test !isless(∞, missing)
+        @test isless(missing, ∞)
+        @test ∞ ≈ Inf
+        @test 1 ≉ Inf
 
         @test sprint(print, ∞) == "∞"
     end
