@@ -63,6 +63,12 @@ function Base.iterate(ci::CSMColumnIterator, i=1)
 end
 
 # columns ================================================================================ #
+"""
+    Column{S<:AbstractSimplex}
+
+Wrapper around `BinaryMinHeap{S}`. Acts like a heap of simplices, where simplices with the
+same index are summed together and simplices with coefficient value `0` are ignored.
+"""
 struct Column{S<:AbstractSimplex}
     heap::BinaryMinHeap{S}
 
@@ -78,10 +84,11 @@ DataStructures.top(col::Column) =
     top(col.heap)
 
 """
-    pop_pivot!(column)
+    pop_pivot!(column::Column)
 
-Pop the pivot from `column`. If there are multiple simplices of with the same index on the
-top of the column, sum them together. If they sum to 0 pop the next column.
+Pop the pivot from `column`. If there are multiple simplices with the same index on the top
+of the column, sum them together. If they sum to 0, pop the next column. Return
+`nothing` when column is empty.
 """
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
@@ -124,11 +131,30 @@ function Base.push!(column::Column{S}, sx::S) where S
 end
 
 # reduction matrix ======================================================================= #
+"""
+    ReductionMatrix
+
+This structure represents the reduction matrix in the current dimension. A new one is
+created for every dimension.
+
+# Fields:
+
+* `filtration`: the filtration we are analyzing.
+* `coboundary`: a `Coboundary` object, used to find coboundaries and vertices.
+* `reduction_matrix`: the reduction matrix. Each column of the matrix records the operations
+  that were performed when reducing the column.
+* `column_index`: a `Dict` that maps pivot index to its position in `reduction_matrix` and
+  coefficient.
+* `working_column`: the current working column, the column we are currently reducing.
+* `reduction_entries`: this is where we record which simplices we added to the working
+  column.
+* `dim`: the current dimension.
+"""
 struct ReductionMatrix{
     T, I, S<:AbstractSimplex{I, T}, F<:AbstractFiltration{T, S}, C<:Coboundary{S, F}
 }
-    coboundary        ::C
     filtration        ::F
+    coboundary        ::C
     reduction_matrix  ::CompressedSparseMatrix{S}
     column_index      ::Dict{Int, Tuple{Int, I}}
     working_column    ::Column{S}
@@ -142,8 +168,8 @@ function ReductionMatrix(
     dim,
 ) where {T, I, S<:AbstractSimplex{I, T}, F<:AbstractFiltration{T, S}}
     ReductionMatrix(
-        coboundary,
         filtration,
+        coboundary,
         CompressedSparseMatrix{S}(),
         Dict{Int, Tuple{Int, I}}(),
         Column{S}(),
@@ -192,8 +218,8 @@ end
 """
     reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
 
-Reduce the working column by adding other columns to it until it has the lowest pivot.
-Record resulting persistence intervals in `res`.
+Reduce the working column by adding other columns to it until it has the lowest pivot or is
+reduced. Record resulting persistence intervals in `res`.
 """
 function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
     current_pivot = initialize!(rm, column_simplex)
@@ -229,7 +255,7 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
-`threshold(filtration)`.
+threshold.
 """
 function compute_0_dim_pairs!(coboundary::Coboundary, columns)
     filtration = coboundary.filtration
@@ -243,16 +269,14 @@ function compute_0_dim_pairs!(coboundary::Coboundary, columns)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         issparse(filtration) &&
-            push!(simplices,
-                  eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
+            push!(simplices, eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
         if i ≠ j
             union!(dset, i, j)
             if l > 0
                 push!(res, (zero(T), T(l)))
             end
         else
-            push!(columns,
-                  eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
+            push!(columns, eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
         end
     end
     for _ in 1:num_groups(dset)
@@ -280,6 +304,9 @@ end
     assemble_columns!(rm::ReductionMatrix, columns, simplices)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
+The algorithm used depends on whether the filtration is sparse or not. When it is, we
+collect columns by only looking through the cofaces of simplices from the previous
+dimension. When it's not, we go through all valid simplex indices.
 """
 # This method is used when filtration is _not_ sparse.
 function assemble_columns!(rm::ReductionMatrix, columns, ::Nothing)
@@ -324,8 +351,10 @@ end
 
 """
     ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T))
+    ripserer(points, metric; dim_max=1, modulus=2, threshold=typemax(T))
 
-Compute the persistent homology of metric space represented by `dists`.
+Compute the persistent homology of metric space represented by `dists` or `points` and
+`metric`.
 
 # Keyoword Arguments
 
@@ -333,13 +362,21 @@ Compute the persistent homology of metric space represented by `dists`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
              mod `modulus`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
-               Defaults to radius of input space.
+  Defaults to radius of input space.
+* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `issparse(dists)`.
 """
-function ripserer(dists::AbstractMatrix; dim_max=1, kwargs...)
+function ripserer(dists::AbstractMatrix; sparse=issparse(dists), dim_max=1, kwargs...)
     if issparse(dists)
         ripserer(SparseRipsFiltration(dists; kwargs...), dim_max=dim_max)
     else
         ripserer(RipsFiltration(dists; kwargs...), dim_max=dim_max)
+    end
+end
+function ripserer(points, metric; sparse=false, dim_max=1, kwargs...)
+    if sparse
+        ripserer(SparseRipsFiltration(points, metric; kwargs...), dim_max=dim_max)
+    else
+        ripserer(RipsFiltration(points, metric; kwargs...), dim_max=dim_max)
     end
 end
 
