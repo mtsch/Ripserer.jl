@@ -12,28 +12,32 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
     res = typemin(dist_type(flt))
     for i in 1:n, j in i+1:n
         d = dist(flt, vertices[j], vertices[i])
-        if d == ∞ || d > threshold(flt)
-            return ∞
-        end
         res = ifelse(res > d, res, d)
     end
-    res
+    if res > threshold(flt)
+        ∞
+    else
+        res
+    end
 end
 
 @propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
     res = diam(sx)
     for u in us
-        d = dist(flt, u, v)
-        if d == ∞ || d > threshold(flt)
-            return ∞
-        end
+        # Even though this looks like a tight loop, v changes way more often than us, so
+        # this is the faster order of indexing by u and v.
+        d = dist(flt, v, u)
         res = ifelse(res > d, res, d)
     end
-    res
+    if res > threshold(flt)
+        ∞
+    else
+        res
+    end
 end
 
 edges(flt::AbstractFlagFiltration) =
-    filter(x -> x[1] ≤ threshold(flt), edges(flt.dist))
+    filter(x -> first(x) ≤ threshold(flt), edges(flt.dist))
 
 """
     dist(::AbstractFlagFiltration, u, v)
@@ -83,7 +87,9 @@ function RipsFiltration(
         throw(ArgumentError("`modulus` must be prime"))
     simplex_type <: AbstractSimplex{<:Any, T} ||
         throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
-
+    if !isfinite(threshold)
+        threshold = default_rips_threshold(dist)
+    end
     RipsFiltration{T, simplex_type, typeof(dist)}(dist, T(threshold))
 end
 RipsFiltration(points; metric=Euclidean(), kwargs...) =
@@ -92,7 +98,7 @@ RipsFiltration(points; metric=Euclidean(), kwargs...) =
 n_vertices(rips::RipsFiltration) =
     size(rips.dist, 1)
 
-@propagate_inbounds dist(rips::RipsFiltration, i::Integer, j::Integer) =
+@propagate_inbounds dist(rips::RipsFiltration, i, j) =
     rips.dist[i, j]
 
 threshold(rips::RipsFiltration) =
@@ -103,7 +109,7 @@ threshold(rips::RipsFiltration) =
 
 This type holds the information about the input values.
 The distance matrix will be converted to a sparse matrix with all values greater than
-threshold deleted. Off-diagonal zeros in the matrix are treaded as `typemax(T)`.
+threshold deleted. Off-diagonal zeros in the matrix are treated as `typemax(T)`.
 
 # Constructor
 
@@ -131,7 +137,9 @@ function SparseRipsFiltration(dist::AbstractMatrix{T};
         throw(ArgumentError("`modulus` must be prime"))
     simplex_type <: AbstractSimplex{<:Any, T} ||
         throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
-
+    if !isfinite(threshold)
+        threshold = default_rips_threshold(dist)
+    end
     # We need to make a copy beacuse we're editing the matrix.
     new_dist = sparse(dist)
     SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
@@ -152,8 +160,9 @@ end
 @propagate_inbounds Base.binomial(rips::SparseRipsFiltration, n, k) =
     rips.binomial(n, k)
 
+# Threshold was handled by deleting entries in the matrix.
 threshold(rips::SparseRipsFiltration) =
-    rips.threshold
+    ∞
 
 SparseArrays.issparse(::Type{<:SparseRipsFiltration}) =
     true
