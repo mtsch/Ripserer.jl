@@ -30,4 +30,4 @@ suite["sparse"] =
 
 end
 
-BenchTorus.suite
+BenchCoboundary.suite
