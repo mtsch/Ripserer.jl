@@ -63,6 +63,12 @@ function Base.iterate(ci::CSMColumnIterator, i=1)
 end
 
 # columns ================================================================================ #
+"""
+    Column{S<:AbstractSimplex}
+
+Wrapper around `BinaryMinHeap{S}`. Acts like a heap of simplices, where simplices with the
+same index are summed together and simplices with coefficient value `0` are ignored.
+"""
 struct Column{S<:AbstractSimplex}
     heap::BinaryMinHeap{S}
 
@@ -74,14 +80,13 @@ Base.empty!(col::Column) =
     empty!(col.heap.valtree)
 Base.isempty(col::Column) =
     isempty(col.heap)
-DataStructures.top(col::Column) =
-    top(col.heap)
 
 """
-    pop_pivot!(column)
+    pop_pivot!(column::Column)
 
-Pop the pivot from `column`. If there are multiple simplices of with the same index on the
-top of the column, sum them together. If they sum to 0 pop the next column.
+Pop the pivot from `column`. If there are multiple simplices with the same index on the top
+of the column, sum them together. If they sum to 0, pop the next column. Return
+`nothing` when column is empty.
 """
 function pop_pivot!(column::Column)
     isempty(column) && return nothing
@@ -124,19 +129,52 @@ function Base.push!(column::Column{S}, sx::S) where S
 end
 
 # reduction matrix ======================================================================= #
-struct ReductionMatrix{T, C, S<:AbstractSimplex{C, T}, F<:AbstractFiltration{T, S}}
+"""
+    ReductionMatrix
+
+This structure represents the reduction matrix in the current dimension. A new one is
+created for every dimension.
+
+# Fields:
+
+* `filtration`: the filtration we are analyzing.
+* `coboundary`: a `Coboundary` object, used to find coboundaries and vertices.
+* `reduction_matrix`: the reduction matrix. Each column of the matrix records the operations
+  that were performed when reducing the column.
+* `column_index`: a `Dict` that maps pivot index to its position in `reduction_matrix` and
+  coefficient.
+* `working_column`: the current working column, the column we are currently reducing.
+* `reduction_entries`: this is where we record which simplices we added to the working
+  column.
+* `dim`: the current dimension.
+"""
+struct ReductionMatrix{
+    T, I, S<:AbstractSimplex{I, T}, F<:AbstractFiltration{T, S}, C<:Coboundary{S, F}
+}
     filtration        ::F
+    coboundary        ::C
     reduction_matrix  ::CompressedSparseMatrix{S}
-    column_index      ::Dict{Int, Tuple{Int, C}}
+    column_index      ::Dict{Int, Tuple{Int, I}}
     working_column    ::Column{S}
     reduction_entries ::Column{S}
     dim               ::Int
 end
 
-ReductionMatrix(flt::AbstractFiltration{T, S}, dim) where {C, T, S<:AbstractSimplex{C, T}} =
-    ReductionMatrix(flt, CompressedSparseMatrix{S}(),
-                    Dict{Int, Tuple{Int, C}}(),
-                    Column{S}(), Column{S}(), dim)
+function ReductionMatrix(
+    coboundary::Coboundary{S, F},
+    filtration::F,
+    dim,
+) where {T, I, S<:AbstractSimplex{I, T}, F<:AbstractFiltration{T, S}}
+    ReductionMatrix(
+        filtration,
+        coboundary,
+        CompressedSparseMatrix{S}(),
+        Dict{Int, Tuple{Int, I}}(),
+        Column{S}(),
+        Column{S}(),
+        dim,
+    )
+end
 
 """
     add!(rm::ReductionMatrix, index)
@@ -148,10 +186,8 @@ function add!(rm::ReductionMatrix, current_pivot, idx, other_coef)
     λ = -coef(current_pivot / other_coef)
     for simplex in rm.reduction_matrix[idx]
         push!(rm.reduction_entries, simplex * λ)
-        for coface in coboundary(rm.filtration, simplex, rm.dim)
-            if diam(coface) ≤ threshold(rm.filtration)
-                push!(rm.working_column, coface * λ)
-            end
+        for coface in rm.coboundary(simplex, rm.dim)
+            push!(rm.working_column, coface * λ)
         end
     end
     pivot(rm.working_column)
@@ -167,15 +203,12 @@ function initialize!(rm::ReductionMatrix, column_simplex)
     empty!(rm.working_column)
     empty!(rm.reduction_entries)
 
-    for coface in coboundary(rm.filtration, column_simplex, rm.dim)
-        if diam(coface) ≤ threshold(rm.filtration)
-            if diam(coface) == diam(column_simplex) && !haskey(rm.column_index,
-                                                               index(coface))
-                empty!(rm.working_column)
-                return coface
-            end
-            push!(rm.working_column, coface)
+    for coface in rm.coboundary(column_simplex, rm.dim)
+        if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
+            empty!(rm.working_column)
+            return coface
         end
+        push!(rm.working_column, coface)
     end
     pivot(rm.working_column)
 end
@@ -183,8 +216,8 @@ end
 """
     reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
 
-Reduce the working column by adding other columns to it until it has the lowest pivot.
-Record resulting persistence intervals in `res`.
+Reduce the working column by adding other columns to it until it has the lowest pivot or is
+reduced. Record resulting persistence intervals in `res`.
 """
 function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
     current_pivot = initialize!(rm, column_simplex)
@@ -196,7 +229,7 @@ function reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
         current_pivot = add!(rm, current_pivot, rm.column_index[index(current_pivot)]...)
     end
     if isnothing(current_pivot)
-        push!(res, (diam(column_simplex), infinity(rm.filtration)))
+        push!(res, (diam(column_simplex), ∞))
     else
         birth = diam(column_simplex)
         death = diam(current_pivot)
@@ -220,31 +253,32 @@ end
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
-`threshold(filtration)`.
+threshold.
 """
-function compute_0_dim_pairs!(flt::AbstractFiltration{T}, columns) where T
-    dset = IntDisjointSets(length(flt))
-    res = Tuple{T, T}[]
+function compute_0_dim_pairs!(coboundary::Coboundary, columns)
+    filtration = coboundary.filtration
+    T = dist_type(filtration)
+    dset = IntDisjointSets(n_vertices(filtration))
+    res = Tuple{T, Union{T, Infinity}}[]
     # We only collect simplices if the filtration is sparse.
-    simplices = issparse(flt) ? eltype(flt)[] : nothing
+    simplices = issparse(filtration) ? eltype(filtration)[] : nothing
 
-    for (l, (u, v)) in edges(flt)
+    for (l, (u, v)) in edges(filtration)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-        if l ≤ threshold(flt)
-            issparse(flt) && push!(simplices, eltype(flt)(flt, T(l), (u, v), 1))
-            if i ≠ j
-                union!(dset, i, j)
-                if l > 0
-                    push!(res, (zero(T), T(l)))
-                end
-            else
-                push!(columns, eltype(flt)(flt, T(l), (u, v), 1))
+        issparse(filtration) &&
+            push!(simplices, eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
+        if i ≠ j
+            union!(dset, i, j)
+            if l > 0
+                push!(res, (zero(T), T(l)))
             end
+        else
+            push!(columns, eltype(filtration)(T(l), index(coboundary, (u, v)), 1))
         end
     end
     for _ in 1:num_groups(dset)
-        push!(res, (zero(T), infinity(flt)))
+        push!(res, (zero(T), ∞))
     end
     reverse!(columns)
     res, simplices
@@ -255,8 +289,9 @@ end
 
 Compute persistence pairs by reducing `columns` (list of simplices).
 """
-function compute_pairs!(rm::ReductionMatrix{T}, columns) where T
-    res = Tuple{T, T}[]
+function compute_pairs!(rm::ReductionMatrix, columns)
+    T = dist_type(rm.filtration)
+    res = Tuple{T, Union{T, Infinity}}[]
     for column in columns
         reduce_working_column!(rm, res, column)
     end
@@ -267,11 +302,14 @@ end
     assemble_columns!(rm::ReductionMatrix, columns, simplices)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
+The algorithm used depends on whether the filtration is sparse or not. When it is, we
+collect columns by only looking through the cofaces of simplices from the previous
+dimension. When it's not, we go through all valid simplex indices.
 """
 # This method is used when filtration is _not_ sparse.
-function assemble_columns!(rm::ReductionMatrix{T}, columns, ::Nothing) where T
+function assemble_columns!(rm::ReductionMatrix, columns, ::Nothing)
     empty!(columns)
-    n_simplices = binomial(rm.filtration, length(rm.filtration), rm.dim + 2)
+    n_simplices = binomial(rm.coboundary, n_vertices(rm.filtration), rm.dim + 2)
     S = eltype(rm.filtration)
 
     simplices = trues(n_simplices)
@@ -281,9 +319,10 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns, ::Nothing) where T
     sizehint!(columns, sum(simplices))
     for idx in 1:n_simplices
         if simplices[idx]
-            sx = S(diam(rm.filtration, vertices(rm.filtration, idx, rm.dim + 1)), idx, 1)
-            if diam(sx) ≤ threshold(rm.filtration)
-                push!(columns, sx)
+            diameter = diam(rm.filtration, vertices(rm.coboundary, idx, rm.dim + 1))
+            #sx = S(diam(rm.filtration, vertices(rm.filtration, idx, rm.dim + 1)), idx, 1)
+            if diameter < ∞
+                push!(columns, S(diameter, idx, 1))
             end
         end
     end
@@ -291,17 +330,15 @@ function assemble_columns!(rm::ReductionMatrix{T}, columns, ::Nothing) where T
     columns
 end
 
-function assemble_columns!(rm::ReductionMatrix{T}, columns, simplices) where T
+function assemble_columns!(rm::ReductionMatrix, columns, simplices)
     empty!(columns)
     new_simplices = eltype(simplices)[]
 
     for simplex in simplices
-        for coface in coboundary(rm.filtration, simplex, rm.dim, Val(false))
-            if diam(coface) ≤ threshold(rm.filtration)
-                push!(new_simplices, coface)
-                if !haskey(rm.column_index, index(coface))
-                    push!(columns, coface)
-                end
+        for coface in rm.coboundary(simplex, rm.dim, Val(false))
+            push!(new_simplices, coface)
+            if !haskey(rm.column_index, index(coface))
+                push!(columns, coface)
             end
         end
     end
@@ -312,8 +349,10 @@ end
 
 """
     ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T))
+    ripserer(points, metric; dim_max=1, modulus=2, threshold=typemax(T))
 
-Compute the persistent homology of metric space represented by `dists`.
+Compute the persistent homology of metric space represented by `dists` or `points` and
+`metric`.
 
 # Keyoword Arguments
 
@@ -321,13 +360,21 @@ Compute the persistent homology of metric space represented by `dists`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
              mod `modulus`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
-               Defaults to radius of input space.
+  Defaults to radius of input space.
+* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `issparse(dists)`.
 """
-function ripserer(dists::AbstractMatrix; kwargs...)
+function ripserer(dists::AbstractMatrix; sparse=issparse(dists), dim_max=1, kwargs...)
     if issparse(dists)
-        ripserer(SparseRipsFiltration(dists; kwargs...))
+        ripserer(SparseRipsFiltration(dists; kwargs...), dim_max=dim_max)
     else
-        ripserer(RipsFiltration(dists; kwargs...))
+        ripserer(RipsFiltration(dists; kwargs...), dim_max=dim_max)
+    end
+end
+function ripserer(points, metric; sparse=false, dim_max=1, kwargs...)
+    if sparse
+        ripserer(SparseRipsFiltration(points, metric; kwargs...), dim_max=dim_max)
+    else
+        ripserer(RipsFiltration(points, metric; kwargs...), dim_max=dim_max)
     end
 end
 
@@ -336,17 +383,18 @@ end
 
 Compute persistent homology from `filtration` object.
 """
-function ripserer(flt::AbstractFiltration{T}) where T
-    res = Vector{Tuple{T, T}}[]
-    columns = eltype(flt)[]
+function ripserer(filtration::AbstractFiltration{T}; dim_max=1) where T
+    res = Vector{Tuple{T, Union{T, Infinity}}}[]
+    columns = eltype(filtration)[]
+    coboundary = Coboundary(filtration, dim_max)
 
-    res_0, simplices = compute_0_dim_pairs!(flt, columns)
+    res_0, simplices = compute_0_dim_pairs!(coboundary, columns)
     push!(res, res_0)
 
-    for dim in 1:dim_max(flt)
-        rm = ReductionMatrix(flt, dim)
+    for dim in 1:dim_max
+        rm = ReductionMatrix(coboundary, filtration, dim)
         push!(res, compute_pairs!(rm, columns))
-        if dim < dim_max(flt)
+        if dim < dim_max
             assemble_columns!(rm, columns, simplices)
         end
     end

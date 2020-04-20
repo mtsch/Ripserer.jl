@@ -4,20 +4,24 @@ using Compat
 using Future: copy!
 
 using Base: @propagate_inbounds
-
 using LinearAlgebra
 using SparseArrays
 
 using DataStructures
+using Distances
 
+include("convenience.jl")
 include("interface.jl")
-include("abstract.jl")
 include("simplex.jl")
 include("rips.jl")
+include("coboundary.jl")
 include("reduction.jl")
 
-export ripserer,
-    AbstractFiltration, RipsFiltration, SparseRipsFiltration, AbstractSimplex, Simplex,
-    coef, set_coef, index, diam,
-    vertices, dim_max, threshold, dist, edges
+export Infinity, ∞,
+    AbstractFiltration, AbstractSimplex,
+    Simplex, coef, set_coef, index, diam,
+    AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
+    n_vertices, threshold, edges,
+    ripserer
+
 end

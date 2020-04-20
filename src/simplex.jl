@@ -120,8 +120,8 @@ n_bits(M) =
 """
     Simplex{M, T} <: AbstractSimplex{PrimeField{M}, T}
 
-The vanilla simplex type with coefficient values from `Z_M`, integers modulo `M`.
-`index` and `coef` are packed into a single `UInt64`.
+The vanilla simplex type with coefficient values from ``\\mathbb{Z}_M``, integers modulo
+prime `M`. `index` and `coef` are packed into a single `UInt64`.
 
 # Constructor
 
@@ -154,10 +154,6 @@ end
 
 Simplex{M}(diam::T, index, coef) where {M, T} =
     Simplex{M, T}(diam, index, coef)
-Simplex{M}(flt::AbstractFiltration{T}, diam, vertices, coef) where {M, T} =
-    Simplex{M, T}(diam, index(flt, vertices), coef)
-Simplex{M, T}(flt::AbstractFiltration{T}, diam, vertices, coef) where {M, T} =
-    Simplex{M, T}(diam, index(flt, vertices), coef)
 
 @generated function index(sx::Simplex{M}) where M
     shift = n_bits(M)

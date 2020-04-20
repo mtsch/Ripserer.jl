@@ -1,148 +1,105 @@
-# distance matrix stuff ================================================================== #
 """
-    edge_lt(e1, e2) =
+    AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
 
-Compare edges like DiameterSimplexComparer.
-
-* by increasing diameter,
-* by decreasing combinatorial index.
+An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
+`dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Infinity}` instead of `diam`.
+`diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
 """
-edge_lt((e1, i1), (e2, i2)) =
-    e1 < e2 || e1 == e2 && i1 > i2
+abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
 
-function edges(dist::AbstractMatrix{T}, thresh=typemax(T)) where T
-    n = size(dist, 1)
-    res = Tuple{T, Tuple{Int, Int}}[]
-    @inbounds for j in 1:n, i in j+1:n
-        l = dist[i, j]
-        l ≤ thresh && push!(res, (l, (i, j)))
-    end
-    sort!(res, lt=edge_lt)
-end
-
-function edges(dist::AbstractSparseMatrix{T}, thresh=typemax(T)) where T
-    res = Tuple{T, Tuple{Int, Int}}[]
-    I, J, V = findnz(dist)
-    for (i, j, l) in zip(I, J, V)
-        i > j || continue
-        l ≤ thresh && push!(res, (l, (i, j)))
-    end
-    sort!(res, lt=edge_lt)
-end
-
-"""
-    is_distance_matrix(dist)
-
-Return true if dist is a valid distance matrix.
-"""
-is_distance_matrix(dist) =
-    issymmetric(dist) && all(iszero(dist[i, i]) for i in 1:size(dist, 1))
-
-# binomial table ========================================================================= #
-"""
-    Binomial(n_max, k_max)
-
-Table of precomputed binomial coefficients up to `n_max` and `k_max`. Can be called like a
-function and should be identical to [`Base.binomial`](@ref) for values of `0 ≤ n ≤ n_max`
-and `0 ≤ k ≤ k_max`
-"""
-struct Binomial
-    table::Matrix{Int64}
-end
-
-function Binomial(n, k)
-    table = zeros(Int, n+1, k+1)
-    for i in 1:n+1
-        table[i, 1] = 1;
-        for j in 2:min(i, k+1)
-            table[i, j] = table[i-1, j-1] + table[i-1, j];
-            if (i <= k)
-                table[i, i] = 1
-            end
+@propagate_inbounds function diam(flt::AbstractFlagFiltration, vertices)
+    n = length(vertices)
+    res = typemin(dist_type(flt))
+    for i in 1:n, j in i+1:n
+        d = dist(flt, vertices[j], vertices[i])
+        if d == ∞ || d > threshold(flt)
+            return ∞
         end
+        res = ifelse(res > d, res, d)
     end
-    Binomial(table)
+    res
 end
 
-Base.show(io::IO, bin::Binomial) =
-    print(io, "Binomial$(size(bin.table) .- 1)")
-@propagate_inbounds (bin::Binomial)(n, k) =
-    bin.table[n+1, k+1]
+@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
+    res = diam(sx)
+    for u in us
+        d = dist(flt, u, v)
+        if d == ∞ || d > threshold(flt)
+            return ∞
+        end
+        res = ifelse(res > d, res, d)
+    end
+    res
+end
 
-# rips complex =========================================================================== #
+edges(flt::AbstractFlagFiltration) =
+    filter(x -> x[1] ≤ threshold(flt), edges(flt.dist))
+
 """
-    default_threshold(dists)
+    dist(::AbstractFlagFiltration, u, v)
+
+Return the distance between vertices `u` and `v`. If the distance is higher than the
+threshold, return `Infinity()` instead.
+"""
+dist
+
+"""
+    default_rips_threshold(dists)
 
 The default threshold is equal to the radius of the input space. At this threshold, all
 vertices are connected to a vertex `x` and the homology becomes trivial.
 """
-default_threshold(dists) =
+default_rips_threshold(dists) =
     minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
 
 """
-    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
-
-This type holds the information about the input values.
-The distance matrix has to be a dense matrix.
+    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
 
 # Constructor
 
     RipsFiltration(distance_matrix;
-                   dim_max=1,
                    modulus=2,
-                   threshold=default_threshold(dist),
-                   eltype=Simplex{modulus, T})
+                   threshold=default_rips_threshold(dist),
+                   simplex_type=Simplex{modulus, T})
 """
-struct RipsFiltration{T, S<:AbstractSimplex{<:Any, T}, A<:AbstractArray{T}}<:
-    AbstractFiltration{T, S}
+struct RipsFiltration{
+    T, S<:AbstractSimplex{<:Any, T}, A<:AbstractMatrix{T}
+} <: AbstractFlagFiltration{T, S}
 
-    dist         ::A
-    binomial     ::Binomial
-    dim_max      ::Int
-    threshold    ::T
-    vertex_cache ::Vector{Int}
+    dist      ::A
+    threshold ::T
 end
 
-function RipsFiltration(dist::AbstractArray{T};
-                        dim_max::Integer=1,
-                        modulus=2,
-                        threshold=default_threshold(dist),
-                        eltype::DataType=Simplex{modulus, T}) where T
+function RipsFiltration(
+    dist::AbstractMatrix{T};
+    modulus=2,
+    threshold=default_rips_threshold(dist),
+    simplex_type::DataType=Simplex{modulus, T}
+) where T
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    dim_max ≥ 0 ||
-        throw(ArgumentError("`dim_max` must be non-negative"))
-    eltype <: AbstractSimplex{<:Any, T} ||
-        throw(ArgumentError("`eltype` must be a subtype of `AbstractSimplex`"))
-    !issparse(dist) ||
-        throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
-    RipsFiltration{T, eltype, typeof(dist)}(
-        dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
-end
+    simplex_type <: AbstractSimplex{<:Any, T} ||
+        throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
 
-Base.length(rips::RipsFiltration) =
+    RipsFiltration{T, simplex_type, typeof(dist)}(dist, T(threshold))
+end
+RipsFiltration(points; metric=Euclidean(), kwargs...) =
+    RipsFiltration(distances(metric, points); kwargs...)
+
+n_vertices(rips::RipsFiltration) =
     size(rips.dist, 1)
 
 @propagate_inbounds dist(rips::RipsFiltration, i::Integer, j::Integer) =
     rips.dist[i, j]
 
-@propagate_inbounds Base.binomial(rips::RipsFiltration, n, k) =
-    rips.binomial(n, k)
-
-edges(rips::RipsFiltration) =
-    edges(rips.dist, threshold(rips))
-
-dim_max(rips::RipsFiltration) =
-    rips.dim_max
-
 threshold(rips::RipsFiltration) =
     rips.threshold
 
 """
-    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}}
+    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
 
 This type holds the information about the input values.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -151,61 +108,49 @@ threshold deleted. Off-diagonal zeros in the matrix are treaded as `typemax(T)`.
 # Constructor
 
     SparseRipsFiltration(distance_matrix;
-                         dim_max=1,
                          modulus=2,
-                         threshold=default_threshold(dist),
+                         threshold=default_rips_threshold(dist),
                          eltype=Simplex{modulus, T})
 """
-struct SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}, A<:AbstractSparseArray{T}}<:
-    AbstractFiltration{T, S}
+struct SparseRipsFiltration{
+    T, S<:AbstractSimplex{<:Any, T}, A<:AbstractSparseMatrix{T}
+}<: AbstractFlagFiltration{T, S}
 
     dist         ::A
-    binomial     ::Binomial
-    dim_max      ::Int
     threshold    ::T
-    vertex_cache ::Vector{Int}
 end
 
-function SparseRipsFiltration(dist::AbstractArray{T};
-                              dim_max::Integer=1,
+function SparseRipsFiltration(dist::AbstractMatrix{T};
                               modulus=2,
-                              threshold=default_threshold(dist),
-                              eltype::DataType=Simplex{modulus, T}) where T
+                              threshold=default_rips_threshold(dist),
+                              simplex_type::DataType=Simplex{modulus, T}) where T
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    dim_max ≥ 0 ||
-        throw(ArgumentError("`dim_max` must be non-negative"))
-    eltype <: AbstractSimplex{<:Any, T} ||
-        throw(ArgumentError("`eltype` must be a subtype of `AbstractSimplex`"))
+    simplex_type <: AbstractSimplex{<:Any, T} ||
+        throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
 
     # We need to make a copy beacuse we're editing the matrix.
     new_dist = sparse(dist)
     SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
 
-    SparseRipsFiltration{T, eltype, typeof(new_dist)}(
-        new_dist, Binomial(size(dist, 1), dim_max+2), dim_max, T(threshold), Int[])
+    SparseRipsFiltration{T, simplex_type, typeof(new_dist)}(new_dist, T(threshold))
 end
+SparseRipsFiltration(points; metric=Euclidean(), kwargs...) =
+    SparseRipsFiltration(distances(metric, points); kwargs...)
 
-Base.length(rips::SparseRipsFiltration) =
+n_vertices(rips::SparseRipsFiltration) =
     size(rips.dist, 1)
 
-@propagate_inbounds function dist(rips::SparseRipsFiltration{T},
-                                  i::Integer, j::Integer) where T
+@propagate_inbounds function dist(rips::SparseRipsFiltration{T}, i, j) where T
     res = rips.dist[i, j]
-    ifelse(i == j, zero(T), ifelse(iszero(res), typemax(T), res))
+    ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
 end
 
 @propagate_inbounds Base.binomial(rips::SparseRipsFiltration, n, k) =
     rips.binomial(n, k)
-
-edges(rips::SparseRipsFiltration) =
-    edges(rips.dist, threshold(rips))
-
-dim_max(rips::SparseRipsFiltration) =
-    rips.dim_max
 
 threshold(rips::SparseRipsFiltration) =
     rips.threshold
