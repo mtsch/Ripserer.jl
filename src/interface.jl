@@ -51,7 +51,7 @@ where `i_k` are the simplex vertex indices.
 index(::AbstractSimplex)
 
 # simplex arithmetic ===================================================================== #
-Base.isless(sx1, sx2) =
+Base.isless(sx1::A, sx2::A) where A<:AbstractSimplex =
     diam(sx1) < diam(sx2) || diam(sx1) == diam(sx2) && index(sx1) > index(sx2)
 
 Base.:+(sx1::A, sx2::A) where A<:AbstractSimplex =

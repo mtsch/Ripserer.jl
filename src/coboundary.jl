@@ -78,14 +78,6 @@ Compute the index from a collection of `vertices`. Vertices must be in descendin
 end
 
 """
-    simplex(cob::Coboundary{S}, sx::S, vertices)
-
-Create simplex with vertices from `vertices`, copying sx's diameter and coefficient.
-"""
-simplex(cob::Coboundary{S}, sx::S, vertices) where S =
-    S(diam(sx), index(cob, vertices), coef(sx))
-
-"""
     find_max_vertex(filtration, idx, k)
 
 Find largest vertex index of vertex for which `binomial(i, k) ≤ idx` holds. This finds the
@@ -185,7 +177,7 @@ function Base.iterate(
     diameter = ∞
     v, k, idx_below, idx_above = st
 
-    @inbounds while !isfinite(diameter)
+    @inbounds while diameter == ∞
         v -= 1
         if !all_cofaces && binomial(ci.coboundary, v, k) ≤ idx_below
             break

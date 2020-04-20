@@ -70,4 +70,25 @@ using Ripserer: Infinity, ∞, edges, is_distance_matrix, distances
                                                  2 1 0 1;
                                                  1 2 1 0]
     end
+    @testset "infinty" begin
+        @test ∞ > 0.0
+        @test typemax(Int) < ∞
+        @test ∞ == Inf
+        @test Inf == ∞
+        @test !(∞ > Inf)
+        @test !(∞ < Inf)
+        @test !(∞ > NaN)
+        @test !(∞ < NaN)
+        @test !(∞ > ∞)
+        @test !(∞ < ∞)
+        @test ∞ > "infinity plus one"
+        @test "infinity plus two" < ∞
+        @test ∞ > ["infinity", +, 3]
+        @test ismissing(∞ > missing)
+        @test ismissing(∞ < missing)
+        @test !isless(∞, missing)
+        @test !isless(∞, missing)
+
+        @test sprint(print, ∞) == "∞"
+    end
 end
