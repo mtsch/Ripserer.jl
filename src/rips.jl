@@ -21,23 +21,8 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
     end
 end
 
-@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
-    res = diam(sx)
-    for u in us
-        # Even though this looks like a tight loop, v changes way more often than us, so
-        # this is the faster order of indexing by u and v.
-        d = dist(flt, v, u)
-        res = ifelse(res > d, res, d)
-    end
-    if res > threshold(flt)
-        ∞
-    else
-        res
-    end
-end
-
 edges(flt::AbstractFlagFiltration) =
-    filter(x -> first(x) ≤ threshold(flt), edges(flt.dist))
+    edges(flt.dist, threshold(flt))
 
 """
     dist(::AbstractFlagFiltration, u, v)
@@ -87,6 +72,9 @@ function RipsFiltration(
         throw(ArgumentError("`modulus` must be prime"))
     simplex_type <: AbstractSimplex{<:Any, T} ||
         throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
+    !issparse(dist) ||
+        throw(ArgumentError("`dits` is sparse. Use `SparseRipsFiltration` instead"))
+
     if !isfinite(threshold)
         threshold = default_rips_threshold(dist)
     end
@@ -103,6 +91,21 @@ n_vertices(rips::RipsFiltration) =
 
 threshold(rips::RipsFiltration) =
     rips.threshold
+
+@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
+    res = diam(sx)
+    for u in us
+        # Even though this looks like a tight loop, v changes way more often than us, so
+        # this is the faster order of indexing by u and v.
+        d = dist(flt, v, u)
+        res = ifelse(res > d, res, d)
+    end
+    if res > threshold(flt)
+        ∞
+    else
+        res
+    end
+end
 
 """
     SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
@@ -166,3 +169,15 @@ threshold(rips::SparseRipsFiltration) =
 
 SparseArrays.issparse(::Type{<:SparseRipsFiltration}) =
     true
+
+@propagate_inbounds function diam(flt::SparseRipsFiltration, sx, us, v::Integer)
+    res = diam(sx)
+    for u in us
+        # Since indexing in sparse matrices is expensive, we want to abort the loop early
+        # even though the number of vertices in us is small.
+        d = dist(flt, v, u)
+        d == ∞ && return ∞
+        res = ifelse(res > d, res, d)
+    end
+    res
+end
