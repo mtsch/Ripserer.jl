@@ -1,6 +1,9 @@
 # Beware: black magic ahead.
 using Ripserer
-import Ripserer: index, vertices, coboundary
+using Ripserer: Coboundary, dist_type
+import Ripserer: index, vertices, diam, coef, set_coef
+
+using TupleTools
 
 # prime fields =========================================================================== #
 """
@@ -227,7 +230,7 @@ end
 end
 
 vertices(sx::MagicSimplex{D}) where D =
-    vertices(index(sx), Val(D))
+    vertices(index(sx), Val(D))::NTuple{D+1, Int}
 
 function find_max_vertex(idx, ::Val{k}) where k
     n_max = 10
@@ -268,38 +271,177 @@ end
     expr
 end
 
-struct Coboundary{D1, D2, F, S<:MagicSimplex{D1}}
+struct MagicCoboundary{D1, D2, M, T, F, S<:MagicSimplex{D1, M, T}}
     filtration ::F
     simplex    ::S
     vertices   ::NTuple{D2, Int}
 end
 
-coboundary(filtration, simplex, dim) =
-    Coboundary{dim, dim+1, typeof(filtration), typeof(simplex)}(
+coboundary(filtration, simplex::MagicSimplex{dim, M}) where {dim, M} =
+    MagicCoboundary{dim, dim+1, M, dist_type(filtration), typeof(filtration), typeof(simplex)}(
         filtration,
         simplex,
         vertices(simplex)
     )
 
-function Base.iterate(ci::Coboundary{D1}, (v, k)=(n_vertices(filtration), D1+1)) where D1
+function Base.iterate(ci::MagicCoboundary{D1, D2, M, T}, (v, k)=(n_vertices(ci.filtration), D1+1)) where {D1, D2, M, T}
     diameter = ∞
-    @inbounds while diameter == ∞
-        while v > 1 && v in ci.vertices
+    @inbounds while diameter == ∞ && v > 0
+        while v > 0 && v in ci.vertices
             v -= 1
             k -= 1
         end
+        v == 0 && break
         diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
     end
     if diameter != ∞
-        @assert k ≥ 0
         coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
         # todo: be smarter than sort...
         new_index = index(TupleTools.sort(tuple(ci.vertices..., v), rev=true))
 
-        eltype(ci.filtration)(diameter, new_index, coefficient), v - 1
+        MagicSimplex{D2, M, T}(diameter, new_index, coefficient), (v - 1, k)
     else
         nothing
     end
 end
 
+Base.@pure coface_type(::Type{MagicSimplex{D, M, T}}) where {D, M, T} =
+    MagicSimplex{D+1, M, T}
+
+struct MagicCoboundary2{D, F<:AbstractFiltration, S<:MagicSimplex{D}, D2}
+    filtration ::F
+    simplex    ::S
+    vertices   ::NTuple{D2, Int}
+
+    function MagicCoboundary2{D, F, S}(filtration, simplex, vertices) where {D, F, S}
+        new{D, F, S, D+1}(filtration, simplex, vertices)
+    end
+end
+
+coboundary2(
+    filtration::AbstractFiltration{T, S},
+    simplex::S,
+) where {D, M, T, S<:MagicSimplex{D, M, T}} =
+    MagicCoboundary2{D, typeof(filtration), S}(filtration, simplex, vertices(simplex))
+
+function Base.iterate(ci::MagicCoboundary2{D},
+                      (v, k)=(n_vertices(ci.filtration), D+1),
+                      ) where D
+    diameter = ∞
+    @inbounds while diameter == ∞ && v > 0
+        while v > 0 && v in ci.vertices
+            v -= 1
+            k -= 1
+        end
+        v == 0 && break
+        diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
+        v -= 1
+    end
+    if diameter != ∞
+        coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
+        # todo: be smarter than sort...
+        new_index = index(TupleTools.sort(tuple(ci.vertices..., v-1), rev=true))
+
+        coface_type(typeof(ci.simplex))(diameter, new_index, coefficient), (v, k)
+    else
+        nothing
+    end
+end
+
+# ======================================================================================== #
 # benching
+include(joinpath(@__DIR__, "../test/data.jl"))
+Random.seed!(7350)
+
+function count_cofaces(coboundary, sx)
+    count = 0
+    for i in 1:10000
+        for coface in coboundary(sx, 2)
+            count += 1
+        end
+    end
+    count ÷ 10000
+end
+# Distances are between 0 and 2.
+dists = rand_dist_matrix(4000)
+sx = Simplex{2}(dists[1, 2], 1, 1)
+msx = MagicSimplex{2, 2}(dists[1, 2], 1, 1)
+
+coboundary_full_nothreshold = Coboundary(RipsFiltration(dists, threshold=10), 2)
+coboundary_full_threshold1 = Coboundary(RipsFiltration(dists, threshold=1), 2)
+coboundary_sparse_75 = Coboundary(SparseRipsFiltration(dists, threshold=1.5), 2)
+coboundary_sparse_50 = Coboundary(SparseRipsFiltration(dists, threshold=1), 2)
+coboundary_sparse_25 = Coboundary(SparseRipsFiltration(dists, threshold=0.5), 2)
+
+filtration_full_nothreshold = RipsFiltration(dists, threshold=10, simplex_type=typeof(msx))
+filtration_full_threshold1 = RipsFiltration(dists, threshold=1, simplex_type=typeof(msx))
+filtration_sparse_75 = SparseRipsFiltration(dists, threshold=1.5, simplex_type=typeof(msx))
+filtration_sparse_50 = SparseRipsFiltration(dists, threshold=1, simplex_type=typeof(msx))
+filtration_sparse_25 = SparseRipsFiltration(dists, threshold=0.5, simplex_type=typeof(msx))
+
+function show_cofaces()
+    sx = MagicSimplex{2, 2}(3.0, 1, 1)
+    flt = RipsFiltration(icosahedron, simplex_type=typeof(sx))
+    for coface in coboundary(flt, sx)
+        @show vertices(coface)
+    end
+end
+
+function count_cofaces_new(filtration, sx)
+    count = 0
+    for i in 1:10000
+        for coface in coboundary(filtration, sx)
+            count += 1
+        end
+    end
+    count ÷ 10000
+end
+
+function count_cofaces_newer(filtration, sx)
+    count = 0
+    for i in 1:10000
+        for coface in coboundary2(filtration, sx)
+            count += 1
+        end
+    end
+    count ÷ 10000
+end
+
+suite_old = BenchmarkGroup()
+suite_new = BenchmarkGroup()
+
+suite_old["full, no threshold"] =
+    @benchmarkable count_cofaces($coboundary_full_nothreshold, $sx)
+suite_old["full, threshold=1"] =
+    @benchmarkable count_cofaces($coboundary_full_threshold1, $sx)
+suite_old["sparse, 75% full"] =
+    @benchmarkable count_cofaces($coboundary_sparse_75, $sx)
+suite_old["sparse, 50% full"] =
+    @benchmarkable count_cofaces($coboundary_sparse_50, $sx)
+suite_old["sparse, 25% full"] =
+    @benchmarkable count_cofaces($coboundary_sparse_25, $sx)
+
+suite_new["full, no threshold"] =
+    @benchmarkable count_cofaces_newer($filtration_full_nothreshold, $msx)
+suite_new["full, threshold=1"] =
+    @benchmarkable count_cofaces_newer($filtration_full_threshold1, $msx)
+suite_new["sparse, 75% full"] =
+    @benchmarkable count_cofaces_newer($filtration_sparse_75, $msx)
+suite_new["sparse, 50% full"] =
+    @benchmarkable count_cofaces_newer($filtration_sparse_50, $msx)
+suite_new["sparse, 25% full"] =
+    @benchmarkable count_cofaces_newer($filtration_sparse_25, $msx)
+
+#=
+println("tuning new")
+println(tune!(suite_new))
+println("tuning old")
+println(tune!(suite_old))
+=#
+
+println("run old")
+b_old = run(suite_old)
+println(b_old)
+println("run new")
+b_new = run(suite_new)
+println(b_new)

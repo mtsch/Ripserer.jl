@@ -17,6 +17,5 @@ include("data.jl")
     include("convenience.jl")
     include("simplex.jl")
     include("rips.jl")
-    include("coboundary.jl")
     include("reduction.jl")
 end

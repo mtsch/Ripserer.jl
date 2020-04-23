@@ -1,35 +1,37 @@
-# simplices ============================================================================== #
+# abstract simplex ======================================================================= #
 """
-    AbstractSimplex{C, T}
+    AbstractSimplex{D, C, T}
 
-An abstract type for representing simplices. A simplex is represented by its diameter,
-combinatorial index and coefficient value. It does not need to hold information about its
-dimension or the vertices it includes.
+An abstract type for representing simplices. A simplex is represented by its dimension,
+diameter, combinatorial index and coefficient value. It does not need to hold information
+about its the vertices it includes, since they can be recomputed from the index and
+dimension.
 
-`T` is the type of distance and `C` is the coefficient type.
+`D` is the dimension, `T` is the type of distance and `C` is the coefficient type.
 
 # Interface
 
-* `index(::AbstractSimplex)`
-* `coef(::AbstractSimplex)`
-* `set_coef(::AbstractSimplex{C}, ::C)`
-* `diam(::AbstractSimplex)`
+* [`index(::AbstractSimplex)`](@ref)
+* [`coef(::AbstractSimplex)`](@ref)
+* [`set_coef(::AbstractSimplex, ::Any)`](@ref)
+* [`diam(::AbstractSimplex)`](@ref)
+* [`vertices(::AbstractSimplex)`](@ref)
 """
-abstract type AbstractSimplex{C, T} end
+abstract type AbstractSimplex{D, C, T} end
 
 """
     coef(simplex::AbstractSimplex)
 
 Get the coefficient value of `simplex`.
 """
-coef
+coef(::AbstractSimplex)
 
 """
     set_coef(simplex::AbstractSimplex, value)
 
 Return new `simplex` with new coefficient `value`.
 """
-set_coef
+set_coef(::AbstractSimplex, ::Any)
 
 """
     diam(simplex::AbstractSimplex)
@@ -41,31 +43,18 @@ diam(::AbstractSimplex)
 """
     index(simplex::AbstractSimplex)
 
-Get the combinatorial index of `simplex`. The index of is equal to
-
-```math
-(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
-```
-where ``i_k`` are the simplex vertex indices.
+Get the combinatorial index of `simplex`.
 """
 index(::AbstractSimplex)
 
-# simplex arithmetic ===================================================================== #
-Base.isless(sx1::A, sx2::A) where A<:AbstractSimplex =
-    diam(sx1) < diam(sx2) || diam(sx1) == diam(sx2) && index(sx1) > index(sx2)
+"""
+    coface_type(::AbstractSimplex)
 
-Base.:+(sx1::A, sx2::A) where A<:AbstractSimplex =
-    set_coef(sx1, coef(sx1) + coef(sx2))
-Base.:-(sx1::A, sx2::A) where A<:AbstractSimplex =
-    set_coef(sx1, coef(sx1) - coef(sx2))
-Base.:*(sx::AbstractSimplex, λ::Number) =
-    set_coef(sx, coef(sx) * λ)
-Base.:*(λ::Number, sx::AbstractSimplex) =
-    set_coef(sx, λ::Number * coef(sx))
-Base.:-(sx::AbstractSimplex) =
-    set_coef(sx, -coef(sx))
-Base.:/(sx::AbstractSimplex{C}, λ::Number) where C =
-    set_coef(sx, coef(sx) * inv(C(λ)))
+Get the type of coface a simplex hax. For a `D`-dimensional simplex, this is usually its
+`D+1`-dimensional counterpart.
+"""
+coface_type(sx::AbstractSimplex) =
+    coface_type(typeof(sx))
 
 # filtrations ============================================================================ #
 """
@@ -87,13 +76,13 @@ type.
 * `SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration` - optional, defaults to
   `false`. Should be `true` if most of the simplices are expected to be skipped.
 """
-abstract type AbstractFiltration{T, S<:AbstractSimplex{<:Any, T}} end
+abstract type AbstractFiltration{T, S<:AbstractSimplex{1, <:Any, T}} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
-Base.eltype(::AbstractFiltration{<:Any, S}) where S =
+edge_type(::AbstractFiltration{<:Any, S}) where S =
     S
 dist_type(::AbstractFiltration{T}) where T =
     T
@@ -120,15 +109,19 @@ SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration =
     edges(filtration::AbstractFiltration)
 
 Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
-combinatorial index.
+combinatorial index. Edges should be of type `edge_type(filtration)`.
 """
-edges
+edges(::AbstractFiltration)
 
 """
     diam(flt::AbstractFiltration, vertices)
-    diam(flt::AbstractFiltration, vertices, vertex)
 
-Get the diameter of list of vertices i.e. diameter of simplex with `vertices`. If
-additional `vertex` is given, only calculate max distance from `vertices` to `vertex`.
+Get the diameter of list of vertices i.e. diameter of simplex with `vertices`.
 """
 diam(::AbstractFiltration, ::Any)
+"""
+    diam(flt::AbstractFiltration, simplex, vertices, vertex)
+
+Get the diameter of coface of `simplex` that is formed by adding `vertex` to `vertices`.
+"""
+diam(::AbstractFiltration, ::Any, ::Any, ::Any)

@@ -1,8 +1,8 @@
 using Ripserer:
     CompressedSparseMatrix, add_column!,
     Column, pop_pivot!,
-    compute_0_dim_pairs!,
-    ReductionMatrix, compute_pairs!
+    zeroth_intervals,
+    ReductionMatrix
 
 @testset "reduction" begin
     @testset "CompressedSparseMatrix" begin
@@ -42,58 +42,71 @@ using Ripserer:
 
     @testset "pop_pivot!" begin
         @testset "single element" begin
-            col = Column{Simplex{2, Float64}}()
-            push!(col, Simplex{2}(2.0, 1, 1))
-            push!(col, Simplex{2}(2.0, 1, 1))
-            push!(col, Simplex{2}(2.0, 1, 1))
-            push!(col, Simplex{2}(2.0, 1, 1))
-            push!(col, Simplex{2}(2.0, 1, 1))
+            col = Column{Simplex{1, 2, Float64}}()
+            push!(col, Simplex{1, 2}(2.0, 1, 1))
+            push!(col, Simplex{1, 2}(2.0, 1, 1))
+            push!(col, Simplex{1, 2}(2.0, 1, 1))
+            push!(col, Simplex{1, 2}(2.0, 1, 1))
+            push!(col, Simplex{1, 2}(2.0, 1, 1))
 
-            @test pop_pivot!(col) == Simplex{2}(2.0, 1, 1)
+            @test pop_pivot!(col) == Simplex{1, 2}(2.0, 1, 1)
             @test isempty(col)
 
-            col = Column{Simplex{3, Float64}}()
-            push!(col, Simplex{3}(2.0, 1, 1))
-            push!(col, Simplex{3}(2.0, 1, 1))
-            push!(col, Simplex{3}(2.0, 1, 1))
+            col = Column{Simplex{2, 3, Float64}}()
+            push!(col, Simplex{2, 3}(2.0, 1, 1))
+            push!(col, Simplex{2, 3}(2.0, 1, 1))
+            push!(col, Simplex{2, 3}(2.0, 1, 1))
 
             @test isnothing(pop_pivot!(col))
             @test isempty(col)
         end
         @testset "multiple" begin
-            col = Column{Simplex{5, Float64}}()
-            push!(col, Simplex{5}(1.0, 2, 3))
-            push!(col, Simplex{5}(2.0, 3, 4))
-            push!(col, Simplex{5}(1.0, 2, 2))
-            push!(col, Simplex{5}(3.0, 1, 2))
-            push!(col, Simplex{5}(2.0, 3, 1))
-            push!(col, Simplex{5}(4.0, 4, 4))
-            push!(col, Simplex{5}(4.0, 4, 4))
-            push!(col, Simplex{5}(4.0, 4, 4))
-            push!(col, Simplex{5}(5.0, 4, 4))
-            push!(col, Simplex{5}(5.0, 4, 1))
+            col = Column{Simplex{3, 5, Float64}}()
+            push!(col, Simplex{3, 5}(1.0, 2, 3))
+            push!(col, Simplex{3, 5}(2.0, 3, 4))
+            push!(col, Simplex{3, 5}(1.0, 2, 2))
+            push!(col, Simplex{3, 5}(3.0, 1, 2))
+            push!(col, Simplex{3, 5}(2.0, 3, 1))
+            push!(col, Simplex{3, 5}(4.0, 4, 4))
+            push!(col, Simplex{3, 5}(4.0, 4, 4))
+            push!(col, Simplex{3, 5}(4.0, 4, 4))
+            push!(col, Simplex{3, 5}(5.0, 4, 4))
+            push!(col, Simplex{3, 5}(5.0, 4, 1))
 
-            @test pop_pivot!(col) == Simplex{5}(3.0, 1, 2)
-            @test pop_pivot!(col) == Simplex{5}(4.0, 4, 2)
+            @test pop_pivot!(col) == Simplex{3, 5}(3.0, 1, 2)
+            @test pop_pivot!(col) == Simplex{3, 5}(4.0, 4, 2)
             @test isnothing(pop_pivot!(col))
             @test isnothing(pop_pivot!(col))
         end
     end
 
     @testset "compute_0_dim_pairs!" begin
-        @testset "dense Int" begin
+        @testset "dense" begin
             dist = [0 1 2;
                     1 0 3;
                     2 3 0]
             flt = RipsFiltration(dist, threshold=3)
-            coboundary = Coboundary(flt, 0)
-            critical_edges = Simplex{2, Int}[]
-            res, _ = compute_0_dim_pairs!(coboundary, critical_edges)
+            res, columns, simplices = zeroth_intervals(flt)
 
+            @test isnothing(simplices)
             @test res == [(0, 1),
                           (0, 2),
                           (0, ∞)]
-            @test critical_edges == [Simplex{2}(3, 3, 1)]
+            @test columns == [Simplex{1, 2}(3, 3, 1)]
+        end
+        @testset "sparse" begin
+            dist = [0 1 2;
+                    1 0 3;
+                    2 3 0]
+            flt = SparseRipsFiltration(dist)
+            res, columns, simplices = zeroth_intervals(flt)
+
+            @test simplices == [Simplex{1, 2}(1, 1, 1),
+                                Simplex{1, 2}(2, 2, 1)]
+            @test res == [(0, 1),
+                          (0, 2),
+                          (0, ∞)]
+            @test isempty(columns)
         end
     end
 

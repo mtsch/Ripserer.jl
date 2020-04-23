@@ -1,3 +1,96 @@
+# distance matrix stuff ================================================================== #
+"""
+    edges(dist::AbstractMatrix{T}, thresh, S)
+
+Return sorted edges of type `S` in distance matrix with length lower than `thresh`.
+"""
+function edges(dist::AbstractMatrix{T}, thresh, S) where T
+    n = size(dist, 1)
+    res = S[]
+    @inbounds for j in 1:n, i in j+1:n
+        l = dist[i, j]
+        l ≤ thresh && push!(res, S(l, index((i, j)), 1))
+    end
+    sort!(res)
+end
+
+function edges(dist::AbstractSparseMatrix{T}, thresh, S) where T
+    res = S[]
+    I, J, V = findnz(dist)
+    for (i, j, l) in zip(I, J, V)
+        i > j || continue
+        l ≤ thresh && push!(res, S(l, index((i, j)), 1))
+    end
+    sort!(res)
+end
+
+"""
+    is_distance_matrix(dist)
+
+Return true if dist is a valid distance matrix.
+"""
+is_distance_matrix(dist) =
+    issymmetric(dist) && all(iszero(dist[i, i]) for i in 1:size(dist, 1))
+
+"""
+    distances(metric, points)
+
+Return distance matrix calculated from `points` with `metric`.
+"""
+function distances(metric, points)
+    dim = length(first(points))
+    T = eltype(first(points))
+    pairwise(metric, reshape(reinterpret(T, points), (dim, length(points))), dims=2)
+end
+
+# infinity =============================================================================== #
+"""
+    Infinity
+
+`Infinity()` is bigger than _anything_ else, except `missing` and `Inf`. It is used to:
+
+* Avoiding using `typemax(T)` in persistence intervals. Getting death times of
+  `9223372036854775807` doesn't look good.
+* Returned by `diam(::AbstractFiltration, args...)` to signal that a simplex should be
+  skipped.
+"""
+struct Infinity end
+
+Base.show(io::IO, ::Infinity) =
+    print(io, "∞")
+
+(::Type{T})(::Infinity) where T<:AbstractFloat =
+    typemax(T)
+for op in (:<, :>, :isless, :isequal, :(==))
+    @eval (Base.$op)(x::Real, ::Infinity) =
+        $op(x, Inf)
+    @eval (Base.$op)(::Infinity, x::Real) =
+        $op(Inf, x)
+end
+Base.isapprox(::Infinity, x::Real; args...) =
+    isapprox(Inf, x; args...)
+Base.isapprox(x::Real, ::Infinity; args...) =
+    isapprox(x, Inf; args...)
+
+Base.isless(::Infinity, ::Missing) =
+    false
+Base.isless(::Missing, ::Infinity) =
+    true
+Base.isless(::Infinity, ::Infinity) =
+    false
+Base.:>(::Infinity, ::Infinity) =
+    false
+Base.isless(a, ::Infinity) =
+    true
+Base.isless(::Infinity, a) =
+    true
+
+Base.isfinite(::Infinity) =
+    false
+
+const ∞ = Infinity()
+
+# flag =================================================================================== #
 """
     AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
 
@@ -22,7 +115,7 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
 end
 
 edges(flt::AbstractFlagFiltration) =
-    edges(flt.dist, threshold(flt))
+    edges(flt.dist, threshold(flt), edge_type(flt))
 
 """
     dist(::AbstractFlagFiltration, u, v)
@@ -30,8 +123,9 @@ edges(flt::AbstractFlagFiltration) =
 Return the distance between vertices `u` and `v`. If the distance is higher than the
 threshold, return `Infinity()` instead.
 """
-dist
+dist(::AbstractFlagFiltration, ::Any, ::Any)
 
+# rips =================================================================================== #
 """
     default_rips_threshold(dists)
 
@@ -49,10 +143,10 @@ default_rips_threshold(dists) =
     RipsFiltration(distance_matrix;
                    modulus=2,
                    threshold=default_rips_threshold(dist),
-                   simplex_type=Simplex{modulus, T})
+                   edge_type=Simplex{1, modulus, T, Int, UInt})
 """
 struct RipsFiltration{
-    T, S<:AbstractSimplex{<:Any, T}, A<:AbstractMatrix{T}
+    T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractMatrix{T}
 } <: AbstractFlagFiltration{T, S}
 
     dist      ::A
@@ -63,22 +157,24 @@ function RipsFiltration(
     dist::AbstractMatrix{T};
     modulus=2,
     threshold=default_rips_threshold(dist),
-    simplex_type::DataType=Simplex{modulus, T}
+    edge_type=Simplex{1, modulus, T, UInt64}
 ) where T
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    simplex_type <: AbstractSimplex{<:Any, T} ||
-        throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
+    edge_type <: AbstractSimplex{1, <:Any, T} ||
+        throw(ArgumentError("`edge_type` must be a subtype of `AbstractSimplex{1}`"))
+    edge_type isa DataType ||
+        @warn "`edge_type` is not a concrete type"
     !issparse(dist) ||
         throw(ArgumentError("`dits` is sparse. Use `SparseRipsFiltration` instead"))
 
     if !isfinite(threshold)
         threshold = default_rips_threshold(dist)
     end
-    RipsFiltration{T, simplex_type, typeof(dist)}(dist, T(threshold))
+    RipsFiltration{T, edge_type, typeof(dist)}(dist, T(threshold))
 end
 RipsFiltration(points; metric=Euclidean(), kwargs...) =
     RipsFiltration(distances(metric, points); kwargs...)
@@ -92,7 +188,7 @@ n_vertices(rips::RipsFiltration) =
 threshold(rips::RipsFiltration) =
     rips.threshold
 
-@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
+@propagate_inbounds function diam(flt::RipsFiltration, sx, us, v::Integer)
     res = diam(sx)
     for u in us
         # Even though this looks like a tight loop, v changes way more often than us, so
@@ -122,32 +218,37 @@ threshold deleted. Off-diagonal zeros in the matrix are treated as `typemax(T)`.
                          eltype=Simplex{modulus, T})
 """
 struct SparseRipsFiltration{
-    T, S<:AbstractSimplex{<:Any, T}, A<:AbstractSparseMatrix{T}
+    T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractSparseMatrix{T}
 }<: AbstractFlagFiltration{T, S}
 
     dist         ::A
     threshold    ::T
 end
 
-function SparseRipsFiltration(dist::AbstractMatrix{T};
-                              modulus=2,
-                              threshold=default_rips_threshold(dist),
-                              simplex_type::DataType=Simplex{modulus, T}) where T
+function SparseRipsFiltration(
+    dist::AbstractMatrix{T};
+    modulus=2,
+    threshold=default_rips_threshold(dist),
+    edge_type::DataType=Simplex{1, modulus, T, UInt64},
+) where T
 
     is_distance_matrix(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    simplex_type <: AbstractSimplex{<:Any, T} ||
-        throw(ArgumentError("`simplex_type` must be a subtype of `AbstractSimplex`"))
+    edge_type <: AbstractSimplex{1, <:Any, T} ||
+        throw(ArgumentError("`edge_type` must be a subtype of `AbstractSimplex{1}`"))
+    edge_type isa DataType ||
+        @warn "`edge_type` is not a concrete type"
     if !isfinite(threshold)
         threshold = default_rips_threshold(dist)
     end
-    # We need to make a copy beacuse we're editing the matrix.
+    # Even if the matrix is already sparse, we still need to make a copy beacuse we're
+    # editing it.
     new_dist = sparse(dist)
     SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
 
-    SparseRipsFiltration{T, simplex_type, typeof(new_dist)}(new_dist, T(threshold))
+    SparseRipsFiltration{T, edge_type, typeof(new_dist)}(new_dist, T(threshold))
 end
 SparseRipsFiltration(points; metric=Euclidean(), kwargs...) =
     SparseRipsFiltration(distances(metric, points); kwargs...)
@@ -159,9 +260,6 @@ n_vertices(rips::SparseRipsFiltration) =
     res = rips.dist[i, j]
     ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
 end
-
-@propagate_inbounds Base.binomial(rips::SparseRipsFiltration, n, k) =
-    rips.binomial(n, k)
 
 # Threshold was handled by deleting entries in the matrix.
 threshold(rips::SparseRipsFiltration) =
