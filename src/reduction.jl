@@ -225,8 +225,7 @@ function initialize!(rm::ReductionMatrix, column_simplex::AbstractSimplex)
         end
         push!(rm.working_column, coface)
     end
-    # Pivot always exists, so we use :: to make sure the correct type is inferred.
-    pivot(rm.working_column)::coface_type(column_simplex)
+    pivot(rm.working_column)
 end
 
 """
@@ -426,13 +425,15 @@ ripserer(filtration::AbstractFiltration; dim_max=1) =
     # ...
     # ints_D, _, _ = nth_itervals(filtration, cols_D-1, sxs_D-1, next=false)
     #
-    # (ints_0, ints_1, ..., ints_D)
+    # [ints_0, ints_1, ..., ints_D]
 
     ints = [Symbol("ints_", i) for i in 1:D]
     cols = [Symbol("cols_", i) for i in 1:D]
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
+        #initialize!(magic_binomial, n_vertices(filtration), D+2)
+
         ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration)
     end
 
@@ -452,3 +453,6 @@ ripserer(filtration::AbstractFiltration; dim_max=1) =
         Array{Tuple{T, Union{T, Infinity}}}[ints_0, $(ints...)]
     end
 end
+
+# torus1024: 16.649s
+# magic applied: 17.396s

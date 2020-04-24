@@ -1,4 +1,4 @@
-using Ripserer: PrimeField, is_prime, n_bits
+using Ripserer: PrimeField, is_prime, n_bits, small_binomial
 
 struct FakeFiltration <: AbstractFiltration{Int, Simplex{1,2,Int,UInt}} end
 Ripserer.diam(::FakeFiltration, args...) =
@@ -52,6 +52,9 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
 
         @test_throws DomainError PrimeField{4}(1)
         @test_throws DomainError PrimeField{-1}(1)
+    end
+    @testset "Binomials" begin
+        @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
     end
 
     @testset "Simplex" begin
@@ -154,14 +157,16 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
                     simplex = Simplex{dim, 2}(1, 10, 1)
                     @inferred coboundary(FakeFiltration(), simplex)
                     cobiter = coboundary(FakeFiltration(), simplex)
-                    @inferred Union{
-                        Nothing,
-                        Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},
-                    } iterate(cobiter)
-                    @inferred Union{
-                        Nothing,
-                        Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},
-                    } iterate(cobiter, (10, 4))
+                    if VERSION ≥ v"1.1.0"
+                        @inferred Union{
+                            Nothing,
+                            Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},
+                        } iterate(cobiter)
+                        @inferred Union{
+                            Nothing,
+                            Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},
+                        } iterate(cobiter, (10, 4))
+                    end
                 end
             end
         end

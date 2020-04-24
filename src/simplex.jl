@@ -120,33 +120,29 @@ Base.:/(sx::AbstractSimplex{<:Any, C}, x::Number) where C =
 
 # vertices and indices =================================================================== #
 """
-    magic_binomial(n, ::Val{k})
+    small_binomial(n, ::Val{k})
 
-Like `Base.binomial`, but with precomputed coefficients.
+Binomial coefficients for small, statically known values of `k`, where `n` and `k` are
+always positive.
 """
-magic_binomial(_, ::Val{0}) = 1
-magic_binomial(n, ::Val{1}) = n
-
-@generated function magic_binomial(n, ::Val{k}) where k
-    coefficients = [0]
-    k_minus_1 = k - 1
-    quote
-        n_coef = length($coefficients)
-        if n_coef < n + 1
-            resize!($coefficients, n)
-            for i in n_coef+1:n
-                $coefficients[i] =
-                    magic_binomial(i-1, Val($k_minus_1)) + $coefficients[i-1]
-            end
-        end
-        @inbounds $coefficients[n]
+small_binomial(_, ::Val{0}) = 1
+small_binomial(n, ::Val{1}) = n
+function small_binomial(n, ::Val{k}) where k
+    n0, k0 = n, k
+    sgn = 1
+    x = nn = n - k + 1
+    nn += 1
+    for rr in 2:k
+        x = div(x * nn, rr)
+        nn += 1
     end
+    x
 end
 
 function find_max_vertex(idx, ::Val{k}) where k
     lo = k - 1
     hi = k + 100
-    while magic_binomial(hi, Val(k)) ≤ idx
+    while small_binomial(hi, Val(k)) ≤ idx
         lo = hi
         hi <<= 1
     end
@@ -156,7 +152,7 @@ end
 function find_max_vertex(idx, ::Val{k}, hi, lo=k-1) where k
     while lo < hi - 1
         m = lo + ((hi - lo) >>> 0x01)
-        if magic_binomial(m, Val(k)) ≤ idx
+        if small_binomial(m, Val(k)) ≤ idx
             lo = m
         else
             hi = m
@@ -182,14 +178,14 @@ Get the vertices of simplex represented by index. Returns `NTuple{dim, Int}`.
     expr = quote
         index -= 1
         $(vars[1]) = find_max_vertex(index, Val($dim+1))
-        index -= magic_binomial($(vars[1]), Val($dim+1))
+        index -= small_binomial($(vars[1]), Val($dim+1))
     end
 
     for (i, k) in enumerate(dim:-1:1)
         expr = quote
             $expr
             $(vars[i+1]) = find_max_vertex(index, Val($k), $(vars[i]))
-            index -= magic_binomial($(vars[i+1]), Val($k))
+            index -= small_binomial($(vars[i+1]), Val($k))
         end
     end
     quote
@@ -219,16 +215,16 @@ where ``i_k`` are the simplex vertex indices.
 """
 @generated function index(vertices::NTuple{k}) where k
     # generate code of the form
-    # 1 + magic_binomial(vertices[1] - 1, Val(k))
-    #   + magic_binomial(vertices[2] - 1, Val(k-1))
+    # 1 + small_binomial(vertices[1] - 1, Val(k))
+    #   + small_binomial(vertices[2] - 1, Val(k-1))
     #   ...
-    #   + magic_binomial(vertices[k] - 1, Val(1))
+    #   + small_binomial(vertices[k] - 1, Val(1))
     expr = quote
-        1 + magic_binomial(vertices[1]-1, Val($k))
+        1 + small_binomial(vertices[1]-1, Val($k))
     end
     for i in 2:k
         expr = quote
-            $expr + magic_binomial(vertices[$i]-1, Val($(k - i + 1)))
+            $expr + small_binomial(vertices[$i]-1, Val($(k - i + 1)))
         end
     end
     expr
