@@ -2,7 +2,7 @@ module BenchCoboundary
 using Random
 
 using Ripserer
-using Ripserer: Coboundary
+using Ripserer: coboundary
 using BenchmarkTools
 suite = BenchmarkGroup()
 include(joinpath(@__DIR__, "../test/data.jl"))
