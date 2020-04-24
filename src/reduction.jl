@@ -225,7 +225,8 @@ function initialize!(rm::ReductionMatrix, column_simplex::AbstractSimplex)
         end
         push!(rm.working_column, coface)
     end
-    pivot(rm.working_column)
+    # Pivot always exists, so we use :: to make sure the correct type is inferred.
+    pivot(rm.working_column)::coface_type(column_simplex)
 end
 
 """
