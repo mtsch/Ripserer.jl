@@ -157,7 +157,7 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
                     simplex = Simplex{dim, 2}(1, 10, 1)
                     @inferred coboundary(FakeFiltration(), simplex)
                     cobiter = coboundary(FakeFiltration(), simplex)
-                    if VERSION ≥ v"1.1.0"
+                    @static if VERSION ≥ v"1.1.0"
                         @inferred Union{
                             Nothing,
                             Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},

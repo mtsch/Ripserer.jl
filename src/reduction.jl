@@ -37,6 +37,13 @@ function Base.push!(rm::ReductionMatrix, value)
     value
 end
 
+function Base.sizehint!(rm::ReductionMatrix, n)
+    sizehint!(rm.column_index, n)
+    sizehint!(rm.colptr, n)
+    sizehint!(rm.nzval, n)
+end
+
+
 Base.eltype(rm::ReductionMatrix{T}) where T =
     T
 Base.length(rm::ReductionMatrix) =
@@ -402,7 +409,7 @@ function nth_intervals(filtration,
                        ) where S<:AbstractSimplex
 
     rs = ReductionState(filtration, S)
-    #sizehint!(rs.column_index, length(columns))
+    sizehint!(rs.reduction_matrix, length(columns))
     intervals = compute_intervals!(rs, columns, Val(false))
     if next
         (intervals, assemble_columns!(rs, simplices)...)
