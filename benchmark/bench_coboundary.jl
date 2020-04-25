@@ -15,7 +15,7 @@ function count_cofaces(filtration, sx)
             count += 1
         end
     end
-    count / 10000
+    count ÷ 10000
 end
 # Distances are between 0 and 2.
 dists = rand_dist_matrix(4000)

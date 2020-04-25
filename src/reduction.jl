@@ -82,6 +82,22 @@ Base.isempty(col::Column) =
     isempty(col.heap)
 
 """
+    move!([dst, ]col::Column)
+
+Move contents of column into `dst` by repeatedly calling `push!`. `dst` defaults to `S[]`.
+"""
+move!(col::Column{S}) where S =
+    move!(S[], col)
+function move!(dst, col::Column)
+    pivot = pop_pivot!(col)
+    while !isnothing(pivot)
+        push!(dst, pivot)
+        pivot = pop_pivot!(col)
+    end
+    dst
+end
+
+"""
     pop_pivot!(column::Column)
 
 Pop the pivot from `column`. If there are multiple simplices with the same index on the top
@@ -234,7 +250,11 @@ end
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
 reduced. Record it in the reduction matrix and return the persistence interval.
 """
-function reduce_working_column!(rm::ReductionMatrix, column_simplex::AbstractSimplex)
+function reduce_working_column!(
+    rm::ReductionMatrix,
+    column_simplex::AbstractSimplex,
+    ::Val{cocycles},
+) where cocycles
     current_pivot = initialize!(rm, column_simplex)
 
     add_column!(rm.reduction_matrix)
@@ -248,16 +268,15 @@ function reduce_working_column!(rm::ReductionMatrix, column_simplex::AbstractSim
     else
         rm.column_index[index(current_pivot)] = (length(rm.reduction_matrix),
                                                  coef(current_pivot))
-        current_entry = pop_pivot!(rm.reduction_entries)
-        while !isnothing(current_entry)
-            push!(rm.reduction_matrix, current_entry)
-            current_entry = pop_pivot!(rm.reduction_entries)
-        end
+        move!(rm.reduction_matrix, rm.reduction_entries)
         death = diam(current_pivot)
-
     end
     birth = diam(column_simplex)
-    (birth, death)
+    if cocycles
+        (birth, death), move!(rm.working_column)
+    else
+        (birth, death)
+    end
 end
 
 """
@@ -265,11 +284,15 @@ end
 
 Compute persistence intervals by reducing `columns` (list of simplices).
 """
-function compute_intervals!(rm::ReductionMatrix, columns)
+function compute_intervals!(rm::ReductionMatrix, columns, ::Val{cocycles}) where cocycles
     T = dist_type(rm.filtration)
-    intervals = Tuple{T, Union{T, Infinity}}[]
+    if cocycles
+        intervals = Tuple{Tuple{T, Union{T, Infinity}}, coface_type(eltype(columns))}[]
+    else
+        intervals = Tuple{T, Union{T, Infinity}}[]
+    end
     for column in columns
-        birth, death = reduce_working_column!(rm, column)
+        birth, death = reduce_working_column!(rm, column, Val(cocycles))
         if death > birth
             push!(intervals, (birth, death))
         end
@@ -370,7 +393,7 @@ function nth_intervals(filtration,
                        ) where S<:AbstractSimplex
 
     rm = ReductionMatrix(filtration, S)
-    intervals = compute_intervals!(rm, columns)
+    intervals = compute_intervals!(rm, columns, Val(false))
     if next
         (intervals, assemble_columns!(rm, simplices)...)
     else
@@ -450,7 +473,7 @@ ripserer(filtration::AbstractFiltration; dim_max=1) =
         $(ints[D]), _, _ =
             nth_intervals(filtration, $(cols[D]), $(sxs[D]), next=false)
 
-        Array{Tuple{T, Union{T, Infinity}}}[ints_0, $(ints...)]
+        Vector{Tuple{T, Union{T, Infinity}}}[ints_0, $(ints...)]
     end
 end
 
