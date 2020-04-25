@@ -1,64 +1,72 @@
-# compressed sparse matrix =============================================================== #
-"""
-    CompressedSparseMatrix{T}
+# the _actual_ reduction matrix needs to:
+# * tell if it has a column
+# * add vertices to column
+# * get vertices from column
+# * tell the coefficient of a column
 
-Compressed immutable sparse matrix data structure that supports efficient column insertion,
-pushing to the last column via [`Base.push!`](@ref) and iterating over columns.
-
-It's up to the value type `T` to know about its row position.
-"""
-struct CompressedSparseMatrix{T}
-    colptr::Vector{Int}
-    nzval::Vector{T}
+# the other stuff belongs in a reductionstate
+struct ReductionMatrix{S}
+    column_index ::Dict{Int, Int}
+    colptr       ::Vector{Int}
+    nzval        ::Vector{S}
 end
 
-CompressedSparseMatrix{T}() where T =
-    CompressedSparseMatrix(Int[1], T[])
-
-function Base.show(io::IO, csm::CompressedSparseMatrix{T}) where T
-    println(io, "CompressedSparseMatrix{$T}[")
-    for i in 1:length(csm)
-        println(io, "  $i: ", collect(csm[i]))
+function Base.show(io::IO, ::MIME"text/plain", rm::ReductionMatrix{S}) where S
+    println(io, "ReductionMatrix{$S}[")
+    for i in keys(rm.column_index)
+        println(io, "  $i: ", collect(rm[i]))
     end
     print(io, "]")
 end
 
-function Base.push!(csm::CompressedSparseMatrix, value)
-    push!(csm.nzval, value)
-    csm.colptr[end] += 1
+ReductionMatrix{S}() where S =
+    ReductionMatrix(Dict{Int, Int}(), Int[1], S[])
+
+has_column(rm::ReductionMatrix, i) =
+    haskey(rm.column_index, i)
+
+function insert_column!(rm::ReductionMatrix, i)
+    rm.column_index[i] = length(rm.colptr)
+    push!(rm.colptr, rm.colptr[end])
+    rm
+end
+
+function Base.push!(rm::ReductionMatrix, value)
+    push!(rm.nzval, value)
+    rm.colptr[end] += 1
     value
 end
 
-add_column!(csm::CompressedSparseMatrix) =
-    push!(csm.colptr, csm.colptr[end])
-Base.eltype(csm::CompressedSparseMatrix{T}) where T =
+Base.eltype(rm::ReductionMatrix{T}) where T =
     T
-Base.length(csm::CompressedSparseMatrix) =
-    length(csm.colptr) - 1
-Base.getindex(csm::CompressedSparseMatrix, i) =
-    CSMColumnIterator(csm, i)
+Base.length(rm::ReductionMatrix) =
+    length(rm.colptr) - 1
+Base.lastindex(rm::ReductionMatrix) =
+    length(rm.colptr) - 1
+Base.getindex(rm::ReductionMatrix, i) =
+    RMColumnIterator(rm, rm.column_index[i])
 
-struct CSMColumnIterator{T}
-    csm ::CompressedSparseMatrix{T}
+struct RMColumnIterator{S}
+    rm  ::ReductionMatrix{S}
     idx ::Int
 end
 
-Base.IteratorSize(::Type{CSMColumnIterator}) =
+Base.IteratorSize(::Type{RMColumnIterator}) =
     Base.HasLength()
-Base.IteratorEltype(::Type{CSMColumnIterator{T}}) where T =
+Base.IteratorEltype(::Type{RMColumnIterator{T}}) where T =
     Base.HasEltype()
-Base.eltype(::Type{CSMColumnIterator{T}}) where T =
+Base.eltype(::Type{RMColumnIterator{T}}) where T =
     T
-Base.length(ci::CSMColumnIterator) =
-    ci.csm.colptr[ci.idx + 1] - ci.csm.colptr[ci.idx]
+Base.length(ci::RMColumnIterator) =
+    ci.rm.colptr[ci.idx + 1] - ci.rm.colptr[ci.idx]
 
-function Base.iterate(ci::CSMColumnIterator, i=1)
-    colptr = ci.csm.colptr
+function Base.iterate(ci::RMColumnIterator, i=1)
+    colptr = ci.rm.colptr
     index = i + colptr[ci.idx] - 1
     if index ≥ colptr[ci.idx + 1]
         nothing
     else
-        (ci.csm.nzval[index], i + 1)
+        (ci.rm.nzval[index], i + 1)
     end
 end
 
@@ -82,16 +90,17 @@ Base.isempty(col::Column) =
     isempty(col.heap)
 
 """
-    move!([dst, ]col::Column)
+    move!([dst, ]col::Column; times=1)
 
 Move contents of column into `dst` by repeatedly calling `push!`. `dst` defaults to `S[]`.
+Multipy all elements that are moved by `times`.
 """
 move!(col::Column{S}) where S =
-    move!(S[], col)
-function move!(dst, col::Column)
+    move!(S[], col; times=1)
+function move!(dst, col::Column; times=1)
     pivot = pop_pivot!(col)
     while !isnothing(pivot)
-        push!(dst, pivot)
+        push!(dst, times * pivot)
         pivot = pop_pivot!(col)
     end
     dst
@@ -146,7 +155,7 @@ end
 
 # reduction matrix ======================================================================= #
 """
-    ReductionMatrix
+    ReductionState
 
 This structure represents the reduction matrix in the current dimension. A new one is
 created for every dimension.
@@ -164,21 +173,19 @@ created for every dimension.
   column.
 * `dim`: the current dimension.
 """
-struct ReductionMatrix{
+struct ReductionState{
     Ds, Dc, I, S<:AbstractSimplex{Ds, I}, C<:AbstractSimplex{Dc, I}, F<:AbstractFiltration
 }
     filtration        ::F
-    reduction_matrix  ::CompressedSparseMatrix{S}
-    column_index      ::Dict{Int, Tuple{Int, I}}
+    reduction_matrix  ::ReductionMatrix{S}
     working_column    ::Column{C}
     reduction_entries ::Column{S}
 
-    function ReductionMatrix(
-        filtration::F,
-        reduction_matrix::CompressedSparseMatrix{S},
-        column_index::Dict{Int, Tuple{Int, I}},
-        working_column::Column{C},
-        reduction_entries::Column{S},
+    function ReductionState(
+        filtration        ::F,
+        reduction_matrix  ::ReductionMatrix{S},
+        working_column    ::Column{C},
+        reduction_entries ::Column{S},
     ) where {
         Ds, Dc, I,
         S<:AbstractSimplex{Ds, I},
@@ -186,113 +193,114 @@ struct ReductionMatrix{
         F<:AbstractFiltration,
     }
         Dc == Ds + 1 || error("dimension mismatch Dc=$Dc, Ds=$Ds")
-        new{Ds, Dc, I, S, C, F}(filtration, reduction_matrix, column_index, working_column, reduction_entries)
+        new{Ds, Dc, I, S, C, F}(
+            filtration,
+            reduction_matrix,
+            working_column,
+            reduction_entries
+        )
     end
 end
 
-function ReductionMatrix(
+function ReductionState(
     filtration::F,
     ::Type{S},
 ) where {D, I, S<:AbstractSimplex{D, I}, F<:AbstractFiltration}
     C = coface_type(S)
-    ReductionMatrix(
+    ReductionState(
         filtration,
-        CompressedSparseMatrix{S}(),
-        Dict{Int, Tuple{Int, I}}(),
+        ReductionMatrix{S}(),
         Column{C}(),
         Column{S}(),
     )
 end
 
-simplex_type(rm::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S =
+simplex_type(rs::ReductionState{<:Any, <:Any, <:Any, S}) where S =
     S
 
 """
-    add!(rm::ReductionMatrix, index)
+    add!(rs::ReductionState, index)
 
-Add column with column `index` multiplied by the correct factor to `rm.working_column`.
-Also record the addition in `rm.reduction_entries`.
+Add column with column `index` multiplied by the correct factor to `rs.working_column`.
+Also record the addition in `rs.reduction_entries`.
 """
-function add!(rm::ReductionMatrix, current_pivot, idx, other_coef)
-    λ = -coef(current_pivot / other_coef)
-    for simplex in rm.reduction_matrix[idx]
-        push!(rm.reduction_entries, simplex * λ)
-        for coface in coboundary(rm.filtration, simplex)
-            push!(rm.working_column, coface * λ)
+function add!(rs::ReductionState, current_pivot)
+    λ = -coef(current_pivot)
+    for simplex in rs.reduction_matrix[index(current_pivot)]
+        push!(rs.reduction_entries, λ * simplex)
+        for coface in coboundary(rs.filtration, simplex)
+            push!(rs.working_column, λ * coface)
         end
     end
-    pivot(rm.working_column)
+    pivot(rs.working_column)
 end
 
 """
-    initialize!(rm::ReductionMatrix, column_simplex)
+    initialize!(rs::ReductionState, column_simplex)
 
-Initialize `rm.working_column` by emptying it and `reduction_entries` and pushing the
-coboundary of `column_simplex` to `rm.working_column`.
+Initialize `rs.working_column` by emptying it and `reduction_entries` and pushing the
+coboundary of `column_simplex` to `rs.working_column`.
 """
-function initialize!(rm::ReductionMatrix, column_simplex::AbstractSimplex)
-    empty!(rm.working_column)
-    empty!(rm.reduction_entries)
+function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
+    empty!(rs.working_column)
+    empty!(rs.reduction_entries)
 
-    for coface in coboundary(rm.filtration, column_simplex)
-        if diam(coface) == diam(column_simplex) && !haskey(rm.column_index, index(coface))
-            empty!(rm.working_column)
+    for coface in coboundary(rs.filtration, column_simplex)
+        if diam(coface) == diam(column_simplex) && !has_column(rs.reduction_matrix, index(coface))
+            empty!(rs.working_column)
             return coface
         end
-        push!(rm.working_column, coface)
+        push!(rs.working_column, coface)
     end
-    pivot(rm.working_column)
+    pivot(rs.working_column)
 end
 
 """
-    reduce_working_column!(rm::ReductionMatrix, res, column_simplex)
+    reduce_working_column!(rs::ReductionState, res, column_simplex)
 
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
 reduced. Record it in the reduction matrix and return the persistence interval.
 """
 function reduce_working_column!(
-    rm::ReductionMatrix,
+    rs::ReductionState,
     column_simplex::AbstractSimplex,
     ::Val{cocycles},
 ) where cocycles
-    current_pivot = initialize!(rm, column_simplex)
+    current_pivot = initialize!(rs, column_simplex)
 
-    add_column!(rm.reduction_matrix)
-    push!(rm.reduction_matrix, column_simplex)
-
-    while !isnothing(current_pivot) && haskey(rm.column_index, index(current_pivot))
-        current_pivot = add!(rm, current_pivot, rm.column_index[index(current_pivot)]...)
+    while !isnothing(current_pivot) && has_column(rs.reduction_matrix, index(current_pivot))
+        current_pivot = add!(rs, current_pivot)
     end
     if isnothing(current_pivot)
         death = ∞
     else
-        rm.column_index[index(current_pivot)] = (length(rm.reduction_matrix),
-                                                 coef(current_pivot))
-        move!(rm.reduction_matrix, rm.reduction_entries)
+        insert_column!(rs.reduction_matrix, index(current_pivot))
+        push!(rs.reduction_entries, column_simplex)
+        move!(rs.reduction_matrix, rs.reduction_entries, times=inv(coef(current_pivot)))
         death = diam(current_pivot)
     end
     birth = diam(column_simplex)
     if cocycles
-        (birth, death), move!(rm.working_column)
+        (birth, death), move!(rs.working_column)
     else
         (birth, death)
     end
 end
 
 """
-    compute_pairs!(rm::ReductionMatrix, columns)
+    compute_pairs!(rs::ReductionState, columns)
 
 Compute persistence intervals by reducing `columns` (list of simplices).
 """
-function compute_intervals!(rm::ReductionMatrix, columns, ::Val{cocycles}) where cocycles
-    T = dist_type(rm.filtration)
+function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where cocycles
+    T = dist_type(rs.filtration)
     if cocycles
         intervals = Tuple{Tuple{T, Union{T, Infinity}}, coface_type(eltype(columns))}[]
     else
         intervals = Tuple{T, Union{T, Infinity}}[]
     end
     for column in columns
-        birth, death = reduce_working_column!(rm, column, Val(cocycles))
+        birth, death = reduce_working_column!(rs, column, Val(cocycles))
         if death > birth
             push!(intervals, (birth, death))
         end
@@ -301,7 +309,7 @@ function compute_intervals!(rm::ReductionMatrix, columns, ::Val{cocycles}) where
 end
 
 """
-    assemble_columns!(rm::ReductionMatrix, columns, simplices)
+    assemble_columns!(rs::ReductionState, columns, simplices)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 The algorithm used depends on whether the filtration is sparse or not. When it is, we
@@ -309,12 +317,13 @@ collect columns by only looking through the cofaces of simplices from the previo
 dimension. When it's not, we go through all valid simplex indices.
 """
 # This method is used when filtration is _not_ sparse.
-function assemble_columns!(rm::ReductionMatrix{D}, ::Nothing) where D
-    S = coface_type(simplex_type(rm))
+function assemble_columns!(rs::ReductionState{D}, ::Nothing) where D
+    S = coface_type(simplex_type(rs))
 
-    n_simplices = binomial(n_vertices(rm.filtration), D + 2)
+    n_simplices = binomial(n_vertices(rs.filtration), D + 2)
     simplices = trues(n_simplices)
-    for k in keys(rm.column_index)
+    # TODO
+    for k in keys(rs.reduction_matrix.column_index)
         simplices[k] = false
     end
 
@@ -322,7 +331,7 @@ function assemble_columns!(rm::ReductionMatrix{D}, ::Nothing) where D
     sizehint!(columns, sum(simplices))
     for idx in 1:n_simplices
         if simplices[idx]
-            diameter = diam(rm.filtration, vertices(idx, Val(D+1)))
+            diameter = diam(rs.filtration, vertices(idx, Val(D+1)))
             if diameter < ∞
                 push!(columns, S(diameter, idx, 1))
             end
@@ -332,15 +341,15 @@ function assemble_columns!(rm::ReductionMatrix{D}, ::Nothing) where D
     columns, nothing
 end
 
-function assemble_columns!(rm::ReductionMatrix, simplices)
-    S = coface_type(simplex_type(rm))
+function assemble_columns!(rs::ReductionState, simplices)
+    S = coface_type(simplex_type(rs))
     columns = S[]
     new_simplices = S[]
 
     for simplex in simplices
-        for coface in coboundary(rm.filtration, simplex, Val(false))
+        for coface in coboundary(rs.filtration, simplex, Val(false))
             push!(new_simplices, coface)
-            if !haskey(rm.column_index, index(coface))
+            if !has_column(rs.reduction_matrix, index(coface))
                 push!(columns, coface)
             end
         end
@@ -392,10 +401,11 @@ function nth_intervals(filtration,
                        next=true,
                        ) where S<:AbstractSimplex
 
-    rm = ReductionMatrix(filtration, S)
-    intervals = compute_intervals!(rm, columns, Val(false))
+    rs = ReductionState(filtration, S)
+    #sizehint!(rs.column_index, length(columns))
+    intervals = compute_intervals!(rs, columns, Val(false))
     if next
-        (intervals, assemble_columns!(rm, simplices)...)
+        (intervals, assemble_columns!(rs, simplices)...)
     else
         (intervals, nothing, nothing)
     end
@@ -476,6 +486,3 @@ ripserer(filtration::AbstractFiltration; dim_max=1) =
         Vector{Tuple{T, Union{T, Infinity}}}[ints_0, $(ints...)]
     end
 end
-
-# torus1024: 16.649s
-# magic applied: 17.396s

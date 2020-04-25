@@ -1,43 +1,47 @@
 using Ripserer:
-    CompressedSparseMatrix, add_column!,
+    ReductionMatrix, insert_column!, has_column,
     Column, pop_pivot!,
     zeroth_intervals,
     ReductionMatrix
 
 @testset "reduction" begin
-    @testset "CompressedSparseMatrix" begin
-        csm = CompressedSparseMatrix{Int}()
-        @test length(csm) == 0
+    @testset "ReductionMatrix" begin
+        rm = ReductionMatrix{Int}()
+        @test length(rm) == 0
 
-        add_column!(csm)
-        push!(csm, 1)
-        push!(csm, 2)
-        push!(csm, 3)
-        push!(csm, 4)
+        insert_column!(rm, 3)
+        push!(rm, 1)
+        push!(rm, 2)
+        push!(rm, 3)
+        push!(rm, 4)
 
-        add_column!(csm)
-        push!(csm, 0)
-        push!(csm, 0)
-        push!(csm, 0)
+        insert_column!(rm, 10)
+        push!(rm, 0)
+        push!(rm, 0)
+        push!(rm, 0)
 
-        add_column!(csm)
+        insert_column!(rm, 1)
 
-        add_column!(csm)
-        push!(csm, 1)
+        insert_column!(rm, 15)
+        push!(rm, 1)
 
-        @test length(csm[1]) == 4
-        @test collect(csm[1]) == [1, 2, 3, 4]
+        @test has_column(rm, 3)
+        @test collect(rm[3]) == [1, 2, 3, 4]
 
-        @test length(csm[2]) == 3
-        @test all(iszero, csm[2])
+        @test has_column(rm, 10)
+        @test length(rm[10]) == 3
+        @test all(iszero, rm[10])
 
-        @test length(csm[3]) == 0
-        @test eltype(collect(csm[3])) === Int
+        @test has_column(rm, 1)
+        @test length(rm[1]) == 0
+        @test eltype(collect(rm[1])) === Int
 
-        @test length(csm[4]) == 1
-        @test first(csm[4]) == 1
+        @test has_column(rm, 15)
+        @test length(rm[15]) == 1
+        @test first(rm[15]) == 1
 
-        @test length(csm) == 4
+        @test !has_column(rm, 2)
+        @test !has_column(rm, 100)
     end
 
     @testset "pop_pivot!" begin
