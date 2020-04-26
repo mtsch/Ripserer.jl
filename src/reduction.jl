@@ -1,8 +1,25 @@
-# the _actual_ reduction matrix needs to:
-# * tell if it has a column
-# * add vertices to column
-# * get vertices from column
-# * tell the coefficient of a column
+struct PersistenceInterval{T, C}
+    birth   ::T
+    death   ::Union{T, Infinity}
+    cocycle ::C
+
+    PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
+        new{T, Nothing}(birth, death, nothing)
+
+    PersistenceInterval(birth::T, death::Union{T, Infinity}, cocycle::C) where {T, C} =
+        new{T, C}(birth, death, cocycle)
+end
+
+Base.show(io::IO, int::PersistenceInterval) =
+    print(io, "[", int.birth, ", ", int.death, ")")
+function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
+    print(io, "PersistenceInterval{", T, "}", (int.birth, int.death))
+    if !isnothing(int.cocycle)
+        println(io, " with cocycle:")
+        show(io, MIME"text/plain"(), int.cocycle)
+    end
+end
+
 
 # the other stuff belongs in a reductionstate
 struct ReductionMatrix{S}
@@ -288,9 +305,9 @@ function reduce_working_column!(
     end
     birth = diam(column_simplex)
     if cocycles
-        (birth, death), move!(rs.working_column)
+        PersistenceInterval(birth, death, move!(rs.working_column))
     else
-        (birth, death)
+        PersistenceInterval(birth, death)
     end
 end
 
@@ -302,14 +319,15 @@ Compute persistence intervals by reducing `columns` (list of simplices).
 function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where cocycles
     T = dist_type(rs.filtration)
     if cocycles
-        intervals = Tuple{Tuple{T, Union{T, Infinity}}, coface_type(eltype(columns))}[]
+        C = coface_type(eltype(columns))
+        intervals = PersistenceInterval{T, Vector{C}}[]
     else
-        intervals = Tuple{T, Union{T, Infinity}}[]
+        intervals = PersistenceInterval{T}[]
     end
     for column in columns
-        birth, death = reduce_working_column!(rs, column, Val(cocycles))
-        if death > birth
-            push!(intervals, (birth, death))
+        interval = reduce_working_column!(rs, column, Val(cocycles))
+        if interval.death > interval.birth
+            push!(intervals, interval)
         end
     end
     intervals
@@ -375,7 +393,7 @@ threshold.
 function zeroth_intervals(filtration)
     T = dist_type(filtration)
     dset = IntDisjointSets(n_vertices(filtration))
-    intervals = Tuple{T, Union{T, Infinity}}[]
+    intervals = PersistenceInterval{T}[]
     # We only collect simplices if the filtration is sparse.
     simplices = issparse(filtration) ? edge_type(filtration)[] : nothing
     columns = edge_type(filtration)[]
@@ -389,14 +407,14 @@ function zeroth_intervals(filtration)
         if i ≠ j
             union!(dset, i, j)
             if diam(sx) > 0
-                push!(intervals, (zero(T), diam(sx)))
+                push!(intervals, PersistenceInterval(zero(T), diam(sx)))
             end
         else
             push!(columns, sx)
         end
     end
     for _ in 1:num_groups(dset)
-        push!(intervals, (zero(T), ∞))
+        push!(intervals, PersistenceInterval(zero(T), ∞))
     end
     reverse!(columns)
     intervals, columns, simplices
@@ -490,6 +508,6 @@ ripserer(filtration::AbstractFiltration; dim_max=1) =
         $(ints[D]), _, _ =
             nth_intervals(filtration, $(cols[D]), $(sxs[D]), next=false)
 
-        Vector{Tuple{T, Union{T, Infinity}}}[ints_0, $(ints...)]
+        [ints_0, $(ints...)]
     end
 end
