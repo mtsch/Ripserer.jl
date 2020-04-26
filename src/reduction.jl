@@ -384,14 +384,15 @@ function zeroth_intervals(filtration)
     dset = IntDisjointSets(n_vertices(filtration))
     intervals = PersistenceInterval{T}[]
     # We only collect simplices if the filtration is sparse.
-    simplices = issparse(filtration) ? edge_type(filtration)[] : nothing
+    #simplices = issparse(filtration) ? edge_type(filtration)[] : nothing
+    simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
 
     for sx in edges(filtration)
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-        issparse(filtration) &&
+      # issparse(filtration) &&
             push!(simplices, sx)
         if i ≠ j
             union!(dset, i, j)

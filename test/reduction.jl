@@ -92,7 +92,7 @@ using Ripserer:
             flt = RipsFiltration(dist, threshold=3)
             res, columns, simplices = zeroth_intervals(flt)
 
-            @test isnothing(simplices)
+            @test !isnothing(simplices)
             @test res == [PersistenceInterval(0, 1),
                           PersistenceInterval(0, 2),
                           PersistenceInterval(0, ∞)]
