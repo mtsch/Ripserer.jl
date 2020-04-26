@@ -1,15 +1,8 @@
-Base.show(io::IO, int::PersistenceInterval) =
-    print(io, "[", int.birth, ", ", int.death, ")")
-function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
-    print(io, "PersistenceInterval{", T, "}", (int.birth, int.death))
-    if !isnothing(int.cocycle)
-        println(io, " with cocycle:")
-        show(io, MIME"text/plain"(), int.cocycle)
-    end
-end
+"""
+    ReductionMatrix{S}
 
-
-# the other stuff belongs in a reductionstate
+TODO
+"""
 struct ReductionMatrix{S}
     column_index ::Dict{Int, Int}
     colptr       ::Vector{Int}
@@ -48,7 +41,6 @@ function Base.sizehint!(rm::ReductionMatrix, n)
     sizehint!(rm.nzval, n)
 end
 
-
 Base.eltype(rm::ReductionMatrix{T}) where T =
     T
 Base.length(rm::ReductionMatrix) =
@@ -57,7 +49,11 @@ Base.lastindex(rm::ReductionMatrix) =
     length(rm.colptr) - 1
 Base.getindex(rm::ReductionMatrix, i) =
     RMColumnIterator(rm, rm.column_index[i])
+"""
+    RMColumnIterator{S}
 
+An iterator over a column of a `ReductionMatrix{S}`.
+"""
 struct RMColumnIterator{S}
     rm  ::ReductionMatrix{S}
     idx ::Int
@@ -303,7 +299,7 @@ end
 """
     compute_pairs!(rs::ReductionState, columns)
 
-Compute persistence intervals by reducing `columns` (list of simplices).
+Compute persistence intervals by reducing `columns`, a collection of simplices.
 """
 function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where cocycles
     T = dist_type(rs.filtration)
@@ -326,35 +322,7 @@ end
     assemble_columns!(rs::ReductionState, columns, simplices)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
-The algorithm used depends on whether the filtration is sparse or not. When it is, we
-collect columns by only looking through the cofaces of simplices from the previous
-dimension. When it's not, we go through all valid simplex indices.
 """
-# This method is used when filtration is _not_ sparse.
-function assemble_columns!(rs::ReductionState{D}, ::Nothing) where D
-    S = coface_type(simplex_type(rs))
-
-    n_simplices = binomial(n_vertices(rs.filtration), D + 2)
-    simplices = trues(n_simplices)
-    # TODO
-    for k in keys(rs.reduction_matrix.column_index)
-        simplices[k] = false
-    end
-
-    columns = S[]
-    sizehint!(columns, sum(simplices))
-    for idx in 1:n_simplices
-        if simplices[idx]
-            diameter = diam(rs.filtration, vertices(idx, Val(D+1)))
-            if diameter < ∞
-                push!(columns, S(diameter, idx, 1))
-            end
-        end
-    end
-    sort!(columns, rev=true)
-    columns, nothing
-end
-
 function assemble_columns!(rs::ReductionState, simplices)
     S = coface_type(simplex_type(rs))
     columns = S[]
@@ -383,8 +351,6 @@ function zeroth_intervals(filtration)
     T = dist_type(filtration)
     dset = IntDisjointSets(n_vertices(filtration))
     intervals = PersistenceInterval{T}[]
-    # We only collect simplices if the filtration is sparse.
-    #simplices = issparse(filtration) ? edge_type(filtration)[] : nothing
     simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
 
@@ -410,6 +376,12 @@ function zeroth_intervals(filtration)
     intervals, columns, simplices
 end
 
+"""
+    nth_intervals(filtration, columns, simplices; next=true)
+
+Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
+`eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
+"""
 function nth_intervals(filtration,
                        columns::Vector{S},
                        simplices;
