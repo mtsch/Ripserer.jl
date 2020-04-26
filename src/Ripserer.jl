@@ -14,6 +14,7 @@ using TupleTools
 include("interface.jl")
 include("simplex.jl")
 include("rips.jl")
+include("interval.jl")
 include("reduction.jl")
 
 export Infinity, ∞,
@@ -21,6 +22,7 @@ export Infinity, ∞,
     Simplex, coef, set_coef, index, diam, coface_type, vertices, coboundary,
     AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
     n_vertices, threshold, edges, edge_type,
+    PersistenceInterval, birth, death,
     ripserer
 
 end

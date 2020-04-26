@@ -1,15 +1,3 @@
-struct PersistenceInterval{T, C}
-    birth   ::T
-    death   ::Union{T, Infinity}
-    cocycle ::C
-
-    PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
-        new{T, Nothing}(birth, death, nothing)
-
-    PersistenceInterval(birth::T, death::Union{T, Infinity}, cocycle::C) where {T, C} =
-        new{T, C}(birth, death, cocycle)
-end
-
 Base.show(io::IO, int::PersistenceInterval) =
     print(io, "[", int.birth, ", ", int.death, ")")
 function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
@@ -120,8 +108,8 @@ Move contents of column into `dst` by repeatedly calling `push!`. `dst` defaults
 Multipy all elements that are moved by `times`.
 """
 move!(col::Column{S}) where S =
-    move!(S[], col; times=1)
-function move!(dst, col::Column; times=1)
+    move!(S[], col)
+function move!(dst, col::Column{S}; times=one(S)) where S
     pivot = pop_pivot!(col)
     while !isnothing(pivot)
         push!(dst, times * pivot)
@@ -175,6 +163,7 @@ function Base.push!(column::Column{S}, sx::S) where S
     else
         push!(heap, sx)
     end
+    column
 end
 
 # reduction matrix ======================================================================= #

@@ -117,6 +117,8 @@ Base.:-(sx::AbstractSimplex) =
     set_coef(sx, -coef(sx))
 Base.:/(sx::AbstractSimplex{<:Any, C}, x::Number) where C =
     set_coef(sx, coef(sx) * inv(C(x)))
+Base.one(::Type{<:AbstractSimplex{<:Any, C}}) where C =
+    one(C)
 
 # vertices and indices =================================================================== #
 """
@@ -296,8 +298,7 @@ function Base.iterate(ci::CoboundaryIterator{A, D},
     end
     if diameter != ∞
         coefficient = ifelse(k % 2 == 1, -coef(ci.simplex), coef(ci.simplex))
-        # todo: be smarter than sort...
-        new_index = index(TupleTools.sort(tuple(ci.vertices..., v), rev=true))
+        new_index = index(TupleTools.insertafter(ci.vertices, D+1-k, (v,)))
 
         coface_type(typeof(ci.simplex))(diameter, new_index, coefficient), (v, k)
     else

@@ -107,11 +107,18 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
         d = dist(flt, vertices[j], vertices[i])
         res = ifelse(res > d, res, d)
     end
-    if res > threshold(flt)
-        ∞
-    else
-        res
+    ifelse(res > threshold(flt), ∞, res)
+end
+
+@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
+    res = diam(sx)
+    for u in us
+        # Even though this looks like a tight loop, v changes way more often than us, so
+        # this is the faster order of indexing by u and v.
+        d = dist(flt, v, u)
+        res = ifelse(res > d, res, d)
     end
+    ifelse(res > threshold(flt), ∞, res)
 end
 
 edges(flt::AbstractFlagFiltration) =
@@ -187,21 +194,6 @@ n_vertices(rips::RipsFiltration) =
 
 threshold(rips::RipsFiltration) =
     rips.threshold
-
-@propagate_inbounds function diam(flt::RipsFiltration, sx, us, v::Integer)
-    res = diam(sx)
-    for u in us
-        # Even though this looks like a tight loop, v changes way more often than us, so
-        # this is the faster order of indexing by u and v.
-        d = dist(flt, v, u)
-        res = ifelse(res > d, res, d)
-    end
-    if res > threshold(flt)
-        ∞
-    else
-        res
-    end
-end
 
 """
     SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}

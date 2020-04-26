@@ -165,7 +165,7 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
                         @inferred Union{
                             Nothing,
                             Tuple{Simplex{dim+1, 2, Int, UInt}, Tuple{Int, Int}},
-                        } iterate(cobiter, (10, 4))
+                        } iterate(cobiter, (13, dim+1))
                     end
                 end
             end

@@ -8,17 +8,18 @@ suite = BenchmarkGroup()
 include(joinpath(@__DIR__, "../test/data.jl"))
 Random.seed!(7350)
 
-function count_cofaces(filtration, sx)
+function count_cofaces(filtration, sx; reps=10000)
     count = 0
-    for i in 1:10000
+    for i in 1:reps
         for coface in coboundary(filtration, sx)
             count += 1
         end
     end
-    count ÷ 10000
+    count ÷ reps
 end
 # Distances are between 0 and 2.
 dists = rand_dist_matrix(4000)
+dists[1, 2] = dists[2, 1] = 0.5
 sx = Simplex{2, 2}(dists[1, 2], 1, 1)
 
 flt_full_nothreshold = RipsFiltration(dists, threshold=10)
