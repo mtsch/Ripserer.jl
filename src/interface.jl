@@ -56,6 +56,17 @@ Get the type of coface a simplex hax. For a `D`-dimensional simplex, this is usu
 coface_type(sx::AbstractSimplex) =
     coface_type(typeof(sx))
 
+"""
+    dim(::AbstractSimplex)
+    dim(::Type{AbstractSimplex})
+
+Get the dimension of simplex i.e. the value of `D`.
+"""
+dim(::Type{<:AbstractSimplex{D}}) where D =
+    D
+dim(sx::AbstractSimplex) =
+    dim(typeof(sx))
+
 # filtrations ============================================================================ #
 """
     AbstractFiltration{T, S<:AbstractSimplex{C, T}}

@@ -26,6 +26,9 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
             @test !is_prime(9)
             @test !is_prime(10)
             @test is_prime(11)
+            @test !is_prime((1,2,3))
+            @test !is_prime(:two)
+            @test !is_prime(Array{Float64, 2})
         end
         @testset "n_bits" begin
             @test n_bits(2) == 1
@@ -52,11 +55,12 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
 
         @test_throws DomainError PrimeField{4}(1)
         @test_throws DomainError PrimeField{-1}(1)
+
+        @test sprint(print, PrimeField{3}(1)) == "1 mod 3"
     end
     @testset "Binomials" begin
         @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
     end
-
     @testset "Simplex" begin
         @testset "index, diam, coef, set_coef" begin
             for M in (2, 17, 7487), i in (1, 536, Int64(typemax(Int32)), Int32(10))
@@ -75,12 +79,20 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
             @test set_coef(Simplex{1, 3}(1, 2, 1), 2) == Simplex{1, 3}(1, 2, 2)
             @test set_coef(Simplex{3, 2}(2, 2, 1), 3) == Simplex{3, 2}(2, 2, 1)
 
-            for dim in 1:10
-                @test coface_type(Simplex{dim, 3}(rand(), rand(Int), rand(Int))) ===
-                    Simplex{dim+1, 3, Float64, UInt}
+            for d in 1:10
+                @test coface_type(Simplex{d, 3}(rand(), rand(Int), rand(Int))) ===
+                    Simplex{d+1, 3, Float64, UInt}
+                @test dim(Simplex{d, 2}(rand(), rand(Int), rand(Int))) == d
+                @test dim(Simplex{d, 5, Float64, UInt64}) == d
             end
-        end
 
+            @test sprint((io, val) -> show(io, MIME"text/plain"(), val),
+                         Simplex{2,2}(1, 2, 3)) ==
+                             """
+                             2-dim Simplex{2}(1, 2, 1):
+                               (4, 2, 1)"""
+            @test sprint(print, Simplex{2,2}(1, 2, 3)) == "Simplex{2, 2}(1, (4, 2, 1), 1)"
+        end
         @testset "arithmetic" begin
             @test Simplex{1, 3}(1.0, 3, 2) * 2 == Simplex{1, 3}(1.0, 3, 1)
             @test 2 * Simplex{2, 3}(2.0, 3, 2) == Simplex{2, 3}(2.0, 3, 1)
@@ -100,7 +112,6 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
                     coef(Simplex{4, 17}(1.0, 1, i) + -Simplex{4, 17}(1.0, 1, 17-i))
             end
         end
-
         @testset "vertices, index" begin
             @test vertices(Simplex{2, 2}(rand(Int), 1, 1)) == (3, 2, 1)
             @test vertices(Simplex{3, 2}(rand(Int), 2, 1)) == (5, 3, 2, 1)

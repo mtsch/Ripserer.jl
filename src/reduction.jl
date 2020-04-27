@@ -290,7 +290,8 @@ function reduce_working_column!(
     end
     birth = diam(column_simplex)
     if cocycles
-        PersistenceInterval(birth, death, move!(rs.working_column))
+        cocycle = move!(rs.working_column)
+        PersistenceInterval(birth, death)
     else
         PersistenceInterval(birth, death)
     end
@@ -307,7 +308,7 @@ function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where 
         C = coface_type(eltype(columns))
         intervals = PersistenceInterval{T, Vector{C}}[]
     else
-        intervals = PersistenceInterval{T}[]
+        intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
         interval = reduce_working_column!(rs, column, Val(cocycles))
@@ -315,7 +316,7 @@ function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where 
             push!(intervals, interval)
         end
     end
-    intervals
+    PersistenceDiagram(dim(eltype(columns)), intervals)
 end
 
 """
@@ -350,7 +351,7 @@ threshold.
 function zeroth_intervals(filtration)
     T = dist_type(filtration)
     dset = IntDisjointSets(n_vertices(filtration))
-    intervals = PersistenceInterval{T}[]
+    intervals = PersistenceInterval{T, Nothing}[]
     simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
 
@@ -373,7 +374,7 @@ function zeroth_intervals(filtration)
         push!(intervals, PersistenceInterval(zero(T), ∞))
     end
     reverse!(columns)
-    intervals, columns, simplices
+    PersistenceDiagram(0, intervals), columns, simplices
 end
 
 """
@@ -429,13 +430,17 @@ function ripserer(points, metric; sparse=false, dim_max=1, kwargs...)
     end
 end
 """
-    ripserer(filtration::AbstractFiltration)
+    ripserer(filtration::AbstractFiltration; dim_max=1)
 
 Compute persistent homology from `filtration` object.
 """
 ripserer(filtration::AbstractFiltration; dim_max=1) =
     ripserer(filtration, Val(dim_max))
 
+function ripserer(filtration::AbstractFiltration{T}, ::Val{0}) where T
+    diagram, _, _ = zeroth_intervals(filtration)
+    (diagram,)
+end
 @generated function ripserer(filtration::AbstractFiltration{T}, ::Val{D}) where {T, D}
     # We unroll the loop over 1:D to ensure type stability.
     # Generated code looks something like:

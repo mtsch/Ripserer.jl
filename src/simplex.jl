@@ -376,7 +376,7 @@ function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, M, <:Any, U}) wher
 end
 
 Base.show(io::IO, sx::Simplex{D, M}) where {D, M} =
-    print(io, vertices(sx), " => ", (diam(sx), coef(sx)))
+    print(io, "Simplex{", D, ", ", M, "}", (diam(sx), vertices(sx), Int(coef(sx))))
 
 index(sx::Simplex{<:Any, M}) where M =
     signed(sx.index_coef >> n_bits(M))
