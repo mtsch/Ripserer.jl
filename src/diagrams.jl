@@ -192,6 +192,24 @@ function get_max_y_and_inf(pds)
     end
 end
 
+"""
+    plot(diagram; infinity=nothing)
+
+Plot the persistence diagram or `AbstractVector` of diagrams. The `infinity` keyword
+argument determines where the infinity line is placed. If set to `nothing` the function
+tries to guess a good infinity poistion.
+"""
+RecipesBase.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
+
+"""
+    barcode(diagram; infinity=nothing)
+
+Plot the barcode plot or `AbstractVector` of diagrams. The `infinity` keyword argument
+determines where the infinity line is placed. If set to `nothing` the function tries to
+guess a good infinity poistion.
+"""
+barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
+
 @recipe function f(pd::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}};
                    infinity=nothing)
     max_y, has_inf = get_max_y_and_inf(pd)

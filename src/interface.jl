@@ -7,7 +7,8 @@ diameter, combinatorial index and coefficient value. It does not need to hold in
 about its the vertices it includes, since they can be recomputed from the index and
 dimension.
 
-`D` is the dimension, `T` is the type of distance and `C` is the coefficient type.
+`D` is the dimension, `T` is the type of distance and `C` is the coefficient type. `D` is
+accessible by `dim(::AbstractSimplex)`.
 
 # Interface
 
@@ -15,7 +16,10 @@ dimension.
 * [`coef(::AbstractSimplex)`](@ref)
 * [`set_coef(::AbstractSimplex, ::Any)`](@ref)
 * [`diam(::AbstractSimplex)`](@ref)
-* [`vertices(::AbstractSimplex)`](@ref)
+* [`coface_type(::AbstractSimplex)`](@ref)
+* [`vertices(::AbstractSimplex)`](@ref) - optional, comes with a default implementation.
+* [`coboundary(::AbstractFiltration, ::AbstractSimplex)`](@ref) - optional, comes with a
+  default implementation.
 """
 abstract type AbstractSimplex{D, C, T} end
 
@@ -29,7 +33,7 @@ coef(::AbstractSimplex)
 """
     set_coef(simplex::AbstractSimplex, value)
 
-Return new `simplex` with new coefficient `value`.
+Return new `simplex` of the same type with new coefficient `value`.
 """
 set_coef(::AbstractSimplex, ::Any)
 
@@ -49,9 +53,11 @@ index(::AbstractSimplex)
 
 """
     coface_type(::AbstractSimplex)
+    coface_type(::Type{<:AbstractSimplex})
 
 Get the type of coface a simplex hax. For a `D`-dimensional simplex, this is usually its
-`D+1`-dimensional counterpart.
+`D+1`-dimensional counterpart. Only the `coface_type(::Type{<:AbstractSimplex})` method
+needs to be implemented.
 """
 coface_type(sx::AbstractSimplex) =
     coface_type(typeof(sx))
@@ -71,21 +77,20 @@ dim(sx::AbstractSimplex) =
 """
     AbstractFiltration{T, S<:AbstractSimplex{C, T}}
 
-An abstract type that holds information about the distances between vertices and the simplex
-type.
+A filtration is used to find the edges in filtration and to determine diameters of
+simplices.
+
+`T` is the distance type, accessible by `dist_type` and S is the edge type, accesible by
+`edge_type`.
 
 # Interface
 
-* `n_vertices(::AbstractFiltration)` - return number of vertices in filtration.
-* `edges(::AbstractFiltration)` - return all edges in filtration as `(l, (i, j))` where `l`
-  is the edge length and `i` and `j` are its endpoints.
-* `diam(::AbstractFiltration, vs)` - diameter of simplex with vertices in `vs`. Should
-  return `Infinity()` if simplex is above threshold.
-* `diam(::AbstractFiltration, sx::AbstractSimplex, vs, u)` - diameter of simplex `sx` with
-  vertices in `vs` and an added vertex `u`. Should return `Infinity()` if simplex is above
-  threshold.
-* `SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration` - optional, defaults to
-  `false`. Should be `true` if most of the simplices are expected to be skipped.
+* [`n_vertices(::AbstractFiltration)`](@ref)
+* [`edges(::AbstractFiltration)`](@ref)
+* [`diam(::AbstractFiltration, vs)`](@ref)
+* [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
+* [`SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration`](@ref) - optional defaults
+  to `false`.
 """
 abstract type AbstractFiltration{T, S<:AbstractSimplex{1, <:Any, T}} end
 
@@ -135,4 +140,4 @@ diam(::AbstractFiltration, ::Any)
 
 Get the diameter of coface of `simplex` that is formed by adding `vertex` to `vertices`.
 """
-diam(::AbstractFiltration, ::Any, ::Any, ::Any)
+diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)

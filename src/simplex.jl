@@ -164,9 +164,9 @@ function find_max_vertex(idx, ::Val{k}, hi, lo=k-1) where k
 end
 
 """
-    vertices(sx::AbstractSimplex{dim})
+    vertices(index, ::Val{dim})
 
-Get the vertices of simplex represented by index. Returns `NTuple{dim, Int}`.
+Get the vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
 """
 @generated function vertices(index, ::Val{dim}) where dim
     # Generate code of the form
@@ -199,7 +199,7 @@ end
 """
     vertices(sx::AbstractSimplex{dim})
 
-Get the vertices of simplex `sx`. Returns `NTuple{dim, Int}`.
+Get the vertices of simplex `sx`. Returns `NTuple{dim+1, Int}`.
 """
 vertices(sx::AbstractSimplex{D}) where D =
     vertices(index(sx), Val(D))::NTuple{D+1, Int}
