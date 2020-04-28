@@ -147,10 +147,12 @@ default_rips_threshold(dists) =
 
 # Constructor
 
-    RipsFiltration(distance_matrix;
-                   modulus=2,
-                   threshold=default_rips_threshold(dist),
-                   edge_type=Simplex{1, modulus, T, Int, UInt})
+    RipsFiltration(
+        distance_matrix;
+        modulus=2,
+        threshold=default_rips_threshold(dist),
+        edge_type=Simplex{1, modulus, T, Int, UInt}
+    )
 """
 struct RipsFiltration{
     T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractMatrix{T}
@@ -200,14 +202,16 @@ threshold(rips::RipsFiltration) =
 
 This type holds the information about the input values.
 The distance matrix will be converted to a sparse matrix with all values greater than
-threshold deleted. Off-diagonal zeros in the matrix are treated as `typemax(T)`.
+threshold deleted. Off-diagonal zeros in the matrix are treated as ∞.
 
 # Constructor
 
-    SparseRipsFiltration(distance_matrix;
-                         modulus=2,
-                         threshold=default_rips_threshold(dist),
-                         eltype=Simplex{modulus, T})
+    SparseRipsFiltration(
+        distance_matrix;
+        modulus=2,
+        threshold=default_rips_threshold(dist),
+        eltype=Simplex{modulus, T}
+    )
 """
 struct SparseRipsFiltration{
     T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractSparseMatrix{T}

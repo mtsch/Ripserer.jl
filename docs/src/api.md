@@ -12,7 +12,7 @@ RipsFiltration
 SparseRipsFiltration
 ```
 
-## Adding New Simplex Types
+## Simplex Types
 
 ```@docs
 AbstractSimplex
@@ -34,7 +34,15 @@ set_coef
 diam(::AbstractSimplex)
 ```
 
-## Adding New Filtration Types
+```@docs
+dim
+```
+
+```@docs
+diam
+```
+
+## Filtration Types
 
 ```@docs
 AbstractFiltration
@@ -54,6 +62,10 @@ edges
 
 ```@docs
 diam(::AbstractFiltration, ::Any)
+```
+
+```@docs
+diam(::AbstractFiltration, ::Any, ::Any, ::Any)
 ```
 
 ```@docs

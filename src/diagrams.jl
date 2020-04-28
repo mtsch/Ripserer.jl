@@ -174,8 +174,8 @@ function get_max_y_and_inf(pd::PersistenceDiagram)
     if is_finite
         last_death, false
     else
-        rounded = round(Int, last_finite, RoundUp)
-        rounded + (last_finite ≥ 1 ? length(digits(rounded)) : 0), true
+        rounded = round(last_finite, RoundUp)
+        rounded + (last_finite ≥ 1 ? length(digits(Int(rounded))) : 0), true
     end
 end
 function get_max_y_and_inf(pds)
@@ -187,8 +187,8 @@ function get_max_y_and_inf(pds)
     if is_finite
         last_death, false
     else
-        rounded = round(Int, last_finite, RoundUp)
-        rounded + (last_finite ≥ 1 ? length(digits(rounded)) : 0), true
+        rounded = round(last_finite, RoundUp)
+        rounded + (last_finite ≥ 1 ? length(digits(Int(rounded))) : 0), true
     end
 end
 
@@ -203,7 +203,6 @@ end
     else
         pds = pd
     end
-
     xguide --> "birth"
     yguide --> "death"
 
