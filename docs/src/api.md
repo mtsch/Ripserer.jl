@@ -1,5 +1,7 @@
 # API
 
+## Ripserer
+
 ```@docs
 ripserer
 ```
@@ -10,6 +12,24 @@ RipsFiltration
 
 ```@docs
 SparseRipsFiltration
+```
+
+## Persistence Intervals and Diagrams
+
+```@docs
+PersistenceInterval
+```
+
+```@docs
+PersistenceDiagram
+```
+
+```@docs
+RecipesBase.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
+```
+
+```@docs
+barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 ```
 
 ## Simplex Types
@@ -23,11 +43,11 @@ index(::AbstractSimplex)
 ```
 
 ```@docs
-coef
+coef(::AbstractSimplex)
 ```
 
 ```@docs
-set_coef
+set_coef(::AbstractSimplex, ::Any)
 ```
 
 ```@docs
@@ -35,11 +55,19 @@ diam(::AbstractSimplex)
 ```
 
 ```@docs
-dim
+dim(::AbstractSimplex)
 ```
 
 ```@docs
-diam
+vertices(::AbstractSimplex)
+```
+
+```@docs
+coface_type(::AbstractSimplex)
+```
+
+```@docs
+coboundary
 ```
 
 ## Filtration Types

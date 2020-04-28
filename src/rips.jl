@@ -110,7 +110,7 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
     ifelse(res > threshold(flt), ∞, res)
 end
 
-@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx, us, v::Integer)
+@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx::AbstractSimplex, us, v)
     res = diam(sx)
     for u in us
         # Even though this looks like a tight loop, v changes way more often than us, so
@@ -264,7 +264,7 @@ threshold(rips::SparseRipsFiltration) =
 SparseArrays.issparse(::Type{<:SparseRipsFiltration}) =
     true
 
-@propagate_inbounds function diam(flt::SparseRipsFiltration, sx, us, v::Integer)
+@propagate_inbounds function diam(flt::SparseRipsFiltration, sx::AbstractSimplex, us, v)
     res = diam(sx)
     for u in us
         # Since indexing in sparse matrices is expensive, we want to abort the loop early
