@@ -12,15 +12,15 @@ function test_filtration_interface(Filtration, datasets)
             flt = Filtration(data)
 
             T = dist_type(flt)
-            S = eltype(flt)
+            S = edge_type(flt)
 
             @test S <: AbstractSimplex
+            @test S isa DataType
 
             @test n_vertices(flt) == size(data, 1)
-            l, (i, j) = first(edges(flt))
-            @test i isa Integer
-            @test j isa Integer
-            @test l isa T
+            sx = first(edges(flt))
+            @test sx isa S
+            @test diam(sx) isa T
 
             @test diam(flt, [3, 2, 1]) isa T
             @test diam(flt, S(one(T), 1, 1), [3, 2], 1) isa T
@@ -36,7 +36,7 @@ end
         test_filtration_interface(Filtration, (icosahedron, torus_points(100)))
 
         @testset "$(string(Filtration))" begin
-            @testset "length, dist, threshold, eltype" begin
+            @testset "no threshold, modulus=3" begin
                 flt = Filtration([0 1 2 9;
                                   1 0 3 9;
                                   2 3 0 4;
@@ -46,21 +46,40 @@ end
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == 3
-                @test diam(flt, Simplex{3}(3, 3, 1), [3, 2], 1) == 3
+                @test diam(flt, Simplex{1, 3}(3, 3, 1), [3, 2], 1) == 3
                 @test flt.threshold == 4
-                @test eltype(flt) === Simplex{3, Int}
-
+                @test edge_type(flt) === Simplex{1, 3, Int, UInt}
+            end
+            @testset "threshold, edge_type" begin
                 flt = Filtration([0 1 2;
                                   1 0 3;
-                                  2 3 0], threshold=2, simplex_type=Simplex{5, Int})
+                                  2 3 0];
+                                 threshold=2,
+                                 edge_type=Simplex{1, 5, Int, UInt})
+
                 @test n_vertices(flt) == 3
                 @test dist(flt, 3, 3) == 0
                 @test dist(flt, 1, 2) == 1
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == (issparse(Filtration) ? ∞ : 3)
-                @test diam(flt, Simplex{5}(1, 1, 1), [1, 2], 3) == ∞
+                @test diam(flt, Simplex{2, 5}(1, 1, 1), [1, 2], 3) == ∞
                 @test flt.threshold == 2
-                @test eltype(flt) === Simplex{5, Int}
+                @test edge_type(flt) === Simplex{1, 5, Int, UInt}
+            end
+            @testset "points" begin
+                flt = Filtration([(0, 0, 1),
+                                  (0, 1, 0),
+                                  (1, 0, 0)],
+                                 metric=Cityblock(), modulus=3)
+
+                @test n_vertices(flt) == 3
+                @test dist(flt, 3, 3) == 0
+                @test dist(flt, 1, 2) == 2
+                @test dist(flt, 1, 3) == 2
+                @test dist(flt, 3, 2) == 2
+                @test diam(flt, Simplex{2, 5}(1, 1, 1), [1, 2], 3) == 2
+                @test flt.threshold == 2
+                @test edge_type(flt) === Simplex{1, 3, Int, UInt}
             end
         end
     end

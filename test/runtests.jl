@@ -6,6 +6,7 @@ using Test
 using Aqua
 using DataStructures
 using Distances
+using RecipesBase
 
 using Ripserer
 
@@ -17,6 +18,6 @@ include("data.jl")
     include("convenience.jl")
     include("simplex.jl")
     include("rips.jl")
-    include("coboundary.jl")
+    include("diagrams.jl")
     include("reduction.jl")
 end

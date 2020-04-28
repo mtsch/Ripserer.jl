@@ -3,25 +3,27 @@ module Ripserer
 using Compat
 using Future: copy!
 
-using Base: @propagate_inbounds
+using Base: @propagate_inbounds, @pure
 using LinearAlgebra
 using SparseArrays
 
 using DataStructures
 using Distances
+using RecipesBase
+using TupleTools
 
-include("convenience.jl")
 include("interface.jl")
 include("simplex.jl")
 include("rips.jl")
-include("coboundary.jl")
+include("diagrams.jl")
 include("reduction.jl")
 
 export Infinity, ∞,
     AbstractFiltration, AbstractSimplex,
-    Simplex, coef, set_coef, index, diam,
+    Simplex, coef, set_coef, index, diam, coface_type, vertices, coboundary, dim,
     AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
-    n_vertices, threshold, edges,
+    n_vertices, threshold, edges, edge_type,
+    PersistenceInterval, birth, death, cocycle, PersistenceDiagram,
     ripserer
 
 end
