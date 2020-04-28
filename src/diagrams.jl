@@ -113,21 +113,36 @@ struct PersistenceDiagram{P<:PersistenceInterval} <: AbstractVector{P}
 end
 
 Base.show(io::IO, pd::PersistenceDiagram) =
-    print(io, "PersistenceDiagram(dim=$(dim(pd)), [", join(pd, ", "), "])")
+    print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
 
 function Base.show(io::IO, ::MIME"text/plain", pd::PersistenceDiagram)
-    print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
+    print(io, pd)
     if length(pd) > 0
-        println(io, ":")
-        Base.print_matrix(io, pd.intervals)
+        print(io, ":")
+        limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
+        if length(pd) + 1 < limit
+            for i in pd
+                print(io, "\n ", i)
+            end
+        else
+            for i in pd[1:limit÷2-2]
+                print(io, "\n ", i)
+            end
+            print(io, "\n ⋮")
+            for i in pd[end-limit÷2+3:end]
+                print(io, "\n ", i)
+            end
+        end
     end
 end
 
 Base.size(pd::PersistenceDiagram) =
     size(pd.intervals)
 
-Base.getindex(pd::PersistenceDiagram, i) =
+Base.getindex(pd::PersistenceDiagram, i::Integer) =
     pd.intervals[i]
+Base.getindex(pd::PersistenceDiagram, is) =
+    PersistenceDiagram(dim(pd), pd.intervals[is])
 
 Base.firstindex(pd::PersistenceDiagram) =
     1
@@ -159,21 +174,25 @@ function get_max_y_and_inf(pd::PersistenceDiagram)
     if is_finite
         last_death, false
     else
-        rounded = round(last_finite, RoundUp)
+        rounded = round(Int, last_finite, RoundUp)
         rounded + (last_finite ≥ 1 ? length(digits(rounded)) : 0), true
     end
 end
-function get_max_y_and_inf(pds::NTuple{<:Any, PersistenceDiagram})
-    max_y = 0; has_inf = false
-    for pd in pds
-        max_y_pd, has_inf_pd = get_max_y_and_inf(pd)
-        max_y = max(max_y, max_y_pd)
-        has_inf = has_inf || has_inf_pd
+function get_max_y_and_inf(pds)
+    last_death = maximum(max(maximum(death.(pd)),
+                             maximum(birth.(pd))) for pd in pds)
+    last_finite = maximum(max(maximum(filter(isfinite, death.(pd))),
+                              maximum(birth.(pd))) for pd in pds)
+    is_finite = last_finite == last_death
+    if is_finite
+        last_death, false
+    else
+        rounded = round(Int, last_finite, RoundUp)
+        rounded + (last_finite ≥ 1 ? length(digits(rounded)) : 0), true
     end
-    max_y, has_inf
 end
 
-@recipe function f(pd::Union{PersistenceDiagram, NTuple{<:Any, <:PersistenceDiagram}};
+@recipe function f(pd::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}};
                    infinity=nothing)
     max_y, has_inf = get_max_y_and_inf(pd)
     if !isnothing(infinity)
@@ -226,10 +245,10 @@ end
         throw(ArgumentError("expected single argument, got $(bc.args)"))
     arg = only(bc.args)
     if arg isa PersistenceDiagram
-        pds = (arg,)
-    elseif !(arg isa NTuple{<:Any, <:PersistenceDiagram})
+        pds = [arg]
+    elseif !(arg isa Vector{<:PersistenceDiagram})
         throw(ArgumentError("expected `PersistenceDiagram` or " *
-                            "`NTuple{N, PersistenceDiagram}`, got $(typeof(arg))"))
+                            "`AbstractVector{<:PersistenceDiagram}`, got $(typeof(arg))"))
     else
         pds = arg
     end
@@ -257,7 +276,7 @@ end
         @series begin
             seriestype := :path
             label --> "dim $(dim(pd))"
-            linewidth --> 3
+            linewidth --> 1
 
             xs = Float64[]
             ys = Float64[]

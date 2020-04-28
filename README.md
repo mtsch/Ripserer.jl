@@ -9,52 +9,87 @@ _Efficient computation of persistent homology._
 [![Aqua QA](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/tkf/Aqua.jl)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://mtsch.github.io/Ripserer.jl/dev)
 
-A Julia reimplementation of the [ripser](https://github.com/Ripser/ripser) algorithm for
-persistent homology. This package is not a direct translation and might do or name some
-things differently.
-
-Ripserer's performance is generally around 2 times slower than
-[ripser](https://github.com/Ripser/ripser), but in some cases, it performs just as well or
-even better.
-
-The goal of this project is to learn how [ripser](https://github.com/Ripser/ripser) works
-and to make it easy to play with extensions.
+Ripserer is a pure Julia implementation of the [ripser](https://github.com/Ripser/ripser)
+algorithm for persistent homology.
 
 ## Installation
 
-This package is still under development and is currently unregistered. To install it, run
+## Quick Start
 
-```
+This package is still under development and is currently unregistered. To install it, run
+the following.
+
+```julia
 julia> using Pkg
 julia> Pkg.add("https://github.com/mtsch/Ripserer.jl")
 ```
 
-While the package is fully functional, its internals and API are subject to change.
-
-## Usage
+Generate 100 points sampled from a torus.
 
 ```julia
-    ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold)
-    ripserer(filtration::AbstractFiltration)
+julia> n = 10
+julia> r = 1
+julia> R = 4
+julia> torus = [((R + r*cos(θ))*cos(φ), (R + r*cos(θ))*sin(φ), r*sin(θ))
+                for θ in range(0, 2π, length=n+1)[1:end-1]
+                for φ in range(0, 2π, length=n+1)[1:end-1]]
+100-element Array{Tuple{Float64,Float64,Float64},1}:
+ (5.0, 0.0, 0.0)
+ (4.045084971874737, 2.938926261462366, 0.0)
+ (1.5450849718747373, 4.755282581475767, 0.0)
+ (-1.5450849718747368, 4.755282581475768, 0.0)
+ (-4.045084971874736, 2.9389262614623664, 0.0)
+ (-5.0, 6.123233995736766e-16, 0.0)
+ ⋮
+ (-3.890576474687263, 2.82666926731747, -0.5877852522924734)
+ (-4.8090169943749475, 5.889347269206504e-16, -0.5877852522924734)
+ (-3.8905764746872635, -2.826669267317469, -0.5877852522924734)
+ (-1.4860679774997905, -4.573646949474427, -0.5877852522924734)
+ (1.4860679774997887, -4.573646949474428, -0.5877852522924734)
+ (3.890576474687263, -2.8266692673174703, -0.5877852522924734)
 ```
 
-Compute the persistent homology of metric space represented by distance matrix `dists` or
-`filtration`. If `dist` is sparse, a sparse filtration is constructed.
+Run Ripserer.
 
-Keyword Arguments:
+```julia
+julia> using Ripserer
+julia> result = ripserer(torus)
+2-element Array{PersistenceDiagram{PersistenceInterval{Float64,Nothing}},1}:
+ 100-element 0-dimensional PersistenceDiagram
+ 41-element 1-dimensional PersistenceDiagram
+```
 
-* `dim_max`: compute persistent homology up to this dimension.
-* `modulus`: compute persistent homology with coefficients in the prime field of integers
-             mod `modulus`.
-* `threshold`: compute persistent homology up to diameter smaller than threshold.
-               Defaults to radius of input space.
+Plot the result as a persistence diagram or barcode.
 
-Returns a vector of persistence diagrams, each represented by a vector of `(birth, death)`
-where `birth` and `death` are of the type `eltype(dists)`.
+```julia
+julia> using Plots; gr()
+julia> plot(result)
+julia> barcode(result)
+```
 
-## Extending
+![persistence diagram plot](docs/src/assets/diagram1.svg)
+![barcode plot](docs/src/assets/barcode1.svg)
 
-One of the goals of this project is to make it easy to extend with new filtration and
-simplex types. A subtype of `AbstractFiltration` or `AbstractSimplex` should only _need_ to
-implement the interface functions found in [`src/interface.jl`](src/interface.jl). Other
-functions may need to be overloaded to improve performance.
+We notice some noise around the diagonal. This can be mitigated by running Ripserer with
+`ripserer(torus, ratio=2)` or by simply filtering the diagram.
+
+```julia
+julia> result[2] = filter(x -> death(x) > 2birth(x), result[2])
+11-element 1-dimensional PersistenceDiagram:
+ [0.6180339887498962, 1.9021130325903048)
+ [0.6180339887498962, 1.9021130325903057)
+ [0.6180339887498962, 1.9021130325903057)
+ [0.6180339887498962, 1.9021130325903057)
+ [0.6180339887498962, 1.9021130325903066)
+ [0.6180339887498962, 1.9021130325903066)
+ [0.6180339887498962, 1.9021130325903066)
+ [0.6180339887498962, 1.9021130325903066)
+ [0.6180339887498991, 1.9021130325903057)
+ [0.618033988749902, 1.9021130325903057)
+ [1.854101966249685, 5.706339097770921)
+julia> plot(result)
+julia> barcode(result)
+```
+
+![persistence diagram plot](docs/src/assets/diagram2.svg)
+![barcode plot](docs/src/assets/barcode2.svg)

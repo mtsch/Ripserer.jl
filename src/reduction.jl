@@ -302,7 +302,9 @@ end
 
 Compute persistence intervals by reducing `columns`, a collection of simplices.
 """
-function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where cocycles
+function compute_intervals!(
+    rs::ReductionState, columns, ::Val{cocycles}, ratio,
+) where cocycles
     T = dist_type(rs.filtration)
     if cocycles
         C = coface_type(eltype(columns))
@@ -312,7 +314,7 @@ function compute_intervals!(rs::ReductionState, columns, ::Val{cocycles}) where 
     end
     for column in columns
         interval = reduce_working_column!(rs, column, Val(cocycles))
-        if interval.death > interval.birth
+        if interval.death > interval.birth * ratio
             push!(intervals, interval)
         end
     end
@@ -359,8 +361,7 @@ function zeroth_intervals(filtration)
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-      # issparse(filtration) &&
-            push!(simplices, sx)
+        push!(simplices, sx)
         if i ≠ j
             union!(dset, i, j)
             if diam(sx) > 0
@@ -383,15 +384,13 @@ end
 Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
 """
-function nth_intervals(filtration,
-                       columns::Vector{S},
-                       simplices;
-                       next=true,
-                       ) where S<:AbstractSimplex
+function nth_intervals(
+    filtration, columns::Vector{S}, simplices, ratio=1; next=true,
+) where S<:AbstractSimplex
 
     rs = ReductionState(filtration, S)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, Val(false))
+    intervals = compute_intervals!(rs, columns, Val(false), ratio)
     if next
         (intervals, assemble_columns!(rs, simplices)...)
     else
@@ -414,6 +413,8 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   Defaults to radius of input space.
 * `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `issparse(dists)`.
+* `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
+  Defaults to `1`.
 """
 function ripserer(dists::AbstractMatrix; sparse=issparse(dists), dim_max=1, kwargs...)
     if issparse(dists)
@@ -422,11 +423,13 @@ function ripserer(dists::AbstractMatrix; sparse=issparse(dists), dim_max=1, kwar
         ripserer(RipsFiltration(dists; kwargs...), dim_max=dim_max)
     end
 end
-function ripserer(points, metric; sparse=false, dim_max=1, kwargs...)
+function ripserer(points; metric=Euclidean(), sparse=false, dim_max=1, ratio=1, kwargs...)
     if sparse
-        ripserer(SparseRipsFiltration(points, metric; kwargs...), dim_max=dim_max)
+        ripserer(SparseRipsFiltration(points; metric=metric, kwargs...);
+                 dim_max=dim_max, ratio=ratio)
     else
-        ripserer(RipsFiltration(points, metric; kwargs...), dim_max=dim_max)
+        ripserer(RipsFiltration(points; metric=metric, kwargs...);
+                 dim_max=dim_max, ratio=ratio)
     end
 end
 """
@@ -434,14 +437,16 @@ end
 
 Compute persistent homology from `filtration` object.
 """
-ripserer(filtration::AbstractFiltration; dim_max=1) =
-    ripserer(filtration, Val(dim_max))
+ripserer(filtration::AbstractFiltration; dim_max=1, ratio=1) =
+    ripserer(filtration, Val(dim_max), ratio)
 
 function ripserer(filtration::AbstractFiltration{T}, ::Val{0}) where T
     diagram, _, _ = zeroth_intervals(filtration)
     (diagram,)
 end
-@generated function ripserer(filtration::AbstractFiltration{T}, ::Val{D}) where {T, D}
+@generated function ripserer(
+    filtration::AbstractFiltration{T}, ::Val{D}, ratio,
+) where {T, D}
     # We unroll the loop over 1:D to ensure type stability.
     # Generated code looks something like:
     #
@@ -466,14 +471,14 @@ end
         expr = quote
             $expr
             $(ints[i]), $(cols[i+1]), $(sxs[i+1]) =
-                nth_intervals(filtration, $(cols[i]), $(sxs[i]))
+                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio)
         end
     end
 
     quote
         $expr
         $(ints[D]), _, _ =
-            nth_intervals(filtration, $(cols[D]), $(sxs[D]), next=false)
+            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, next=false)
 
         [ints_0, $(ints...)]
     end

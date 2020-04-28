@@ -86,7 +86,7 @@ RecipesBase.is_key_supported(::Symbol) = true
             @test diag[3] == int1
             @test_throws BoundsError diag[4]
             @test sprint(print, diag) ==
-                "PersistenceDiagram(dim=1, [[1, 2), [3, 4), [3, ∞)])"
+                "3-element 1-dimensional PersistenceDiagram"
             @test sprint((io, val) -> show(io, MIME"text/plain"(), val), diag) ==
                 """
                 3-element 1-dimensional PersistenceDiagram:
@@ -107,28 +107,28 @@ RecipesBase.is_key_supported(::Symbol) = true
             d = Dict{Symbol, Any}()
             @test length(apply_recipe(d, diag2)) == 2
             d = Dict{Symbol, Any}()
-            @test length(apply_recipe(d, (diag1, diag2))) == 4
+            @test length(apply_recipe(d, [diag1, diag2])) == 4
 
             d = Dict{Symbol, Any}()
             @test length(apply_recipe(d, Barcode((diag1,)))) == 2
             d = Dict{Symbol, Any}()
             @test length(apply_recipe(d, Barcode((diag2,)))) == 1
             d = Dict{Symbol, Any}()
-            @test length(apply_recipe(d, Barcode(((diag1, diag2),)))) == 3
+            @test length(apply_recipe(d, Barcode(([diag1, diag2],)))) == 3
 
             d = Dict{Symbol, Any}(:infinity => 10)
             @test length(apply_recipe(d, diag1)) == 3
             d = Dict{Symbol, Any}(:infinity => 10)
             @test length(apply_recipe(d, diag2)) == 2
             d = Dict{Symbol, Any}(:infinity => 10)
-            @test length(apply_recipe(d, (diag1, diag2))) == 4
+            @test length(apply_recipe(d, [diag1, diag2])) == 4
 
             d = Dict{Symbol, Any}(:infinity => 10)
             @test length(apply_recipe(d, Barcode((diag1,)))) == 2
             d = Dict{Symbol, Any}(:infinity => 10)
             @test length(apply_recipe(d, Barcode((diag2,)))) == 1
             d = Dict{Symbol, Any}(:infinity => 10)
-            @test length(apply_recipe(d, Barcode(((diag1, diag2),)))) == 3
+            @test length(apply_recipe(d, Barcode(([diag1, diag2],)))) == 3
 
             d = Dict{Symbol, Any}(:infinity => 10)
             @test_throws ArgumentError apply_recipe(d, Barcode((1,)))
