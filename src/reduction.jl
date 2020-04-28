@@ -446,7 +446,7 @@ Compute persistent homology from `filtration` object.
 ripserer(filtration::AbstractFiltration; dim_max=1, cocycles=false, ratio=1) =
     ripserer(filtration, ratio, Val(dim_max), Val(cocycles))
 
-function ripserer(filtration::AbstractFiltration, _, ::Val{0}, _)
+function ripserer(filtration::AbstractFiltration, _, ::Val{0}, ::Val{<:Any})
     diagram, _, _ = zeroth_intervals(filtration)
     [diagram]
 end
