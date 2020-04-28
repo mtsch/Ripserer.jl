@@ -24,6 +24,7 @@ export Infinity, ∞,
     AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
     n_vertices, threshold, edges, edge_type,
     PersistenceInterval, birth, death, cocycle, PersistenceDiagram,
+    barcode, barcode!,
     ripserer
 
 end

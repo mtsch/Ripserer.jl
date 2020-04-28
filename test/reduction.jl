@@ -270,5 +270,22 @@ using Ripserer:
                 @test isempty(d2_3)
             end
         end
+
+        @testset "cocycles" begin
+            _, d1, d2 = ripserer(projective_plane, dim_max=2, cocycles=true)
+
+            @test cocycle(only(d1)) == [
+                Simplex{1, 2}(1, (11, 10), 1),
+                Simplex{1, 2}(1, (10, 7), 1),
+                Simplex{1, 2}(1, (10, 6), 1),
+                Simplex{1, 2}(1, (8, 1), 1),
+                Simplex{1, 2}(1, (7, 3), 1),
+                Simplex{1, 2}(1, (7, 1), 1),
+                Simplex{1, 2}(1, (6, 2), 1),
+                Simplex{1, 2}(1, (5, 1), 1),
+                Simplex{1, 2}(1, (2, 1), 1),
+            ]
+            @test cocycle(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
+        end
     end
 end
