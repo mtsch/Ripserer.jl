@@ -362,10 +362,12 @@ struct Simplex{D, M, T, U<:Unsigned} <: AbstractSimplex{D, PrimeField{M}, T}
     end
 end
 
-Simplex{D, M}(diam::T, index::Integer, coef::Integer) where {D, M, T} =
-    Simplex{D, M, T}(diam, index, coef)
-Simplex{D, M, T}(diam::T, index::I, coef::Integer) where {D, M, T, I<:Integer} =
-    Simplex{D, M, T, unsigned(I)}(diam, index, coef)
+Simplex{D, M}(diam::T, index_or_vertices, coef::Integer) where {D, M, T} =
+    Simplex{D, M, T}(diam, index_or_vertices, coef)
+Simplex{D, M, T}(diam, index::I, coef::Integer) where {D, M, T, I<:Integer} =
+    Simplex{D, M, T, unsigned(I)}(T(diam), index, coef)
+Simplex{D, M, T}(diam, vertices, coef::Integer) where {D, M, T} =
+    Simplex{D, M, T}(T(diam), index(vertices), coef)
 
 function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, M, <:Any, U}) where {D, M, U}
     print(io, D, "-dim Simplex{", M, "}", (diam(sx), index(sx), Int(coef(sx))))

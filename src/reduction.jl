@@ -290,8 +290,8 @@ function reduce_working_column!(
     end
     birth = diam(column_simplex)
     if cocycles
-        cocycle = move!(rs.working_column)
-        PersistenceInterval(birth, death)
+        cocycle = collect(rs.reduction_matrix[index(current_pivot)])
+        PersistenceInterval(birth, death, cocycle)
     else
         PersistenceInterval(birth, death)
     end
@@ -303,11 +303,11 @@ end
 Compute persistence intervals by reducing `columns`, a collection of simplices.
 """
 function compute_intervals!(
-    rs::ReductionState, columns, ::Val{cocycles}, ratio,
+    rs::ReductionState, columns, ratio, ::Val{cocycles},
 ) where cocycles
     T = dist_type(rs.filtration)
     if cocycles
-        C = coface_type(eltype(columns))
+        C = eltype(columns)
         intervals = PersistenceInterval{T, Vector{C}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
@@ -385,12 +385,12 @@ Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, ratio=1; next=true,
-) where S<:AbstractSimplex
+    filtration, columns::Vector{S}, simplices, ratio, ::Val{cocycles}; next=true,
+) where {S<:AbstractSimplex, cocycles}
 
     rs = ReductionState(filtration, S)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, Val(false), ratio)
+    intervals = compute_intervals!(rs, columns, ratio, Val(cocycles))
     if next
         (intervals, assemble_columns!(rs, simplices)...)
     else
@@ -399,54 +399,61 @@ function nth_intervals(
 end
 
 """
-    ripserer(dists::AbstractMatrix{T}; dim_max=1, modulus=2, threshold=typemax(T))
-    ripserer(points, metric; dim_max=1, modulus=2, threshold=typemax(T))
+    ripserer(dists::AbstractMatrix{T}; kwargs...)
+    ripserer(points; metric=Euclidean(), kwargs...)
 
 Compute the persistent homology of metric space represented by `dists` or `points` and
 `metric`.
 
 # Keyoword Arguments
 
-* `dim_max`: compute persistent homology up to this dimension.
+* `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
-             mod `modulus`.
+  mod `modulus`. Defaults to `2`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
-  Defaults to radius of input space.
-* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `issparse(dists)`.
+  For Rips filtrations, it defaults to radius of input space.
+* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false || issparse(dists)`.
 * `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
   Defaults to `1`.
+* `cocycles`: if `true`, return representative cocycles along with persistence
+  intervals. Defaults to `false`.
 """
-function ripserer(dists::AbstractMatrix; sparse=issparse(dists), dim_max=1, kwargs...)
-    if issparse(dists)
-        ripserer(SparseRipsFiltration(dists; kwargs...), dim_max=dim_max)
-    else
-        ripserer(RipsFiltration(dists; kwargs...), dim_max=dim_max)
-    end
-end
-function ripserer(points; metric=Euclidean(), sparse=false, dim_max=1, ratio=1, kwargs...)
+function ripserer(
+    dists::AbstractMatrix;
+    dim_max=1,
+    sparse=false || issparse(dists),
+    ratio=1,
+    cocycles=false,
+    kwargs...)
     if sparse
-        ripserer(SparseRipsFiltration(points; metric=metric, kwargs...);
-                 dim_max=dim_max, ratio=ratio)
+        filtration = SparseRipsFiltration(dists; kwargs...)
     else
-        ripserer(RipsFiltration(points; metric=metric, kwargs...);
-                 dim_max=dim_max, ratio=ratio)
+        filtration = RipsFiltration(dists; kwargs...)
     end
+    ripserer(filtration; dim_max=dim_max, cocycles=cocycles, ratio=ratio)
 end
+
+function ripserer(points; metric=Euclidean(), kwargs...)
+    dists = distances(metric, points)
+    ripserer(dists; kwargs...)
+end
+
 """
     ripserer(filtration::AbstractFiltration; dim_max=1)
 
 Compute persistent homology from `filtration` object.
 """
-ripserer(filtration::AbstractFiltration; dim_max=1, ratio=1) =
-    ripserer(filtration, Val(dim_max), ratio)
+ripserer(filtration::AbstractFiltration; dim_max=1, cocycles=false, ratio=1) =
+    ripserer(filtration, ratio, Val(dim_max), Val(cocycles))
 
-function ripserer(filtration::AbstractFiltration{T}, ::Val{0}) where T
+function ripserer(filtration::AbstractFiltration, _, ::Val{0}, _)
     diagram, _, _ = zeroth_intervals(filtration)
-    (diagram,)
+    [diagram]
 end
+
 @generated function ripserer(
-    filtration::AbstractFiltration{T}, ::Val{D}, ratio,
-) where {T, D}
+    filtration::AbstractFiltration, ratio, ::Val{D}, ::Val{C},
+) where {D, C}
     # We unroll the loop over 1:D to ensure type stability.
     # Generated code looks something like:
     #
@@ -456,29 +463,24 @@ end
     # ints_D, _, _ = nth_itervals(filtration, cols_D-1, sxs_D-1, next=false)
     #
     # [ints_0, ints_1, ..., ints_D]
-
     ints = [Symbol("ints_", i) for i in 1:D]
     cols = [Symbol("cols_", i) for i in 1:D]
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
-        #initialize!(magic_binomial, n_vertices(filtration), D+2)
-
         ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration)
     end
-
     for i in 1:D-1
         expr = quote
             $expr
             $(ints[i]), $(cols[i+1]), $(sxs[i+1]) =
-                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio)
+                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio, Val(C))
         end
     end
-
     quote
         $expr
         $(ints[D]), _, _ =
-            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, next=false)
+            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, Val(C), next=false)
 
         [ints_0, $(ints...)]
     end
