@@ -29,15 +29,15 @@ flt_sparse_50 = SparseRipsFiltration(dists, threshold=1)
 flt_sparse_25 = SparseRipsFiltration(dists, threshold=0.5)
 
 suite["full, no threshold"] =
-    @benchmarkable count_cofaces($flt_full_nothreshold, $sx)
+    @benchmarkable count_cofaces($flt_full_nothreshold, $sx, reps=50_000)
 suite["full, threshold=1"] =
-    @benchmarkable count_cofaces($flt_full_threshold1, $sx)
+    @benchmarkable count_cofaces($flt_full_threshold1, $sx, reps=50_000)
 suite["sparse, 75% full"] =
     @benchmarkable count_cofaces($flt_sparse_75, $sx)
 suite["sparse, 50% full"] =
-    @benchmarkable count_cofaces($flt_sparse_50, $sx)
+    @benchmarkable count_cofaces($flt_sparse_50, $sx, reps=20_000)
 suite["sparse, 25% full"] =
-    @benchmarkable count_cofaces($flt_sparse_25, $sx)
+    @benchmarkable count_cofaces($flt_sparse_25, $sx, reps=40_000)
 
 end
 
