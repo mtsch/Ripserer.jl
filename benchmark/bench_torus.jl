@@ -4,22 +4,25 @@ using BenchmarkTools
 include(joinpath(@__DIR__, "../test/data.jl"))
 suite = BenchmarkGroup()
 
-for (npoints, dim_max) in ((1024, 1), (128, 2), (64, 4))
+for (npoints, dim_max, threshold) in ((1024, 1, 1),
+                                      (1024, 1, nothing),
+                                      (256, 2, 1),
+                                      (256, 2, nothing),
+                                      (64, 4, nothing),
+                                      (128, 4, 1))
     for modulus in (2, 7)
-        for threshold in (nothing, 1)
-            name = "n=$npoints, dim_max=$dim_max, modulus=$modulus, threshold=$threshold"
-            if isnothing(threshold)
-                bench = @benchmarkable ripserer($(torus(npoints)),
-                                                dim_max=$dim_max,
-                                                modulus=$modulus)
-            else
-                bench = @benchmarkable ripserer($(torus(npoints)),
-                                                dim_max=$dim_max,
-                                                modulus=$modulus,
-                                                threshold=$threshold)
-            end
-            suite[name] = bench
+        name = "n=$npoints, dim_max=$dim_max, modulus=$modulus, threshold=$threshold"
+        if isnothing(threshold)
+            bench = @benchmarkable ripserer($(torus(npoints)),
+                                            dim_max=$dim_max,
+                                            modulus=$modulus)
+        else
+            bench = @benchmarkable ripserer($(torus(npoints)),
+                                            dim_max=$dim_max,
+                                            modulus=$modulus,
+                                            threshold=$threshold)
         end
+        suite[name] = bench
     end
 end
 end
