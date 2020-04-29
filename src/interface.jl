@@ -89,8 +89,9 @@ simplices.
 * [`edges(::AbstractFiltration)`](@ref)
 * [`diam(::AbstractFiltration, vs)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
-* [`SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration`](@ref) - optional defaults
-  to `false`.
+* [`SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration`](@ref) - optional,
+  defaults to `false`.
+* [`birth(::AbstractFiltration, v)`] - optional, defaults to returning `zero(T)`.
 """
 abstract type AbstractFiltration{T, S<:AbstractSimplex{1, <:Any, T}} end
 
@@ -141,3 +142,11 @@ diam(::AbstractFiltration, ::Any)
 Get the diameter of coface of `simplex` that is formed by adding `vertex` to `vertices`.
 """
 diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
+
+"""
+    birth(::AbstractFiltration{T}, v)
+
+Get the birth time of vertex `v`.
+"""
+birth(::AbstractFiltration{T}, _) where T =
+    zero(T)

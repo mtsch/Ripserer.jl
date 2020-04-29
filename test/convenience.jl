@@ -1,4 +1,4 @@
-using Ripserer: Infinity, ∞, edges, is_distance_matrix, distances
+using Ripserer: Infinity, ∞, edges, distances
 
 @testset "convenience" begin
     @testset "edges dense" begin
@@ -44,26 +44,6 @@ using Ripserer: Infinity, ∞, edges, is_distance_matrix, distances
             dist = rand_dist_matrix(100, 0.5)
             n_edges = nnz(dist) ÷ 2
             @test length(edges(dist, ∞, Simplex{1, 2, Float64, UInt})) == n_edges
-        end
-    end
-    @testset "is_distance_matrix" begin
-        for f in (identity, sparse)
-            @test is_distance_matrix(f([0 1 0;
-                                        1 0 2;
-                                        0 2 0]))
-            @test is_distance_matrix(f([0 1 0 0;
-                                        1 0 2 0;
-                                        0 2 0 0;
-                                        0 0 0 0]))
-            @test !is_distance_matrix(f([1 1 0;
-                                         1 0 2;
-                                         0 2 0]))
-            @test !is_distance_matrix(f([0 2 0;
-                                         1 0 2;
-                                         0 2 0]))
-            @test !is_distance_matrix(f([0 1 0 0;
-                                         1 0 2 0;
-                                         0 2 0 0]))
         end
     end
     @testset "distances" begin

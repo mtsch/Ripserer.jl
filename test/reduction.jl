@@ -93,24 +93,36 @@ using Ripserer:
             res, columns, simplices = zeroth_intervals(flt)
 
             @test !isnothing(simplices)
-            @test res == [PersistenceInterval(0, 1),
-                          PersistenceInterval(0, 2),
-                          PersistenceInterval(0, ∞)]
+            @test res == PersistenceDiagram(0, [(0, 1),
+                                                (0, 2),
+                                                (0, ∞)])
             @test columns == [Simplex{1, 2}(3, 3, 1)]
         end
         @testset "sparse" begin
             dist = [0 1 2;
-                    1 0 3;
-                    2 3 0]
+                    1 0 0;
+                    2 0 0]
             flt = SparseRipsFiltration(dist)
             res, columns, simplices = zeroth_intervals(flt)
 
             @test simplices == [Simplex{1, 2}(1, 1, 1),
                                 Simplex{1, 2}(2, 2, 1)]
-            @test res == [PersistenceInterval(0, 1),
-                          PersistenceInterval(0, 2),
-                          PersistenceInterval(0, ∞)]
+            @test res == PersistenceDiagram(0, [(0, 1),
+                                                (0, 2),
+                                                (0, ∞)])
             @test isempty(columns)
+        end
+        @testset "birth" begin
+            dist = Float64[ 1 10 20 40;
+                           10  2 30 50;
+                           20 30  3 60;
+                           40 50 60  4]
+            flt = RipsFiltration(dist)
+            res, columns, simplices = zeroth_intervals(flt)
+            @test res == PersistenceDiagram(0, [(1.0, ∞),
+                                                (2.0, 10.0),
+                                                (3.0, 20.0),
+                                                (4.0, 40.0)])
         end
     end
 
@@ -286,6 +298,31 @@ using Ripserer:
                 Simplex{1, 2}(1, (2, 1), 1),
             ]
             @test cocycle(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
+        end
+
+        @testset "lower star" begin
+            data = [range(0, 1, length=5);
+                    range(1, 0.5, length=5)[2:end];
+                    range(0.5, 2, length=4)[2:end];
+                    range(2, -1, length=4)[2:end]]
+
+            # Create distance matrix from data, where neighboring points are connected by
+            # edges and the edge weights are equal to the max of both vertex births.
+            n = length(data)
+            dists = spzeros(n, n)
+            for i in 1:n
+                dists[i, i] = data[i]
+            end
+            for i in 1:n-1
+                j = i + 1
+                dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
+            end
+            # 0-dimensional persistence should find values of minima and maxima of our data.
+            res = first(ripserer(dists, dim_max=0))
+            mins = birth.(res)
+            maxs = death.(filter(isfinite, res))
+            @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
+            @test sort(maxs) == [1.0, 2.0]
         end
     end
 end
