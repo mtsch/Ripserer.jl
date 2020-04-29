@@ -459,10 +459,10 @@ end
 
 """
     ripserer(dists::AbstractMatrix{T}; kwargs...)
-    ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
+    ripserer(points; metric=Euclidean(), births, kwargs...)
 
 Compute the persistent homology of metric space represented by `dists` or `points` and
-`metric` and vertex `births`.
+`metric`. `points` must be an array of bitstypes, such as `NTuple`s or `SVectors`.
 
 # Keyoword Arguments
 
@@ -476,6 +476,11 @@ Compute the persistent homology of metric space represented by `dists` or `point
   Defaults to `1`.
 * `cocycles`: if `true`, return representative cocycles along with persistence
   intervals. Defaults to `false`.
+* `metric`: when calculating persistent homology from points, any metric from
+  [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
+  `Euclidean()`.
+* `births`: when calculating persistent homology from points, births can be used to add
+  birth times to vertices. Defaults to all births equal to `0`.
 """
 function ripserer(
     dists::AbstractMatrix;
@@ -483,7 +488,8 @@ function ripserer(
     sparse=false || issparse(dists),
     ratio=1,
     cocycles=false,
-    kwargs...)
+    kwargs...
+)
     if sparse
         filtration = SparseRipsFiltration(dists; kwargs...)
     else
