@@ -33,7 +33,7 @@ end
 
 @testset "rips" begin
     for Filtration in (RipsFiltration, SparseRipsFiltration)
-        test_filtration_interface(Filtration, (icosahedron, torus_points(100)))
+        test_filtration_interface(Filtration, (icosahedron, torus(100)))
 
         @testset "$(string(Filtration))" begin
             @testset "no threshold, modulus=3" begin
@@ -49,11 +49,13 @@ end
                 @test diam(flt, Simplex{1, 3}(3, 3, 1), [3, 2], 1) == 3
                 @test flt.threshold == 4
                 @test edge_type(flt) === Simplex{1, 3, Int, UInt}
+                @test birth(flt, 1) == 0
+                @test birth(flt, 4) == 0
             end
             @testset "threshold, edge_type" begin
-                flt = Filtration([0 1 2;
-                                  1 0 3;
-                                  2 3 0];
+                flt = Filtration([1 1 2;
+                                  1 2 3;
+                                  2 3 3];
                                  threshold=2,
                                  edge_type=Simplex{1, 5, Int, UInt})
 
@@ -65,21 +67,21 @@ end
                 @test diam(flt, Simplex{2, 5}(1, 1, 1), [1, 2], 3) == ∞
                 @test flt.threshold == 2
                 @test edge_type(flt) === Simplex{1, 5, Int, UInt}
-            end
-            @testset "points" begin
-                flt = Filtration([(0, 0, 1),
-                                  (0, 1, 0),
-                                  (1, 0, 0)],
-                                 metric=Cityblock(), modulus=3)
 
-                @test n_vertices(flt) == 3
-                @test dist(flt, 3, 3) == 0
-                @test dist(flt, 1, 2) == 2
-                @test dist(flt, 1, 3) == 2
-                @test dist(flt, 3, 2) == 2
-                @test diam(flt, Simplex{2, 5}(1, 1, 1), [1, 2], 3) == 2
-                @test flt.threshold == 2
-                @test edge_type(flt) === Simplex{1, 3, Int, UInt}
+                @test birth(flt, 1) == 1
+                @test birth(flt, 2) == 2
+                @test birth(flt, 3) == 3
+            end
+            @testset "errors" begin
+                @test_throws ArgumentError Filtration([1 2 3;
+                                                       4 5 6;
+                                                       7 8 9])
+                dists = [0 1 2; 1 0 3; 2 3 0]
+                @test_throws ArgumentError Filtration(dists, modulus=4)
+                @test_throws ArgumentError Filtration(dists, modulus=-2)
+                @test_throws ArgumentError Filtration(dists, edge_type=Int)
+                @test_throws ArgumentError Filtration(dists, edge_type=Simplex{2,2,Int,UInt})
+                @test_throws TypeError Filtration(dists, edge_type=Simplex{1, 2, Int})
             end
         end
     end

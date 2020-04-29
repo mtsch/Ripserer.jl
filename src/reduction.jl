@@ -162,6 +162,60 @@ function Base.push!(column::Column{S}, sx::S) where S
     column
 end
 
+# disjointset with birth ================================================================= #
+"""
+    DisjointSetsWithBirth{T}
+
+Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
+Has no `num_groups` method.
+"""
+struct DisjointSetsWithBirth{T}
+    parents ::Vector{Int}
+    ranks   ::Vector{Int}
+    births  ::Vector{T}
+
+    function DisjointSetsWithBirth(births::AbstractVector{T}) where T
+        n = length(births)
+        new{T}(collect(1:n), fill(0, n), copy(births))
+    end
+end
+
+function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
+    parents = s.parents
+    p = parents[x]
+    @inbounds if parents[p] != p
+        parents[x] = p = find_root!(s, p)
+    end
+    p
+end
+
+function Base.union!(s::DisjointSetsWithBirth, x, y)
+    parents = s.parents
+    xroot = find_root!(s, x)
+    yroot = find_root!(s, y)
+    xroot != yroot ? root_union!(s, xroot, yroot) : xroot
+end
+
+function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
+    parents = s.parents
+    rks = s.ranks
+    births = s.births
+    @inbounds xrank = rks[x]
+    @inbounds yrank = rks[y]
+
+    if xrank < yrank
+        x, y = y, x
+    elseif xrank == yrank
+        rks[x] += 1
+    end
+    @inbounds parents[y] = x
+    @inbounds births[x] = min(births[x], births[y])
+    x
+end
+
+birth(dset::DisjointSetsWithBirth, i) =
+    dset.births[i]
+
 # reduction matrix ======================================================================= #
 """
     ReductionState
@@ -314,11 +368,11 @@ function compute_intervals!(
     end
     for column in columns
         interval = reduce_working_column!(rs, column, Val(cocycles))
-        if interval.death > interval.birth * ratio
+        if death(interval) > birth(interval) * ratio
             push!(intervals, interval)
         end
     end
-    PersistenceDiagram(dim(eltype(columns)), intervals)
+    sort!(PersistenceDiagram(dim(eltype(columns)), intervals))
 end
 
 """
@@ -350,9 +404,9 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
 threshold.
 """
-function zeroth_intervals(filtration)
+function zeroth_intervals(filtration, ratio=1)
     T = dist_type(filtration)
-    dset = IntDisjointSets(n_vertices(filtration))
+    dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     intervals = PersistenceInterval{T, Nothing}[]
     simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
@@ -363,19 +417,24 @@ function zeroth_intervals(filtration)
         j = find_root!(dset, v)
         push!(simplices, sx)
         if i ≠ j
-            union!(dset, i, j)
-            if diam(sx) > 0
-                push!(intervals, PersistenceInterval(zero(T), diam(sx)))
+            # According to the elder rule, the vertex with the lower birth will fall
+            # into a later interval.
+            interval = PersistenceInterval(max(birth(dset, i), birth(dset, j)), diam(sx))
+            if death(interval) > birth(interval) * ratio
+                push!(intervals, interval)
             end
+            union!(dset, i, j)
         else
             push!(columns, sx)
         end
     end
-    for _ in 1:num_groups(dset)
-        push!(intervals, PersistenceInterval(zero(T), ∞))
+    for v in 1:n_vertices(filtration)
+        if find_root!(dset, v) == v
+            push!(intervals, PersistenceInterval(birth(dset, v), ∞))
+        end
     end
     reverse!(columns)
-    PersistenceDiagram(0, intervals), columns, simplices
+    sort!(PersistenceDiagram(0, intervals)), columns, simplices
 end
 
 """
@@ -400,10 +459,10 @@ end
 
 """
     ripserer(dists::AbstractMatrix{T}; kwargs...)
-    ripserer(points; metric=Euclidean(), kwargs...)
+    ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
 
 Compute the persistent homology of metric space represented by `dists` or `points` and
-`metric`.
+`metric` and vertex `births`.
 
 # Keyoword Arguments
 
@@ -433,8 +492,8 @@ function ripserer(
     ripserer(filtration; dim_max=dim_max, cocycles=cocycles, ratio=ratio)
 end
 
-function ripserer(points; metric=Euclidean(), kwargs...)
-    dists = distances(metric, points)
+function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
+    dists = distances(metric, points, births)
     ripserer(dists; kwargs...)
 end
 
@@ -446,8 +505,8 @@ Compute persistent homology from `filtration` object.
 ripserer(filtration::AbstractFiltration; dim_max=1, cocycles=false, ratio=1) =
     ripserer(filtration, ratio, Val(dim_max), Val(cocycles))
 
-function ripserer(filtration::AbstractFiltration, _, ::Val{0}, ::Val{<:Any})
-    diagram, _, _ = zeroth_intervals(filtration)
+function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{<:Any})
+    diagram, _, _ = zeroth_intervals(filtration, ratio)
     [diagram]
 end
 
@@ -468,7 +527,7 @@ end
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration)
+        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio)
     end
     for i in 1:D-1
         expr = quote

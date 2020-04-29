@@ -93,9 +93,9 @@ using Ripserer:
             res, columns, simplices = zeroth_intervals(flt)
 
             @test !isnothing(simplices)
-            @test res == [PersistenceInterval(0, 1),
-                          PersistenceInterval(0, 2),
-                          PersistenceInterval(0, ∞)]
+            @test res == PersistenceDiagram(0, [(0, 1),
+                                                (0, 2),
+                                                (0, ∞)])
             @test columns == [Simplex{1, 2}(3, 3, 1)]
         end
         @testset "sparse" begin
@@ -107,10 +107,22 @@ using Ripserer:
 
             @test simplices == [Simplex{1, 2}(1, 1, 1),
                                 Simplex{1, 2}(2, 2, 1)]
-            @test res == [PersistenceInterval(0, 1),
-                          PersistenceInterval(0, 2),
-                          PersistenceInterval(0, ∞)]
+            @test res == PersistenceDiagram(0, [(0, 1),
+                                                (0, 2),
+                                                (0, ∞)])
             @test isempty(columns)
+        end
+        @testset "birth" begin
+            dist = Float64[ 1 10 20 40;
+                           10  2 30 50;
+                           20 30  3 60;
+                           40 50 60  4]
+            flt = RipsFiltration(dist)
+            res, columns, simplices = zeroth_intervals(flt)
+            @test res == PersistenceDiagram(0, [(1.0, ∞),
+                                                (2.0, 10.0),
+                                                (3.0, 20.0),
+                                                (4.0, 40.0)])
         end
     end
 

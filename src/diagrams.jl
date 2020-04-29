@@ -1,3 +1,4 @@
+# interval =============================================================================== #
 """
     PersistenceInterval{T, C}
 
@@ -11,10 +12,12 @@ struct PersistenceInterval{T, C}
 
     PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
         new{T, Nothing}(birth, death, nothing)
-
     PersistenceInterval(birth::T, death::Union{T, Infinity}, cocycle::C) where {T, C} =
         new{T, C}(birth, death, cocycle)
 end
+
+PersistenceInterval(t::Tuple{<:Any, <:Any}) =
+    PersistenceInterval(t...)
 
 Base.show(io::IO, int::PersistenceInterval) =
     print(io, "[", int.birth, ", ", int.death, ")")
@@ -33,13 +36,31 @@ Get the birth time of `interval`.
 """
 birth(int::PersistenceInterval) =
     int.birth
+
 """
     death(interval::PersistenceInterval)
 
-Get the death time of `interval`.
+Get the death time of `interval`. When `T<:AbstractFloat`, `Inf` is returned instead of `∞`.
 """
 death(int::PersistenceInterval) =
     int.death
+death(int::PersistenceInterval{T}) where T<:AbstractFloat =
+    isfinite(int.death) ? int.death : typemax(T)
+
+"""
+    death(interval::PersistenceInterval)
+
+Get the persistence of `interval`, which is equal to `death - birth`. When
+`T<:AbstractFloat`, `Inf` is returned instead of `∞`.
+"""
+persistence(int::PersistenceInterval) =
+    isfinite(death(int)) ? death(int) - birth(int) : ∞
+persistence(int::PersistenceInterval{T}) where T<:AbstractFloat =
+    isfinite(death(int)) ? death(int) - birth(int) : typemax(T)
+
+Base.isfinite(int::PersistenceInterval) =
+    isfinite(death(int))
+
 """
     cocycle(interval::PersistenceInterval)
 
@@ -70,6 +91,11 @@ Base.IteratorEltype(::Type{<:PersistenceInterval}) =
 Base.eltype(::Type{<:PersistenceInterval{T}}) where T =
     Union{T, Infinity}
 
+dist_type(::Type{<:PersistenceInterval{T}}) where T =
+    T
+dist_type(::PersistenceInterval{T}) where T =
+    T
+
 function Base.getindex(int, i)
     if i == 1
         birth(int)
@@ -97,20 +123,21 @@ function Base.isless(int1::PersistenceInterval, int2::PersistenceInterval)
     end
 end
 
+# diagram ================================================================================ #
 """
     PersistenceDiagram{P<:PersistenceInterval} <: AbstractVector{P}
 
-Type for representing persistence diagrams. Behaves exactly like an immutable array of
+Type for representing persistence diagrams. Behaves exactly like an array of
 `PersistenceInterval`s, but is aware of its dimension and supports pretty printing and
 plotting.
 """
 struct PersistenceDiagram{P<:PersistenceInterval} <: AbstractVector{P}
     dim       ::Int
     intervals ::Vector{P}
-
-    PersistenceDiagram(dim, intervals) =
-        new{eltype(intervals)}(dim, sort(intervals))
 end
+
+PersistenceDiagram(dim, intervals::AbstractVector{<:Tuple}) =
+    PersistenceDiagram(dim, PersistenceInterval.(intervals))
 
 Base.show(io::IO, pd::PersistenceDiagram) =
     print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
@@ -141,8 +168,9 @@ Base.size(pd::PersistenceDiagram) =
 
 Base.getindex(pd::PersistenceDiagram, i::Integer) =
     pd.intervals[i]
-Base.getindex(pd::PersistenceDiagram, is) =
-    PersistenceDiagram(dim(pd), pd.intervals[is])
+
+Base.setindex!(pd::PersistenceDiagram, x, i::Integer) =
+    pd.intervals[i] = x
 
 Base.firstindex(pd::PersistenceDiagram) =
     1
@@ -158,38 +186,43 @@ Get the dimension of persistence diagram.
 dim(pd::PersistenceDiagram) =
     pd.dim
 
+dist_type(pd::PersistenceDiagram) =
+    dist_type(eltype(pd))
+dist_type(::Type{P}) where P<:PersistenceDiagram =
+    dist_type(eltype(P))
+
 # plots ================================================================================== #
 """
-    get_max_y_and_inf(diagram::PersistenceDiagram)
+    t_limits(diagram)
 
-Get the time of last death in `diagram`. If it's infinite guess a good number to place `∞`
-at.
+Get the minimum and maximum birth/death times in `diagram` and a boolean specifing if any of
+the intervals was infinite. If any of the intervals are infinite, guess a good number to
+place `∞` at.
 """
-function get_max_y_and_inf(pd::PersistenceDiagram)
-    last_death = max(maximum(death.(pd)),
-                     maximum(birth.(pd)))
-    last_finite = max(maximum(filter(isfinite, death.(pd))),
-                      maximum(birth.(pd)))
-    is_finite = last_finite == last_death
-    if is_finite
-        last_death, false
-    else
-        rounded = round(last_finite, RoundUp)
-        rounded + (last_finite ≥ 1 ? length(digits(Int(rounded))) : 0), true
+function t_limits(pd::PersistenceDiagram)
+    t_min = foldl(min, [birth.(pd); death.(filter(isfinite, pd))], init=0)
+    t_max = foldl(max, [birth.(pd); death.(filter(isfinite, pd))], init=0)
+    infinite = any(!isfinite, pd)
+    if infinite
+        rounded = round(t_max, RoundUp)
+        t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
     end
+    t_min, t_max, infinite
 end
-function get_max_y_and_inf(pds)
-    last_death = maximum(max(maximum(death.(pd)),
-                             maximum(birth.(pd))) for pd in pds)
-    last_finite = maximum(max(maximum(filter(isfinite, death.(pd))),
-                              maximum(birth.(pd))) for pd in pds)
-    is_finite = last_finite == last_death
-    if is_finite
-        last_death, false
-    else
-        rounded = round(last_finite, RoundUp)
-        rounded + (last_finite ≥ 1 ? length(digits(Int(rounded))) : 0), true
+function t_limits(pds)
+    t_min = 0
+    t_max = 0
+    infinite = false
+    for pd in pds
+        t_min = foldl(min, [birth.(pd); death.(filter(isfinite, pd))], init=t_min)
+        t_max = foldl(max, [birth.(pd); death.(filter(isfinite, pd))], init=t_max)
+        infinite |= any(!isfinite, pd)
     end
+    if infinite
+        rounded = round(t_max, RoundUp)
+        t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
+    end
+    t_min, t_max, infinite
 end
 
 """
@@ -201,20 +234,11 @@ tries to guess a good infinity poistion.
 """
 RecipesBase.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 
-"""
-    barcode(diagram; infinity=nothing)
-
-Plot the barcode plot or `AbstractVector` of diagrams. The `infinity` keyword argument
-determines where the infinity line is placed. If set to `nothing` the function tries to
-guess a good infinity poistion.
-"""
-barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
-
 @recipe function f(pd::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}};
                    infinity=nothing)
-    max_y, has_inf = get_max_y_and_inf(pd)
-    if !isnothing(infinity)
-        max_y = infinity
+    t_min, t_max, infinite = t_limits(pd)
+    if infinite && !isnothing(infinity)
+        t_max = infinity
     end
     if pd isa PersistenceDiagram
         pds = (pd,)
@@ -230,31 +254,41 @@ barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
         seriescolor := :black
         label := ""
 
-        [0, max_y], [0, max_y]
+        [t_min, t_max], [t_min, t_max]
     end
     # line at infinity
-    if has_inf
+    if infinite
         @series begin
-            seriestype := :path
+            seriestype := :hline
             seriescolor := :grey
             line := :dot
             label := "∞"
 
-            [0, max_y], [max_y, max_y]
+            [t_max]
         end
     end
 
     for pd in pds
+        isempty(pd) && continue
         @series begin
             seriestype := :scatter
             label --> "dim $(dim(pd))"
 
             births = birth.(pd)
-            deaths = map(x -> isfinite(x) ? x : max_y, death.(pd))
+            deaths = map(x -> isfinite(x) ? death(x) : t_max, pd)
             births, deaths
         end
     end
 end
+
+"""
+    barcode(diagram; infinity=nothing)
+
+Plot the barcode plot or `AbstractVector` of diagrams. The `infinity` keyword argument
+determines where the infinity line is placed. If set to `nothing` the function tries to
+guess a good infinity poistion.
+"""
+barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 
 @userplot Barcode
 @recipe function f(bc::Barcode; infinity=nothing)
@@ -262,32 +296,33 @@ end
         throw(ArgumentError("expected single argument, got $(bc.args)"))
     arg = only(bc.args)
     if arg isa PersistenceDiagram
-        pds = [arg]
-    elseif !(arg isa Vector{<:PersistenceDiagram})
-        throw(ArgumentError("expected `PersistenceDiagram` or " *
-                            "`AbstractVector{<:PersistenceDiagram}`, got $(typeof(arg))"))
-    else
+        pds = (arg,)
+    elseif arg isa Vector{<:PersistenceDiagram}
         pds = arg
-    end
-    max_y, has_inf = get_max_y_and_inf(pds)
-    if !isnothing(infinity)
-        max_y = infinity
+    else
+        throw(ArgumentError(
+            "expected `PersistenceDiagram` or " *
+            "`AbstractVector{<:PersistenceDiagram}`, got $(typeof(arg))"
+        ))
     end
 
     yticks --> []
     xguide --> "t"
 
-    if has_inf
+    t_min, t_max, infinite = t_limits(pds)
+    if infinite && !isnothing(infinity)
+        t_max = infinity
+    end
+    if infinite
         @series begin
             seriestype := :vline
             seriescolor := :grey
             line := :dot
             label := "∞"
 
-            [max_y]
+            [t_max]
         end
     end
-
     offset = 0
     for pd in pds
         @series begin
@@ -298,7 +333,7 @@ end
             xs = Float64[]
             ys = Float64[]
             for (i, int) in enumerate(pd)
-                b, d = birth(int), min(death(int), max_y)
+                b, d = birth(int), min(death(int), t_max)
                 append!(xs, (b, d, NaN))
                 append!(ys, (offset, offset, NaN))
                 offset += 1
