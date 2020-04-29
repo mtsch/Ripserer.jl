@@ -299,5 +299,30 @@ using Ripserer:
             ]
             @test cocycle(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
         end
+
+        @testset "lower star" begin
+            data = [range(0, 1, length=5);
+                    range(1, 0.5, length=5)[2:end];
+                    range(0.5, 2, length=4)[2:end];
+                    range(2, -1, length=4)[2:end]]
+
+            # Create distance matrix from data, where neighboring points are connected by
+            # edges and the edge weights are equal to the max of both vertex births.
+            n = length(data)
+            dists = spzeros(n, n)
+            for i in 1:n
+                dists[i, i] = data[i]
+            end
+            for i in 1:n-1
+                j = i + 1
+                dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
+            end
+            # 0-dimensional persistence should find values of minima and maxima of our data.
+            res = first(ripserer(dists, dim_max=0))
+            mins = birth.(res)
+            maxs = death.(filter(isfinite, res))
+            @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
+            @test sort(maxs) == [1.0, 2.0]
+        end
     end
 end
