@@ -139,13 +139,8 @@ The default threshold is equal to the radius of the input space. At this thresho
 vertices are connected to a vertex `x` and the homology becomes trivial. If any of the
 distances is negative, default threshold defaults to `typemax(eltype(dists))`.
 """
-function default_rips_threshold(dists::AbstractMatrix{T}) where T
-    if any(x -> x < 0, dists)
-        typemax(T)
-    else
-        minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
-    end
-end
+default_rips_threshold(dists::AbstractMatrix{T}) where T =
+    minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
 
 """
     RipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
@@ -213,7 +208,7 @@ treated as vertex birth times.
     SparseRipsFiltration(
         distance_matrix;
         modulus=2,
-        threshold=default_rips_threshold(dist),
+        threshold=nothing,
         eltype=Simplex{modulus, T}
     )
 """
@@ -221,35 +216,31 @@ struct SparseRipsFiltration{
     T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractSparseMatrix{T}
 }<: AbstractFlagFiltration{T, S}
 
-    dist      ::A
-    threshold ::T
+    dist ::A
 end
 
 function SparseRipsFiltration(
     dist::AbstractMatrix{T};
     modulus=2,
-    threshold=default_rips_threshold(dist),
+    threshold=nothing,
     edge_type::DataType=Simplex{1, modulus, T, UInt64},
 ) where T
-
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
     edge_type <: AbstractSimplex{1, <:Any, T} ||
         throw(ArgumentError("`edge_type` must be a subtype of `AbstractSimplex{1}`"))
-    if !isfinite(threshold)
-        threshold = default_rips_threshold(dist)
-    end
-    # Even if the matrix is already sparse, we still need to make a copy beacuse we're
-    # editing it.
-    births = diag(dist)
+
     new_dist = sparse(dist)
-    SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
-    for i in 1:size(dist, 1)
-        new_dist[i, i] = births[i]
+    if !isnothing(threshold)
+        births = diag(dist)
+        SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
+        for i in 1:size(dist, 1)
+            new_dist[i, i] = births[i]
+        end
     end
-    SparseRipsFiltration{T, edge_type, typeof(new_dist)}(new_dist, T(threshold))
+    SparseRipsFiltration{T, edge_type, typeof(new_dist)}(new_dist)
 end
 
 n_vertices(rips::SparseRipsFiltration) =

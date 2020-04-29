@@ -47,7 +47,7 @@ end
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == 3
                 @test diam(flt, Simplex{1, 3}(3, 3, 1), [3, 2], 1) == 3
-                @test flt.threshold == 4
+                @test threshold(flt) == (issparse(Filtration) ? ∞ : 4)
                 @test edge_type(flt) === Simplex{1, 3, Int, UInt}
                 @test birth(flt, 1) == 0
                 @test birth(flt, 4) == 0
@@ -65,7 +65,7 @@ end
                 @test dist(flt, 1, 3) == 2
                 @test dist(flt, 3, 2) == (issparse(Filtration) ? ∞ : 3)
                 @test diam(flt, Simplex{2, 5}(1, 1, 1), [1, 2], 3) == ∞
-                @test flt.threshold == 2
+                @test threshold(flt) == (issparse(Filtration) ? ∞ : 2)
                 @test edge_type(flt) === Simplex{1, 5, Int, UInt}
 
                 @test birth(flt, 1) == 1

@@ -100,8 +100,8 @@ using Ripserer:
         end
         @testset "sparse" begin
             dist = [0 1 2;
-                    1 0 3;
-                    2 3 0]
+                    1 0 0;
+                    2 0 0]
             flt = SparseRipsFiltration(dist)
             res, columns, simplices = zeroth_intervals(flt)
 
