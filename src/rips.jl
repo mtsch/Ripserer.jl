@@ -140,7 +140,7 @@ vertices are connected to a vertex `x` and the homology becomes trivial. If any 
 distances is negative, default threshold defaults to `typemax(eltype(dists))`.
 """
 function default_rips_threshold(dists::AbstractMatrix{T}) where T
-    if any(<(0), dists)
+    if any(x -> x < 0, dists)
         typemax(T)
     else
         minimum(maximum(dists[:, i]) for i in 1:size(dists, 1))
