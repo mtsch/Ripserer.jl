@@ -1,23 +1,23 @@
-using Compat
-using LinearAlgebra
-using SparseArrays
+using SafeTestsets
 using Test
 
-using Aqua
-using DataStructures
-using Distances
-using RecipesBase
-
-using Ripserer
-
-include("data.jl")
-
 @testset "Ripserer" begin
-    Aqua.test_all(Ripserer)
-
-    include("convenience.jl")
-    include("simplex.jl")
-    include("rips.jl")
-    include("diagrams.jl")
-    include("reduction.jl")
+    @safetestset "Aqua" begin
+        include("aqua.jl")
+    end
+    @safetestset "infinity" begin
+        include("infinity.jl")
+    end
+    @safetestset "simplex" begin
+        include("simplex.jl")
+    end
+    @safetestset "ripsfiltration" begin
+        include("ripsfiltration.jl")
+    end
+    @safetestset "diagram" begin
+        include("diagram.jl")
+    end
+    @safetestset "reduction" begin
+        include("reduction.jl")
+    end
 end

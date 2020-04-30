@@ -1,3 +1,4 @@
+# This file includes various datasets and dataset generators used in testing.
 using Distances
 using LinearAlgebra
 using SparseArrays
@@ -22,7 +23,7 @@ function rand_dist_matrix(n, sparse)
     A
 end
 
-# Distances on an icosahedron graph with edge length 1.
+"Distances on an icosahedron graph with edge length 1."
 icosahedron = Float64[0 1 2 2 1 2 1 1 2 2 1 3;
                       1 0 3 2 1 1 2 1 2 1 2 2;
                       2 3 0 1 2 2 1 2 1 2 1 1;
@@ -36,7 +37,7 @@ icosahedron = Float64[0 1 2 2 1 2 1 1 2 2 1 3;
                       1 2 1 2 1 2 1 2 1 3 0 2;
                       3 2 1 1 2 1 2 2 1 1 2 0]
 
-# Distances on a cycle graph with edge length 1.
+"Distances on a cycle graph with edge length 1."
 cycle = [0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1;
          1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2;
          2 1 0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3;
@@ -56,7 +57,7 @@ cycle = [0 1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1;
          2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0 1;
          1 2 3 4 5 6 7 8 9 8 7 6 5 4 3 2 1 0]
 
-# taken from ripser/examples
+"Projective plane, taken from ripser/examples."
 projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
                     1 0 2 2 2 1 2 1 2 1 2 2 2;
                     1 2 0 2 2 2 1 2 1 1 2 2 2;
@@ -71,6 +72,11 @@ projective_plane = [0 1 1 1 1 1 1 1 1 2 2 2 2;
                     2 2 2 2 2 2 2 1 1 1 2 0 1;
                     2 2 2 1 1 1 1 1 1 2 1 1 0]
 
+"""
+    rand_n_sphere(n, dim)
+
+Randomly sample `n` points from `dim`-dimensional sphere. Return euclidean distance matrix.
+"""
 function rand_n_sphere(n, dim)
     points = mapslices(normalize, randn(dim+1, n), dims=1)
     pairwise(Euclidean(), points)
@@ -79,7 +85,8 @@ end
 """
     torus_dist(pts)
 
-Calculate distances between points on [-1,1]×[-1,1] as if they were on a flat torus.
+Calculate euclidean distances between points on [-1,1]×[-1,1] as if they were on a flat
+torus.
 """
 function torus_dist(pts)
     n = size(pts, 2)
@@ -97,6 +104,12 @@ function torus_dist(pts)
     dist
 end
 
+"""
+    torus_points(n, R=2, r=1)
+
+Get `n` points from torus with external radius `R` and internal radius `r` embedded in 3d
+euclidean space.
+"""
 function torus_points(n, R=2, r=1)
     n = floor(Int, sqrt(n))
     [((R + r*cos(θ))*cos(φ), (R + r*cos(θ))*sin(φ), r*sin(θ))
@@ -107,10 +120,13 @@ end
 """
     torus(n)
 
-Construct a torus distance matrix with `n` points. The points are equidistant.
+Construct a torus distance matrix with `n` points. The points are equidistant. `n` must be a
+square number.
 """
 function torus(n)
-    n = floor(Int, sqrt(n))
+    sqn = √n
+    @assert sqn == floor(Int, sqn)
+    n = floor(Int, sqn)
     r = range(-1, 1, length = n+1)[1:end-1]
     pts = fill(0.0, (2, n*n))
     i = 1
@@ -135,7 +151,7 @@ end
 """
     disconnected_tori(n, m)
 
-Construct `m` random toruses with `n` points each.
+Construct sparse distance matrix of `m` random toruses with `n` points each.
 """
 function disconnected_tori(n, m)
     dist = zeros(n*m, n*m)

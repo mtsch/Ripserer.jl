@@ -38,7 +38,7 @@ Base.:>(::Infinity, ::Infinity) =
 Base.isless(a, ::Infinity) =
     true
 Base.isless(::Infinity, a) =
-    true
+    false
 
 Base.isfinite(::Infinity) =
     false
