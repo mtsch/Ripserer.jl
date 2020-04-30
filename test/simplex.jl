@@ -1,12 +1,12 @@
 using Ripserer: PrimeField, is_prime, n_bits, small_binomial
 
-struct FakeFiltration <: AbstractFiltration{Int, Simplex{1,2,Int,UInt}} end
+struct FakeFiltration <: AbstractFiltration{Int, Simplex{0,2,Int,UInt}} end
 Ripserer.diam(::FakeFiltration, args...) =
     1
 Ripserer.n_vertices(::FakeFiltration) =
     20
 
-struct FakeFiltrationWithThreshold <: AbstractFiltration{Int, Simplex{1,2,Int,UInt}} end
+struct FakeFiltrationWithThreshold <: AbstractFiltration{Int, Simplex{0,2,Int,UInt}} end
 Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
     v ≤ 10 ? 1 : ∞
 Ripserer.n_vertices(::FakeFiltrationWithThreshold) =

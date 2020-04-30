@@ -180,6 +180,9 @@ struct DisjointSetsWithBirth{T}
     end
 end
 
+Base.length(s::DisjointSetsWithBirth) =
+    length(s.parents)
+
 function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
     parents = s.parents
     p = parents[x]
@@ -187,6 +190,19 @@ function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
         parents[x] = p = find_root!(s, p)
     end
     p
+end
+
+"""
+    find_leaves!(s::DisjointSetsWithBirth, x)
+
+Find all leaves below `x`, i.e. vertices that have `x` as root.
+"""
+function find_leaves!(s::DisjointSetsWithBirth, x)
+    leaves = Int[]
+    for i in 1:length(s)
+        find_root!(s, i) == x && push!(leaves, i)
+    end
+    leaves
 end
 
 function Base.union!(s::DisjointSetsWithBirth, x, y)
@@ -404,10 +420,15 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
 threshold.
 """
-function zeroth_intervals(filtration, ratio=1)
+function zeroth_intervals(filtration, ratio, ::Val{cocycles}) where cocycles
     T = dist_type(filtration)
+    V = vertex_type(filtration)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
-    intervals = PersistenceInterval{T, Nothing}[]
+    if cocycles
+        intervals = PersistenceInterval{T, Vector{V}}[]
+    else
+        intervals = PersistenceInterval{T, Nothing}[]
+    end
     simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
 
@@ -419,7 +440,14 @@ function zeroth_intervals(filtration, ratio=1)
         if i ≠ j
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
-            interval = PersistenceInterval(max(birth(dset, i), birth(dset, j)), diam(sx))
+            if cocycles
+                cocycle = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, i))
+            else
+                cocycle = nothing
+            end
+            interval = PersistenceInterval(
+                max(birth(dset, i), birth(dset, j)), diam(sx), cocycle,
+            )
             if death(interval) > birth(interval) * ratio
                 push!(intervals, interval)
             end
@@ -429,8 +457,14 @@ function zeroth_intervals(filtration, ratio=1)
         end
     end
     for v in 1:n_vertices(filtration)
+        # ripser does this part wrong -- it just sticks all vertices in here.
         if find_root!(dset, v) == v
-            push!(intervals, PersistenceInterval(birth(dset, v), ∞))
+            if cocycles
+                cocycle = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, v))
+            else
+                cocycle = nothing
+            end
+            push!(intervals, PersistenceInterval(birth(dset, v), ∞, cocycle))
         end
     end
     reverse!(columns)
@@ -511,8 +545,8 @@ Compute persistent homology from `filtration` object.
 ripserer(filtration::AbstractFiltration; dim_max=1, cocycles=false, ratio=1) =
     ripserer(filtration, ratio, Val(dim_max), Val(cocycles))
 
-function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{<:Any})
-    diagram, _, _ = zeroth_intervals(filtration, ratio)
+function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{C}) where C
+    diagram, _, _ = zeroth_intervals(filtration, ratio, Val(C))
     [diagram]
 end
 
@@ -533,7 +567,7 @@ end
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio)
+        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio, Val(C))
     end
     for i in 1:D-1
         expr = quote

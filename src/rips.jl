@@ -1,25 +1,25 @@
 # distance matrix stuff ================================================================== #
 """
-    edges(dist::AbstractMatrix{T}, thresh, S)
+    edges(dist::AbstractMatrix{T}, thresh, E)
 
-Return sorted edges of type `S` in distance matrix with length lower than `thresh`.
+Return sorted edges of type `E` in distance matrix with length lower than `thresh`.
 """
-function edges(dist::AbstractMatrix{T}, thresh, S) where T
+function edges(dist::AbstractMatrix{T}, thresh, E) where T
     n = size(dist, 1)
-    res = S[]
+    res = E[]
     @inbounds for j in 1:n, i in j+1:n
         l = dist[i, j]
-        l ≤ thresh && push!(res, S(l, index((i, j)), 1))
+        l ≤ thresh && push!(res, E(l, index((i, j)), 1))
     end
     sort!(res)
 end
 
-function edges(dist::AbstractSparseMatrix{T}, thresh, S) where T
-    res = S[]
+function edges(dist::AbstractSparseMatrix{T}, thresh, E) where T
+    res = E[]
     I, J, V = findnz(dist)
     for (i, j, l) in zip(I, J, V)
         i > j || continue
-        l ≤ thresh && push!(res, S(l, index((i, j)), 1))
+        l ≤ thresh && push!(res, E(l, index((i, j)), 1))
     end
     sort!(res)
 end
@@ -91,13 +91,13 @@ const ∞ = Infinity()
 
 # flag =================================================================================== #
 """
-    AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
+    AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V}
 
 An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
 `dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Infinity}` instead of `diam`.
 `diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
 """
-abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
+abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
 
 @propagate_inbounds function diam(flt::AbstractFlagFiltration, vertices)
     n = length(vertices)
@@ -143,7 +143,7 @@ default_rips_threshold(dists::AbstractMatrix{T}) where T =
     minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
 
 """
-    RipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
+    RipsFiltration{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
 
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
@@ -154,12 +154,12 @@ Diagonal items are treated as vertex birth times.
         distance_matrix;
         modulus=2,
         threshold=default_rips_threshold(dist),
-        edge_type=Simplex{1, modulus, T, Int, UInt}
+        vertex_type=Simplex{0, modulus, T, Int, UInt}
     )
 """
 struct RipsFiltration{
-    T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractMatrix{T}
-} <: AbstractFlagFiltration{T, S}
+    T, V<:AbstractSimplex{0, <:Any, T}, A<:AbstractMatrix{T}
+} <: AbstractFlagFiltration{T, V}
 
     dist      ::A
     threshold ::T
@@ -169,18 +169,18 @@ function RipsFiltration(
     dist::AbstractMatrix{T};
     modulus=2,
     threshold=default_rips_threshold(dist),
-    edge_type::DataType=Simplex{1, modulus, T, UInt64}
+    vertex_type::DataType=Simplex{0, modulus, T, UInt64}
 ) where T
 
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    edge_type <: AbstractSimplex{1, <:Any, T} ||
-        throw(ArgumentError("`edge_type` must be a subtype of `AbstractSimplex{1}`"))
+    vertex_type <: AbstractSimplex{0, <:Any, T} ||
+        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0}`"))
     !issparse(dist) ||
         throw(ArgumentError("`dits` is sparse. Use `SparseRipsFiltration` instead"))
-    RipsFiltration{T, edge_type, typeof(dist)}(dist, T(threshold))
+    RipsFiltration{T, vertex_type, typeof(dist)}(dist, T(threshold))
 end
 
 n_vertices(rips::RipsFiltration) =
@@ -196,7 +196,7 @@ birth(rips::RipsFiltration, i) =
     rips.dist[i, i]
 
 """
-    SparseRipsFiltration{T, S<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, S}
+    SparseRipsFiltration{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
 
 This type represents a filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -213,8 +213,8 @@ treated as vertex birth times.
     )
 """
 struct SparseRipsFiltration{
-    T, S<:AbstractSimplex{1, <:Any, T}, A<:AbstractSparseMatrix{T}
-}<: AbstractFlagFiltration{T, S}
+    T, V<:AbstractSimplex{0, <:Any, T}, A<:AbstractSparseMatrix{T}
+}<: AbstractFlagFiltration{T, V}
 
     dist ::A
 end
@@ -223,14 +223,14 @@ function SparseRipsFiltration(
     dist::AbstractMatrix{T};
     modulus=2,
     threshold=nothing,
-    edge_type::DataType=Simplex{1, modulus, T, UInt64},
+    vertex_type::DataType=Simplex{0, modulus, T, UInt64},
 ) where T
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     is_prime(modulus) ||
         throw(ArgumentError("`modulus` must be prime"))
-    edge_type <: AbstractSimplex{1, <:Any, T} ||
-        throw(ArgumentError("`edge_type` must be a subtype of `AbstractSimplex{1}`"))
+    vertex_type <: AbstractSimplex{0, <:Any, T} ||
+        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0}`"))
 
     new_dist = sparse(dist)
     if !isnothing(threshold)
@@ -240,7 +240,7 @@ function SparseRipsFiltration(
             new_dist[i, i] = births[i]
         end
     end
-    SparseRipsFiltration{T, edge_type, typeof(new_dist)}(new_dist)
+    SparseRipsFiltration{T, vertex_type, typeof(new_dist)}(new_dist)
 end
 
 n_vertices(rips::SparseRipsFiltration) =

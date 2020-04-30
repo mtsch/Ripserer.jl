@@ -75,7 +75,7 @@ dim(sx::AbstractSimplex) =
 
 # filtrations ============================================================================ #
 """
-    AbstractFiltration{T, S<:AbstractSimplex{C, T}}
+    AbstractFiltration{T, V<:AbstractSimplex{0, C, T}}
 
 A filtration is used to find the edges in filtration and to determine diameters of
 simplices.
@@ -93,14 +93,16 @@ simplices.
   defaults to `false`.
 * [`birth(::AbstractFiltration, v)`] - optional, defaults to returning `zero(T)`.
 """
-abstract type AbstractFiltration{T, S<:AbstractSimplex{1, <:Any, T}} end
+abstract type AbstractFiltration{T, V<:AbstractSimplex{0, <:Any, T}} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
-edge_type(::AbstractFiltration{<:Any, S}) where S =
-    S
+vertex_type(::AbstractFiltration{<:Any, V}) where V =
+    V
+edge_type(::AbstractFiltration{<:Any, V}) where V =
+    coface_type(V)
 dist_type(::AbstractFiltration{T}) where T =
     T
 
