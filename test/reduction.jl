@@ -283,10 +283,10 @@ using Ripserer:
             end
         end
 
-        @testset "cocycles" begin
-            _, d1, d2 = ripserer(projective_plane, dim_max=2, cocycles=true)
+        @testset "representatives" begin
+            _, d1, d2 = ripserer(projective_plane, dim_max=2, representatives=true)
 
-            @test cocycle(only(d1)) == [
+            @test representative(only(d1)) == [
                 Simplex{1, 2}(1, (11, 10), 1),
                 Simplex{1, 2}(1, (10, 7), 1),
                 Simplex{1, 2}(1, (10, 6), 1),
@@ -297,7 +297,7 @@ using Ripserer:
                 Simplex{1, 2}(1, (5, 1), 1),
                 Simplex{1, 2}(1, (2, 1), 1),
             ]
-            @test cocycle(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
+            @test representative(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
         end
 
         @testset "lower star" begin

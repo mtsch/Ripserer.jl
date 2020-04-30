@@ -23,7 +23,7 @@ export Infinity, ∞,
     Simplex, coef, set_coef, index, diam, coface_type, vertices, coboundary, dim,
     AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
     n_vertices, threshold, edges, edge_type,
-    PersistenceInterval, birth, death, persistence, cocycle, PersistenceDiagram,
+    PersistenceInterval, birth, death, persistence, representative, PersistenceDiagram,
     barcode, barcode!,
     ripserer
 
