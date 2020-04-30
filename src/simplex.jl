@@ -346,7 +346,7 @@ struct Simplex{D, M, T, U<:Unsigned} <: AbstractSimplex{D, PrimeField{M}, T}
         diam::T, index::I, coef::Integer
     ) where {D, M, T, I<:Integer, U}
         is_prime(M) || throw(DomainError(M, "modulus must be a prime number"))
-        D > 0 || throw(DomainError(D, "dimension must be a positive integer"))
+        D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
         U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
         bits = n_bits(M)
         new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + mod_prime(coef, Val(M)))
@@ -355,7 +355,7 @@ struct Simplex{D, M, T, U<:Unsigned} <: AbstractSimplex{D, PrimeField{M}, T}
     function Simplex{D, M, T, U}(
         diam::T, index::I, coef::PrimeField{M}
     ) where {D, M, T, I<:Integer, U}
-        D > 0 || throw(DomainError(D, "dimension must be a positive integer"))
+        D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
         U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
         bits = n_bits(M)
         new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + I(coef))

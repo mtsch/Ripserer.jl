@@ -180,6 +180,9 @@ struct DisjointSetsWithBirth{T}
     end
 end
 
+Base.length(s::DisjointSetsWithBirth) =
+    length(s.parents)
+
 function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
     parents = s.parents
     p = parents[x]
@@ -187,6 +190,19 @@ function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
         parents[x] = p = find_root!(s, p)
     end
     p
+end
+
+"""
+    find_leaves!(s::DisjointSetsWithBirth, x)
+
+Find all leaves below `x`, i.e. vertices that have `x` as root.
+"""
+function find_leaves!(s::DisjointSetsWithBirth, x)
+    leaves = Int[]
+    for i in 1:length(s)
+        find_root!(s, i) == x && push!(leaves, i)
+    end
+    leaves
 end
 
 function Base.union!(s::DisjointSetsWithBirth, x, y)
@@ -327,8 +343,8 @@ reduced. Record it in the reduction matrix and return the persistence interval.
 function reduce_working_column!(
     rs::ReductionState,
     column_simplex::AbstractSimplex,
-    ::Val{cocycles},
-) where cocycles
+    ::Val{representatives},
+) where representatives
     current_pivot = initialize!(rs, column_simplex)
 
     while !isnothing(current_pivot) && has_column(rs.reduction_matrix, index(current_pivot))
@@ -343,9 +359,9 @@ function reduce_working_column!(
         death = diam(current_pivot)
     end
     birth = diam(column_simplex)
-    if cocycles
-        cocycle = collect(rs.reduction_matrix[index(current_pivot)])
-        PersistenceInterval(birth, death, cocycle)
+    if representatives
+        representative = collect(rs.reduction_matrix[index(current_pivot)])
+        PersistenceInterval(birth, death, representative)
     else
         PersistenceInterval(birth, death)
     end
@@ -357,17 +373,17 @@ end
 Compute persistence intervals by reducing `columns`, a collection of simplices.
 """
 function compute_intervals!(
-    rs::ReductionState, columns, ratio, ::Val{cocycles},
-) where cocycles
+    rs::ReductionState, columns, ratio, ::Val{representatives},
+) where representatives
     T = dist_type(rs.filtration)
-    if cocycles
+    if representatives
         C = eltype(columns)
         intervals = PersistenceInterval{T, Vector{C}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, Val(cocycles))
+        interval = reduce_working_column!(rs, column, Val(representatives))
         if death(interval) > birth(interval) * ratio
             push!(intervals, interval)
         end
@@ -404,10 +420,15 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
 threshold.
 """
-function zeroth_intervals(filtration, ratio=1)
+function zeroth_intervals(filtration, ratio, ::Val{representatives}) where representatives
     T = dist_type(filtration)
+    V = vertex_type(filtration)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
-    intervals = PersistenceInterval{T, Nothing}[]
+    if representatives
+        intervals = PersistenceInterval{T, Vector{V}}[]
+    else
+        intervals = PersistenceInterval{T, Nothing}[]
+    end
     simplices = edge_type(filtration)[]
     columns = edge_type(filtration)[]
 
@@ -419,7 +440,14 @@ function zeroth_intervals(filtration, ratio=1)
         if i ≠ j
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
-            interval = PersistenceInterval(max(birth(dset, i), birth(dset, j)), diam(sx))
+            if representatives
+                representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, i))
+            else
+                representative = nothing
+            end
+            interval = PersistenceInterval(
+                max(birth(dset, i), birth(dset, j)), diam(sx), representative,
+            )
             if death(interval) > birth(interval) * ratio
                 push!(intervals, interval)
             end
@@ -429,8 +457,14 @@ function zeroth_intervals(filtration, ratio=1)
         end
     end
     for v in 1:n_vertices(filtration)
+        # ripser does this part wrong -- it just sticks all vertices in here.
         if find_root!(dset, v) == v
-            push!(intervals, PersistenceInterval(birth(dset, v), ∞))
+            if representatives
+                representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, v))
+            else
+                representative = nothing
+            end
+            push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end
     reverse!(columns)
@@ -444,12 +478,12 @@ Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, ratio, ::Val{cocycles}; next=true,
-) where {S<:AbstractSimplex, cocycles}
+    filtration, columns::Vector{S}, simplices, ratio, ::Val{representatives}; next=true,
+) where {S<:AbstractSimplex, representatives}
 
     rs = ReductionState(filtration, S)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, ratio, Val(cocycles))
+    intervals = compute_intervals!(rs, columns, ratio, Val(representatives))
     if next
         (intervals, assemble_columns!(rs, simplices)...)
     else
@@ -474,7 +508,7 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false || issparse(dists)`.
 * `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
   Defaults to `1`.
-* `cocycles`: if `true`, return representative cocycles along with persistence
+* `representatives`: if `true`, return representative cocycles along with persistence
   intervals. Defaults to `false`.
 * `metric`: when calculating persistent homology from points, any metric from
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
@@ -487,7 +521,7 @@ function ripserer(
     dim_max=1,
     sparse=false || issparse(dists),
     ratio=1,
-    cocycles=false,
+    representatives=false,
     kwargs...
 )
     if sparse
@@ -495,7 +529,7 @@ function ripserer(
     else
         filtration = RipsFiltration(dists; kwargs...)
     end
-    ripserer(filtration; dim_max=dim_max, cocycles=cocycles, ratio=ratio)
+    ripserer(filtration; dim_max=dim_max, representatives=representatives, ratio=ratio)
 end
 
 function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
@@ -508,11 +542,11 @@ end
 
 Compute persistent homology from `filtration` object.
 """
-ripserer(filtration::AbstractFiltration; dim_max=1, cocycles=false, ratio=1) =
-    ripserer(filtration, ratio, Val(dim_max), Val(cocycles))
+ripserer(filtration::AbstractFiltration; dim_max=1, representatives=false, ratio=1) =
+    ripserer(filtration, ratio, Val(dim_max), Val(representatives))
 
-function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{<:Any})
-    diagram, _, _ = zeroth_intervals(filtration, ratio)
+function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{C}) where C
+    diagram, _, _ = zeroth_intervals(filtration, ratio, Val(C))
     [diagram]
 end
 
@@ -533,7 +567,7 @@ end
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio)
+        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio, Val(C))
     end
     for i in 1:D-1
         expr = quote

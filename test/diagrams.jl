@@ -6,7 +6,7 @@ RecipesBase.is_key_supported(::Symbol) = true
 
 @testset "diagrams" begin
     @testset "PersistenceInterval" begin
-        @testset "no cocycle" begin
+        @testset "no representative" begin
             int1 = PersistenceInterval(1, 2)
             @test eltype(int1) == Union{Int, Infinity}
             b, d = int1
@@ -29,7 +29,7 @@ RecipesBase.is_key_supported(::Symbol) = true
             @test int1 < int2
             @test int1 < PersistenceInterval(2, 2)
 
-            @test isnothing(cocycle(int1))
+            @test isnothing(representative(int1))
 
             @test sprint(print, int1) == "[1, 2)"
             @test sprint(print, int2) == "[1, ∞)"
@@ -37,7 +37,7 @@ RecipesBase.is_key_supported(::Symbol) = true
                 "PersistenceInterval{Int64}(1, 2)"
         end
 
-        @testset "with cocycle" begin
+        @testset "with representative" begin
             int1 = PersistenceInterval(2.0, 3.0, [1, 2, 3, 4])
             @test eltype(int1) == Union{Float64, Infinity}
             b, d = int1
@@ -60,14 +60,14 @@ RecipesBase.is_key_supported(::Symbol) = true
             @test int1 > int2
             @test int1 > PersistenceInterval(2.0, 2.0, [1, 2])
 
-            @test cocycle(int1) == [1, 2, 3, 4]
-            @test cocycle(int2) == [1, 2]
+            @test representative(int1) == [1, 2, 3, 4]
+            @test representative(int2) == [1, 2]
 
             @test sprint(print, int1) == "[2.0, 3.0)"
             @test sprint(print, int2) == "[1.0, ∞)"
             @test sprint((io, val) -> show(io, MIME"text/plain"(), val), int1) ==
                 """
-                PersistenceInterval{Float64}(2.0, 3.0) with cocycle:
+                PersistenceInterval{Float64}(2.0, 3.0) with representative:
                 4-element Array{Int64,1}:
                  1
                  2

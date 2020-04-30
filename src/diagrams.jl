@@ -3,17 +3,17 @@
     PersistenceInterval{T, C}
 
 The type that represents a persistence interval. It behaves exactly like a
-`Tuple{T, Union{T, Infinity}}`, but may have a cocycle attached to it.
+`Tuple{T, Union{T, Infinity}}`, but may have a representative cocycle attached to it.
 """
-struct PersistenceInterval{T, C}
-    birth   ::T
-    death   ::Union{T, Infinity}
-    cocycle ::C
+struct PersistenceInterval{T, R}
+    birth          ::T
+    death          ::Union{T, Infinity}
+    representative ::R
 
     PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
         new{T, Nothing}(birth, death, nothing)
-    PersistenceInterval(birth::T, death::Union{T, Infinity}, cocycle::C) where {T, C} =
-        new{T, C}(birth, death, cocycle)
+    PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R) where {T, R} =
+        new{T, R}(birth, death, rep)
 end
 
 PersistenceInterval(t::Tuple{<:Any, <:Any}) =
@@ -23,9 +23,9 @@ Base.show(io::IO, int::PersistenceInterval) =
     print(io, "[", int.birth, ", ", int.death, ")")
 function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
     print(io, "PersistenceInterval{", T, "}", (int.birth, int.death))
-    if !isnothing(int.cocycle)
-        println(io, " with cocycle:")
-        show(io, MIME"text/plain"(), int.cocycle)
+    if !isnothing(int.representative)
+        println(io, " with representative:")
+        show(io, MIME"text/plain"(), int.representative)
     end
 end
 
@@ -62,12 +62,13 @@ Base.isfinite(int::PersistenceInterval) =
     isfinite(death(int))
 
 """
-    cocycle(interval::PersistenceInterval)
+    representative(interval::PersistenceInterval)
 
-Get the cocycle attached to `interval`. If cocycles were not computed, return `nothing`.
+Get the representative cocycle attached to `interval`. If representatives were not computed,
+return `nothing`.
 """
-cocycle(int::PersistenceInterval) =
-    int.cocycle
+representative(int::PersistenceInterval) =
+    int.representative
 
 function Base.iterate(int::PersistenceInterval, i=1)
     if i == 1
