@@ -1,4 +1,4 @@
-using Ripserer: dist_type, vertex_type, dist
+using Ripserer: dist_type, vertex_type, edge_type, dist, threshold
 
 """
     filtration_interface_testset(Filtration, datasets)

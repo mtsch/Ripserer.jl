@@ -1,7 +1,6 @@
 module Ripserer
 
 using Compat
-using Future: copy!
 
 using Base: @propagate_inbounds, @pure
 using LinearAlgebra
@@ -12,19 +11,20 @@ using Distances
 using RecipesBase
 using TupleTools
 
-include("interface.jl")
+include("infinity.jl")
+export Infinity, ∞
+include("abstractsimplex.jl")
+export AbstractSimplex, coef, set_coef, index, diam, coface_type, vertices, coboundary, dim
 include("simplex.jl")
-include("rips.jl")
-include("diagrams.jl")
+export Simplex
+include("abstractfiltration.jl")
+export AbstractFiltration, n_vertices, edges, birth, issparse
+include("ripsfiltration.jl")
+export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
+include("diagram.jl")
+export PersistenceInterval, birth, death, persistence, representative,
+    PersistenceDiagram, barcode, barcode!
 include("reduction.jl")
-
-export Infinity, ∞,
-    AbstractFiltration, AbstractSimplex,
-    Simplex, coef, set_coef, index, diam, coface_type, vertices, coboundary, dim,
-    AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration,
-    n_vertices, threshold, edges, edge_type,
-    PersistenceInterval, birth, death, persistence, representative, PersistenceDiagram,
-    barcode, barcode!,
-    ripserer
+export ripserer
 
 end
