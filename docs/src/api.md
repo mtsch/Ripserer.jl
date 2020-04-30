@@ -21,11 +21,27 @@ PersistenceInterval
 ```
 
 ```@docs
+birth(::PersistenceInterval)
+```
+
+```@docs
+death(::PersistenceInterval)
+```
+
+```@docs
+persistence(::PersistenceInterval)
+```
+
+```@docs
+representative(::PersistenceInterval)
+```
+
+```@docs
 PersistenceDiagram
 ```
 
 ```@docs
-RecipesBase.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
+Plots.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 ```
 
 ```@docs
@@ -93,9 +109,9 @@ diam(::AbstractFiltration, ::Any)
 ```
 
 ```@docs
-diam(::AbstractFiltration, ::Any, ::Any, ::Any)
+diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 ```
 
 ```@docs
-SparseArrays.issparse(::AbstractFiltration)
+issparse(::AbstractFiltration)
 ```

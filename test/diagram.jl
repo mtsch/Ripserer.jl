@@ -101,6 +101,12 @@ end
                  [1, 3)
                  [3, 4)
                  [3, ∞)"""
+
+        @test copy(diag) == diag
+        @test similar(diag) isa typeof(diag)
+        @test similar(diag, (Base.OneTo(2),)) isa typeof(diag)
+        @test sort(diag) isa typeof(diag)
+        @test filter(isfinite, diag) isa typeof(diag)
     end
     @testset "Plots recipes" begin
         # Idea: apply recipe and check the number of series on plots.

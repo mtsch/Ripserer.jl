@@ -149,16 +149,28 @@ function Base.show(io::IO, ::MIME"text/plain", pd::PersistenceDiagram)
         print(io, ":")
         limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
         if length(pd) + 1 < limit
-            for i in pd
-                print(io, "\n ", i)
+            for i in eachindex(pd)
+                if isassigned(pd.intervals, i)
+                    print(io, "\n ", pd[i])
+                else
+                    print(io, "\n #undef")
+                end
             end
         else
-            for i in pd[1:limit÷2-2]
-                print(io, "\n ", i)
+            for i in 1:limit÷2-2
+                if isassigned(pd.intervals, i)
+                    print(io, "\n ", pd[i])
+                else
+                    print(io, "\n #undef")
+                end
             end
             print(io, "\n ⋮")
-            for i in pd[end-limit÷2+3:end]
-                print(io, "\n ", i)
+            for i in lastindex(pd)-limit÷2+3:lastindex(pd)
+                if isassigned(pd.intervals, i)
+                    print(io, "\n ", pd[i])
+                else
+                    print(io, "\n #undef")
+                end
             end
         end
     end
@@ -178,6 +190,12 @@ Base.firstindex(pd::PersistenceDiagram) =
 
 Base.lastindex(pd::PersistenceDiagram) =
     length(pd.intervals)
+
+Base.similar(pd::PersistenceDiagram) =
+    PersistenceDiagram(dim(pd), similar(pd.intervals))
+
+Base.similar(pd::PersistenceDiagram, dims::Tuple) =
+    PersistenceDiagram(dim(pd), similar(pd.intervals, dims))
 
 """
     dim(::PersistenceDiagram)
