@@ -1,7 +1,14 @@
 """
     ReductionMatrix{S}
 
-TODO
+A representation of the reduction matrix in the current dimension. Supports the following
+operations.
+
+* `insert_column!(::ReductionMatrix, i)`: add a new column with column index `i`.
+* `has_column(::ReductionMatrix, i)`: return `true` if the matrix has any entries in the
+  `i`-th column.
+* `push!(::ReductionMatrix, val)`: push `val` to *the last column that was added to the
+  matrix*.
 """
 struct ReductionMatrix{S}
     column_index ::Dict{Int, Int}
@@ -457,7 +464,6 @@ function zeroth_intervals(filtration, ratio, ::Val{representatives}) where repre
         end
     end
     for v in 1:n_vertices(filtration)
-        # ripser does this part wrong -- it just sticks all vertices in here.
         if find_root!(dset, v) == v
             if representatives
                 representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, v))

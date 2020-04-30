@@ -1,6 +1,6 @@
 using Documenter
 using Ripserer
-using SparseArrays
+using Plots
 
 makedocs(sitename="Ripserer.jl",
          format = Documenter.HTML(
