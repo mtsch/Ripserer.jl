@@ -448,7 +448,9 @@ function zeroth_intervals(filtration, ratio, ::Val{representatives}) where repre
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             if representatives
-                representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, i))
+                representative = map(
+                    x -> V(birth(filtration, x), x, 1), find_leaves!(dset, i),
+                )
             else
                 representative = nothing
             end

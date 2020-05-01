@@ -11,6 +11,7 @@ makedocs(sitename="Ripserer.jl",
          pages=[
              "Home" => "index.md",
              "Quick Start" => "quickstart.md",
+             "Examples" => ["examples/time_series.md"],
              "API" => "api.md",
          ])
 

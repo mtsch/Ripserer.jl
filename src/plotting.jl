@@ -221,7 +221,10 @@ function plottable(sxs::SxVector, args...)
 end
 
 @recipe function f(
-    sx::Union{AbstractSimplex{D}, SxVector{D}, PersistenceInterval}, args...,
+    sx::Union{AbstractSimplex{D},
+              SxVector{D},
+              PersistenceInterval{<:Any, <:AbstractVector{<:AbstractSimplex{D}}}}, # yikes
+    args...,
 ) where D
     series, attrs = plottable(sx, args...)
     for (key, value) in attrs
