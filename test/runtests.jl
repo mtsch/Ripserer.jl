@@ -20,4 +20,7 @@ using Test
     @safetestset "reduction" begin
         include("reduction.jl")
     end
+    @safetestset "plotting" begin
+        include("plotting.jl")
+    end
 end
