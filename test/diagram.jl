@@ -1,12 +1,5 @@
 using Ripserer
-
 using Compat
-using RecipesBase
-using RecipesBase: apply_recipe
-using Ripserer: Barcode
-
-# Hack to avoid having to import Plots.
-RecipesBase.is_key_supported(::Symbol) = true
 
 @testset "PersistenceInterval" begin
     @testset "no representative" begin
@@ -107,49 +100,5 @@ end
         @test similar(diag, (Base.OneTo(2),)) isa typeof(diag)
         @test sort(diag) isa typeof(diag)
         @test filter(isfinite, diag) isa typeof(diag)
-    end
-    @testset "Plots recipes" begin
-        # Idea: apply recipe and check the number of series on plots.
-        # Not a perfect way to test, but at least it makes sure the infinity is drawn only
-        # when it needs to be and that there are no errors.
-        int1 = PersistenceInterval(3, ∞)
-        int2 = PersistenceInterval(1, 2)
-        int3 = PersistenceInterval(3, 4)
-
-        diag1 = PersistenceDiagram(1, [int1, int2, int3])
-        diag2 = PersistenceDiagram(2, [(1, 2), (3, 4)])
-
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, diag1)) == 3
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, diag2)) == 2
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, [diag1, diag2])) == 4
-
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, Barcode((diag1,)))) == 2
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, Barcode((diag2,)))) == 1
-        d = Dict{Symbol, Any}()
-        @test length(apply_recipe(d, Barcode(([diag1, diag2],)))) == 3
-
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, diag1)) == 3
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, diag2)) == 2
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, [diag1, diag2])) == 4
-
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, Barcode((diag1,)))) == 2
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, Barcode((diag2,)))) == 1
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test length(apply_recipe(d, Barcode(([diag1, diag2],)))) == 3
-
-        d = Dict{Symbol, Any}(:infinity => 10)
-        @test_throws ArgumentError apply_recipe(d, Barcode((1,)))
-        d = Dict{Symbol, Any}()
-        @test_throws ArgumentError apply_recipe(d, Barcode((diag1,2)))
     end
 end

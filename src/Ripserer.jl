@@ -8,6 +8,7 @@ using SparseArrays
 
 using DataStructures
 using Distances
+using IterTools
 using RecipesBase
 using TupleTools
 
@@ -23,8 +24,10 @@ include("ripsfiltration.jl")
 export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,
-    PersistenceDiagram, barcode, barcode!
+    PersistenceDiagram
 include("reduction.jl")
 export ripserer
+include("plotting.jl")
+export barcode, barcode!
 
 end
