@@ -18,9 +18,16 @@ after_success:
 
 jobs:
   include:
-    - stage: "Documentation"
+    - stage: "docs"
       julia: 1.4
       os: linux
+      addons:
+        apt:
+          - libxt6
+          - libxrender1
+          - libxext6
+          - libgl1-mesa-glx
+          - libqt5widgets5
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
                                                Pkg.instantiate()'
