@@ -4,7 +4,7 @@ using Literate
 using Ripserer
 using Plots
 
-for example in readdir("src/literate", join=true)
+for example in readdir(joinpath(@__DIR__, "src/literate"), join=true)
     endswith(example, "jl") || continue
     Literate.markdown(example, "src/generated", documenter=true)
 end
