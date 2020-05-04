@@ -93,8 +93,6 @@ plot(res[4], x, y,
      seriestype=:path,
      markershape=:d,
      markersize=2,
-     xticks=x_mins,
-     yticks=y_mins,
      xlab="x", ylab="y",
      label=string(res[4]),
      title="Closeup of the 4th Local Minimum")

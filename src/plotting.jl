@@ -1,4 +1,9 @@
-# diarams ================================================================================ #
+# diagrams =============================================================================== #
+"""
+    dim_str(pd)
+
+Get `dim` as subscript string.
+"""
 function dim_str(pd)
     sub_digits = ("₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉")
     join(reverse(sub_digits[digits(dim(pd)) .+ 1]))
@@ -120,15 +125,16 @@ end
         pds = arg
     end
 
+    t_min, t_max, infinite = t_limits(pds)
+    if infinite && !isnothing(infinity)
+        t_max = infinity
+    end
+
     yticks --> []
     xguide --> "t"
     legend --> :outertopright
     title --> "Persistence Barcode"
 
-    t_min, t_max, infinite = t_limits(pds)
-    if infinite && !isnothing(infinity)
-        t_max = infinity
-    end
     if infinite
         @series begin
             seriestype := :path

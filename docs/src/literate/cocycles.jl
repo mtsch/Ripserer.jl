@@ -27,6 +27,7 @@ anim = @animate for i in vcat(3:100, 100:-1:3)
     plt1 = plot(title="1-dimensional Representative Cocycle",
                 xlab="x",
                 ylab="y",
+                legend=false,
                 ylim=(-0.8, 1.8),
                 aspect_ratio=1)
     if length(res[2]) > 0
@@ -36,7 +37,7 @@ anim = @animate for i in vcat(3:100, 100:-1:3)
               linewidth=2,
               color=3)
     end
-    scatter!(plt1, points, label="points", color=2)
+    scatter!(plt1, points, color=2)
     plot(plt1, barcode(res), plot(res),
          layout=@layout([a [b; c]]),
          size=(800, 600))
