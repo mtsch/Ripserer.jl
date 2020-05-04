@@ -20,12 +20,17 @@ PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
 
 Base.show(io::IO, int::PersistenceInterval) =
-    print(io, "[", int.birth, ", ", int.death, ")")
+    print(io, "[", birth(int), ", ", death(int), ")")
+function Base.show(io::IO, int::PersistenceInterval{<:AbstractFloat})
+    b = round(birth(int), sigdigits=3)
+    d = isfinite(death(int)) ? round(death(int), sigdigits=3) : "∞"
+    print(io, "[$b, $d)")
+end
 function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
-    print(io, "PersistenceInterval{", T, "}", (int.birth, int.death))
-    if !isnothing(int.representative)
+    print(io, "PersistenceInterval{", T, "}", (birth(int), death(int)))
+    if !isnothing(representative(int))
         println(io, " with representative:")
-        show(io, MIME"text/plain"(), int.representative)
+        show(io, MIME"text/plain"(), representative(int))
     end
 end
 

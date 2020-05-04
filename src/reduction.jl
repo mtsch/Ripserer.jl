@@ -367,8 +367,15 @@ function reduce_working_column!(
     end
     birth = diam(column_simplex)
     if representatives
-        representative = collect(rs.reduction_matrix[index(current_pivot)])
-        PersistenceInterval(birth, death, representative)
+        if !isnothing(current_pivot)
+            representative = filter!(
+                sx -> diam(sx) < death,
+                collect(rs.reduction_matrix[index(current_pivot)])
+            )
+            PersistenceInterval(birth, death, representative)
+        else
+            PersistenceInterval(birth, death, eltype(rs.reduction_matrix)[])
+        end
     else
         PersistenceInterval(birth, death)
     end

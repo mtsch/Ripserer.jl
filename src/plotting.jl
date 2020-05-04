@@ -1,4 +1,9 @@
 # diarams ================================================================================ #
+function dim_str(pd)
+    sub_digits = ("₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉")
+    join(reverse(sub_digits[digits(dim(pd)) .+ 1]))
+end
+
 """
     t_limits(diagram)
 
@@ -45,6 +50,8 @@ end
     end
     xguide --> "birth"
     yguide --> "death"
+    legend --> :bottomright
+    title --> "Persistence Diagram"
 
     # x = y line
     @series begin
@@ -71,7 +78,12 @@ end
         isempty(pd) && continue
         @series begin
             seriestype := :scatter
-            label --> "dim $(dim(pd))"
+            label --> "H$(dim_str(pd))"
+            markercolor --> dim(pd)+1
+            markerstrokecolor --> dim(pd)+1
+            markeralpha --> 0.7
+            markerstrokealpha --> 1
+            markershape --> :d
 
             births = birth.(pd)
             deaths = map(x -> isfinite(x) ? death(x) : t_max, pd)
@@ -110,6 +122,8 @@ end
 
     yticks --> []
     xguide --> "t"
+    legend --> :outertopright
+    title --> "Persistence Barcode"
 
     t_min, t_max, infinite = t_limits(pds)
     if infinite && !isnothing(infinity)
@@ -130,8 +144,9 @@ end
     for pd in pds
         @series begin
             seriestype := :path
-            label --> "dim $(dim(pd))"
+            label --> "H$(dim_str(pd))"
             linewidth --> 1
+            seriescolor --> dim(pd)+1
 
             xs = Float64[]
             ys = Float64[]
@@ -230,7 +245,7 @@ end
     for (key, value) in attrs
         plotattributes[key] = get(plotattributes, key, value)
     end
-    # splat colors over simplices
+    # splat colors and similar attributes over simplices
     for attr in keys(plotattributes)
         value = plotattributes[attr]
         if value isa Vector
