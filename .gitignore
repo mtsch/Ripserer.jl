@@ -14,3 +14,4 @@ profile/
 
 # Built docs
 docs/build/
+docs/src/generated/

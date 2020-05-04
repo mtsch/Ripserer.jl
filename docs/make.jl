@@ -1,6 +1,13 @@
+@info "build started."
 using Documenter
+using Literate
 using Ripserer
 using Plots
+
+for example in readdir("src/literate", join=true)
+    endswith(example, "jl") || continue
+    Literate.markdown(example, "src/generated", documenter=true)
+end
 
 makedocs(sitename="Ripserer.jl",
          format = Documenter.HTML(
@@ -10,8 +17,12 @@ makedocs(sitename="Ripserer.jl",
          ),
          pages=[
              "Home" => "index.md",
-             "Quick Start" => "quickstart.md",
-             "Examples" => ["examples/time_series.md"],
+             "Examples" => [
+                 "generated/basics.md",
+                 "generated/stability.md",
+                 "generated/cocycles.md",
+                 "generated/time_series_sublevel.md",
+             ],
              "API" => "api.md",
          ])
 
