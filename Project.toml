@@ -4,7 +4,6 @@ authors = ["mtsch <matijacufar@gmail.com>"]
 version = "0.1.0"
 
 [deps]
-BoundingSphere = "747eb165-47b8-53f2-ad32-9704a7dfc50a"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
@@ -16,8 +15,13 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
-Compat = "2.2.0"
 julia = "1"
+Compat = "2.2.0"
+DataStructures = "0.17"
+Distances = "0.8"
+IterTools = "1"
+RecipesBase = "1"
+TupleTools = "1"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
