@@ -10,9 +10,11 @@ gr(); nothing # hide
 
 # We define a function that generates some data sampled from a curve.
 
-curve(n) = [(sin(t)+t/10, cos(t)+t/10) for t in range(0, 2π, length=n)]
+function curve(n)
+    [(sin(t)+t/10, cos(t)+t/10) for t in range(0, 2π, length=n)]
+end
+
 plot(curve(100), legend=false, title="Curve", aspect_ratio=1, xlab="x", ylab="y")
-savefig("cocycles_curve.svg"); nothing # hide
 
 # Then, we compute the persistent homology of that data with various numbers of points. We
 # plot the representative cocycles of each result and turn them into an animation. This data

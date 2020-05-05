@@ -24,9 +24,9 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # Even though this time series is noisy, we would like to locate the five local minima that
 # can clearly be seen from the plot.
 
-# Next, we construct a distance matrix for the sublevel filtration. In this matrix, there is
-# a vertex for each point in our series. We add vertex births, which are equal to its `y`
-# values, to the diagonal. Adjacient vertices are connected with edges, each having a weight
+# We construct a distance matrix for the sublevel filtration. In this matrix, there is a
+# vertex for each point in our series. We add vertex births, which are equal to the `y`
+# values to the diagonal. Adjacient vertices are connected with edges, each having a weight
 # equal to the maximum of its endpoints' births. If we were looking for local maxima, we
 # would use the `min` function instead.
 
@@ -39,10 +39,10 @@ for i in 1:n-1
     dist[i, j] = dist[j, i] = max(dist[i, i], dist[j, j])
 end
 
-# Compute 0-dimensional persistent homology. The resulting persistence diagram contains an
-# interval for each local minimum. The interval's birth time is equal to the `y`-value at
-# the minimum. It's death time is equal to an adjacient local maximum. An interval with
-# infinite persistence represents the global minimum.
+# Next, we compute 0-dimensional persistent homology. The resulting persistence diagram
+# contains an interval for each local minimum. The interval's birth time is equal to the
+# `y`-value at the minimum. It's death time is equal to the height of an adjacient local
+# maximum. An interval with infinite persistence represents the global minimum.
 
 res = ripserer(dist, dim_max=0, representatives=true)[1]
 plot(res)

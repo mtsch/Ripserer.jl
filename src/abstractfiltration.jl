@@ -16,7 +16,7 @@ simplices.
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
 * [`SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration`](@ref) - optional,
   defaults to `false`.
-* [`birth(::AbstractFiltration, v)`] - optional, defaults to returning `zero(T)`.
+* [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
 """
 abstract type AbstractFiltration{T, V<:AbstractSimplex{0, <:Any, T}} end
 
@@ -34,19 +34,19 @@ dist_type(::AbstractFiltration{T}) where T =
 """
     n_vertices(filtration::AbstractFiltration)
 
-Number of vertices in `filtration`.
+Return the number of vertices in `filtration`.
 """
 n_vertices(::AbstractFiltration)
 
 """
-    SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration
+    SparseArrays.issparse(::Type{<:AbstractFiltration})
 
 Return true if `A` is a sparse filtration. A filtration should be sparse if most simplices
 are to be skipped. Defaults to `false`.
 """
 SparseArrays.issparse(flt::AbstractFiltration) =
     issparse(typeof(flt))
-SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration =
+SparseArrays.issparse(::Type{<:AbstractFiltration}) =
     false
 
 """

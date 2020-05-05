@@ -114,7 +114,11 @@ Get numer of bits needed to represent number mod `M`.
     Simplex{D, M, T} <: AbstractSimplex{D, PrimeField{M}, T}
 
 The vanilla simplex type with coefficient values from ``\\mathbb{Z}_M``, integers modulo
-`M`, where `M` is prime. `index` and `coef` are packed into a single `U<:Unsigned`.
+`M`, where `M` is prime.
+
+Because the algorithm needs to store and insane number of simplices, we pack `index` and
+`coef` into a single value of type `U<:Unsigned`. The assumption here is that the modulus is
+very small and `coef` only takes a few bits to store.
 
 # Constructor
 

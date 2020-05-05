@@ -28,7 +28,7 @@ function Base.show(io::IO, int::PersistenceInterval{<:AbstractFloat})
 end
 function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
     print(io, "PersistenceInterval{", T, "}", (birth(int), death(int)))
-    if !isnothing(representative(int))
+    if !isnothing(int.representative)
         println(io, " with representative:")
         show(io, MIME"text/plain"(), representative(int))
     end
@@ -70,10 +70,15 @@ Base.isfinite(int::PersistenceInterval) =
     representative(interval::PersistenceInterval)
 
 Get the representative cocycle attached to `interval`. If representatives were not computed,
-return `nothing`.
+throw an error.
 """
-representative(int::PersistenceInterval) =
-    int.representative
+function representative(int::PersistenceInterval)
+    if !isnothing(int.representative)
+        int.representative
+    else
+        error("$int has no representative. Run ripserer with `representatives=true`")
+    end
+end
 
 function Base.iterate(int::PersistenceInterval, i=1)
     if i == 1

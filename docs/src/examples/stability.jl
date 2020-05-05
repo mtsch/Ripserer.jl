@@ -42,9 +42,10 @@ anim = @animate for _ in 1:200
 end
 gif(anim, "stability_anim_1.gif") # hide
 
-# We notice that the interval's death remains constant, the only thing that changes is the
-# birth time. The birth time is equal to the largest distance between adjacient points in
-# the circle. At birth time, the circle is connected.
+# We notice that an interval in ``H_1`` always stands out and that its death remains
+# constant. The only thing that changes is the birth time. The birth time is equal to the
+# largest distance between adjacient points in the circle. At birth time, the circle is
+# connected.
 
 # Now, let's add some noise!
 
@@ -63,8 +64,8 @@ anim = @animate for _ in 1:200
 end
 gif(anim, "stability_anim_2.gif") # hide
 
-# The interval is jumping around a lot more now, but it hovers around the same general area
-# is still clearly the most persistent feature of our space.
+# The interval is jumping around a lot more now, but it hovers around the same general area.
+# It's still clearly the most persistent feature of our space.
 
 # Next, let's look at how adding more and more noise affects the diagram.
 
@@ -87,7 +88,7 @@ gif(anim, "stability_anim_3.gif") # hide
 # time of the interval decreases as we add noise. This is the result of the diameter of the
 # hole in our circle shrinking.
 
-# Finally, let's strecth a our circle.
+# Finally, let's stretch our circle.
 
 anim = @animate for r in vcat(0.0:0.02:2, 2:-0.02:0.0)
     points = noisy_circle(100, noise=0.1, r1=r)

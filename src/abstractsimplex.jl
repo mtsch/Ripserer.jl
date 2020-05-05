@@ -64,7 +64,7 @@ coface_type(sx::AbstractSimplex) =
 
 """
     dim(::AbstractSimplex)
-    dim(::Type{AbstractSimplex})
+    dim(::Type{<:AbstractSimplex})
 
 Get the dimension of simplex i.e. the value of `D`.
 """

@@ -20,13 +20,15 @@ function noisy_circle(n; r=1, noise=0.1)
     points
 end
 
-# Next, we sample 100 points from the torus.
+# Next, we sample 100 points from the circle.
 
 circ_100 = noisy_circle(100)
 scatter(circ_100, aspect_ratio=1, legend=false, title="Noisy Circle")
 
 # To compute the persistent homology, simply run the following. The `dim_max` argument sets
 # the maximum dimension persistent homology is compted in.
+
+result_circ = ripserer(circ_100, dim_max=3)
 
 # !!! warning "Warning"
 #     Computing persistent homology in high dimensions for large numbers of points
@@ -35,8 +37,6 @@ scatter(circ_100, aspect_ratio=1, legend=false, title="Noisy Circle")
 #     one-dimensional persistent homology for datasets of a few thousand points and higher
 #     (2-3) dimensional persistent homology for datasets of a few hundred points. This, of
 #     course, depends on the data set itself.
-
-result_circ = ripserer(circ_100, dim_max=3)
 
 # The result can be plotted as a persistence diagram.
 

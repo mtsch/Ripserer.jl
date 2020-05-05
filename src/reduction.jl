@@ -519,8 +519,9 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
-  For Rips filtrations, it defaults to radius of input space.
-* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false || issparse(dists)`.
+  For non-sparse Rips filtrations, it defaults to radius of input space.
+* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
+  argument is a sparse matrix, it overrides this option.
 * `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
   Defaults to `1`.
 * `representatives`: if `true`, return representative cocycles along with persistence
@@ -534,12 +535,12 @@ Compute the persistent homology of metric space represented by `dists` or `point
 function ripserer(
     dists::AbstractMatrix;
     dim_max=1,
-    sparse=false || issparse(dists),
+    sparse=false,
     ratio=1,
     representatives=false,
     kwargs...
 )
-    if sparse
+    if sparse || issparse(dists)
         filtration = SparseRipsFiltration(dists; kwargs...)
     else
         filtration = RipsFiltration(dists; kwargs...)

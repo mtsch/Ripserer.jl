@@ -7,8 +7,8 @@ _Efficient computation of persistent homology._
 ## Introduction
 
 Ripserer is a pure Julia implementation of the [Ripser](https://github.com/Ripser/ripser)
-algorithm for computing persistent homology. Roughly speaking, it can be used to detect
-topological holes in data in a noise-resistant, stable way. If you are unfamilliar with
+algorithm for computing persistent homology. Roughly speaking, persistent homology detects
+topological holes in data in a noise-resistant, stable way. If you are unfamiliar with
 persistent homology, I recommend reading this [excellent
 introduction](https://towardsdatascience.com/persistent-homology-with-examples-1974d4b9c3d0).
 
@@ -58,7 +58,7 @@ overloading a few functions. The interfaces are specified in the docstrings for
 If you have written an extension or have trouble implementing one, please open a pull
 request or an issue.
 
-## Acknowledgements
+## Acknowledgments
 
 I would like to thank:
 
@@ -66,4 +66,4 @@ I would like to thank:
   [Ripser](https://github.com/Ripser/ripser) on which this project is based.
 * [@ctralie](https://github.com/ctralie) and [@sauln](https://github.com/sauln) for creating
   [ripser.py](https://github.com/scikit-tda/ripser.py/) which has been a source of
-  insipration.
+  inspiration.
