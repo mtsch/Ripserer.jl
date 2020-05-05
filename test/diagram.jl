@@ -25,7 +25,7 @@ using Compat
         @test int1 < int2
         @test int1 < PersistenceInterval(2, 2)
 
-        @test isnothing(representative(int1))
+        @test_throws ErrorException representative(int1)
 
         @test sprint(print, int1) == "[1, 2)"
         @test sprint(print, int2) == "[1, ∞)"

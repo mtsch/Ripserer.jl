@@ -164,7 +164,7 @@ treated as vertex birth times.
         distance_matrix;
         modulus=2,
         threshold=nothing,
-        eltype=Simplex{modulus, T}
+        vertex_type=Simplex{modulus, T}
     )
 """
 struct SparseRipsFiltration{

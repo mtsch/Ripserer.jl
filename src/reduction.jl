@@ -367,8 +367,15 @@ function reduce_working_column!(
     end
     birth = diam(column_simplex)
     if representatives
-        representative = collect(rs.reduction_matrix[index(current_pivot)])
-        PersistenceInterval(birth, death, representative)
+        if !isnothing(current_pivot)
+            representative = filter!(
+                sx -> diam(sx) < death,
+                collect(rs.reduction_matrix[index(current_pivot)])
+            )
+            PersistenceInterval(birth, death, representative)
+        else
+            PersistenceInterval(birth, death, eltype(rs.reduction_matrix)[])
+        end
     else
         PersistenceInterval(birth, death)
     end
@@ -448,7 +455,9 @@ function zeroth_intervals(filtration, ratio, ::Val{representatives}) where repre
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             if representatives
-                representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, i))
+                representative = map(
+                    x -> V(birth(filtration, x), x, 1), find_leaves!(dset, i),
+                )
             else
                 representative = nothing
             end
@@ -510,8 +519,9 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
-  For Rips filtrations, it defaults to radius of input space.
-* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false || issparse(dists)`.
+  For non-sparse Rips filtrations, it defaults to radius of input space.
+* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
+  argument is a sparse matrix, it overrides this option.
 * `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
   Defaults to `1`.
 * `representatives`: if `true`, return representative cocycles along with persistence
@@ -525,12 +535,12 @@ Compute the persistent homology of metric space represented by `dists` or `point
 function ripserer(
     dists::AbstractMatrix;
     dim_max=1,
-    sparse=false || issparse(dists),
+    sparse=false,
     ratio=1,
     representatives=false,
     kwargs...
 )
-    if sparse
+    if sparse || issparse(dists)
         filtration = SparseRipsFiltration(dists; kwargs...)
     else
         filtration = RipsFiltration(dists; kwargs...)

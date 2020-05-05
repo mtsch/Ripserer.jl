@@ -20,12 +20,17 @@ PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
 
 Base.show(io::IO, int::PersistenceInterval) =
-    print(io, "[", int.birth, ", ", int.death, ")")
+    print(io, "[", birth(int), ", ", death(int), ")")
+function Base.show(io::IO, int::PersistenceInterval{<:AbstractFloat})
+    b = round(birth(int), sigdigits=3)
+    d = isfinite(death(int)) ? round(death(int), sigdigits=3) : "∞"
+    print(io, "[$b, $d)")
+end
 function Base.show(io::IO, ::MIME"text/plain", int::PersistenceInterval{T}) where T
-    print(io, "PersistenceInterval{", T, "}", (int.birth, int.death))
+    print(io, "PersistenceInterval{", T, "}", (birth(int), death(int)))
     if !isnothing(int.representative)
         println(io, " with representative:")
-        show(io, MIME"text/plain"(), int.representative)
+        show(io, MIME"text/plain"(), representative(int))
     end
 end
 
@@ -65,10 +70,15 @@ Base.isfinite(int::PersistenceInterval) =
     representative(interval::PersistenceInterval)
 
 Get the representative cocycle attached to `interval`. If representatives were not computed,
-return `nothing`.
+throw an error.
 """
-representative(int::PersistenceInterval) =
-    int.representative
+function representative(int::PersistenceInterval)
+    if !isnothing(int.representative)
+        int.representative
+    else
+        error("$int has no representative. Run ripserer with `representatives=true`")
+    end
+end
 
 function Base.iterate(int::PersistenceInterval, i=1)
     if i == 1

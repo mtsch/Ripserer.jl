@@ -41,10 +41,6 @@ PersistenceDiagram
 ```
 
 ```@docs
-Plots.plot(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
-```
-
-```@docs
 barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 ```
 
@@ -97,11 +93,11 @@ AbstractFlagFiltration
 ```
 
 ```@docs
-n_vertices
+n_vertices(::AbstractFiltration)
 ```
 
 ```@docs
-edges
+edges(::AbstractFiltration)
 ```
 
 ```@docs
