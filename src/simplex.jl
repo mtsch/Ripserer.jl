@@ -54,6 +54,12 @@ end
 PrimeField{M}(i::PrimeField{M}) where M =
     i
 
+mod_prime(i::PrimeField{M}, ::Val{M}) where M =
+    i
+# prevent ambiguity.
+mod_prime(i::PrimeField{2}, ::Val{2}) =
+    i
+
 Base.Int(i::PrimeField) =
     i.value
 
@@ -147,16 +153,9 @@ struct Simplex{D, M, T, U<:Unsigned} <: AbstractSimplex{D, PrimeField{M}, T}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
         U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
         bits = n_bits(M)
-        new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + mod_prime(coef, Val(M)))
-    end
-
-    function Simplex{D, M, T, U}(
-        diam::T, index::I, coef::PrimeField{M}
-    ) where {D, M, T, I<:Integer, U}
-        D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
-        bits = n_bits(M)
-        new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + I(coef))
+        new{D, M, T, unsigned(I)}(
+            diam, unsigned(index) << bits + I(mod_prime(coef, Val(M)))
+        )
     end
 end
 

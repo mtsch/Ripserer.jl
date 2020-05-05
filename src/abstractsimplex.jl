@@ -241,7 +241,7 @@ validity of cofaces. Iterates values of the type `coface_type(simplex)`.
 coboundary(
     filtration,
     simplex::S,
-) where {D, M, T, S<:AbstractSimplex{D, M, T}} =
+) where {D, S<:AbstractSimplex{D}} =
     CoboundaryIterator{true, D, typeof(filtration), S}(
         filtration, simplex, vertices(simplex)
     )
