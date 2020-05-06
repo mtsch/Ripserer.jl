@@ -10,7 +10,7 @@ using Ripserer:
 include("data.jl")
 
 @testset "ReductionMatrix" begin
-    rm = ReductionMatrix{Int}()
+    rm = ReductionMatrix{Int, Int}()
     @test length(rm) == 0
 
     insert_column!(rm, 3)

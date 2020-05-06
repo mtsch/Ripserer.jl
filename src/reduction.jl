@@ -10,28 +10,28 @@ operations.
 * `push!(::ReductionMatrix, val)`: push `val` to *the last column that was added to the
   matrix*.
 """
-struct ReductionMatrix{S}
-    column_index ::Dict{Int, Int}
+struct ReductionMatrix{K, V}
+    column_index ::Dict{K, Int}
     colptr       ::Vector{Int}
-    nzval        ::Vector{S}
+    nzval        ::Vector{V}
 end
 
-function Base.show(io::IO, ::MIME"text/plain", rm::ReductionMatrix{S}) where S
-    println(io, "ReductionMatrix{$S}[")
+ReductionMatrix{K, V}() where {K, V} =
+    ReductionMatrix(Dict{K, Int}(), Int[1], V[])
+
+function Base.show(io::IO, ::MIME"text/plain", rm::ReductionMatrix{K, V}) where {K, V}
+    println(io, "ReductionMatrix{$K, $V}[")
     for i in keys(rm.column_index)
         println(io, "  $i: ", collect(rm[i]))
     end
     print(io, "]")
 end
 
-ReductionMatrix{S}() where S =
-    ReductionMatrix(Dict{Int, Int}(), Int[1], S[])
+has_column(rm::ReductionMatrix{K}, sx::K) where K =
+    haskey(rm.column_index, sx)
 
-has_column(rm::ReductionMatrix, i) =
-    haskey(rm.column_index, i)
-
-function insert_column!(rm::ReductionMatrix, i)
-    rm.column_index[i] = length(rm.colptr)
+function insert_column!(rm::ReductionMatrix{K}, sx::K) where K
+    rm.column_index[sx] = length(rm.colptr)
     push!(rm.colptr, rm.colptr[end])
     rm
 end
@@ -48,30 +48,30 @@ function Base.sizehint!(rm::ReductionMatrix, n)
     sizehint!(rm.nzval, n)
 end
 
-Base.eltype(rm::ReductionMatrix{T}) where T =
-    T
+Base.eltype(rm::ReductionMatrix{<:Any, V}) where V =
+    V
 Base.length(rm::ReductionMatrix) =
     length(rm.colptr) - 1
 Base.lastindex(rm::ReductionMatrix) =
     length(rm.colptr) - 1
-Base.getindex(rm::ReductionMatrix, i) =
-    RMColumnIterator(rm, rm.column_index[i])
+Base.getindex(rm::ReductionMatrix{K}, sx::K) where K =
+    RMColumnIterator(rm, rm.column_index[sx])
 """
-    RMColumnIterator{S}
+    RMColumnIterator{K, V}
 
-An iterator over a column of a `ReductionMatrix{S}`.
+An iterator over a column of a `ReductionMatrix{K, V}`.
 """
-struct RMColumnIterator{S}
-    rm  ::ReductionMatrix{S}
+struct RMColumnIterator{K, V}
+    rm  ::ReductionMatrix{K, V}
     idx ::Int
 end
 
 Base.IteratorSize(::Type{RMColumnIterator}) =
     Base.HasLength()
-Base.IteratorEltype(::Type{RMColumnIterator{T}}) where T =
+Base.IteratorEltype(::Type{RMColumnIterator}) =
     Base.HasEltype()
-Base.eltype(::Type{RMColumnIterator{T}}) where T =
-    T
+Base.eltype(::Type{<:RMColumnIterator{<:Any, V}}) where V =
+    V
 Base.length(ci::RMColumnIterator) =
     ci.rm.colptr[ci.idx + 1] - ci.rm.colptr[ci.idx]
 
@@ -136,7 +136,7 @@ function pop_pivot!(column::Column)
     while !isempty(heap)
         if coef(pivot) == 0
             pivot = pop!(heap)
-        elseif index(top(heap)) == index(pivot)
+        elseif top(heap) == pivot
             pivot += pop!(heap)
         else
             break
@@ -161,7 +161,7 @@ end
 
 function Base.push!(column::Column{S}, sx::S) where S
     heap = column.heap
-    if !isempty(heap) && index(top(heap)) == index(sx)
+    if !isempty(heap) && top(heap) == sx
         heap.valtree[1] += sx
     else
         push!(heap, sx)
@@ -263,13 +263,13 @@ struct ReductionState{
     Ds, Dc, I, S<:AbstractSimplex{Ds, I}, C<:AbstractSimplex{Dc, I}, F<:AbstractFiltration
 }
     filtration        ::F
-    reduction_matrix  ::ReductionMatrix{S}
+    reduction_matrix  ::ReductionMatrix{C, S}
     working_column    ::Column{C}
     reduction_entries ::Column{S}
 
     function ReductionState(
         filtration        ::F,
-        reduction_matrix  ::ReductionMatrix{S},
+        reduction_matrix  ::ReductionMatrix{C, S},
         working_column    ::Column{C},
         reduction_entries ::Column{S},
     ) where {
@@ -295,7 +295,7 @@ function ReductionState(
     C = coface_type(S)
     ReductionState(
         filtration,
-        ReductionMatrix{S}(),
+        ReductionMatrix{C, S}(),
         Column{C}(),
         Column{S}(),
     )
@@ -312,7 +312,7 @@ Also record the addition in `rs.reduction_entries`.
 """
 function add!(rs::ReductionState, current_pivot)
     λ = -coef(current_pivot)
-    for simplex in rs.reduction_matrix[index(current_pivot)]
+    for simplex in rs.reduction_matrix[current_pivot]
         push!(rs.reduction_entries, λ * simplex)
         for coface in coboundary(rs.filtration, simplex)
             push!(rs.working_column, λ * coface)
@@ -332,7 +332,7 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
     empty!(rs.reduction_entries)
 
     for coface in coboundary(rs.filtration, column_simplex)
-        if diam(coface) == diam(column_simplex) && !has_column(rs.reduction_matrix, index(coface))
+        if diam(coface) == diam(column_simplex) && !has_column(rs.reduction_matrix, coface)
             empty!(rs.working_column)
             return coface
         end
@@ -354,13 +354,13 @@ function reduce_working_column!(
 ) where representatives
     current_pivot = initialize!(rs, column_simplex)
 
-    while !isnothing(current_pivot) && has_column(rs.reduction_matrix, index(current_pivot))
+    while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
         current_pivot = add!(rs, current_pivot)
     end
     if isnothing(current_pivot)
         death = ∞
     else
-        insert_column!(rs.reduction_matrix, index(current_pivot))
+        insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
         move!(rs.reduction_matrix, rs.reduction_entries, times=inv(coef(current_pivot)))
         death = diam(current_pivot)
@@ -370,7 +370,7 @@ function reduce_working_column!(
         if !isnothing(current_pivot)
             representative = filter!(
                 sx -> diam(sx) < death,
-                collect(rs.reduction_matrix[index(current_pivot)])
+                collect(rs.reduction_matrix[current_pivot])
             )
             PersistenceInterval(birth, death, representative)
         else
@@ -418,7 +418,7 @@ function assemble_columns!(rs::ReductionState, simplices)
     for simplex in simplices
         for coface in coboundary(rs.filtration, simplex, Val(false))
             push!(new_simplices, coface)
-            if !has_column(rs.reduction_matrix, index(coface))
+            if !has_column(rs.reduction_matrix, coface)
                 push!(columns, coface)
             end
         end

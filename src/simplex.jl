@@ -194,3 +194,8 @@ set_coef(sx::Simplex{D, M, T}, coef) where {D, M, T} =
 
 @pure coface_type(::Type{Simplex{D, M, T, U}}) where {D, M, T, U} =
     Simplex{D+1, M, T, U}
+
+Base.hash(sx::Simplex, h::UInt) =
+    hash(index(sx), h)
+Base.:(==)(sx1::Simplex{D, M, T}, sx2::Simplex{D, M, T}) where {D, M, T} =
+    index(sx1) == index(sx2)
