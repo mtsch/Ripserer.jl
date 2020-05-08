@@ -277,4 +277,4 @@ index(sx::Simplex) = sx.index
 
 diam(sx::Simplex) = sx.diam
 
-@pure coface_type(::Type{Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}
+@pure coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}

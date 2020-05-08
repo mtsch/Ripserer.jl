@@ -38,8 +38,6 @@ end
 
 simplex_type(rs::ReductionState{<:Any, S}) where S =
     S
-simplex_element(rs::ReductionState{<:Any, <:Any, SE}) where SE =
-    SE
 coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE =
     CE
 
@@ -86,7 +84,9 @@ end
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
 reduced. Record it in the reduction matrix and return the persistence interval.
 """
-function reduce_working_column!(rs::ReductionState, column_simplex, ::Val{reps}) where reps
+function reduce_working_column!(
+    rs::ReductionState{F, S}, column_simplex, ::Val{reps}
+) where {F, S, reps}
     current_pivot = initialize!(rs, column_simplex)
 
     while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
@@ -97,7 +97,7 @@ function reduce_working_column!(rs::ReductionState, column_simplex, ::Val{reps})
     else
         insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
-        move!(rs.reduction_matrix, rs.reduction_entries, times=inv(coef(current_pivot)))
+        move_mul!(rs.reduction_matrix, rs.reduction_entries, inv(coef(current_pivot)))
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
@@ -106,7 +106,7 @@ function reduce_working_column!(rs::ReductionState, column_simplex, ::Val{reps})
             representative = representatives(rs.reduction_matrix, current_pivot, death)
             PersistenceInterval(birth, death, representative)
         else
-            PersistenceInterval(birth, death, eltype(rs.reduction_matrix)[])
+            PersistenceInterval(birth, death, Pair{S, F}[])
         end
     else
         PersistenceInterval(birth, death)

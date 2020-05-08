@@ -1,3 +1,10 @@
+"""
+# Ripserer.jl
+
+Efficient computation of persistent homology.
+
+See https://mtsch.github.io/Ripserer.jl/dev/ for documentation.
+"""
 module Ripserer
 
 using Compat

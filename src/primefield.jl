@@ -54,12 +54,6 @@ end
 Mod{M}(i::Mod{M}) where M =
     i
 
-mod_prime(i::Mod{M}, ::Val{M}) where M =
-    i
-# prevent ambiguity.
-mod_prime(i::Mod{2}, ::Val{2}) =
-    i
-
 Base.Int(i::Mod) =
     i.value
 

@@ -132,14 +132,12 @@ Base.isempty(col::Column) =
     isempty(col.heap)
 
 """
-    move!([dst, ]col::Column; times=1)
+    move_mul!(dst, col::Column{CE}, times=one(CE))
 
-Move contents of column into `dst` by repeatedly calling `push!`. `dst` defaults to `S[]`.
+Move contents of column into `dst` by repeatedly calling `push!` on it.
 Multipy all elements that are moved by `times`.
 """
-move!(col::Column{CE}) where CE =
-    move!(CE[], col)
-function move!(dst, col::Column{CE}; times=one(CE)) where CE
+function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
     pivot = pop_pivot!(col)
     while !isnothing(pivot)
         push!(dst, times * pivot)

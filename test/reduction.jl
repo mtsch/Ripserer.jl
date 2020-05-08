@@ -85,6 +85,13 @@ end
             @test all(d2 .== d2_7)
             @test all(d3 .== d3_7)
             @test all(d4 .== d4_7)
+
+            d0r, d1r, d2r, d3r, d4r = ripserer(cycle, dim_max=4, field_type=Rational{Int})
+            @test all(d0 .== d0r)
+            @test all(d1 .== d1r)
+            @test all(d2 .== d2r)
+            @test all(d3 .== d3r)
+            @test all(d4 .== d4r)
         end
         @testset "projective plane (modulus)" begin
             _, d1_2, d2_2 = ripserer(projective_plane, dim_max=2)
@@ -212,6 +219,35 @@ end
             Simplex{1}((2, 1), 1) => Mod{2}(1),
         ]
         @test representative(only(d2)) == [Simplex{2}((6, 2, 1), 1) => Mod{2}(1)]
+    end
+
+    @testset "representatives - types" begin
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
+        @test eltype(d0) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{0, Int, Int}, Mod{2}}}}
+        @test eltype(d1) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{1, Int, Int}, Mod{2}}}}
+        @test eltype(d2) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{2, Int, Int}, Mod{2}}}}
+        @test eltype(d3) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{3, Int, Int}, Mod{2}}}}
+
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true, field_type=Mod{5})
+        @test eltype(d0) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{0, Int, Int}, Mod{5}}}}
+        @test eltype(d1) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{1, Int, Int}, Mod{5}}}}
+        @test eltype(d2) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{2, Int, Int}, Mod{5}}}}
+        @test eltype(d3) ≡ PersistenceInterval{
+            Int, Vector{Pair{Simplex{3, Int, Int}, Mod{5}}}}
+    end
+
+    @testset "representatives - thresh" begin
+        _, d1 = ripserer(
+            cycle, dim_max=1, representatives=true, threshold=1, field_type=Rational{Int}
+        )
+        @test representative(only(d1)) == Pair{Simplex{0, Int, Int}, Rational{Int}}[]
     end
 
     @testset "lower star" begin

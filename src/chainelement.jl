@@ -77,11 +77,4 @@ coef(ce::ChainElement) = ce.coef
 chain_element_type(::Type{S}, ::Type{F}) where {S, F} =
     ChainElement{S, F}
 
-"""
-    n_bits(M)
-Get numer of bits needed to represent number mod `M`.
-"""
-@pure n_bits(M::Int) =
-    floor(Int, log2(M-1)) + 1
-
 # TODO? efficient packing of Simplex and PrimeField?

@@ -30,6 +30,9 @@ end
     @test Mod{7}(2) - 3 == Mod{7}(6)
     @test Mod{13}(10) / 2 == Mod{13}(5)
 
+    @test zero(Mod{2}) == Mod{2}(0)
+    @test zero(Mod{5}(1)) == Mod{5}(0)
+
     for i in 1:10
         @test inv(Mod{11}(i)) == invmod(i, 11)
     end
