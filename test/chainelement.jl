@@ -1,7 +1,7 @@
 using Ripserer
 using Ripserer: ChainElement, chain_element_type, coef, simplex
 
-for F in (PrimeField{2}, PrimeField{11}, Rational{Int})
+for F in (Mod{2}, Mod{11}, Rational{Int})
     CE = chain_element_type(Simplex, F)
 
     sx = Simplex{2}(3, 1.0)

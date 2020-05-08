@@ -86,11 +86,7 @@ end
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
 reduced. Record it in the reduction matrix and return the persistence interval.
 """
-function reduce_working_column!(
-    rs::ReductionState,
-    column_simplex::AbstractSimplex,
-    ::Val{representatives},
-) where representatives
+function reduce_working_column!(rs::ReductionState, column_simplex, ::Val{reps}) where reps
     current_pivot = initialize!(rs, column_simplex)
 
     while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
@@ -105,7 +101,7 @@ function reduce_working_column!(
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
-    if representatives
+    if reps
         if !isnothing(current_pivot)
             representative = representatives(rs.reduction_matrix, current_pivot, death)
             PersistenceInterval(birth, death, representative)
@@ -123,17 +119,16 @@ end
 Compute persistence intervals by reducing `columns`, a collection of simplices.
 """
 function compute_intervals!(
-    rs::ReductionState, columns, ratio, ::Val{representatives},
-) where representatives
+    rs::ReductionState{F, S}, columns, ratio, ::Val{reps}
+) where {S, F, reps}
     T = dist_type(rs.filtration)
-    if representatives
-        SE = simplex_element(rs)
-        intervals = PersistenceInterval{T, Vector{SE}}[]
+    if reps
+        intervals = PersistenceInterval{T, Vector{Pair{S, F}}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, Val(representatives))
+        interval = reduce_working_column!(rs, column, Val(reps))
         if death(interval) > birth(interval) * ratio
             push!(intervals, interval)
         end
@@ -170,12 +165,12 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
 threshold.
 """
-function zeroth_intervals(filtration, ratio, field_type, ::Val{representatives}) where representatives
+function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
     T = dist_type(filtration)
     V = vertex_type(filtration)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
-    if representatives
-        intervals = PersistenceInterval{T, Vector{V}}[]
+    if reps
+        intervals = PersistenceInterval{T, Vector{Pair{V, field_type}}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
@@ -188,15 +183,16 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{representatives})
         j = find_root!(dset, v)
         push!(simplices, sx)
         if i ≠ j
-            # According to the elder rule, the vertex with the lower birth will fall
-            # into a later interval.
-            if representatives
-                representative = map(
-                    x -> V((x,), birth(filtration, x)) => one(field_type), find_leaves!(dset, i),
-                )
+            if reps
+                representative = map(find_leaves!(dset, i)) do w
+                    V((w,), birth(filtration, w)) => one(field_type)
+                end
             else
                 representative = nothing
             end
+
+            # According to the elder rule, the vertex with the lower birth will fall
+            # into a later interval.
             interval = PersistenceInterval(
                 max(birth(dset, i), birth(dset, j)), diam(sx), representative,
             )
@@ -210,8 +206,10 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{representatives})
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
-            if representatives
-                representative = map(x -> V((x,), birth(dset, x)), find_leaves!(dset, v))
+            if reps
+                representative = map(find_leaves!(dset, v)) do w
+                    V((w,), birth(filtration, w)) => one(field_type)
+                end
             else
                 representative = nothing
             end
@@ -254,7 +252,7 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
-* `field_type`: use this type of field of coefficients. Defaults to `PrimeField{modulus}`.
+* `field_type`: use this type of field of coefficients. Defaults to `Mod{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   For non-sparse Rips filtrations, it defaults to radius of input space.
 * `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
@@ -276,8 +274,8 @@ function ripserer(
     ratio=1,
     representatives=false,
     modulus=2,
-    field_type=PrimeField{modulus},
-    kwargs...,
+    field_type=Mod{modulus},
+    kwargs..., # kwargs for filtration
 )
     if sparse || issparse(dists)
         filtration = SparseRipsFiltration(dists; kwargs...)
@@ -303,45 +301,54 @@ end
 
 Compute persistent homology from `filtration` object.
 """
-ripserer(filtration::AbstractFiltration;
-         dim_max=1, representatives=false, ratio=1, field_type=PrimeField{2}) =
+function ripserer(
+    filtration::AbstractFiltration;
+    dim_max=1, representatives=false, ratio=1, field_type=Mod{2}
+)
     ripserer(filtration, ratio, field_type, Val(dim_max), Val(representatives))
+end
 
-function ripserer(filtration::AbstractFiltration, ratio, field_type, ::Val{0}, ::Val{C}) where C
-    diagram, _, _ = zeroth_intervals(filtration, ratio, field_type, Val(C))
+function ripserer(filtration, ratio, field_type, ::Val{0}, ::Val{reps}) where reps
+    diagram, _, _ = zeroth_intervals(filtration, ratio, field_type, Val(reps))
     [diagram]
 end
 
 @generated function ripserer(
-    filtration::AbstractFiltration, ratio, field_type, ::Val{D}, ::Val{C},
-) where {D, C}
-    # We unroll the loop over 1:D to ensure type stability.
+    filtration, ratio, field_type, ::Val{dim_max}, ::Val{reps}
+) where {dim_max, reps}
+    # We unroll the loop over 1:dim_max to ensure type stability.
     # Generated code looks something like:
     #
     # ints_0, cols_1, sxs_1 = zeroth_intervals(filtration, ...)
     # ints_1, cols_2, sxs_2 = nth_itervals(filtration, cols_1, sxs_1, ...)
     # ...
-    # ints_D, _, _ = nth_itervals(filtration, cols_D-1, sxs_D-1, ..., next=false)
+    # ints_dim_max, _, _ = nth_itervals(filtration, cols_dim_max-1, sxs_dim_max-1, ..., next=false)
     #
-    # [ints_0, ints_1, ..., ints_D]
-    ints = [Symbol("ints_", i) for i in 1:D]
-    cols = [Symbol("cols_", i) for i in 1:D]
-    sxs = [Symbol("sxs_", i) for i in 1:D]
+    # [ints_0, ints_1, ..., ints_dim_max]
+    ints = [Symbol("ints_", i) for i in 1:dim_max]
+    cols = [Symbol("cols_", i) for i in 1:dim_max]
+    sxs = [Symbol("sxs_", i) for i in 1:dim_max]
 
     expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio, field_type, Val(C))
+        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(
+            filtration, ratio, field_type, Val(reps)
+        )
     end
-    for i in 1:D-1
+    for i in 1:dim_max-1
         expr = quote
             $expr
-            $(ints[i]), $(cols[i+1]), $(sxs[i+1]) =
-                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio, field_type, Val(C))
+            $(ints[i]), $(cols[i+1]), $(sxs[i+1]) = nth_intervals(
+                filtration, $(cols[i]), $(sxs[i]), ratio, field_type, Val(reps)
+            )
         end
     end
     quote
         $expr
-        $(ints[D]), _, _ =
-            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, field_type, Val(C), next=false)
+        $(ints[dim_max]), _, _ =
+            nth_intervals(
+                filtration, $(cols[dim_max]), $(sxs[dim_max]), ratio, field_type, Val(reps),
+                next=false
+            )
 
         [ints_0, $(ints...)]
     end

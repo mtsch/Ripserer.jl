@@ -14,21 +14,18 @@ using TupleTools
 
 include("infinity.jl")
 export Infinity, ∞
-
-include("simplices/abstractsimplex.jl")
-export AbstractSimplex, diam, coface_type, vertices, coboundary, dim
-include("simplices/indexedsimplex.jl")
-export IndexedSimplex, index
-include("simplices/simplex.jl")
-export Simplex
-
-include("filtrations/abstractfiltration.jl")
-export AbstractFiltration, n_vertices, edges, birth
-include("filtrations/ripsfiltration.jl")
-export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
-
 include("primefield.jl")
-export PrimeField
+export Mod
+
+include("abstractsimplex.jl")
+export AbstractSimplex, diam, coface_type, vertices, coboundary, dim
+include("simplex.jl")
+export IndexedSimplex, index, Simplex
+
+include("abstractfiltration.jl")
+export AbstractFiltration, n_vertices, edges, birth
+include("ripsfiltration.jl")
+export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
 
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,

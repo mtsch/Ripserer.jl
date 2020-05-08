@@ -104,8 +104,9 @@ function representatives(
     reps = Pair{S, F}[]
     for element in rm[col]
         if diam(simplex(element)) < max_diam
-            # TODO: normalize, like ripser?
-            push!(reps, simplex(element) => coefficient(element))
+            # TODO?: should they be normalized, like in ripser?
+            #        should they be returned as Int in the case of PrimeFields?
+            push!(reps, simplex(element) => coef(element))
         end
     end
     reps

@@ -4,8 +4,10 @@ using Ripserer: ChainElement, coef,
     Column, pop_pivot!, pivot,
     DisjointSetsWithBirth
 
+using Compat
+
 @testset "ReductionMatrix" begin
-    for T in (PrimeField{3}, Rational{Int})
+    for T in (Mod{3}, Rational{Int})
         CE = ChainElement{Simplex{3, Int, Int}, T}
         SE = ChainElement{Simplex{2, Int, Int}, T}
         rm = @inferred ReductionMatrix{Simplex{3, Int, Int}, SE}()
@@ -50,7 +52,7 @@ end
 
 @testset "Column" begin
     @testset "single element" begin
-        CE = ChainElement{Simplex{1, Float64, Int}, PrimeField{2}}
+        CE = ChainElement{Simplex{1, Float64, Int}, Mod{2}}
         col = Column{CE}()
         push!(col, Simplex{1}(1, 2.0))
         push!(col, Simplex{1}(1, 2.0))
@@ -62,7 +64,7 @@ end
         @test isnothing(pivot(col))
         @test isempty(col)
 
-        CE = ChainElement{Simplex{2, Float64, Int}, PrimeField{3}}
+        CE = ChainElement{Simplex{2, Float64, Int}, Mod{3}}
         col = Column{CE}()
         push!(col, Simplex{2}(1, 2.0))
         push!(col, Simplex{2}(1, 2.0))
@@ -87,7 +89,7 @@ end
         @test isempty(col)
     end
     @testset "multiple" begin
-        CE = ChainElement{Simplex{3, Float64, Int}, PrimeField{5}}
+        CE = ChainElement{Simplex{3, Float64, Int}, Mod{5}}
         col = Column{CE}()
         push!(col, CE(Simplex{3}(2, 1.0), 3))
         push!(col, CE(Simplex{3}(3, 2.0), 4))

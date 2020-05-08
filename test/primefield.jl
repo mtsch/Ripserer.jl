@@ -18,24 +18,24 @@ using Ripserer: is_prime
     @test !is_prime(Array{Float64, 2})
 end
 
-@testset "PrimeField" begin
-    @test PrimeField{2}(1) + PrimeField{2}(1) == PrimeField{2}(0)
-    @test PrimeField{5}(2) - PrimeField{5}(3) == PrimeField{5}(4)
-    @test PrimeField{7}(2) / PrimeField{7}(3) == PrimeField{7}(3)
-    @test PrimeField{17}(2) / PrimeField{17}(2) == PrimeField{17}(1)
-    @test PrimeField{3}(2) * PrimeField{3}(2) == PrimeField{3}(1)
+@testset "Mod" begin
+    @test Mod{2}(1) + Mod{2}(1) == Mod{2}(0)
+    @test Mod{5}(2) - Mod{5}(3) == Mod{5}(4)
+    @test Mod{7}(2) / Mod{7}(3) == Mod{7}(3)
+    @test Mod{17}(2) / Mod{17}(2) == Mod{17}(1)
+    @test Mod{3}(2) * Mod{3}(2) == Mod{3}(1)
 
-    @test PrimeField{3}(1) + 1 == PrimeField{3}(2)
-    @test PrimeField{5}(2) * 2 == PrimeField{5}(4)
-    @test PrimeField{7}(2) - 3 == PrimeField{7}(6)
-    @test PrimeField{13}(10) / 2 == PrimeField{13}(5)
+    @test Mod{3}(1) + 1 == Mod{3}(2)
+    @test Mod{5}(2) * 2 == Mod{5}(4)
+    @test Mod{7}(2) - 3 == Mod{7}(6)
+    @test Mod{13}(10) / 2 == Mod{13}(5)
 
     for i in 1:10
-        @test inv(PrimeField{11}(i)) == invmod(i, 11)
+        @test inv(Mod{11}(i)) == invmod(i, 11)
     end
 
-    @test_throws DomainError PrimeField{4}(1)
-    @test_throws DomainError PrimeField{-1}(1)
+    @test_throws DomainError Mod{4}(1)
+    @test_throws DomainError Mod{-1}(1)
 
-    @test sprint(print, PrimeField{3}(1)) == "1 mod 3"
+    @test sprint(print, Mod{3}(1)) == "1 mod 3"
 end

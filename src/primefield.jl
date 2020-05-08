@@ -35,15 +35,15 @@ mod_prime(i, ::Val{2}) =
     i & 1
 
 """
-    PrimeField{M} <: Integer
+    Mod{M} <: Integer
 
 Representation of finite field ``\\mathbb{Z}_M``, integers modulo small, prime `M`. Supports
 integer arithmetic and can be converted to integer with `Int`.
 """
-struct PrimeField{M} <: Integer
+struct Mod{M} <: Integer
     value::Int
 
-    function PrimeField{M}(value::Integer; check_mod=true) where M
+    function Mod{M}(value::Integer; check_mod=true) where M
         if check_mod
             new{M}(mod_prime(value, Val(M)))
         else
@@ -51,47 +51,47 @@ struct PrimeField{M} <: Integer
         end
     end
 end
-PrimeField{M}(i::PrimeField{M}) where M =
+Mod{M}(i::Mod{M}) where M =
     i
 
-mod_prime(i::PrimeField{M}, ::Val{M}) where M =
+mod_prime(i::Mod{M}, ::Val{M}) where M =
     i
 # prevent ambiguity.
-mod_prime(i::PrimeField{2}, ::Val{2}) =
+mod_prime(i::Mod{2}, ::Val{2}) =
     i
 
-Base.Int(i::PrimeField) =
+Base.Int(i::Mod) =
     i.value
 
-Base.show(io::IO, i::PrimeField{M}) where M =
+Base.show(io::IO, i::Mod{M}) where M =
     print(io, Int(i), " mod ", M)
 
 for op in (:+, :-, :*)
-    @eval (Base.$op)(i::PrimeField{M}, j::PrimeField{M}) where M =
-        PrimeField{M}($op(Int(i), Int(j)))
+    @eval (Base.$op)(i::Mod{M}, j::Mod{M}) where M =
+        Mod{M}($op(Int(i), Int(j)))
 end
 
-Base.:/(i::PrimeField{M}, j::PrimeField{M}) where M =
+Base.:/(i::Mod{M}, j::Mod{M}) where M =
     i * inv(j)
-Base.:-(i::PrimeField{M}) where M =
-    PrimeField{M}(M - Int(i), check_mod=false)
-Base.zero(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(0, check_mod=false)
-Base.one(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(1, check_mod=false)
-Base.promote_rule(::Type{PrimeField{M}}, ::Type{Int}) where {M} =
-    PrimeField{M}
+Base.:-(i::Mod{M}) where M =
+    Mod{M}(M - Int(i), check_mod=false)
+Base.zero(::Type{Mod{M}}) where M =
+    Mod{M}(0, check_mod=false)
+Base.one(::Type{Mod{M}}) where M =
+    Mod{M}(1, check_mod=false)
+Base.promote_rule(::Type{Mod{M}}, ::Type{Int}) where {M} =
+    Mod{M}
 
 # Idea: precompute inverses and generate a function with the inverses hard-coded.
-@generated function Base.inv(i::PrimeField{M}) where M
+@generated function Base.inv(i::Mod{M}) where M
     err_check = quote
         iszero(i) && throw(DivideError())
     end
     if M != 2
-        inverse_arr = fill(PrimeField{M}(0), M-1)
-        inverse_arr[1] = PrimeField{M}(1)
+        inverse_arr = fill(Mod{M}(0), M-1)
+        inverse_arr[1] = Mod{M}(1)
         for i in 2:M-1
-            inverse_arr[i] = PrimeField{M}(invmod(i, M))
+            inverse_arr[i] = Mod{M}(invmod(i, M))
         end
         inverse = (inverse_arr...,)
 

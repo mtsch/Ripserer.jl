@@ -210,7 +210,7 @@ plottable(sx::AbstractSimplex, args...) =
     plottable([sx], args...)
 
 plottable(int::PersistenceInterval, args...) =
-    plottable(representative(int), args...)
+    plottable(first.(representative(int)), args...)
 
 plottable(int::PersistenceInterval{<:Any, Nothing}, args...) =
     throw(ArgumentError(
