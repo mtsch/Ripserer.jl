@@ -1,244 +1,3 @@
-"""
-    ReductionMatrix{S}
-
-A representation of the reduction matrix in the current dimension. Supports the following
-operations.
-
-* `insert_column!(::ReductionMatrix, i)`: add a new column with column index `i`.
-* `has_column(::ReductionMatrix, i)`: return `true` if the matrix has any entries in the
-  `i`-th column.
-* `push!(::ReductionMatrix, val)`: push `val` to *the last column that was added to the
-  matrix*.
-"""
-struct ReductionMatrix{K, V}
-    column_index ::Dict{K, Int}
-    colptr       ::Vector{Int}
-    nzval        ::Vector{V}
-end
-
-ReductionMatrix{K, V}() where {K, V} =
-    ReductionMatrix(Dict{K, Int}(), Int[1], V[])
-
-function Base.show(io::IO, ::MIME"text/plain", rm::ReductionMatrix{K, V}) where {K, V}
-    println(io, "ReductionMatrix{$K, $V}[")
-    for i in keys(rm.column_index)
-        println(io, "  $i: ", collect(rm[i]))
-    end
-    print(io, "]")
-end
-
-has_column(rm::ReductionMatrix{K}, sx::K) where K =
-    haskey(rm.column_index, sx)
-
-function insert_column!(rm::ReductionMatrix{K}, sx::K) where K
-    rm.column_index[sx] = length(rm.colptr)
-    push!(rm.colptr, rm.colptr[end])
-    rm
-end
-
-function Base.push!(rm::ReductionMatrix, value)
-    push!(rm.nzval, value)
-    rm.colptr[end] += 1
-    value
-end
-
-function Base.sizehint!(rm::ReductionMatrix, n)
-    sizehint!(rm.column_index, n)
-    sizehint!(rm.colptr, n)
-    sizehint!(rm.nzval, n)
-end
-
-Base.eltype(rm::ReductionMatrix{<:Any, V}) where V =
-    V
-Base.length(rm::ReductionMatrix) =
-    length(rm.colptr) - 1
-Base.lastindex(rm::ReductionMatrix) =
-    length(rm.colptr) - 1
-Base.getindex(rm::ReductionMatrix{K}, sx::K) where K =
-    RMColumnIterator(rm, rm.column_index[sx])
-"""
-    RMColumnIterator{K, V}
-
-An iterator over a column of a `ReductionMatrix{K, V}`.
-"""
-struct RMColumnIterator{K, V}
-    rm  ::ReductionMatrix{K, V}
-    idx ::Int
-end
-
-Base.IteratorSize(::Type{RMColumnIterator}) =
-    Base.HasLength()
-Base.IteratorEltype(::Type{RMColumnIterator}) =
-    Base.HasEltype()
-Base.eltype(::Type{<:RMColumnIterator{<:Any, V}}) where V =
-    V
-Base.length(ci::RMColumnIterator) =
-    ci.rm.colptr[ci.idx + 1] - ci.rm.colptr[ci.idx]
-
-function Base.iterate(ci::RMColumnIterator, i=1)
-    colptr = ci.rm.colptr
-    index = i + colptr[ci.idx] - 1
-    if index ≥ colptr[ci.idx + 1]
-        nothing
-    else
-        (ci.rm.nzval[index], i + 1)
-    end
-end
-
-# columns ================================================================================ #
-"""
-    Column{S<:AbstractSimplex}
-
-Wrapper around `BinaryMinHeap{S}`. Acts like a heap of simplices, where simplices with the
-same index are summed together and simplices with coefficient value `0` are ignored.
-"""
-struct Column{S<:AbstractSimplex}
-    heap::BinaryMinHeap{S}
-
-    Column{S}() where S<:AbstractSimplex =
-        new{S}(BinaryMinHeap{S}())
-end
-
-Base.empty!(col::Column) =
-    empty!(col.heap.valtree)
-Base.isempty(col::Column) =
-    isempty(col.heap)
-
-"""
-    move!([dst, ]col::Column; times=1)
-
-Move contents of column into `dst` by repeatedly calling `push!`. `dst` defaults to `S[]`.
-Multipy all elements that are moved by `times`.
-"""
-move!(col::Column{S}) where S =
-    move!(S[], col)
-function move!(dst, col::Column{S}; times=one(S)) where S
-    pivot = pop_pivot!(col)
-    while !isnothing(pivot)
-        push!(dst, times * pivot)
-        pivot = pop_pivot!(col)
-    end
-    dst
-end
-
-"""
-    pop_pivot!(column::Column)
-
-Pop the pivot from `column`. If there are multiple simplices with the same index on the top
-of the column, sum them together. If they sum to 0, pop the next column. Return
-`nothing` when column is empty.
-"""
-function pop_pivot!(column::Column)
-    isempty(column) && return nothing
-    heap = column.heap
-
-    pivot = pop!(heap)
-    while !isempty(heap)
-        if coef(pivot) == 0
-            pivot = pop!(heap)
-        elseif top(heap) == pivot
-            pivot += pop!(heap)
-        else
-            break
-        end
-    end
-    coef(pivot) == 0 ? nothing : pivot
-end
-
-"""
-    pivot(column)
-
-Return the pivot of the column.
-"""
-function pivot(column::Column)
-    heap = column.heap
-    pivot = pop_pivot!(column)
-    if !isnothing(pivot)
-        push!(column, pivot)
-    end
-    pivot
-end
-
-function Base.push!(column::Column{S}, sx::S) where S
-    heap = column.heap
-    if !isempty(heap) && top(heap) == sx
-        heap.valtree[1] += sx
-    else
-        push!(heap, sx)
-    end
-    column
-end
-
-# disjointset with birth ================================================================= #
-"""
-    DisjointSetsWithBirth{T}
-
-Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
-Has no `num_groups` method.
-"""
-struct DisjointSetsWithBirth{T}
-    parents ::Vector{Int}
-    ranks   ::Vector{Int}
-    births  ::Vector{T}
-
-    function DisjointSetsWithBirth(births::AbstractVector{T}) where T
-        n = length(births)
-        new{T}(collect(1:n), fill(0, n), copy(births))
-    end
-end
-
-Base.length(s::DisjointSetsWithBirth) =
-    length(s.parents)
-
-function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
-    parents = s.parents
-    p = parents[x]
-    @inbounds if parents[p] != p
-        parents[x] = p = find_root!(s, p)
-    end
-    p
-end
-
-"""
-    find_leaves!(s::DisjointSetsWithBirth, x)
-
-Find all leaves below `x`, i.e. vertices that have `x` as root.
-"""
-function find_leaves!(s::DisjointSetsWithBirth, x)
-    leaves = Int[]
-    for i in 1:length(s)
-        find_root!(s, i) == x && push!(leaves, i)
-    end
-    leaves
-end
-
-function Base.union!(s::DisjointSetsWithBirth, x, y)
-    parents = s.parents
-    xroot = find_root!(s, x)
-    yroot = find_root!(s, y)
-    xroot != yroot ? root_union!(s, xroot, yroot) : xroot
-end
-
-function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
-    parents = s.parents
-    rks = s.ranks
-    births = s.births
-    @inbounds xrank = rks[x]
-    @inbounds yrank = rks[y]
-
-    if xrank < yrank
-        x, y = y, x
-    elseif xrank == yrank
-        rks[x] += 1
-    end
-    @inbounds parents[y] = x
-    @inbounds births[x] = min(births[x], births[y])
-    x
-end
-
-birth(dset::DisjointSetsWithBirth, i) =
-    dset.births[i]
-
 # reduction matrix ======================================================================= #
 """
     ReductionState
@@ -249,60 +8,40 @@ created for every dimension.
 # Fields:
 
 * `filtration`: the filtration we are analyzing.
-* `coboundary`: a `Coboundary` object, used to find coboundaries and vertices.
 * `reduction_matrix`: the reduction matrix. Each column of the matrix records the operations
   that were performed when reducing the column.
-* `column_index`: a `Dict` that maps pivot index to its position in `reduction_matrix` and
-  coefficient.
 * `working_column`: the current working column, the column we are currently reducing.
 * `reduction_entries`: this is where we record which simplices we added to the working
   column.
-* `dim`: the current dimension.
 """
 struct ReductionState{
-    Ds, Dc, I, S<:AbstractSimplex{Ds, I}, C<:AbstractSimplex{Dc, I}, F<:AbstractFiltration
+    Field,
+    S<:AbstractSimplex, SE<:AbstractChainElement{S, Field},
+    C<:AbstractSimplex, CE<:AbstractChainElement{C, Field},
+    F,
 }
     filtration        ::F
-    reduction_matrix  ::ReductionMatrix{C, S}
-    working_column    ::Column{C}
-    reduction_entries ::Column{S}
+    reduction_matrix  ::ReductionMatrix{C, SE}
+    working_column    ::Column{CE}
+    reduction_entries ::Column{SE}
 
-    function ReductionState(
-        filtration        ::F,
-        reduction_matrix  ::ReductionMatrix{C, S},
-        working_column    ::Column{C},
-        reduction_entries ::Column{S},
-    ) where {
-        Ds, Dc, I,
-        S<:AbstractSimplex{Ds, I},
-        C<:AbstractSimplex{Dc, I},
-        F<:AbstractFiltration,
-    }
-        Dc == Ds + 1 || error("dimension mismatch Dc=$Dc, Ds=$Ds")
-        new{Ds, Dc, I, S, C, F}(
-            filtration,
-            reduction_matrix,
-            working_column,
-            reduction_entries
+    function ReductionState{Field, S}(filtration::F) where {Field, S<:AbstractSimplex, F}
+        SE = chain_element_type(S, Field)
+        C = coface_type(S)
+        CE = chain_element_type(C, Field)
+
+        new{Field, S, SE, C, CE, F}(
+            filtration, ReductionMatrix{C, SE}(), Column{CE}(), Column{SE}(),
         )
     end
 end
 
-function ReductionState(
-    filtration::F,
-    ::Type{S},
-) where {D, I, S<:AbstractSimplex{D, I}, F<:AbstractFiltration}
-    C = coface_type(S)
-    ReductionState(
-        filtration,
-        ReductionMatrix{C, S}(),
-        Column{C}(),
-        Column{S}(),
-    )
-end
-
-simplex_type(rs::ReductionState{<:Any, <:Any, <:Any, S}) where S =
+simplex_type(rs::ReductionState{<:Any, S}) where S =
     S
+simplex_element(rs::ReductionState{<:Any, <:Any, SE}) where SE =
+    SE
+coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE =
+    CE
 
 """
     add!(rs::ReductionState, index)
@@ -312,10 +51,10 @@ Also record the addition in `rs.reduction_entries`.
 """
 function add!(rs::ReductionState, current_pivot)
     λ = -coef(current_pivot)
-    for simplex in rs.reduction_matrix[current_pivot]
-        push!(rs.reduction_entries, λ * simplex)
-        for coface in coboundary(rs.filtration, simplex)
-            push!(rs.working_column, λ * coface)
+    for element in rs.reduction_matrix[current_pivot]
+        push!(rs.reduction_entries, λ * element)
+        for coface in coboundary(rs.filtration, simplex(element))
+            push!(rs.working_column, coface_element(rs)(coface, λ * coef(element)))
         end
     end
     pivot(rs.working_column)
@@ -334,7 +73,7 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
     for coface in coboundary(rs.filtration, column_simplex)
         if diam(coface) == diam(column_simplex) && !has_column(rs.reduction_matrix, coface)
             empty!(rs.working_column)
-            return coface
+            return coface_element(rs)(coface)
         end
         push!(rs.working_column, coface)
     end
@@ -363,15 +102,12 @@ function reduce_working_column!(
         insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
         move!(rs.reduction_matrix, rs.reduction_entries, times=inv(coef(current_pivot)))
-        death = diam(current_pivot)
+        death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
     if representatives
         if !isnothing(current_pivot)
-            representative = filter!(
-                sx -> diam(sx) < death,
-                collect(rs.reduction_matrix[current_pivot])
-            )
+            representative = representatives(rs.reduction_matrix, current_pivot, death)
             PersistenceInterval(birth, death, representative)
         else
             PersistenceInterval(birth, death, eltype(rs.reduction_matrix)[])
@@ -391,8 +127,8 @@ function compute_intervals!(
 ) where representatives
     T = dist_type(rs.filtration)
     if representatives
-        C = eltype(columns)
-        intervals = PersistenceInterval{T, Vector{C}}[]
+        SE = simplex_element(rs)
+        intervals = PersistenceInterval{T, Vector{SE}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
@@ -417,9 +153,9 @@ function assemble_columns!(rs::ReductionState, simplices)
 
     for simplex in simplices
         for coface in coboundary(rs.filtration, simplex, Val(false))
-            push!(new_simplices, coface)
+            push!(new_simplices, abs(coface))
             if !has_column(rs.reduction_matrix, coface)
-                push!(columns, coface)
+                push!(columns, abs(coface))
             end
         end
     end
@@ -434,7 +170,7 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
 threshold.
 """
-function zeroth_intervals(filtration, ratio, ::Val{representatives}) where representatives
+function zeroth_intervals(filtration, ratio, field_type, ::Val{representatives}) where representatives
     T = dist_type(filtration)
     V = vertex_type(filtration)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
@@ -456,7 +192,7 @@ function zeroth_intervals(filtration, ratio, ::Val{representatives}) where repre
             # into a later interval.
             if representatives
                 representative = map(
-                    x -> V(birth(filtration, x), x, 1), find_leaves!(dset, i),
+                    x -> V((x,), birth(filtration, x)) => one(field_type), find_leaves!(dset, i),
                 )
             else
                 representative = nothing
@@ -475,7 +211,7 @@ function zeroth_intervals(filtration, ratio, ::Val{representatives}) where repre
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
             if representatives
-                representative = map(x -> V(birth(dset, x), x, 1), find_leaves!(dset, v))
+                representative = map(x -> V((x,), birth(dset, x)), find_leaves!(dset, v))
             else
                 representative = nothing
             end
@@ -493,10 +229,10 @@ Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, ratio, ::Val{representatives}; next=true,
+    filtration, columns::Vector{S}, simplices, ratio, field_type, ::Val{representatives}; next=true,
 ) where {S<:AbstractSimplex, representatives}
 
-    rs = ReductionState(filtration, S)
+    rs = ReductionState{field_type, S}(filtration)
     sizehint!(rs.reduction_matrix, length(columns))
     intervals = compute_intervals!(rs, columns, ratio, Val(representatives))
     if next
@@ -518,6 +254,7 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
+* `field_type`: use this type of field of coefficients. Defaults to `PrimeField{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   For non-sparse Rips filtrations, it defaults to radius of input space.
 * `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
@@ -538,14 +275,22 @@ function ripserer(
     sparse=false,
     ratio=1,
     representatives=false,
-    kwargs...
+    modulus=2,
+    field_type=PrimeField{modulus},
+    kwargs...,
 )
     if sparse || issparse(dists)
         filtration = SparseRipsFiltration(dists; kwargs...)
     else
         filtration = RipsFiltration(dists; kwargs...)
     end
-    ripserer(filtration; dim_max=dim_max, representatives=representatives, ratio=ratio)
+    ripserer(
+        filtration;
+        dim_max=dim_max,
+        representatives=representatives,
+        ratio=ratio,
+        field_type=field_type,
+    )
 end
 
 function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
@@ -558,24 +303,25 @@ end
 
 Compute persistent homology from `filtration` object.
 """
-ripserer(filtration::AbstractFiltration; dim_max=1, representatives=false, ratio=1) =
-    ripserer(filtration, ratio, Val(dim_max), Val(representatives))
+ripserer(filtration::AbstractFiltration;
+         dim_max=1, representatives=false, ratio=1, field_type=PrimeField{2}) =
+    ripserer(filtration, ratio, field_type, Val(dim_max), Val(representatives))
 
-function ripserer(filtration::AbstractFiltration, ratio, ::Val{0}, ::Val{C}) where C
-    diagram, _, _ = zeroth_intervals(filtration, ratio, Val(C))
+function ripserer(filtration::AbstractFiltration, ratio, field_type, ::Val{0}, ::Val{C}) where C
+    diagram, _, _ = zeroth_intervals(filtration, ratio, field_type, Val(C))
     [diagram]
 end
 
 @generated function ripserer(
-    filtration::AbstractFiltration, ratio, ::Val{D}, ::Val{C},
+    filtration::AbstractFiltration, ratio, field_type, ::Val{D}, ::Val{C},
 ) where {D, C}
     # We unroll the loop over 1:D to ensure type stability.
     # Generated code looks something like:
     #
-    # ints_0, cols_1, sxs_1 = zeroth_intervals(filtration)
-    # ints_1, cols_2, sxs_2 = nth_itervals(filtration, cols_1, sxs_1)
+    # ints_0, cols_1, sxs_1 = zeroth_intervals(filtration, ...)
+    # ints_1, cols_2, sxs_2 = nth_itervals(filtration, cols_1, sxs_1, ...)
     # ...
-    # ints_D, _, _ = nth_itervals(filtration, cols_D-1, sxs_D-1, next=false)
+    # ints_D, _, _ = nth_itervals(filtration, cols_D-1, sxs_D-1, ..., next=false)
     #
     # [ints_0, ints_1, ..., ints_D]
     ints = [Symbol("ints_", i) for i in 1:D]
@@ -583,19 +329,19 @@ end
     sxs = [Symbol("sxs_", i) for i in 1:D]
 
     expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio, Val(C))
+        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(filtration, ratio, field_type, Val(C))
     end
     for i in 1:D-1
         expr = quote
             $expr
             $(ints[i]), $(cols[i+1]), $(sxs[i+1]) =
-                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio, Val(C))
+                nth_intervals(filtration, $(cols[i]), $(sxs[i]), ratio, field_type, Val(C))
         end
     end
     quote
         $expr
         $(ints[D]), _, _ =
-            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, Val(C), next=false)
+            nth_intervals(filtration, $(cols[D]), $(sxs[D]), ratio, field_type, Val(C), next=false)
 
         [ints_0, $(ints...)]
     end

@@ -4,22 +4,31 @@
 
 Return sorted edges of type `E` in distance matrix with length lower than `thresh`.
 """
-function edges(dist::AbstractMatrix{T}, thresh, E) where T
+function edges(dist::AbstractMatrix{T}, thresh, edge_type) where T
+    @boundscheck begin
+        size(dist, 1) == size(dist, 2) && size(dist, 1) > 1 ||
+            throw(ArgumentError("invalid input matrix"))
+    end
+
     n = size(dist, 1)
+    # infer type
+    E = typeof(edge_type((2, 1), dist[2, 1]))
     res = E[]
     @inbounds for j in 1:n, i in j+1:n
         l = dist[i, j]
-        l ≤ thresh && push!(res, E(l, index((i, j)), 1))
+        l ≤ thresh && push!(res, E((i, j), l))
     end
     sort!(res)
 end
 
-function edges(dist::AbstractSparseMatrix{T}, thresh, E) where T
+function edges(dist::AbstractSparseMatrix{T}, thresh, edge_type) where T
+    # infer type
+    E = typeof(edge_type((2, 1), dist[2, 1]))
     res = E[]
     I, J, V = findnz(dist)
     for (i, j, l) in zip(I, J, V)
         i > j || continue
-        l ≤ thresh && push!(res, E(l, index((i, j)), 1))
+        l ≤ thresh && push!(res, E((i, j), l))
     end
     sort!(res)
 end
@@ -105,13 +114,12 @@ Diagonal items are treated as vertex birth times.
 
     RipsFiltration(
         distance_matrix;
-        modulus=2,
         threshold=default_rips_threshold(dist),
-        vertex_type=Simplex{0, modulus, T, Int, UInt}
+        vertex_type=Simplex{0, T, Int64}
     )
 """
 struct RipsFiltration{
-    T, V<:AbstractSimplex{0, <:Any, T}, A<:AbstractMatrix{T}
+    T, V<:AbstractSimplex{0, T}, A<:AbstractMatrix{T}
 } <: AbstractFlagFiltration{T, V}
 
     dist      ::A
@@ -120,19 +128,16 @@ end
 
 function RipsFiltration(
     dist::AbstractMatrix{T};
-    modulus=2,
     threshold=default_rips_threshold(dist),
-    vertex_type::DataType=Simplex{0, modulus, T, UInt64}
+    vertex_type::DataType=Simplex{0, T, Int64}
 ) where T
 
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    is_prime(modulus) ||
-        throw(ArgumentError("`modulus` must be prime"))
-    vertex_type <: AbstractSimplex{0, <:Any, T} ||
-        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0}`"))
+    vertex_type <: AbstractSimplex{0, T} ||
+        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
     !issparse(dist) ||
-        throw(ArgumentError("`dits` is sparse. Use `SparseRipsFiltration` instead"))
+        throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
     RipsFiltration{T, vertex_type, typeof(dist)}(dist, T(threshold))
 end
 
@@ -162,13 +167,12 @@ treated as vertex birth times.
 
     SparseRipsFiltration(
         distance_matrix;
-        modulus=2,
         threshold=nothing,
-        vertex_type=Simplex{modulus, T}
+        vertex_type=Simplex{0, T, Int64}
     )
 """
 struct SparseRipsFiltration{
-    T, V<:AbstractSimplex{0, <:Any, T}, A<:AbstractSparseMatrix{T}
+    T, V<:AbstractSimplex{0, T}, A<:AbstractSparseMatrix{T}
 }<: AbstractFlagFiltration{T, V}
 
     dist ::A
@@ -176,16 +180,13 @@ end
 
 function SparseRipsFiltration(
     dist::AbstractMatrix{T};
-    modulus=2,
     threshold=nothing,
-    vertex_type::DataType=Simplex{0, modulus, T, UInt64},
+    vertex_type::DataType=Simplex{0, T, Int64},
 ) where T
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    is_prime(modulus) ||
-        throw(ArgumentError("`modulus` must be prime"))
-    vertex_type <: AbstractSimplex{0, <:Any, T} ||
-        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0}`"))
+    vertex_type <: AbstractSimplex{0, T} ||
+        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
 
     new_dist = sparse(dist)
     if !isnothing(threshold)
@@ -210,9 +211,6 @@ end
 # Threshold was handled by deleting entries in the matrix.
 threshold(rips::SparseRipsFiltration) =
     ∞
-
-SparseArrays.issparse(::Type{<:SparseRipsFiltration}) =
-    true
 
 @propagate_inbounds function diam(rips::SparseRipsFiltration, sx::AbstractSimplex, us, v)
     res = diam(sx)

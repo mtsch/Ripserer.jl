@@ -8,14 +8,23 @@ using Test
     @safetestset "infinity" begin
         include("infinity.jl")
     end
-    @safetestset "simplex" begin
+    @safetestset "simplices" begin
         include("simplex.jl")
     end
     @safetestset "ripsfiltration" begin
         include("ripsfiltration.jl")
     end
+    @safetestset "primefield" begin
+        include("primefield.jl")
+    end
     @safetestset "diagram" begin
         include("diagram.jl")
+    end
+    @safetestset "chainelement" begin
+        include("chainelement.jl")
+    end
+    @safetestset "reduction_structs" begin
+        include("reduction_structs.jl")
     end
     @safetestset "reduction" begin
         include("reduction.jl")

@@ -1,6 +1,5 @@
-# filtrations ============================================================================ #
 """
-    AbstractFiltration{T, V<:AbstractSimplex{0, C, T}}
+    AbstractFiltration{T, V<:AbstractSimplex{0, T}}
 
 A filtration is used to find the edges in filtration and to determine diameters of
 simplices.
@@ -14,11 +13,9 @@ simplices.
 * [`edges(::AbstractFiltration)`](@ref)
 * [`diam(::AbstractFiltration, vs)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
-* [`SparseArrays.issparse(::Type{A}) where A<:AbstractFiltration`](@ref) - optional,
-  defaults to `false`.
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
 """
-abstract type AbstractFiltration{T, V<:AbstractSimplex{0, <:Any, T}} end
+abstract type AbstractFiltration{T, V<:AbstractSimplex{0, T}} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
@@ -39,17 +36,6 @@ Return the number of vertices in `filtration`.
 n_vertices(::AbstractFiltration)
 
 """
-    SparseArrays.issparse(::Type{<:AbstractFiltration})
-
-Return true if `A` is a sparse filtration. A filtration should be sparse if most simplices
-are to be skipped. Defaults to `false`.
-"""
-SparseArrays.issparse(flt::AbstractFiltration) =
-    issparse(typeof(flt))
-SparseArrays.issparse(::Type{<:AbstractFiltration}) =
-    false
-
-"""
     edges(filtration::AbstractFiltration)
 
 Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
@@ -63,6 +49,7 @@ edges(::AbstractFiltration)
 Get the diameter of list of vertices i.e. diameter of simplex with `vertices`.
 """
 diam(::AbstractFiltration, ::Any)
+
 """
     diam(flt::AbstractFiltration, simplex, vertices, vertex)
 

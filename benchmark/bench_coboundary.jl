@@ -20,7 +20,7 @@ end
 # Distances are between 0 and 2.
 dists = rand_dist_matrix(4000)
 dists[1, 2] = dists[2, 1] = 0.5
-sx = Simplex{2, 2}(dists[1, 2], 1, 1)
+sx = Simplex{2}(1, dists[1, 2])
 
 flt_full_nothreshold = RipsFiltration(dists, threshold=10)
 flt_full_threshold1 = RipsFiltration(dists, threshold=1)
