@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: zeroth_intervals
+using Ripserer: zeroth_intervals, ChainElement
 
 using Compat
 
@@ -207,47 +207,51 @@ end
     @testset "representatives" begin
         _, d1, d2 = ripserer(projective_plane, dim_max=2, representatives=true)
 
-        @test representative(only(d1)) == [
-            Simplex{1}((11, 10), 1) => Mod{2}(1),
-            Simplex{1}((10, 7), 1) => Mod{2}(1),
-            Simplex{1}((10, 6), 1) => Mod{2}(1),
-            Simplex{1}((8, 1), 1) => Mod{2}(1),
-            Simplex{1}((7, 3), 1) => Mod{2}(1),
-            Simplex{1}((7, 1), 1) => Mod{2}(1),
-            Simplex{1}((6, 2), 1) => Mod{2}(1),
-            Simplex{1}((5, 1), 1) => Mod{2}(1),
-            Simplex{1}((2, 1), 1) => Mod{2}(1),
+        @test simplex.(representative(only(d1))) == [
+            Simplex{1}((11, 10), 1),
+            Simplex{1}((10, 7), 1),
+            Simplex{1}((10, 6), 1),
+            Simplex{1}((8, 1), 1),
+            Simplex{1}((7, 3), 1),
+            Simplex{1}((7, 1), 1),
+            Simplex{1}((6, 2), 1),
+            Simplex{1}((5, 1), 1),
+            Simplex{1}((2, 1), 1),
         ]
-        @test representative(only(d2)) == [Simplex{2}((6, 2, 1), 1) => Mod{2}(1)]
+        @test coef.(representative(only(d1))) == fill(9, Mod{2}(1))
+        @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
+        @test coef.(representative(only(d2))) == [Mod{2}(1)]
     end
 
     @testset "representatives - types" begin
         d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
         @test eltype(d0) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{0, Int, Int}, Mod{2}}}}
+            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{2}}}}
         @test eltype(d1) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{1, Int, Int}, Mod{2}}}}
+            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{2}}}}
         @test eltype(d2) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{2, Int, Int}, Mod{2}}}}
+            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{2}}}}
         @test eltype(d3) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{3, Int, Int}, Mod{2}}}}
+            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{2}}}}
 
         d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true, field_type=Mod{5})
         @test eltype(d0) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{0, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{5}}}}
         @test eltype(d1) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{1, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{5}}}}
         @test eltype(d2) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{2, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{5}}}}
         @test eltype(d3) ≡ PersistenceInterval{
-            Int, Vector{Pair{Simplex{3, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{5}}}}
     end
 
     @testset "representatives - thresh" begin
         _, d1 = ripserer(
             cycle, dim_max=1, representatives=true, threshold=1, field_type=Rational{Int}
         )
-        @test representative(only(d1)) == Pair{Simplex{0, Int, Int}, Rational{Int}}[]
+        @test representative(only(d1)) == ChainElement{
+            Simplex{0, Int, Int}, Rational{Int}
+        }[]
     end
 
     @testset "lower star" begin

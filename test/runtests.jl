@@ -7,7 +7,7 @@ end
 @safetestset "infinity" begin
     include("infinity.jl")
 end
-@safetestset "simplices" begin
+@safetestset "simplex" begin
     include("simplex.jl")
 end
 @safetestset "ripsfiltration" begin

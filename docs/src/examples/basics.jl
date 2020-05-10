@@ -47,8 +47,11 @@ plot(result_circ)
 barcode(result_circ)
 
 # ``H_1``, ``H_2`` and ``H_3`` in this plot are hard to see, because we have too many
-# ``H_0`` bars. We can plot only some of the diagrams. Note that `result` is just an array
-# of persistence diagrams, so the zero-dimensional diagram is found at index 1.
+# ``H_0`` bars. We can plot only some of the diagrams.
+
+# !!! note "Note"
+#     `result` is just an array of persistence diagrams, so the zero-dimensional diagram is
+#     found at index 1.
 
 barcode(result_circ[2:end], linewidth=2)
 

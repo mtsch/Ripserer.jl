@@ -27,8 +27,8 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # We construct a distance matrix for the sublevel filtration. In this matrix, there is a
 # vertex for each point in our series. We add vertex births, which are equal to the `y`
 # values to the diagonal. Adjacient vertices are connected with edges, each having a weight
-# equal to the maximum of its endpoints' births. If we were looking for local maxima, we
-# would use the `min` function instead.
+# equal to the maximum of its endpoints' births. If we were interested in local maxima, we
+# would use the negated values of `y`.
 
 dist = spzeros(n, n)
 for i in 1:n
@@ -82,9 +82,9 @@ end
 # finding the simplices with the lowest diameter in the lists of representative
 # cocycles. Indexing into `x` with those will give us `x`-positions of the minima.
 
-x_mins = x[index.(first(sort(rep, by=diam)) for rep in representative.(res))]
+x_mins = x[first.(vertices.(first(sort(rep, by=diam)) for rep in representative.(res)))]
 y_mins = birth.(res)
-scatter!(x_mins, y_mins, color=1:5, markershape=:star, label="minima")
+scatter!(plt, x_mins, y_mins, color=1:5, markershape=:star, label="minima")
 
 # And finally, we plot a close-up of one of the minima to ensure we got the correct answer.
 

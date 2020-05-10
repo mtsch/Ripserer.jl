@@ -20,8 +20,10 @@ Coefficient values must be in a field and must support `+`, `-`, `*`, `/`, `inv`
 abstract type AbstractChainElement{S<:AbstractSimplex, F<:Number} end
 
 for op in (:+, :-)
-    @eval (Base.$op)(ce1::C, ce2::C) where C<:AbstractChainElement =
+    @eval function (Base.$op)(ce1::C, ce2::C) where C<:AbstractChainElement
+        @boundscheck ce1 == ce2 || throw(ArgumentError("simplices don't match"))
         C(simplex(ce1), $op(coef(ce1), coef(ce2)))
+    end
 end
 for op in (:oneunit, :zero, :-, :+)
     @eval (Base.$op)(ce::C) where C<:AbstractChainElement =
@@ -46,6 +48,16 @@ Base.:(==)(ce1::AbstractChainElement, ce2::AbstractChainElement) =
     simplex(ce1) == simplex(ce2)
 Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement) =
     isless(simplex(ce1), simplex(ce2))
+
+# Make chain elements useful when they come out as representatives.
+diam(ce::AbstractChainElement) = diam(simplex(ce))
+Base.sign(ce::AbstractChainElement) = sign(coef(ce))
+vertices(ce::AbstractChainElement) = vertices(simplex(ce))
+
+Base.show(io::IO, ce::AbstractChainElement) =
+    print(io, simplex(ce), " => ", coef(ce))
+
+# TODO printing, iteration
 
 """
     chain_element_type(simplex, coef)

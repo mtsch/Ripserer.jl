@@ -1,8 +1,9 @@
 """
-    ReductionMatrix{K, V}
+    ReductionMatrix{C, SE}
 
-A representation of the reduction matrix. It is indexed by simplices of type `S` (or chain
-element types) and holds values of type `coface_type(S)`. Supports the following operations.
+A representation of the reduction matrix. It is indexed by simplices of type `C` (or chain
+element types) and holds chain elements of one dimension lower. Supports the following
+operations.
 
 * `insert_column!(::ReductionMatrix, i::K)`: add a new column with column index `i`.
 * `has_column(::ReductionMatrix, i::K)`: return `true` if the matrix has any entries in the
@@ -96,17 +97,18 @@ end
 """
     representatives(col::Column{CE}, max_diam)
 
-Turn column into representatives list.
+Turn column into representatives array.
 """
 function representatives(
     rm::ReductionMatrix{<:Any, SE}, col, max_diam
 ) where {S, F, SE<:AbstractChainElement{S, F}}
-    reps = Pair{S, F}[]
+    reps = SE[]
     for element in rm[col]
-        if diam(simplex(element)) < max_diam
+        if diam(element) < max_diam
             # TODO?: should they be normalized, like in ripser?
             #        should they be returned as Int in the case of PrimeFields?
-            push!(reps, simplex(element) => coef(element))
+            #        are they always 1 or -1, so should be returned as simplices?
+            push!(reps, element)
         end
     end
     reps
@@ -114,13 +116,15 @@ end
 
 # columns ================================================================================ #
 """
-    Column{C<:AbstractChainElement}
+    Column{CE<:AbstractChainElement}
 
-Wrapper around `BinaryMinHeap{S}`. Acts like a heap of chain elements, where elements with
+Wrapper around `BinaryMinHeap{CE}`. Acts like a heap of chain elements, where elements with
 the same simplex are summed together and elements with coefficient value `0` are ignored.
-Support `push!`ing chain elements or simplices.
+Support `push!`ing chain elements or simplices. Unlike a regular heap, it returns nothing
+when `pop!` is used on an empty column.
 """
-struct Column{CE<:AbstractChainElement} heap::BinaryMinHeap{CE}
+struct Column{CE<:AbstractChainElement}
+    heap::BinaryMinHeap{CE}
 
     Column{CE}() where CE =
         new{CE}(BinaryMinHeap{CE}())
@@ -134,8 +138,9 @@ Base.isempty(col::Column) =
 """
     move_mul!(dst, col::Column{CE}, times=one(CE))
 
-Move contents of column into `dst` by repeatedly calling `push!` on it.
-Multipy all elements that are moved by `times`.
+Move contents of column into `dst` by repeatedly calling `pop_pivot!` on the column and
+`push!`ing the pivot to `dst`. Multipy all elements that are moved are multiplied by
+`times`.
 """
 function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
     pivot = pop_pivot!(col)
@@ -151,7 +156,7 @@ end
 
 Pop the pivot from `column`. If there are multiple simplices with the same index on the top
 of the column, sum them together. If they sum to 0, pop the next column. Return
-`nothing` when column is empty.
+`nothing` if column is empty or if all pivots summed to 0.
 """
 function pop_pivot!(column::Column)
     isempty(column) && return nothing

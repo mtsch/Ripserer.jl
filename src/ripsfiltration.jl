@@ -115,7 +115,7 @@ Diagonal items are treated as vertex birth times.
     RipsFiltration(
         distance_matrix;
         threshold=default_rips_threshold(dist),
-        vertex_type=Simplex{0, T, Int64}
+        vertex_type=Simplex{0, T, Int64},
     )
 """
 struct RipsFiltration{
@@ -168,7 +168,7 @@ treated as vertex birth times.
     SparseRipsFiltration(
         distance_matrix;
         threshold=nothing,
-        vertex_type=Simplex{0, T, Int64}
+        vertex_type=Simplex{0, T, Int64},
     )
 """
 struct SparseRipsFiltration{

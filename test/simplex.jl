@@ -19,7 +19,7 @@ end
 
 @testset "Simplex" begin
     @testset "interface" begin
-        for D in 0:5
+        for D in 0:3
             for T in (Float64, Float32, Int)
                 d = rand(T)
                 for I in (Int64, Int128)
@@ -74,6 +74,19 @@ end
             @test_throws ArgumentError Simplex{4}(vertices(sx), rand())
             @test_throws ArgumentError Simplex{6}(vertices(sx), rand())
         end
+    end
+    @testset "show" begin
+        @test sprint(print, Simplex{1}(1, 1)) == "Simplex{1}(+(2, 1), 1)"
+        @test sprint(print, Simplex{2}(-1, 1)) == "Simplex{2}(-(3, 2, 1), 1)"
+
+        @test sprint(Simplex{2}(1, 1)) do io, sx
+            show(io, MIME"text/plain"(), sx)
+        end == "2-dim Simplex(1, 1):\n  +(3, 2, 1)"
+
+        @test sprint(Simplex{1}(Int128(1), 1)) do io, sx
+            show(io, MIME"text/plain"(), sx)
+        end == "1-dim Simplex(1, 1) with Int128 index:\n  +(2, 1)"
+
     end
     @testset "coboundary" begin
         @testset "number of cofaces" begin

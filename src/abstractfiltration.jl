@@ -5,7 +5,7 @@ A filtration is used to find the edges in filtration and to determine diameters 
 simplices.
 
 `T` is the distance type, accessible by `dist_type` and S is the edge type, accesible by
-`edge_type`.
+`vertex_type`.
 
 # Interface
 

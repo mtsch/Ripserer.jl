@@ -174,6 +174,9 @@ end
 
 # simplex plots ========================================================================== #
 const SxVector{D} = AbstractVector{<:AbstractSimplex{D}}
+const IntervalWithRep{D} = PersistenceInterval{
+    <:Any, <:AbstractVector{<:Pair{<:AbstractSimplex{D}, <:Any}}
+}
 
 """
     index_data(indices, args...)
@@ -210,7 +213,7 @@ plottable(sx::AbstractSimplex, args...) =
     plottable([sx], args...)
 
 plottable(int::PersistenceInterval, args...) =
-    plottable(first.(representative(int)), args...)
+    plottable(simplex.(representative(int)), args...)
 
 plottable(int::PersistenceInterval{<:Any, Nothing}, args...) =
     throw(ArgumentError(
@@ -219,17 +222,17 @@ plottable(int::PersistenceInterval{<:Any, Nothing}, args...) =
 
 function plottable(sxs::SxVector{0}, args...)
     indices = only.(vertices.(sxs))
-    index_data(indices, args...), [:seriestype => :scatter]
+    index_data(indices, args...), [:seriestype => :scatter], 0
 end
 
 function plottable(sxs::SxVector{1}, args...)
     indices = mapreduce(vcat, vertices.(sxs)) do (u, v)
         [u, v, 0]
     end
-    index_data(indices, args...), [:seriestype => :path]
+    index_data(indices, args...), [:seriestype => :path], 1
 end
 
-function plottable(sxs::SxVector, args...)
+function plottable(sxs::SxVector{D}, args...) where D
     indices = mapreduce(vcat, vertices.(sxs)) do vs
         idxs = Int[]
         for (u, v, w) in subsets(vs, Val(3))
@@ -238,16 +241,11 @@ function plottable(sxs::SxVector, args...)
         push!(idxs, 0)
         idxs
     end
-    index_data(indices, args...), [:seriestype => :path]
+    index_data(indices, args...), [:seriestype => :path], D
 end
 
-@recipe function f(
-    sx::Union{AbstractSimplex{D},
-              SxVector{D},
-              PersistenceInterval{<:Any, <:AbstractVector{<:AbstractSimplex{D}}}}, # yikes
-    args...,
-) where D
-    series, attrs = plottable(sx, args...)
+@recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...)
+    series, attrs, D = plottable(sx, args...)
     for (key, value) in attrs
         plotattributes[key] = get(plotattributes, key, value)
     end

@@ -5,7 +5,7 @@ A refinement of [`AbstractSimplex`](@ref). An indexed simplex is represented by 
 dimension, diameter and combinatorial index. It does not need to hold information about its
 the vertices it includes, since they can be recomputed from the index and dimension.
 
-By defining the [`index`](@ref), a default implementation of [`sign`](@ref), `isless`,
+By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
 [`vertices`](@ref) and [`coboundary`](@ref) is provided.
 
 # Interface
@@ -23,6 +23,14 @@ abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T} end
 
 Get the combinatorial index of the `simplex`. A negative index represents a simplex with
 negative orientation.
+
+```jldoctest
+index(Simplex{2}((3, 2, 1), 3.2))
+
+# output
+
+1
+```
 """
 index(::IndexedSimplex)
 
@@ -63,6 +71,12 @@ function small_binomial(n, ::Val{k}) where k
     x
 end
 
+"""
+    find_max_vertex(idx, ::Val{k})
+
+Use binary search to find index of first vertex in `(k-1)`-dimensional simplex with index
+`idx`.
+"""
 function find_max_vertex(idx, ::Val{k}) where k
     lo = k - 1
     hi = k + 100
@@ -88,7 +102,7 @@ end
 """
     vertices(index, ::Val{dim})
 
-Get the `dim+1` vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
+Get the vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
 """
 @generated function vertices(index, ::Val{dim}) where dim
     # Generate code of the form
@@ -119,11 +133,6 @@ Get the `dim+1` vertices of simplex represented by index. Returns `NTuple{dim+1,
     end
 end
 
-"""
-    vertices(simplex::IndexedSimplex{dim})
-
-Get the vertices of `simplex`. Returns `NTuple{dim+1, Int}`.
-"""
 vertices(sx::IndexedSimplex{D}) where D =
     vertices(index(sx), Val(D))::NTuple{D+1, Int}
 
@@ -185,12 +194,6 @@ struct IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex}
         new{A, D + 1, F, S}(filtration, simplex, vertices(simplex))
 end
 
-"""
-    coboundary(filtration, simplex)
-
-Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type `coface_type(simplex)`.
-"""
 coboundary(filtration, simplex::IndexedSimplex) =
     IndexedCobounary{true}(filtration, simplex)
 coboundary(filtration, simplex::IndexedSimplex, ::Val{false}) =
@@ -223,7 +226,8 @@ end
 """
     Simplex{D, T, I} <: IndexedSimplex{D, T, I}
 
-The vanilla simplex type.
+The vanilla simplex type represented by dimension `D` and index of type `I` and a diameter
+of type `T`.
 
 # Constructor
 
@@ -263,7 +267,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
     print(io, D, "-dim Simplex", (index(sx), diam(sx)))
-    if !(I ≢ Int64)
+    if I ≢ Int64
         print(io, " with ", I, " index")
     end
     print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
@@ -277,4 +281,4 @@ index(sx::Simplex) = sx.index
 
 diam(sx::Simplex) = sx.diam
 
-@pure coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}
+coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}

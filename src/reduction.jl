@@ -1,4 +1,3 @@
-# reduction matrix ======================================================================= #
 """
     ReductionState
 
@@ -42,10 +41,11 @@ coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE =
     CE
 
 """
-    add!(rs::ReductionState, index)
+    add!(rs::ReductionState, current_pivot)
 
-Add column with column `index` multiplied by the correct factor to `rs.working_column`.
-Also record the addition in `rs.reduction_entries`.
+Add column with column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by
+the correct factor to `rs.working_column`. Also record the addition in
+`rs.reduction_entries`.
 """
 function add!(rs::ReductionState, current_pivot)
     λ = -coef(current_pivot)
@@ -61,8 +61,8 @@ end
 """
     initialize!(rs::ReductionState, column_simplex)
 
-Initialize `rs.working_column` by emptying it and `reduction_entries` and pushing the
-coboundary of `column_simplex` to `rs.working_column`.
+Initialize the columns in `rs`. Empty both `rs.working_column` and `rs.reduction_entries`,
+then push the coboundary of `column_simplex` to `rs.working_column`.
 """
 function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
     empty!(rs.working_column)
@@ -79,10 +79,11 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
 end
 
 """
-    reduce_working_column!(rs::ReductionState, res, column_simplex)
+    reduce_working_column!(rs::ReductionState, column_simplex, Val(reps))
 
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
-reduced. Record it in the reduction matrix and return the persistence interval.
+reduced. Record it in the reduction matrix and return the persistence interval. If `reps` is
+`true`, add representative cocycles to the interval.
 """
 function reduce_working_column!(
     rs::ReductionState{F, S}, column_simplex, ::Val{reps}
@@ -106,7 +107,7 @@ function reduce_working_column!(
             representative = representatives(rs.reduction_matrix, current_pivot, death)
             PersistenceInterval(birth, death, representative)
         else
-            PersistenceInterval(birth, death, Pair{S, F}[])
+            PersistenceInterval(birth, death, chain_element_type(rs)[])
         end
     else
         PersistenceInterval(birth, death)
@@ -116,14 +117,16 @@ end
 """
     compute_pairs!(rs::ReductionState, columns)
 
-Compute persistence intervals by reducing `columns`, a collection of simplices.
+Compute persistence intervals by reducing `columns`, a collection of simplices. Return
+`PersistenceDiagram`. Only keep intervals with desired birth/death `ratio` and return
+representative cocycles if `reps` is `true`.
 """
 function compute_intervals!(
     rs::ReductionState{F, S}, columns, ratio, ::Val{reps}
 ) where {S, F, reps}
     T = dist_type(rs.filtration)
     if reps
-        intervals = PersistenceInterval{T, Vector{Pair{S, F}}}[]
+        intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
@@ -159,18 +162,20 @@ function assemble_columns!(rs::ReductionState, simplices)
 end
 
 """
-    zeroth_intervals(filtration)
+    zeroth_intervals(filtration, ratio, field_type, ::Val{reps})
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
-If `filtration` is sparse, also return a vector of all 1-simplices with diameter below
-threshold.
+
+Only keep intervals with desired birth/death `ratio`. Compute homology with coefficients in
+`field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
     T = dist_type(filtration)
     V = vertex_type(filtration)
+    CE = chain_element_type(V, field_type)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     if reps
-        intervals = PersistenceInterval{T, Vector{Pair{V, field_type}}}[]
+        intervals = PersistenceInterval{T, Vector{CE}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
@@ -185,7 +190,7 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
         if i ≠ j
             if reps
                 representative = map(find_leaves!(dset, i)) do w
-                    V((w,), birth(filtration, w)) => one(field_type)
+                    CE(V((w,), birth(filtration, w)))
                 end
             else
                 representative = nothing
@@ -208,7 +213,7 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
         if find_root!(dset, v) == v
             if reps
                 representative = map(find_leaves!(dset, v)) do w
-                    V((w,), birth(filtration, w)) => one(field_type)
+                    CE(V((w,), birth(filtration, w)))
                 end
             else
                 representative = nothing
@@ -221,18 +226,21 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
 end
 
 """
-    nth_intervals(filtration, columns, simplices; next=true)
+    nth_intervals(filtration, columns, simplices, ratio, field_type, ::Val{reps}; next=true)
 
 Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
+
+Only keep intervals with desired birth/death `ratio`. Compute homology with coefficients in
+`field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, ratio, field_type, ::Val{representatives}; next=true,
-) where {S<:AbstractSimplex, representatives}
+    filtration, columns::Vector{S}, simplices, ratio, field_type, ::Val{reps}; next=true,
+) where {S<:AbstractSimplex, reps}
 
     rs = ReductionState{field_type, S}(filtration)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, ratio, Val(representatives))
+    intervals = compute_intervals!(rs, columns, ratio, Val(reps))
     if next
         (intervals, assemble_columns!(rs, simplices)...)
     else
