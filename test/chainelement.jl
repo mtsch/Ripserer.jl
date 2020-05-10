@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: ChainElement, chain_element_type, coef, simplex
+using Ripserer: ChainElement, chain_element_type, coefficient, simplex
 
 for F in (Mod{2}, Mod{11}, Rational{Int})
     CE = chain_element_type(Simplex, F)
@@ -10,9 +10,9 @@ for F in (Mod{2}, Mod{11}, Rational{Int})
     b = CE(sx, F(17))
     c = CE(sx, F(21))
 
-    @test coef(a) == F(13)
-    @test coef(b) == F(17)
-    @test coef(c) == F(21)
+    @test coefficient(a) == F(13)
+    @test coefficient(b) == F(17)
+    @test coefficient(c) == F(21)
     @test simplex(a) == sx
     @test simplex(b) == sx
     @test simplex(c) == sx
@@ -22,7 +22,7 @@ for F in (Mod{2}, Mod{11}, Rational{Int})
     @test α * b == b * α
     @test a - a == zero(a)
     @test iszero(a - a)
-    @test b / coef(b) == oneunit(a)
+    @test b / coefficient(b) == oneunit(a)
     @test b + zero(a) == b
     @test c * one(a) == c
     @test a - b == a + -b

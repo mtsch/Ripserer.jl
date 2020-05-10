@@ -12,35 +12,35 @@ Coefficient values must be in a field and must support `+`, `-`, `*`, `/`, `inv`
 
 # Interface
 
-* `AbstractChainElement{S, F}(sx::S)` - default to `coef` equal to `sign(sx)`.
-* `AbstractChainElement{S, F}(::S, coef)` - convert `coef` to `F` if necessary.
+* `AbstractChainElement{S, F}(sx::S)` - default to `coefficient` equal to `sign(sx)`.
+* `AbstractChainElement{S, F}(::S, coefficient)` - convert `coefficient` to `F` if necessary.
 * `simplex(::ChainElement)`
-* `coef(::ChainElement)`
+* `coefficient(::ChainElement)`
 """
 abstract type AbstractChainElement{S<:AbstractSimplex, F<:Number} end
 
 for op in (:+, :-)
     @eval function (Base.$op)(ce1::C, ce2::C) where C<:AbstractChainElement
         @boundscheck ce1 == ce2 || throw(ArgumentError("simplices don't match"))
-        C(simplex(ce1), $op(coef(ce1), coef(ce2)))
+        C(simplex(ce1), $op(coefficient(ce1), coefficient(ce2)))
     end
 end
 for op in (:oneunit, :zero, :-, :+)
     @eval (Base.$op)(ce::C) where C<:AbstractChainElement =
-        C(simplex(ce), $op(coef(ce)))
+        C(simplex(ce), $op(coefficient(ce)))
 end
 Base.:*(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), coef(ce) * x)
+    C(simplex(ce), coefficient(ce) * x)
 Base.:*(x::F, ce::C) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), x * coef(ce))
+    C(simplex(ce), x * coefficient(ce))
 Base.:/(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), coef(ce) / x)
+    C(simplex(ce), coefficient(ce) / x)
 Base.one(::Type{<:AbstractChainElement{<:Any, F}}) where F =
     one(F)
 Base.one(::AbstractChainElement{<:Any, F}) where F =
     one(F)
 Base.iszero(ce::AbstractChainElement) =
-    iszero(coef(ce))
+    iszero(coefficient(ce))
 
 Base.hash(ce::AbstractChainElement, u::UInt64) =
     hash(simplex(ce), u)
@@ -51,21 +51,21 @@ Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement) =
 
 # Make chain elements useful when they come out as representatives.
 diam(ce::AbstractChainElement) = diam(simplex(ce))
-Base.sign(ce::AbstractChainElement) = sign(coef(ce))
+Base.sign(ce::AbstractChainElement) = sign(coefficient(ce))
 vertices(ce::AbstractChainElement) = vertices(simplex(ce))
 
 Base.show(io::IO, ce::AbstractChainElement) =
-    print(io, simplex(ce), " => ", coef(ce))
+    print(io, simplex(ce), " => ", coefficient(ce))
 
 # TODO printing, iteration
 
 """
-    chain_element_type(simplex, coef)
+    chain_element_type(simplex, coefficient)
 
 Get the type of `AbstractChainElement` that is to be used for packing `simplex` and
 `coefficient`.
 """
-chain_element_type(simplex::S, coef::F) where {S, F} = chain_element_type(S, F)
+chain_element_type(simplex::S, coefficient::F) where {S, F} = chain_element_type(S, F)
 
 """
     ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
@@ -74,17 +74,17 @@ The default, basic subtype of [`AbstractChainElement`](@ref).
 """
 struct ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
     simplex::S
-    coef::F
+    coefficient::F
 
-    ChainElement{S, F}(simplex::S, coef) where {S, F} =
-        new{S, F}(abs(simplex), sign(simplex) * F(coef))
+    ChainElement{S, F}(simplex::S, coefficient) where {S, F} =
+        new{S, F}(abs(simplex), sign(simplex) * F(coefficient))
 
     ChainElement{S, F}(simplex::S) where {S, F} =
         new{S, F}(abs(simplex), F(sign(simplex)))
 end
 
 simplex(ce::ChainElement) = ce.simplex
-coef(ce::ChainElement) = ce.coef
+coefficient(ce::ChainElement) = ce.coefficient
 
 chain_element_type(::Type{S}, ::Type{F}) where {S, F} =
     ChainElement{S, F}

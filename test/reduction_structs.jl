@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: ChainElement, coef,
+using Ripserer: ChainElement, coefficient,
     ReductionMatrix, insert_column!, has_column,
     Column, pop_pivot!, pivot,
     DisjointSetsWithBirth
@@ -35,7 +35,7 @@ using Compat
 
         @test has_column(rm, Simplex{3}(10, 1))
         @test length(rm[Simplex{3}(10, 1)]) == 3
-        @test all(ce -> coef(ce) == 2, rm[Simplex{3}(10, 1)])
+        @test all(ce -> coefficient(ce) == 2, rm[Simplex{3}(10, 1)])
 
         @test has_column(rm, -Simplex{3}(1, 1))
         @test length(rm[Simplex{3}(1, 1)]) == 0
@@ -82,7 +82,7 @@ end
         push!(col, Simplex{2}(-2, 3))
         push!(col, -Simplex{2}(1, 2))
 
-        @test coef(pivot(col)) == -1
+        @test coefficient(pivot(col)) == -1
         @test pop_pivot!(col) == CE(Simplex{2}(1, 2), -1)
         @test isnothing(pivot(col))
         @test isnothing(pop_pivot!(col))

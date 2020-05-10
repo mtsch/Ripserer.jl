@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: Barcode, plottable
+using Ripserer: Barcode, plottable, ChainElement
 
 using RecipesBase
 using RecipesBase: apply_recipe
@@ -80,7 +80,9 @@ end
             @test length(series(sx, data)) == 1
             @test length(series([sx], data)) == 1
             @test length(series([sx], data)) == 1
-            @test length(series(PersistenceInterval(1.0, 1.0, [sx => 1//1]), data)) == 1
+            @test length(series(PersistenceInterval(
+                1.0, 1.0, [ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)]
+            ), data)) == 1
             @test_throws ArgumentError series(PersistenceInterval(1.0, 1.0, nothing), data)
         end
     end

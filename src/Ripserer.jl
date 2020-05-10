@@ -39,6 +39,7 @@ export PersistenceInterval, birth, death, persistence, representative,
     PersistenceDiagram
 
 include("chainelement.jl")
+export simplex, coefficient
 include("reduction_structs.jl")
 include("reduction.jl")
 export ripserer

@@ -48,11 +48,11 @@ the correct factor to `rs.working_column`. Also record the addition in
 `rs.reduction_entries`.
 """
 function add!(rs::ReductionState, current_pivot)
-    λ = -coef(current_pivot)
+    λ = -coefficient(current_pivot)
     for element in rs.reduction_matrix[current_pivot]
         push!(rs.reduction_entries, λ * element)
         for coface in coboundary(rs.filtration, simplex(element))
-            push!(rs.working_column, coface_element(rs)(coface, λ * coef(element)))
+            push!(rs.working_column, coface_element(rs)(coface, λ * coefficient(element)))
         end
     end
     pivot(rs.working_column)
@@ -98,7 +98,7 @@ function reduce_working_column!(
     else
         insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
-        move_mul!(rs.reduction_matrix, rs.reduction_entries, inv(coef(current_pivot)))
+        move_mul!(rs.reduction_matrix, rs.reduction_entries, inv(coefficient(current_pivot)))
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
@@ -107,7 +107,7 @@ function reduce_working_column!(
             representative = representatives(rs.reduction_matrix, current_pivot, death)
             PersistenceInterval(birth, death, representative)
         else
-            PersistenceInterval(birth, death, chain_element_type(rs)[])
+            PersistenceInterval(birth, death, chain_element_type(S, F)[])
         end
     else
         PersistenceInterval(birth, death)
@@ -144,10 +144,10 @@ end
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
-function assemble_columns!(rs::ReductionState, simplices)
-    S = coface_type(simplex_type(rs))
-    columns = S[]
-    new_simplices = S[]
+function assemble_columns!(rs::ReductionState{<:Any, S}, simplices) where S
+    C = coface_type(S)
+    columns = C[]
+    new_simplices = C[]
 
     for simplex in simplices
         for coface in coboundary(rs.filtration, simplex, Val(false))

@@ -218,9 +218,9 @@ end
             Simplex{1}((5, 1), 1),
             Simplex{1}((2, 1), 1),
         ]
-        @test coef.(representative(only(d1))) == fill(9, Mod{2}(1))
+        @test coefficient.(representative(only(d1))) == fill(Mod{2}(1), 9)
         @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
-        @test coef.(representative(only(d2))) == [Mod{2}(1)]
+        @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
     end
 
     @testset "representatives - types" begin
