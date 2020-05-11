@@ -86,7 +86,7 @@ reduced. Record it in the reduction matrix and return the persistence interval. 
 `true`, add representative cocycles to the interval.
 """
 function reduce_working_column!(
-    rs::ReductionState{F, S}, column_simplex, ratio, ::Val{reps}
+    rs::ReductionState{F, S}, column_simplex, cutoff, ::Val{reps}
 ) where {F, S, reps}
     current_pivot = initialize!(rs, column_simplex)
 
@@ -102,17 +102,14 @@ function reduce_working_column!(
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
-    if death > birth * ratio
-        if reps
-            if isfinite(death)
-                representative = representatives(rs.reduction_matrix, current_pivot, death)
-                PersistenceInterval(birth, death, representative)
-            else
-                PersistenceInterval(birth, death, chain_element_type(S, F)[])
-            end
-        else
-            PersistenceInterval(birth, death)
-        end
+
+    if reps && !isfinite(death)
+        PersistenceInterval(birth, death, chain_element_type(S, F)[])
+    elseif reps && death - birth > cutoff
+        representative = representatives(rs.reduction_matrix, current_pivot, death)
+        PersistenceInterval(birth, death, representative)
+    elseif !isfinite(death) || death - birth > cutoff
+        PersistenceInterval(birth, death)
     else
         nothing
     end
@@ -122,11 +119,11 @@ end
     compute_pairs!(rs::ReductionState, columns)
 
 Compute persistence intervals by reducing `columns`, a collection of simplices. Return
-`PersistenceDiagram`. Only keep intervals with desired birth/death `ratio` and return
+`PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
 representative cocycles if `reps` is `true`.
 """
 function compute_intervals!(
-    rs::ReductionState{F, S}, columns, ratio, ::Val{reps}
+    rs::ReductionState{F, S}, columns, cutoff, ::Val{reps}
 ) where {S, F, reps}
     T = dist_type(rs.filtration)
     if reps
@@ -135,7 +132,7 @@ function compute_intervals!(
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, ratio, Val(reps))
+        interval = reduce_working_column!(rs, column, cutoff, Val(reps))
         if !isnothing(interval)
             push!(intervals, interval)
         end
@@ -166,14 +163,14 @@ function assemble_columns!(rs::ReductionState{<:Any, S}, simplices) where S
 end
 
 """
-    zeroth_intervals(filtration, ratio, field_type, ::Val{reps})
+    zeroth_intervals(filtration, cutoff, field_type, ::Val{reps})
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 
-Only keep intervals with desired birth/death `ratio`. Compute homology with coefficients in
+Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
-function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
+function zeroth_intervals(filtration, cutoff, field_type, ::Val{reps}) where reps
     T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, field_type)
@@ -196,7 +193,7 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             dead = birth(dset, i) > birth(dset, j) ? i : j
-            if diam(sx) > birth(dset, dead) * ratio
+            if diam(sx) - birth(dset, dead) > cutoff
                 if reps
                     representative = map(find_leaves!(dset, dead)) do w
                         CE(V((w,), birth(filtration, w)))
@@ -229,21 +226,21 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
 end
 
 """
-    nth_intervals(filtration, columns, simplices, ratio, field_type, ::Val{reps}; next=true)
+    nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
 
 Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
 `eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
 
-Only keep intervals with desired birth/death `ratio`. Compute homology with coefficients in
+Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, ratio, field_type, ::Val{reps}; next=true,
+    filtration, columns::Vector{S}, simplices, cutoff, field_type, ::Val{reps}; next=true,
 ) where {S<:AbstractSimplex, reps}
 
     rs = ReductionState{field_type, S}(filtration)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, ratio, Val(reps))
+    intervals = compute_intervals!(rs, columns, cutoff, Val(reps))
     if next
         (intervals, assemble_columns!(rs, simplices)...)
     else
@@ -268,8 +265,7 @@ Compute the persistent homology of metric space represented by `dists` or `point
   For non-sparse Rips filtrations, it defaults to radius of input space.
 * `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
   argument is a sparse matrix, it overrides this option.
-* `ratio`: only keep intervals with `death(interval) > birth(interval) * ratio`.
-  Defaults to `1`.
+* `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `representatives`: if `true`, return representative cocycles along with persistence
   intervals. Defaults to `false`.
 * `metric`: when calculating persistent homology from points, any metric from
@@ -282,7 +278,7 @@ function ripserer(
     dists::AbstractMatrix;
     dim_max=1,
     sparse=false,
-    ratio=1,
+    cutoff=0,
     representatives=false,
     modulus=2,
     field_type=Mod{modulus},
@@ -297,7 +293,7 @@ function ripserer(
         filtration;
         dim_max=dim_max,
         representatives=representatives,
-        ratio=ratio,
+        cutoff=cutoff,
         field_type=field_type,
     )
 end
@@ -314,18 +310,18 @@ Compute persistent homology from `filtration` object.
 """
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, ratio=1, field_type=Mod{2}
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
 )
-    ripserer(filtration, ratio, field_type, Val(dim_max), Val(representatives))
+    ripserer(filtration, cutoff, field_type, Val(dim_max), Val(representatives))
 end
 
-function ripserer(filtration, ratio, field_type, ::Val{0}, ::Val{reps}) where reps
-    diagram, _, _ = zeroth_intervals(filtration, ratio, field_type, Val(reps))
+function ripserer(filtration, cutoff, field_type, ::Val{0}, ::Val{reps}) where reps
+    diagram, _, _ = zeroth_intervals(filtration, cutoff, field_type, Val(reps))
     [diagram]
 end
 
 @generated function ripserer(
-    filtration, ratio, field_type, ::Val{dim_max}, ::Val{reps}
+    filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}
 ) where {dim_max, reps}
     # We unroll the loop over 1:dim_max to ensure type stability.
     # Generated code looks something like:
@@ -342,14 +338,14 @@ end
 
     expr = quote
         ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(
-            filtration, ratio, field_type, Val(reps)
+            filtration, cutoff, field_type, Val(reps)
         )
     end
     for i in 1:dim_max-1
         expr = quote
             $expr
             $(ints[i]), $(cols[i+1]), $(sxs[i+1]) = nth_intervals(
-                filtration, $(cols[i]), $(sxs[i]), ratio, field_type, Val(reps)
+                filtration, $(cols[i]), $(sxs[i]), cutoff, field_type, Val(reps)
             )
         end
     end
@@ -357,7 +353,7 @@ end
         $expr
         $(ints[dim_max]), _, _ =
             nth_intervals(
-                filtration, $(cols[dim_max]), $(sxs[dim_max]), ratio, field_type, Val(reps),
+                filtration, $(cols[dim_max]), $(sxs[dim_max]), cutoff, field_type, Val(reps),
                 next=false
             )
 
