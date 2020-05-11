@@ -1,6 +1,7 @@
 using Ripserer
 using Ripserer: distances, dist_type, vertex_type, edge_type, dist, threshold
 
+using ..TestHelpers: test_filtration_interface
 include("data.jl")
 
 @testset "edges" begin
@@ -68,40 +69,6 @@ end
                                              1 0 1 2;
                                              2 1 0 1;
                                              1 2 1 0]
-end
-
-"""
-    filtration_interface_testset(Filtration, datasets)
-
-Test the filtration interface. Make sure all required methods are defined and that they
-return values of types that make sense.
-"""
-function test_filtration_interface(Filtration, datasets)
-    @testset "AbstractFiltration interface" begin
-        for data in datasets
-            flt = Filtration(data)
-
-            T = dist_type(flt)
-            V = vertex_type(flt)
-            E = edge_type(flt)
-
-            @test V <: AbstractSimplex{0}
-            @test V isa DataType
-            @test E <: AbstractSimplex{1}
-            @test E isa DataType
-
-            @test n_vertices(flt) == size(data, 1)
-            sx = first(edges(flt))
-            @test sx isa E
-            @test diam(sx) isa T
-            @test birth(flt, 1) isa T
-
-            @test diam(flt, [3, 2, 1]) isa T
-            @test diam(flt, E(1, one(T)), [3, 2], 1) isa T
-
-            @test begin @inferred edges(flt); true end
-        end
-    end
 end
 
 for Filtration in (RipsFiltration, SparseRipsFiltration)

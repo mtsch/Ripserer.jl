@@ -1,6 +1,8 @@
 using SafeTestsets
 using Test
 
+include("test_helpers.jl")
+
 @safetestset "Aqua" begin
     include("aqua.jl")
 end
@@ -12,6 +14,9 @@ end
 end
 @safetestset "ripsfiltration" begin
     include("ripsfiltration.jl")
+end
+@safetestset "cubical" begin
+    include("cubical.jl")
 end
 @safetestset "primefield" begin
     include("primefield.jl")

@@ -83,7 +83,7 @@ end
             @test length(series(PersistenceInterval(
                 1.0, 1.0, [ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)]
             ), data)) == 1
-            @test_throws ArgumentError series(PersistenceInterval(1.0, 1.0, nothing), data)
+            @test_throws ErrorException series(PersistenceInterval(1.0, 1.0, nothing), data)
         end
     end
 end

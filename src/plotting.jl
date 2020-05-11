@@ -189,9 +189,17 @@ function index_data(indices, pts::AbstractVector{<:NTuple{N}}) where N
     end
 end
 
-function index_data(indices, x)
+function index_data(indices, x::AbstractVector)
     map(indices) do i
         i == 0 ? NaN : Float64(x[i])
+    end
+end
+
+# images
+function index_data(indices, x::AbstractMatrix)
+    cart = CartesianIndices(x)
+    map(indices) do i
+        i == 0 ? (NaN, NaN) : (cart[i][2], cart[i][1])
     end
 end
 
@@ -216,9 +224,7 @@ plottable(int::PersistenceInterval, args...) =
     plottable(simplex.(representative(int)), args...)
 
 plottable(int::PersistenceInterval{<:Any, Nothing}, args...) =
-    throw(ArgumentError(
-        "interval has no representative. Run `ripserer` with `representatives=true`"
-    ))
+    error("interval has no representative. Run `ripserer` with `representatives=true`")
 
 function plottable(sxs::SxVector{0}, args...)
     indices = only.(vertices.(sxs))
@@ -244,7 +250,19 @@ function plottable(sxs::SxVector{D}, args...) where D
     index_data(indices, args...), [:seriestype => :path], D
 end
 
-@recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...)
+apply_threshold(sx::AbstractSimplex, thresh) =
+    diam(sx) ≤ thresh ? sx : nothing
+apply_threshold(sxs::SxVector, thresh) =
+    filter(sx -> diam(sx) ≤ thresh, sxs)
+apply_threshold(int::PersistenceInterval, thresh) =
+    PersistenceInterval(
+        birth(int), death(int), filter(sx -> diam(sx) ≤ thresh, representative(int))
+    )
+
+@recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...;
+                   threshold=∞)
+    sx = apply_threshold(sx, threshold)
+    isnothing(sx) && return ()
     series, attrs, D = plottable(sx, args...)
     for (key, value) in attrs
         plotattributes[key] = get(plotattributes, key, value)

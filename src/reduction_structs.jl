@@ -104,7 +104,7 @@ function representatives(
 ) where {S, F, SE<:AbstractChainElement{S, F}}
     reps = SE[]
     for element in rm[col]
-        if diam(element) < max_diam
+        if diam(element) < ∞
             # TODO?: should they be normalized, like in ripser?
             #        should they be returned as Int in the case of PrimeFields?
             #        are they always 1 or -1, so should be returned as simplices?

@@ -1,6 +1,8 @@
 using Ripserer
 using Ripserer: small_binomial
 
+using ..TestHelpers: test_indexed_simplex_interface
+
 struct FakeFiltration end
 Ripserer.diam(::FakeFiltration, args...) =
     1
@@ -18,48 +20,8 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
 end
 
 @testset "Simplex" begin
-    @testset "interface" begin
-        for D in 0:3
-            for T in (Float64, Float32, Int)
-                d = rand(T)
-                for I in (Int64, Int128)
-                    i = rand(I)
+    test_indexed_simplex_interface(Simplex, D->D+1)
 
-                    @test index(Simplex{D}(i, d)) == i
-                    @test diam(Simplex{D}(i, d)) == d
-                    @test typeof(Simplex{D}(i, d)) ≡ Simplex{D, T, I}
-                    @test Simplex{D}(i, d) isa IndexedSimplex{D, T, I}
-                    @test Simplex{D}(i, d) isa AbstractSimplex{D, T}
-                    D > 0 && @test_throws DomainError Simplex{-D}(i, d)
-
-                    @test -Simplex{D}(i, d) == Simplex{D}(-i, d)
-                    @test sign(+Simplex{D}(i, d)) == sign(i)
-                    @test sign(-Simplex{D}(i, d)) == -sign(i)
-
-                    @test coface_type(Simplex{D}(i, d)) ≡ Simplex{D + 1, T, I}
-                    @test coface_type(typeof(Simplex{D}(i, d))) ≡ Simplex{D + 1, T, I}
-
-                    @test dim(Simplex{D}(i, d)) == D
-                    @test abs(Simplex{D}(i, d)) == Simplex{D}(abs(i), d)
-                    @test abs(-Simplex{D}(i, d)) == abs(Simplex{D}(i, d))
-                end
-                # don't want to do this with random int value.
-                @test length(vertices(Simplex{D}(10, d))) == D + 1
-                @test length(vertices(Simplex{D}(-10, d))) == D + 1
-
-                @inferred vertices(Simplex{D}(10, d))
-                @inferred vertices(Simplex{D}(-10, d))
-            end
-        end
-
-        for sgn in (1, -1)
-            @test isless(Simplex{0}(sgn * 10, 1), Simplex{0}(10, 2))
-            @test !isless(Simplex{1}(sgn * 10, 2), Simplex{1}(10, 1))
-            @test isless(Simplex{2}(sgn * 11, 1), Simplex{2}(10, 1))
-            @test !isless(Simplex{3}(sgn * 9, 1), Simplex{3}(10, 1))
-            @test !isless(Simplex{4}(sgn * 10, 1), Simplex{4}(10, 1))
-        end
-    end
     @testset "vertices, index" begin
         @test vertices(Simplex{2}(1, rand())) == (3, 2, 1)
         @test vertices(Simplex{3}(2, rand())) == (5, 3, 2, 1)

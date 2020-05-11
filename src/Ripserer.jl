@@ -34,6 +34,9 @@ export AbstractFiltration, n_vertices, edges, birth
 include("ripsfiltration.jl")
 export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
 
+include("cubical.jl")
+export Cubelet, CubicalFiltration
+
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,
     PersistenceDiagram
@@ -45,9 +48,6 @@ include("reduction.jl")
 export ripserer
 include("plotting.jl")
 export barcode, barcode!
-#=
-include("cubical.jl")
-=#
 
 
 end

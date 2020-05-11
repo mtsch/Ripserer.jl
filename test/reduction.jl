@@ -254,7 +254,7 @@ end
         }[]
     end
 
-    @testset "lower star" begin
+    @testset "lower star w/Rips" begin
         data = [range(0, 1, length=5);
                 range(1, 0.5, length=5)[2:end];
                 range(0.5, 2, length=4)[2:end];
@@ -277,5 +277,26 @@ end
         maxs = death.(filter(isfinite, res))
         @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
         @test sort(maxs) == [1.0, 2.0]
+    end
+
+    @testset "image lower star" begin
+        data = [0 0 0 0 0;
+                0 2 2 2 0;
+                0 2 1 2 0;
+                0 2 2 2 0;
+                0 0 0 0 0]
+
+        d0, d1, d2, d3, d4 = ripserer(
+            CubicalFiltration(data), representatives=true, dim_max=4
+        )
+
+        @test d0 == [(0, ∞), (1, 2)]
+        @test d1 == [(0, 2)]
+        @test isempty(d2)
+        @test isempty(d3)
+        @test isempty(d4)
+
+        @test vertices.(representative(d0[1])) == [(i,) for i in 1:length(data)]
+        @test vertices(only(representative(d0[2]))) == (13,)
     end
 end

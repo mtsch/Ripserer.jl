@@ -77,9 +77,9 @@ end
 Use binary search to find index of first vertex in `(k-1)`-dimensional simplex with index
 `idx`.
 """
-function find_max_vertex(idx, ::Val{k}) where k
-    lo = k - 1
-    hi = k + 100
+function find_max_vertex(idx::I, ::Val{k}) where {I, k}
+    lo = I(k - 1)
+    hi = I(k + 100)
     while small_binomial(hi, Val(k)) ≤ idx
         lo = hi
         hi <<= 1
@@ -87,7 +87,7 @@ function find_max_vertex(idx, ::Val{k}) where k
     find_max_vertex(idx, Val(k), hi + 1, lo)
 end
 
-function find_max_vertex(idx, ::Val{k}, hi, lo=k-1) where k
+function find_max_vertex(idx::I, ::Val{k}, hi, lo=I(k-1)) where {I, k}
     while lo < hi - 1
         m = lo + ((hi - lo) >>> 0x01)
         if small_binomial(m, Val(k)) ≤ idx
@@ -100,11 +100,12 @@ function find_max_vertex(idx, ::Val{k}, hi, lo=k-1) where k
 end
 
 """
-    vertices(index, ::Val{dim})
+    vertices(index::I, ::Val{N})
 
-Get the vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
+Get the vertices of simplex represented by index. Returns `NTuple{N, I}`.
+For regular simplices, `N` should be equal to `dim+1`!
 """
-@generated function vertices(index, ::Val{dim}) where dim
+@generated function vertices(index::I, ::Val{N})::NTuple{N, I} where {I, N}
     # Generate code of the form
     # index = abs(index) - 1
     # vk   = find_max_vertex(index, Val(k))
@@ -113,14 +114,14 @@ Get the vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
     # v1 = find_max_vertex(index, Val(3), v2)
     # v0 = find_max_vertex(index, Val(3), v1)
     # (vk, ..., v0) .+ 1
-    vars = Symbol[Symbol("v", k) for k in dim:-1:0]
+    vars = Symbol[Symbol("v", k) for k in N-1:-1:0]
     expr = quote
         index = abs(index) - 1
-        $(vars[1]) = find_max_vertex(index, Val($dim+1))
-        index -= small_binomial($(vars[1]), Val($dim+1))
+        $(vars[1]) = find_max_vertex(index, Val($N))
+        index -= small_binomial($(vars[1]), Val($N))
     end
 
-    for (i, k) in enumerate(dim:-1:1)
+    for (i, k) in enumerate(N-1:-1:1)
         expr = quote
             $expr
             $(vars[i+1]) = find_max_vertex(index, Val($k), $(vars[i]))
@@ -129,12 +130,12 @@ Get the vertices of simplex represented by index. Returns `NTuple{dim+1, Int}`.
     end
     quote
         $expr
-        tuple($(vars...)) .+ 1
+        (tuple($(vars...)) .+ 1)
     end
 end
 
-vertices(sx::IndexedSimplex{D}) where D =
-    vertices(index(sx), Val(D))::NTuple{D+1, Int}
+vertices(sx::IndexedSimplex{D, <:Any, I}) where {D, I} =
+    vertices(index(sx), Val(D+1))::NTuple{D+1, I}
 
 """
     index(vertices)

@@ -86,7 +86,7 @@ reduced. Record it in the reduction matrix and return the persistence interval. 
 `true`, add representative cocycles to the interval.
 """
 function reduce_working_column!(
-    rs::ReductionState{F, S}, column_simplex, ::Val{reps}
+    rs::ReductionState{F, S}, column_simplex, ratio, ::Val{reps}
 ) where {F, S, reps}
     current_pivot = initialize!(rs, column_simplex)
 
@@ -102,15 +102,19 @@ function reduce_working_column!(
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)
-    if reps
-        if !isnothing(current_pivot)
-            representative = representatives(rs.reduction_matrix, current_pivot, death)
-            PersistenceInterval(birth, death, representative)
+    if death > birth * ratio
+        if reps
+            if isfinite(death)
+                representative = representatives(rs.reduction_matrix, current_pivot, death)
+                PersistenceInterval(birth, death, representative)
+            else
+                PersistenceInterval(birth, death, chain_element_type(S, F)[])
+            end
         else
-            PersistenceInterval(birth, death, chain_element_type(S, F)[])
+            PersistenceInterval(birth, death)
         end
     else
-        PersistenceInterval(birth, death)
+        nothing
     end
 end
 
@@ -131,8 +135,8 @@ function compute_intervals!(
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, Val(reps))
-        if death(interval) > birth(interval) * ratio
+        interval = reduce_working_column!(rs, column, ratio, Val(reps))
+        if !isnothing(interval)
             push!(intervals, interval)
         end
     end
@@ -188,20 +192,19 @@ function zeroth_intervals(filtration, ratio, field_type, ::Val{reps}) where reps
         j = find_root!(dset, v)
         push!(simplices, sx)
         if i ≠ j
-            if reps
-                representative = map(find_leaves!(dset, i)) do w
-                    CE(V((w,), birth(filtration, w)))
-                end
-            else
-                representative = nothing
-            end
 
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
-            interval = PersistenceInterval(
-                max(birth(dset, i), birth(dset, j)), diam(sx), representative,
-            )
-            if death(interval) > birth(interval) * ratio
+            dead = birth(dset, i) > birth(dset, j) ? i : j
+            if diam(sx) > birth(dset, dead) * ratio
+                if reps
+                    representative = map(find_leaves!(dset, dead)) do w
+                        CE(V((w,), birth(filtration, w)))
+                    end
+                else
+                    representative = nothing
+                end
+                interval = PersistenceInterval(birth(dset, dead), diam(sx), representative)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
