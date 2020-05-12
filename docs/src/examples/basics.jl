@@ -26,7 +26,7 @@ circ_100 = noisy_circle(100)
 scatter(circ_100, aspect_ratio=1, legend=false, title="Noisy Circle")
 
 # To compute the persistent homology, simply run the following. The `dim_max` argument sets
-# the maximum dimension persistent homology is compted in.
+# the maximum dimension persistent homology is computed in.
 
 result_circ = ripserer(circ_100, dim_max=3)
 
@@ -130,7 +130,7 @@ plot(result_cut)
 
 most_persistent = sort(result_cut[2], by=persistence)[end]
 
-# Notice the death time of this interval is around 1.83 and that no intervals occr after
+# Notice the death time of this interval is around 1.83 and that no intervals occur after
 # that time. This means that we could stop computing when we reach this time and the result
 # should not change. Let's try it out!
 

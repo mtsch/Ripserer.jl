@@ -25,10 +25,10 @@ blackhole_grayscale = Float64.(Gray.(blackhole))
 
 heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))
 
-# Cumpute the persistent homology.
+# Compute the persistent homology.
 
 # !!! note "Note"
-#     Unlike with Rips filtrations, we can use lare data sets here because the number of
+#     Unlike with Rips filtrations, we can use large data sets here because the number of
 #     simplices in a cubical filtration is linear to the size of the input. We still want to
 #     be careful with calculating representatives because calculating representatives for
 #     thousands of persistence intervals can take a while.

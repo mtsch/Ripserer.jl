@@ -74,6 +74,10 @@ RipsFiltration
 SparseRipsFiltration
 ```
 
+```@docs
+CubicalFiltration
+```
+
 ## Simplex Types
 
 ```@docs
@@ -118,4 +122,8 @@ index(::AbstractSimplex)
 
 ```@docs
 Simplex
+```
+
+```@docs
+Cubelet
 ```

@@ -4,7 +4,7 @@
 # [ripser.py](http://ripser.scikit-tda.org/notebooks/Lower%20Star%20Time%20Series.html).
 
 # In this example, we will show how we can use the 0-dimensional persistent homology to find
-# local minia or maxima of time series data in a noise-resistant way.
+# local minima or maxima of time series data in a noise-resistant way.
 
 # We start by loading the required packages.
 
@@ -27,7 +27,7 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # We do this by computing 0-dimensional persistent homology of the `CubicalFiltration`. The
 # resulting persistence diagram contains an interval for each local minimum. The interval's
 # birth time is equal to the `y`-value at the minimum. It's death time is equal to the
-# height of an adjacient local maximum. An interval with infinite persistence represents the
+# height of an adjacent local maximum. An interval with infinite persistence represents the
 # global minimum.
 
 res = ripserer(CubicalFiltration(y), dim_max=0, representatives=true)[1]
@@ -63,7 +63,7 @@ for int in finite
           label=string(int))
 end
 
-# Then, we add a series showin the local minima. As mentioned before, the values of the
+# Then, we add a series shown the local minima. As mentioned before, the values of the
 # minima correspond to the birth times of intervals. We find the indices of the minima by
 # finding the simplices with the lowest diameter in the lists of representative
 # cocycles. Indexing into `x` with those will give us `x`-positions of the minima.
