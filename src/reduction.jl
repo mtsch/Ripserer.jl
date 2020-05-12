@@ -86,8 +86,8 @@ reduced. Record it in the reduction matrix and return the persistence interval. 
 `true`, add representative cocycles to the interval.
 """
 function reduce_working_column!(
-    rs::ReductionState{F, S}, column_simplex, cutoff, ::Val{reps}
-) where {F, S, reps}
+    rs::ReductionState{F, S}, column_simplex, cutoff, reps
+) where {F, S}
     current_pivot = initialize!(rs, column_simplex)
 
     while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
@@ -122,9 +122,7 @@ Compute persistence intervals by reducing `columns`, a collection of simplices. 
 `PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
 representative cocycles if `reps` is `true`.
 """
-function compute_intervals!(
-    rs::ReductionState{F, S}, columns, cutoff, ::Val{reps}
-) where {S, F, reps}
+function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps) where {S, F}
     T = dist_type(rs.filtration)
     if reps
         intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
@@ -132,7 +130,7 @@ function compute_intervals!(
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, cutoff, Val(reps))
+        interval = reduce_working_column!(rs, column, cutoff, reps)
         if !isnothing(interval)
             push!(intervals, interval)
         end
@@ -170,7 +168,7 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
-function zeroth_intervals(filtration, cutoff, field_type, ::Val{reps}) where reps
+function zeroth_intervals(filtration, cutoff, field_type, reps)
     T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, field_type)
@@ -229,19 +227,19 @@ end
     nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
 
 Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
-`eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
+`eltype` of `columns`. If `assemble` is `true`, assemble columns for the next dimension.
 
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, cutoff, field_type, ::Val{reps}; next=true,
-) where {S<:AbstractSimplex, reps}
+    filtration, columns::Vector{S}, simplices, cutoff, field_type, reps, assemble
+) where {S<:AbstractSimplex}
 
     rs = ReductionState{field_type, S}(filtration)
     sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, cutoff, Val(reps))
-    if next
+    intervals = compute_intervals!(rs, columns, cutoff, reps)
+    if assemble
         (intervals, assemble_columns!(rs, simplices)...)
     else
         (intervals, nothing, nothing)
@@ -312,16 +310,16 @@ function ripserer(
     filtration::AbstractFiltration;
     dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), Val(representatives))
+    ripserer(filtration, cutoff, field_type, dim_max, representatives)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}) where {reps, dim_max}
+function ripserer(filtration, cutoff, field_type, dim_max, reps)
     res = PersistenceDiagram[]
-    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, Val(reps))
+    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
     push!(res, res_0)
     for dim in 1:dim_max
         res_n, cols, sxs = nth_intervals(
-            filtration, cols, sxs, cutoff, field_type, Val(reps), next=dim ≠ dim_max)
+            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max)
         push!(res, res_n)
     end
     res
