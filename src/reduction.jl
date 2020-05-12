@@ -139,31 +139,36 @@ function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps) whe
 end
 
 """
-    assemble_columns!(rs::ReductionState, columns, simplices)
+    assemble_columns!(rs::ReductionState, unreduced_columns, reduced_columns)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
-function assemble_columns!(rs::ReductionState{<:Any, S}, simplices) where S
+function assemble_columns!(
+    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns
+) where S
     C = coface_type(S)
-    columns = C[]
-    new_simplices = C[]
+    new_unreduced = C[]
+    new_reduced = C[]
 
-    for simplex in simplices
-        for coface in coboundary(rs.filtration, simplex, Val(false))
-            push!(new_simplices, abs(coface))
-            if !has_column(rs.reduction_matrix, coface)
-                push!(columns, abs(coface))
+    for arr in (unreduced_columns, reduced_columns)
+        for simplex in arr
+            for coface in coboundary(rs.filtration, simplex, Val(false))
+                if !has_column(rs.reduction_matrix, coface)
+                    push!(new_unreduced, abs(coface))
+                else
+                    push!(new_reduced, abs(coface))
+                end
             end
         end
     end
-    sort!(columns, rev=true)
-    columns, new_simplices
+    sort!(new_unreduced, rev=true)
+    new_unreduced, new_reduced
 end
 
 function zeroth_representative(dset, vertex, reps, CE, V)
     if reps
         map(find_leaves!(dset, vertex)) do w
-            CE(V((w,), birth(filtration, w)))
+            CE(V((w,), birth(dset, w)))
         end
     else
         nothing
@@ -188,16 +193,14 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
-    simplices = edge_type(filtration)[]
-    columns = edge_type(filtration)[]
+    reduced_columns = edge_type(filtration)[]
+    unreduced_columns = edge_type(filtration)[]
 
     for sx in edges(filtration)
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-        push!(simplices, sx)
         if i ≠ j
-
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             dead = birth(dset, i) > birth(dset, j) ? i : j
@@ -207,8 +210,9 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
+            push!(reduced_columns, sx)
         else
-            push!(columns, sx)
+            push!(unreduced_columns, sx)
         end
     end
     for v in 1:n_vertices(filtration)
@@ -217,8 +221,8 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
             push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end
-    reverse!(columns)
-    sort!(PersistenceDiagram(0, intervals)), columns, simplices
+    reverse!(unreduced_columns)
+    sort!(PersistenceDiagram(0, intervals)), unreduced_columns, reduced_columns
 end
 
 """
@@ -231,14 +235,13 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, cutoff, field_type, reps, assemble
-) where {S<:AbstractSimplex}
-
-    rs = ReductionState{field_type, S}(filtration)
-    sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, cutoff, reps)
+    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble
+)
+    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
+    sizehint!(rs.reduction_matrix, length(unreduced_columns))
+    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
     if assemble
-        (intervals, assemble_columns!(rs, simplices)...)
+        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns)...)
     else
         (intervals, nothing, nothing)
     end
