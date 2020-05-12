@@ -4,13 +4,12 @@
 # [ripser.py](http://ripser.scikit-tda.org/notebooks/Lower%20Star%20Time%20Series.html).
 
 # In this example, we will show how we can use the 0-dimensional persistent homology to find
-# local minia or maxima of time series data in a noise-resistant way.
+# local minima or maxima of time series data in a noise-resistant way.
 
 # We start by loading the required packages.
 
 using Ripserer
 using Plots
-using SparseArrays
 
 using Random; gr(); Random.seed!(1337); nothing # hide
 
@@ -24,27 +23,13 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # Even though this time series is noisy, we would like to locate the five local minima that
 # can clearly be seen from the plot.
 
-# We construct a distance matrix for the sublevel filtration. In this matrix, there is a
-# vertex for each point in our series. We add vertex births, which are equal to the `y`
-# values to the diagonal. Adjacient vertices are connected with edges, each having a weight
-# equal to the maximum of its endpoints' births. If we were looking for local maxima, we
-# would use the `min` function instead.
+# We do this by computing 0-dimensional persistent homology of the `CubicalFiltration`. The
+# resulting persistence diagram contains an interval for each local minimum. The interval's
+# birth time is equal to the `y`-value at the minimum. It's death time is equal to the
+# height of an adjacent local maximum. An interval with infinite persistence represents the
+# global minimum.
 
-dist = spzeros(n, n)
-for i in 1:n
-    dist[i, i] = y[i]
-end
-for i in 1:n-1
-    j = i+1
-    dist[i, j] = dist[j, i] = max(dist[i, i], dist[j, j])
-end
-
-# Next, we compute 0-dimensional persistent homology. The resulting persistence diagram
-# contains an interval for each local minimum. The interval's birth time is equal to the
-# `y`-value at the minimum. It's death time is equal to the height of an adjacient local
-# maximum. An interval with infinite persistence represents the global minimum.
-
-res = ripserer(dist, dim_max=0, representatives=true)[1]
+res = ripserer(CubicalFiltration(y), dim_max=0, representatives=true)[1]
 plot(res)
 
 # We notice there is a lot of noise on the persistence diagram. We can filter it out by
@@ -77,14 +62,14 @@ for int in finite
           label=string(int))
 end
 
-# Then, we add a series showin the local minima. As mentioned before, the values of the
+# Then, we add a series showing the local minima. As mentioned before, the values of the
 # minima correspond to the birth times of intervals. We find the indices of the minima by
 # finding the simplices with the lowest diameter in the lists of representative
 # cocycles. Indexing into `x` with those will give us `x`-positions of the minima.
 
-x_mins = x[index.(first(sort(rep, by=diam)) for rep in representative.(res))]
+x_mins = x[first.(vertices.(first(sort(rep, by=diam)) for rep in representative.(res)))]
 y_mins = birth.(res)
-scatter!(x_mins, y_mins, color=1:5, markershape=:star, label="minima")
+scatter!(plt, x_mins, y_mins, color=1:5, markershape=:star, label="minima")
 
 # And finally, we plot a close-up of one of the minima to ensure we got the correct answer.
 

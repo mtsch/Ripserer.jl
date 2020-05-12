@@ -44,7 +44,7 @@ gif(anim, "stability_anim_1.gif") # hide
 
 # We notice that an interval in ``H_1`` always stands out and that its death remains
 # constant. The only thing that changes is the birth time. The birth time is equal to the
-# largest distance between adjacient points in the circle. At birth time, the circle is
+# largest distance between adjacent points in the circle. At birth time, the circle is
 # connected.
 
 # Now, let's add some noise!
