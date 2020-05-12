@@ -315,48 +315,14 @@ function ripserer(
     ripserer(filtration, cutoff, field_type, Val(dim_max), Val(representatives))
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{0}, ::Val{reps}) where reps
-    diagram, _, _ = zeroth_intervals(filtration, cutoff, field_type, Val(reps))
-    [diagram]
-end
-
-@generated function ripserer(
-    filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}
-) where {dim_max, reps}
-    # We unroll the loop over 1:dim_max to ensure type stability.
-    # Generated code looks something like:
-    #
-    # ints_0, cols_1, sxs_1 = zeroth_intervals(filtration, ...)
-    # ints_1, cols_2, sxs_2 = nth_itervals(filtration, cols_1, sxs_1, ...)
-    # ...
-    # ints_dim_max, _, _ = nth_itervals(filtration, cols_dim_max-1, sxs_dim_max-1, ..., next=false)
-    #
-    # [ints_0, ints_1, ..., ints_dim_max]
-    ints = [Symbol("ints_", i) for i in 1:dim_max]
-    cols = [Symbol("cols_", i) for i in 1:dim_max]
-    sxs = [Symbol("sxs_", i) for i in 1:dim_max]
-
-    expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(
-            filtration, cutoff, field_type, Val(reps)
-        )
+function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}) where {reps, dim_max}
+    res = PersistenceDiagram[]
+    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, Val(reps))
+    push!(res, res_0)
+    for dim in 1:dim_max
+        res_n, cols, sxs = nth_intervals(
+            filtration, cols, sxs, cutoff, field_type, Val(reps), next=dim ≠ dim_max)
+        push!(res, res_n)
     end
-    for i in 1:dim_max-1
-        expr = quote
-            $expr
-            $(ints[i]), $(cols[i+1]), $(sxs[i+1]) = nth_intervals(
-                filtration, $(cols[i]), $(sxs[i]), cutoff, field_type, Val(reps)
-            )
-        end
-    end
-    quote
-        $expr
-        $(ints[dim_max]), _, _ =
-            nth_intervals(
-                filtration, $(cols[dim_max]), $(sxs[dim_max]), cutoff, field_type, Val(reps),
-                next=false
-            )
-
-        [ints_0, $(ints...)]
-    end
+    res
 end
