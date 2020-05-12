@@ -6,10 +6,10 @@ _Efficient computation of persistent homology._
 
 ## Introduction
 
-Ripserer is a pure Julia implementation of the [Ripser](https://github.com/Ripser/ripser)
-algorithm for computing persistent homology. Roughly speaking, persistent homology detects
-topological holes in data in a noise-resistant, stable way. If you are unfamiliar with
-persistent homology, I recommend reading this [excellent
+Ripserer is a pure Julia library for computing persistent homology based on the
+[Ripser](https://github.com/Ripser/ripser) algorithm. Roughly speaking, persistent homology
+detects topological holes in data in a noise-resistant, stable way. If you are unfamiliar
+with persistent homology, I recommend reading this [excellent
 introduction](https://towardsdatascience.com/persistent-homology-with-examples-1974d4b9c3d0).
 
 See the Examples for further info.
@@ -18,13 +18,13 @@ See the Examples for further info.
 
 Ripserer supports the following:
 
-* Fast computation of Vietoris-Rips persistent homology.
-* Calculation of persistent homology with coefficients in the field of ``\mathbb{Z}_p`` for
-  a prime ``p``.
+* Vietoris-Rips persistent homology.
+* Sublevel set persistent homology for multidimensional image and time series data.
+* Calculation of persistent homology with coefficients in any, possibly user defined, field
+  with the default of ``\mathbb{Z}_p`` for any prime ``p``.
 * Sparse distance matrix and thresholding support.
 * Computing representative cocycles of persistent cohomology.
-* Sublevel set filtrations.
-* Plotting persistence diagrams and barcodes.
+* Plotting persistence diagrams, barcodes and representative cocycles.
 * Generic API.
 
 Ripserer is not yet a full TDA software framework, since some essential features, such as
@@ -50,10 +50,10 @@ have found benchmarking on my computer or a CI system to be too unreliable.
 
 ## Extending
 
-Ripserer is designed to be easily extended with new simplex or filtration types. There are
-currently no extensions available, but implementing one should (in theory) be as simple as
-overloading a few functions. The interfaces are specified in the docstrings for
-`AbstractSimplex` and `AbstractFiltration`. Also see the [API](@ref) for more info.
+Ripserer is designed to be easily extended with new simplex or filtration types. The
+interfaces are specified in the docstrings for `AbstractSimplex` and
+`AbstractFiltration`. Also see the [API](@ref) for more info. To see an example of an
+extension, check out [`src/cubical.jl`](`src/cubical.jl`)
 
 If you have written an extension or have trouble implementing one, please open a pull
 request or an issue.

@@ -80,10 +80,17 @@ Base.LinearIndices(cf::CubicalFiltration) =
     LinearIndices(cf.data)
 
 # doesn't quite follow interface.
+# TODO: fix when compat gets fixed to support get with CartesianIndex
 function diam(cf::CubicalFiltration{T}, vertices) where {T}
     res = typemin(T)
-    for v in vertices
-        res = max(res, get(cf.data, v.I, ∞))
+    if eltype(vertices) <: CartesianIndex
+        for v in vertices
+            res = max(res, get(cf.data, v.I, ∞))
+        end
+    else
+        for v in vertices
+            res = max(res, get(cf.data, v, ∞))
+        end
     end
     res
 end
