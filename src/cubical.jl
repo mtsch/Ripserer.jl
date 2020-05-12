@@ -83,7 +83,7 @@ Base.LinearIndices(cf::CubicalFiltration) =
 function diam(cf::CubicalFiltration{T}, vertices) where {T}
     res = typemin(T)
     for v in vertices
-        res = max(res, get(cf.data, v, ∞))
+        res = max(res, get(cf.data, v.I, ∞))
     end
     res
 end

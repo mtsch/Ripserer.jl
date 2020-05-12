@@ -43,7 +43,7 @@ function t_limits(pds)
 end
 
 @recipe function f(pd::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}};
-                   infinity=nothing)
+                   infinity=nothing, persistence=false)
     t_min, t_max, infinite = t_limits(pd)
     if infinite && !isnothing(infinity)
         t_max = infinity
@@ -54,7 +54,8 @@ end
         pds = pd
     end
     xguide --> "birth"
-    yguide --> "death"
+    yguide --> (persistence ? "persistence" : "death")
+    xlims --> (t_min, t_max)
     legend --> :bottomright
     title --> "Persistence Diagram"
 
@@ -65,8 +66,13 @@ end
         label := ""
         primary := false
 
-        [t_min, t_max], [t_min, t_max]
+        if persistence
+            [t_min, t_max], [t_min, t_min]
+        else
+            [t_min, t_max], [t_min, t_max]
+        end
     end
+
     # line at infinity
     if infinite
         @series begin
@@ -78,7 +84,6 @@ end
             [t_max]
         end
     end
-
     for pd in pds
         isempty(pd) && continue
         @series begin
@@ -91,7 +96,11 @@ end
             markershape --> :d
 
             births = birth.(pd)
-            deaths = map(x -> isfinite(x) ? death(x) : t_max, pd)
+            if persistence
+                deaths = map(x -> isfinite(x) ? death(x) - birth(x) : t_max, pd)
+            else
+                deaths = map(x -> isfinite(x) ? death(x) : t_max, pd)
+            end
             births, deaths
         end
     end
@@ -99,6 +108,7 @@ end
     if infinite
         annotations --> (t_max/2, t_max, "∞")
     end
+
     primary := false
     ()
 end
@@ -250,18 +260,18 @@ function plottable(sxs::SxVector{D}, args...) where D
     index_data(indices, args...), [:seriestype => :path], D
 end
 
-apply_threshold(sx::AbstractSimplex, thresh) =
-    diam(sx) ≤ thresh ? sx : nothing
-apply_threshold(sxs::SxVector, thresh) =
-    filter(sx -> diam(sx) ≤ thresh, sxs)
-apply_threshold(int::PersistenceInterval, thresh) =
-    PersistenceInterval(
-        birth(int), death(int), filter(sx -> diam(sx) ≤ thresh, representative(int))
-    )
+apply_threshold(sx::AbstractSimplex, thresh, thresh_strict) =
+    diam(sx) ≤ thresh && diam(sx) < thresh_strict ? sx : nothing
+apply_threshold(sxs::SxVector, thresh, thresh_strict) =
+    filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, sxs)
+function apply_threshold(int::PersistenceInterval, thresh, thresh_strict)
+    reps = filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, representative(int))
+    PersistenceInterval(birth(int), death(int), reps)
+end
 
 @recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...;
-                   threshold=∞)
-    sx = apply_threshold(sx, threshold)
+                   threshold=∞, threshold_strict=∞)
+    sx = apply_threshold(sx, threshold, threshold_strict)
     isnothing(sx) && return ()
     series, attrs, D = plottable(sx, args...)
     for (key, value) in attrs

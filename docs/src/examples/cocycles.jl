@@ -20,7 +20,8 @@ plot(curve(100), legend=false, title="Curve", aspect_ratio=1, xlab="x", ylab="y"
 # plot the representative cocycles of each result and turn them into an animation. This data
 # set will always have at most one one-dimensional class. We invoke `plot(interval, data)`
 # to plot the representative cocycle of the class. The same plot could be created by
-# invoking `representative(interval)`.
+# invoking `representative(interval)`. We use the `threshold_strict` argument to only plot
+# the simplices with diameter strictly lower than the death time of the interval.
 
 anim = @animate for i in vcat(3:100, 100:-1:3)
     points = curve(i)
@@ -37,6 +38,7 @@ anim = @animate for i in vcat(3:100, 100:-1:3)
         plot!(plt1, interval, points,
               alpha=0.2,
               linewidth=2,
+              threshold_strict=death(interval),
               color=3)
     end
     scatter!(plt1, points, color=2)

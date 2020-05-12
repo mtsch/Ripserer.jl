@@ -106,7 +106,7 @@ function reduce_working_column!(
     if reps && !isfinite(death)
         PersistenceInterval(birth, death, chain_element_type(S, F)[])
     elseif reps && death - birth > cutoff
-        representative = representatives(rs.reduction_matrix, current_pivot, death)
+        representative = collect(rs.reduction_matrix[current_pivot])
         PersistenceInterval(birth, death, representative)
     elseif !isfinite(death) || death - birth > cutoff
         PersistenceInterval(birth, death)
