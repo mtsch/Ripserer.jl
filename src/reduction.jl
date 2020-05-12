@@ -167,8 +167,8 @@ end
 
 function zeroth_representative(dset, vertex, reps, CE, V)
     if reps
-        map(find_leaves!(dset, vertex)) do w
-            CE(V((w,), birth(dset, w)))
+        map(find_leaves!(dset, vertex)) do u
+            CE(V((u,), birth(dset, u)))
         end
     else
         nothing
@@ -311,10 +311,10 @@ function ripserer(
     filtration::AbstractFiltration;
     dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
 )
-    ripserer(filtration, cutoff, field_type, dim_max, representatives)
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives)
 end
 
-function ripserer(filtration, cutoff, field_type, dim_max, reps)
+function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps) where dim_max
     res = PersistenceDiagram[]
     res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
     push!(res, res_0)
