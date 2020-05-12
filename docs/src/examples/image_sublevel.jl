@@ -103,7 +103,7 @@ scatter!(result_min[2][1], blackhole_grayscale,
          markersize=0,
          linewidth=4)
 scatter!(result_min[2][2], blackhole_grayscale,
-         color=2,
+         color=3,
          label="H₁ killer2",
          markersize=0,
          linewidth=4)

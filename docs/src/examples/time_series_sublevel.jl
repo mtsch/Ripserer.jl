@@ -10,7 +10,6 @@
 
 using Ripserer
 using Plots
-using SparseArrays
 
 using Random; gr(); Random.seed!(1337); nothing # hide
 
@@ -63,7 +62,7 @@ for int in finite
           label=string(int))
 end
 
-# Then, we add a series shown the local minima. As mentioned before, the values of the
+# Then, we add a series showing the local minima. As mentioned before, the values of the
 # minima correspond to the birth times of intervals. We find the indices of the minima by
 # finding the simplices with the lowest diameter in the lists of representative
 # cocycles. Indexing into `x` with those will give us `x`-positions of the minima.

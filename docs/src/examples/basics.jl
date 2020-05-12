@@ -31,9 +31,9 @@ scatter(circ_100, aspect_ratio=1, legend=false, title="Noisy Circle")
 result_circ = ripserer(circ_100, dim_max=3)
 
 # !!! warning "Warning"
-#     Computing persistent homology in high dimensions for large numbers of points
-#     is computationally expensive and requires a large amount of memory. Be careful or you
-#     **will** run out of memory. On an ordinary computer, you can expect to compute
+#     Computing Vietoris-Rips persistent homology in high dimensions for large numbers of
+#     points is computationally expensive and requires a large amount of memory. Be careful
+#     or you **will** run out of memory. On an ordinary computer, you can expect to compute
 #     one-dimensional persistent homology for datasets of a few thousand points and higher
 #     (2-3) dimensional persistent homology for datasets of a few hundred points. This, of
 #     course, depends on the data set itself.

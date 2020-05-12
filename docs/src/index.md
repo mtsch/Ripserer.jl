@@ -20,15 +20,15 @@ Ripserer supports the following:
 
 * Vietoris-Rips persistent homology.
 * Sublevel set persistent homology for multidimensional image and time series data.
-* Calculation of persistent homology with coefficients in any, possibly user defined, field
-  with the default of ``\mathbb{Z}_p`` for any prime ``p``.
+* Calculation of persistent homology with coefficients in any (possibly user defined) field
+  with the default of ``\mathbb{Z}_p`` for a prime ``p``.
 * Sparse distance matrix and thresholding support.
 * Computing representative cocycles of persistent cohomology.
 * Plotting persistence diagrams, barcodes and representative cocycles.
 * Generic API.
 
-Ripserer is not yet a full TDA software framework, since some essential features, such as
-computing distances between persistence diagrams, are not available. Vietoris-Rips complexes
+Ripserer is not yet a full TDA software framework, since some essential features such as
+computing distances between persistence diagrams are not available. Vietoris-Rips complexes
 are also not the right fit for all kinds of data.
 
 ## Performance
@@ -53,7 +53,7 @@ have found benchmarking on my computer or a CI system to be too unreliable.
 Ripserer is designed to be easily extended with new simplex or filtration types. The
 interfaces are specified in the docstrings for `AbstractSimplex` and
 `AbstractFiltration`. Also see the [API](@ref) for more info. To see an example of an
-extension, check out [`src/cubical.jl`](`src/cubical.jl`)
+extension, check out [`src/cubical.jl`](src/cubical.jl).
 
 If you have written an extension or have trouble implementing one, please open a pull
 request or an issue.
