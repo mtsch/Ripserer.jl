@@ -160,6 +160,16 @@ function assemble_columns!(rs::ReductionState{<:Any, S}, simplices) where S
     columns, new_simplices
 end
 
+function zeroth_representative(dset, vertex, reps, CE, V)
+    if reps
+        map(find_leaves!(dset, vertex)) do w
+            CE(V((w,), birth(filtration, w)))
+        end
+    else
+        nothing
+    end
+end
+
 """
     zeroth_intervals(filtration, cutoff, field_type, ::Val{reps})
 
@@ -192,13 +202,7 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
             # into a later interval.
             dead = birth(dset, i) > birth(dset, j) ? i : j
             if diam(sx) - birth(dset, dead) > cutoff
-                if reps
-                    representative = map(find_leaves!(dset, dead)) do w
-                        CE(V((w,), birth(filtration, w)))
-                    end
-                else
-                    representative = nothing
-                end
+                representative = zeroth_representative(dset, dead, reps, CE, V)
                 interval = PersistenceInterval(birth(dset, dead), diam(sx), representative)
                 push!(intervals, interval)
             end
@@ -209,13 +213,7 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
-            if reps
-                representative = map(find_leaves!(dset, v)) do w
-                    CE(V((w,), birth(filtration, w)))
-                end
-            else
-                representative = nothing
-            end
+            representative = zeroth_representative(dset, v, reps, CE, V)
             push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end

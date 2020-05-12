@@ -5,41 +5,6 @@ using Compat
 
 include("data.jl")
 
-@testset "zeroth_intervals" begin
-    @testset "dense" begin
-        dist = [0 1 2;
-                1 0 3;
-                2 3 0]
-        flt = RipsFiltration(dist, threshold=3)
-        res, columns, simplices = zeroth_intervals(flt, 0, Mod{2}, Val(false))
-
-        @test !isnothing(simplices)
-        @test res == PersistenceDiagram(0, [(0, 1), (0, 2), (0, ∞)])
-        @test columns == [Simplex{1}(3, 3)]
-    end
-    @testset "sparse" begin
-        dist = [0 1 2;
-                1 0 0;
-                2 0 0]
-        flt = SparseRipsFiltration(dist)
-        res, columns, simplices = zeroth_intervals(flt, 0, Mod{5}, Val(false))
-
-        @test simplices == [Simplex{1}(1, 1),
-                            Simplex{1}(2, 2)]
-        @test res == PersistenceDiagram(0, [(0, 1), (0, 2), (0, ∞)])
-        @test isempty(columns)
-    end
-    @testset "birth" begin
-        dist = Float64[01 05 20 40;
-                       05 02 30 50;
-                       20 30 03 60;
-                       40 50 60 04]
-        flt = RipsFiltration(dist)
-        res, columns, simplices = zeroth_intervals(flt, 0, Rational{Int}, Val(false))
-        @test res == PersistenceDiagram(0, [(1.0, ∞), (2.0, 5.0), (3.0, 20.0), (4.0, 40.0)])
-    end
-end
-
 @testset "ripserer" begin
     @testset "full matrix, no threshold" begin
         @testset "icosahedron" begin
