@@ -1,134 +1,42 @@
 using Ripserer
+using Ripserer: zeroth_intervals, ChainElement
 
 using Compat
-using Ripserer:
-    ReductionMatrix, insert_column!, has_column,
-    Column, pop_pivot!, pivot,
-    zeroth_intervals,
-    ReductionMatrix
 
 include("data.jl")
 
-@testset "ReductionMatrix" begin
-    rm = ReductionMatrix{Int}()
-    @test length(rm) == 0
-
-    insert_column!(rm, 3)
-    push!(rm, 1)
-    push!(rm, 2)
-    push!(rm, 3)
-    push!(rm, 4)
-
-    insert_column!(rm, 10)
-    push!(rm, 0)
-    push!(rm, 0)
-    push!(rm, 0)
-
-    insert_column!(rm, 1)
-
-    insert_column!(rm, 15)
-    push!(rm, 1)
-
-    @test has_column(rm, 3)
-    @test collect(rm[3]) == [1, 2, 3, 4]
-
-    @test has_column(rm, 10)
-    @test length(rm[10]) == 3
-    @test all(iszero, rm[10])
-
-    @test has_column(rm, 1)
-    @test length(rm[1]) == 0
-    @test eltype(collect(rm[1])) === Int
-
-    @test has_column(rm, 15)
-    @test length(rm[15]) == 1
-    @test first(rm[15]) == 1
-
-    @test !has_column(rm, 2)
-    @test !has_column(rm, 100)
-end
-
-@testset "Column" begin
-    @testset "single element" begin
-        col = Column{Simplex{1, 2, Float64}}()
-        push!(col, Simplex{1, 2}(2.0, 1, 1))
-        push!(col, Simplex{1, 2}(2.0, 1, 1))
-        push!(col, Simplex{1, 2}(2.0, 1, 1))
-        push!(col, Simplex{1, 2}(2.0, 1, 1))
-        push!(col, Simplex{1, 2}(2.0, 1, 1))
-
-        @test pop_pivot!(col) == Simplex{1, 2}(2.0, 1, 1)
-        @test isempty(col)
-
-        col = Column{Simplex{2, 3, Float64}}()
-        push!(col, Simplex{2, 3}(2.0, 1, 1))
-        push!(col, Simplex{2, 3}(2.0, 1, 1))
-        push!(col, Simplex{2, 3}(2.0, 1, 1))
-
-        @test isnothing(pivot(col))
-        @test isnothing(pop_pivot!(col))
-        @test isempty(col)
-    end
-    @testset "multiple" begin
-        col = Column{Simplex{3, 5, Float64}}()
-        push!(col, Simplex{3, 5}(1.0, 2, 3))
-        push!(col, Simplex{3, 5}(2.0, 3, 4))
-        push!(col, Simplex{3, 5}(1.0, 2, 2))
-        push!(col, Simplex{3, 5}(3.0, 1, 2))
-        push!(col, Simplex{3, 5}(2.0, 3, 1))
-        push!(col, Simplex{3, 5}(4.0, 4, 4))
-        push!(col, Simplex{3, 5}(4.0, 4, 4))
-        push!(col, Simplex{3, 5}(4.0, 4, 4))
-        push!(col, Simplex{3, 5}(5.0, 4, 4))
-        push!(col, Simplex{3, 5}(5.0, 4, 1))
-
-        @test pop_pivot!(col) == Simplex{3, 5}(3.0, 1, 2)
-        @test pivot(col) == Simplex{3, 5}(4.0, 4, 2)
-        @test pop_pivot!(col) == Simplex{3, 5}(4.0, 4, 2)
-        @test isnothing(pop_pivot!(col))
-        @test isnothing(pop_pivot!(col))
-    end
-end
-
-@testset "compute_0_dim_pairs!" begin
+@testset "zeroth_intervals" begin
     @testset "dense" begin
         dist = [0 1 2;
                 1 0 3;
                 2 3 0]
         flt = RipsFiltration(dist, threshold=3)
-        res, columns, simplices = zeroth_intervals(flt, 1, Val(false))
+        res, columns, simplices = zeroth_intervals(flt, 0, Mod{2}, Val(false))
 
         @test !isnothing(simplices)
-        @test res == PersistenceDiagram(0, [(0, 1),
-                                            (0, 2),
-                                            (0, ∞)])
-        @test columns == [Simplex{1, 2}(3, 3, 1)]
+        @test res == PersistenceDiagram(0, [(0, 1), (0, 2), (0, ∞)])
+        @test columns == [Simplex{1}(3, 3)]
     end
     @testset "sparse" begin
         dist = [0 1 2;
                 1 0 0;
                 2 0 0]
         flt = SparseRipsFiltration(dist)
-        res, columns, simplices = zeroth_intervals(flt, 1, Val(false))
+        res, columns, simplices = zeroth_intervals(flt, 0, Mod{5}, Val(false))
 
-        @test simplices == [Simplex{1, 2}(1, 1, 1),
-                            Simplex{1, 2}(2, 2, 1)]
-        @test res == PersistenceDiagram(0, [(0, 1),
-                                            (0, 2),
-                                            (0, ∞)])
+        @test simplices == [Simplex{1}(1, 1),
+                            Simplex{1}(2, 2)]
+        @test res == PersistenceDiagram(0, [(0, 1), (0, 2), (0, ∞)])
         @test isempty(columns)
     end
     @testset "birth" begin
-        dist = Float64[ 1 10 20 40;
-                        10  2 30 50;
-                        20 30  3 60;
-                        40 50 60  4]
+        dist = Float64[01 05 20 40;
+                       05 02 30 50;
+                       20 30 03 60;
+                       40 50 60 04]
         flt = RipsFiltration(dist)
-        res, columns, simplices = zeroth_intervals(flt, 1, Val(false))
-        @test res == PersistenceDiagram(0, [(1.0, ∞),
-                                            (2.0, 10.0),
-                                            (3.0, 20.0),
-                                            (4.0, 40.0)])
+        res, columns, simplices = zeroth_intervals(flt, 0, Rational{Int}, Val(false))
+        @test res == PersistenceDiagram(0, [(1.0, ∞), (2.0, 5.0), (3.0, 20.0), (4.0, 40.0)])
     end
 end
 
@@ -177,6 +85,13 @@ end
             @test all(d2 .== d2_7)
             @test all(d3 .== d3_7)
             @test all(d4 .== d4_7)
+
+            d0r, d1r, d2r, d3r, d4r = ripserer(cycle, dim_max=4, field_type=Rational{Int})
+            @test all(d0 .== d0r)
+            @test all(d1 .== d1r)
+            @test all(d2 .== d2r)
+            @test all(d3 .== d3r)
+            @test all(d4 .== d4r)
         end
         @testset "projective plane (modulus)" begin
             _, d1_2, d2_2 = ripserer(projective_plane, dim_max=2)
@@ -292,21 +207,54 @@ end
     @testset "representatives" begin
         _, d1, d2 = ripserer(projective_plane, dim_max=2, representatives=true)
 
-        @test representative(only(d1)) == [
-            Simplex{1, 2}(1, (11, 10), 1),
-            Simplex{1, 2}(1, (10, 7), 1),
-            Simplex{1, 2}(1, (10, 6), 1),
-            Simplex{1, 2}(1, (8, 1), 1),
-            Simplex{1, 2}(1, (7, 3), 1),
-            Simplex{1, 2}(1, (7, 1), 1),
-            Simplex{1, 2}(1, (6, 2), 1),
-            Simplex{1, 2}(1, (5, 1), 1),
-            Simplex{1, 2}(1, (2, 1), 1),
+        @test simplex.(representative(only(d1))) == [
+            Simplex{1}((11, 10), 1),
+            Simplex{1}((10, 7), 1),
+            Simplex{1}((10, 6), 1),
+            Simplex{1}((8, 1), 1),
+            Simplex{1}((7, 3), 1),
+            Simplex{1}((7, 1), 1),
+            Simplex{1}((6, 2), 1),
+            Simplex{1}((5, 1), 1),
+            Simplex{1}((2, 1), 1),
         ]
-        @test representative(only(d2)) == [Simplex{2, 2}(1, (6, 2, 1), 1)]
+        @test coefficient.(representative(only(d1))) == fill(Mod{2}(1), 9)
+        @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
+        @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
     end
 
-    @testset "lower star" begin
+    @testset "representatives - types" begin
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
+        @test eltype(d0) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{2}}}}
+        @test eltype(d1) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{2}}}}
+        @test eltype(d2) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{2}}}}
+        @test eltype(d3) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{2}}}}
+
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true, field_type=Mod{5})
+        @test eltype(d0) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{5}}}}
+        @test eltype(d1) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{5}}}}
+        @test eltype(d2) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{5}}}}
+        @test eltype(d3) ≡ PersistenceInterval{
+            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{5}}}}
+    end
+
+    @testset "representatives - thresh" begin
+        _, d1 = ripserer(
+            cycle, dim_max=1, representatives=true, threshold=1, field_type=Rational{Int}
+        )
+        @test representative(only(d1)) == ChainElement{
+            Simplex{0, Int, Int}, Rational{Int}
+        }[]
+    end
+
+    @testset "lower star w/Rips" begin
         data = [range(0, 1, length=5);
                 range(1, 0.5, length=5)[2:end];
                 range(0.5, 2, length=4)[2:end];
@@ -329,5 +277,26 @@ end
         maxs = death.(filter(isfinite, res))
         @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
         @test sort(maxs) == [1.0, 2.0]
+    end
+
+    @testset "image lower star" begin
+        data = [0 0 0 0 0;
+                0 2 2 2 0;
+                0 2 1 2 0;
+                0 2 2 2 0;
+                0 0 0 0 0]
+
+        d0, d1, d2, d3, d4 = ripserer(
+            CubicalFiltration(data), representatives=true, dim_max=4
+        )
+
+        @test d0 == [(0, ∞), (1, 2)]
+        @test d1 == [(0, 2)]
+        @test isempty(d2)
+        @test isempty(d3)
+        @test isempty(d4)
+
+        @test vertices.(representative(d0[1])) == [(i,) for i in 1:length(data)]
+        @test vertices(only(representative(d0[2]))) == (13,)
     end
 end

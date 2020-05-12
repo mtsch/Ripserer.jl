@@ -1,8 +1,8 @@
 using Ripserer
+using Ripserer: Barcode, plottable, ChainElement
 
 using RecipesBase
 using RecipesBase: apply_recipe
-using Ripserer: Barcode, plottable
 
 # Hack to avoid having to import Plots.
 RecipesBase.is_key_supported(::Symbol) = true
@@ -52,30 +52,38 @@ end
 @testset "simplex plots" begin
     @testset "plottable" begin
         @test isequal(
-            plottable(Simplex{0, 2}(1, 2, 3), 1:10),
-            ([2], [:seriestype => :scatter]),
+            plottable(Simplex{0}(3, 1), 1:10),
+            ([3],
+             [:seriestype => :scatter], 0),
         )
         @test isequal(
-            plottable(Simplex{1, 2}(1, 1, 3),  1:10),
-            ([2, 1, NaN], [:seriestype => :path]),
+            plottable(Simplex{1}(1, 1),  1:10),
+            ([2, 1, NaN],
+             [:seriestype => :path], 1),
         )
         @test isequal(
-            plottable(Simplex{2, 2}(1, 3, 3), 1:10),
-            ([4, 3, 1, 4, NaN], [:seriestype => :path]),
+            plottable(Simplex{2}(3, 1), 1:10),
+            ([4, 3, 1, 4, NaN],
+             [:seriestype => :path], 2),
         )
         @test isequal(
-            plottable(Simplex{3, 2}(1, 1, 3), 1:10),
-            ([4, 3, 2, 4, 4, 3, 1, 4, 4, 2, 1, 4, 3, 2, 1, 3, NaN], [:seriestype => :path]),
+            plottable(Simplex{3}(1, 1), 1:10),
+            ([4, 3, 2, 4, 4, 3, 1, 4, 4, 2, 1, 4, 3, 2, 1, 3, NaN],
+             [:seriestype => :path], 3),
         )
     end
     @testset "plot" begin
-        # no idea how to test this better
+        # No idea how to test this better. At least it checks there are no erros.
         data = collect(1:100)
         for dim in 0:3
-            sx = Simplex{dim, 2}(1, 1, 1)
+            sx = Simplex{dim}(1, 1)
             @test length(series(sx, data)) == 1
             @test length(series([sx], data)) == 1
             @test length(series([sx], data)) == 1
+            @test length(series(PersistenceInterval(
+                1.0, 1.0, [ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)]
+            ), data)) == 1
+            @test_throws ErrorException series(PersistenceInterval(1.0, 1.0, nothing), data)
         end
     end
 end

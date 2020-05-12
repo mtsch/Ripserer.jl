@@ -6,14 +6,6 @@
 ripserer
 ```
 
-```@docs
-RipsFiltration
-```
-
-```@docs
-SparseRipsFiltration
-```
-
 ## Persistence Intervals and Diagrams
 
 ```@docs
@@ -44,52 +36,10 @@ PersistenceDiagram
 barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 ```
 
-## Simplex Types
-
-```@docs
-AbstractSimplex
-```
-
-```@docs
-index(::AbstractSimplex)
-```
-
-```@docs
-coef(::AbstractSimplex)
-```
-
-```@docs
-set_coef(::AbstractSimplex, ::Any)
-```
-
-```@docs
-diam(::AbstractSimplex)
-```
-
-```@docs
-dim(::AbstractSimplex)
-```
-
-```@docs
-vertices(::AbstractSimplex)
-```
-
-```@docs
-coface_type(::AbstractSimplex)
-```
-
-```@docs
-coboundary
-```
-
 ## Filtration Types
 
 ```@docs
 AbstractFiltration
-```
-
-```@docs
-AbstractFlagFiltration
 ```
 
 ```@docs
@@ -109,5 +59,71 @@ diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 ```
 
 ```@docs
-issparse(::AbstractFiltration)
+birth(::AbstractFiltration, ::Any)
+```
+
+```@docs
+AbstractFlagFiltration
+```
+
+```@docs
+RipsFiltration
+```
+
+```@docs
+SparseRipsFiltration
+```
+
+```@docs
+CubicalFiltration
+```
+
+## Simplex Types
+
+```@docs
+AbstractSimplex
+```
+
+```@docs
+dim(::AbstractSimplex)
+```
+
+```@docs
+diam(::AbstractSimplex)
+```
+
+```@docs
+Base.sign(::AbstractSimplex)
+```
+
+```@docs
+Base.:-(::AbstractSimplex)
+```
+
+```@docs
+coface_type(::AbstractSimplex)
+```
+
+```@docs
+vertices(::AbstractSimplex)
+```
+
+```@docs
+coboundary(::Any, ::AbstractSimplex)
+```
+
+```@docs
+IndexedSimplex
+```
+
+```@docs
+index(::AbstractSimplex)
+```
+
+```@docs
+Simplex
+```
+
+```@docs
+Cubelet
 ```

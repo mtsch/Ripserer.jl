@@ -123,8 +123,8 @@ Base.firstindex(int::PersistenceInterval) =
 Base.lastindex(int::PersistenceInterval) =
     2
 
-Base.:(==)(int::PersistenceInterval, tup::NTuple{2}) =
-    birth(int) == tup[1] && death(int) == tup[2]
+Base.:(==)(int::PersistenceInterval, (b, d)::Tuple) =
+    birth(int) == b && death(int) == d
 
 function Base.isless(int1::PersistenceInterval, int2::PersistenceInterval)
     if birth(int1) ≠ birth(int2)

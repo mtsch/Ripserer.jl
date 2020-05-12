@@ -27,6 +27,7 @@ makedocs(sitename="Ripserer.jl",
                  "generated/stability.md",
                  "generated/cocycles.md",
                  "generated/time_series_sublevel.md",
+                 "generated/image_sublevel.md",
              ],
              "API" => "api.md",
          ])

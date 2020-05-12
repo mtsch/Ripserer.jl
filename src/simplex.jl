@@ -1,197 +1,285 @@
-# prime fields =========================================================================== #
 """
-    is_prime(n)
+    IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T}
 
-Return `true` if `n` is a prime number.
+A refinement of [`AbstractSimplex`](@ref). An indexed simplex is represented by its
+dimension, diameter and combinatorial index. It does not need to hold information about its
+the vertices it includes, since they can be recomputed from the index and dimension.
+
+By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
+[`vertices`](@ref) and [`coboundary`](@ref) is provided.
+
+# Interface
+
+* `IndexedSimplex{D[, T, I]}(index::I, diam::T)` - constructor.
+* `IndexedSimplex{D[, T, I]}(vertices::NTuple{D+1, I}, diam::T)` - constructor.
+* [`diam(::AbstractSimplex)`](@ref)
+* [`coface_type(::AbstractSimplex)`](@ref)
+* [`index(::IndexedSimplex)`](@ref)
 """
-@pure function is_prime(n::Int)
-    if iseven(n) || n < 2
-        n == 2
-    else
-        p = 3
-        q = n / p
-        while p ≤ q
-            iszero(n % p) && return false
-            p += 2
-            q = n / p
-        end
-        true
+abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T} end
+
+"""
+    index(simplex::IndexedSimplex)
+
+Get the combinatorial index of the `simplex`. A negative index represents a simplex with
+negative orientation.
+
+```jldoctest
+index(Simplex{2}((3, 2, 1), 3.2))
+
+# output
+
+1
+```
+"""
+index(::IndexedSimplex)
+
+Base.sign(sx::IndexedSimplex) =
+    sign(index(sx))
+
+Base.:-(sx::S) where S<:IndexedSimplex =
+    S(-index(sx), diam(sx))
+
+Base.isless(sx1::S, sx2::S) where S<:IndexedSimplex =
+    ifelse(diam(sx1) ≠ diam(sx2),
+           diam(sx1) < diam(sx2),
+           abs(index(sx1)) > abs(index(sx2)))
+
+Base.:(==)(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D =
+    (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
+Base.hash(sx::IndexedSimplex, h::UInt64) =
+    hash(index(sx), hash(diam(sx), h))
+
+# vertices and indices =================================================================== #
+"""
+    small_binomial(n, ::Val{k})
+
+Binomial coefficients for small, statically known values of `k`, where `n` and `k` are
+always positive.
+"""
+small_binomial(_, ::Val{0}) = 1
+small_binomial(n, ::Val{1}) = n
+function small_binomial(n, ::Val{k}) where k
+    n0, k0 = n, k
+    sgn = 1
+    x = nn = n - k + 1
+    nn += 1
+    for rr in 2:k
+        x = div(x * nn, rr)
+        nn += 1
     end
+    x
 end
-@pure is_prime(::Any) =
-    false
 
 """
-    mod_prime(i, ::Val{M})
+    find_max_vertex(idx, ::Val{k})
 
-Like `mod`, but with prime `M`.
+Use binary search to find index of first vertex in `(k-1)`-dimensional simplex with index
+`idx`.
 """
-function mod_prime(i, ::Val{M}) where M
-    is_prime(M) || throw(DomainError(M, "modulus must be a prime number"))
-    i = i % M
-    i + ifelse(signbit(i), M, 0)
+function find_max_vertex(idx::I, ::Val{k}) where {I, k}
+    lo = I(k - 1)
+    hi = I(k + 100)
+    while small_binomial(hi, Val(k)) ≤ idx
+        lo = hi
+        hi <<= 1
+    end
+    find_max_vertex(idx, Val(k), hi + 1, lo)
 end
-mod_prime(i, ::Val{2}) =
-    i & 1
 
-"""
-    PrimeField{M} <: Integer
-
-Representation of finite field ``\\mathbb{Z}_M``, integers modulo `M`. Supports integer
-arithmetic and can be converted to integer with `Int`.
-"""
-struct PrimeField{M} <: Integer
-    value::Int
-
-    function PrimeField{M}(value::Integer; check_mod=true) where M
-        if check_mod
-            new{M}(mod_prime(value, Val(M)))
+function find_max_vertex(idx::I, ::Val{k}, hi, lo=I(k-1)) where {I, k}
+    while lo < hi - 1
+        m = lo + ((hi - lo) >>> 0x01)
+        if small_binomial(m, Val(k)) ≤ idx
+            lo = m
         else
-            new{M}(value)
+            hi = m
         end
     end
-end
-PrimeField{M}(i::PrimeField{M}) where M =
-    i
-
-Base.Int(i::PrimeField) =
-    i.value
-
-Base.show(io::IO, i::PrimeField{M}) where M =
-    print(io, Int(i), " mod ", M)
-
-for op in (:+, :-, :*)
-    @eval (Base.$op)(i::PrimeField{M}, j::PrimeField{M}) where M =
-        PrimeField{M}($op(Int(i), Int(j)))
+    lo
 end
 
-Base.:/(i::PrimeField{M}, j::PrimeField{M}) where M =
-    i * inv(j)
-Base.:-(i::PrimeField{M}) where M =
-    PrimeField{M}(M - Int(i), check_mod=false)
-Base.zero(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(0, check_mod=false)
-Base.one(::Type{PrimeField{M}}) where M =
-    PrimeField{M}(1, check_mod=false)
-Base.promote_rule(::Type{PrimeField{M}}, ::Type{Int}) where {M} =
-    PrimeField{M}
+"""
+    vertices(index::I, ::Val{N})
 
-# Idea: precompute inverses and generate a function with the inverses hard-coded.
-@generated function Base.inv(i::PrimeField{M}) where M
-    err_check = quote
-        iszero(i) && throw(DivideError())
+Get the vertices of simplex represented by index. Returns `NTuple{N, I}`.
+For regular simplices, `N` should be equal to `dim+1`!
+"""
+@generated function vertices(index::I, ::Val{N})::NTuple{N, I} where {I, N}
+    # Generate code of the form
+    # index = abs(index) - 1
+    # vk   = find_max_vertex(index, Val(k))
+    # vk-1 = find_max_vertex(index, Val(k-1), vk)
+    # ...
+    # v1 = find_max_vertex(index, Val(3), v2)
+    # v0 = find_max_vertex(index, Val(3), v1)
+    # (vk, ..., v0) .+ 1
+    vars = Symbol[Symbol("v", k) for k in N-1:-1:0]
+    expr = quote
+        index = abs(index) - 1
+        $(vars[1]) = find_max_vertex(index, Val($N))
+        index -= small_binomial($(vars[1]), Val($N))
     end
-    if M != 2
-        inverse_arr = fill(PrimeField{M}(0), M-1)
-        inverse_arr[1] = PrimeField{M}(1)
-        for i in 2:M-1
-            inverse_arr[i] = PrimeField{M}(invmod(i, M))
-        end
-        inverse = (inverse_arr...,)
 
-        quote
-            $err_check
-            @inbounds $inverse[i]
+    for (i, k) in enumerate(N-1:-1:1)
+        expr = quote
+            $expr
+            $(vars[i+1]) = find_max_vertex(index, Val($k), $(vars[i]))
+            index -= small_binomial($(vars[i+1]), Val($k))
         end
-    else
-        quote
-            $err_check
-            i
-        end
+    end
+    quote
+        $expr
+        (tuple($(vars...)) .+ 1)
     end
 end
 
-# default simplex ======================================================================== #
-"""
-    n_bits(M)
-
-Get numer of bits needed to represent number mod `M`.
-"""
-@pure n_bits(M::Int) =
-    floor(Int, log2(M-1)) + 1
+vertices(sx::IndexedSimplex{D, <:Any, I}) where {D, I} =
+    vertices(index(sx), Val(D+1))::NTuple{D+1, I}
 
 """
-    Simplex{D, M, T} <: AbstractSimplex{D, PrimeField{M}, T}
+    index(vertices)
 
-The vanilla simplex type with coefficient values from ``\\mathbb{Z}_M``, integers modulo
-`M`, where `M` is prime.
+Calculate the index from tuple of vertices. The index is equal to
 
-Because the algorithm needs to store and insane number of simplices, we pack `index` and
-`coef` into a single value of type `U<:Unsigned`. The assumption here is that the modulus is
-very small and `coef` only takes a few bits to store.
+```math
+(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
+```
+
+where ``i_k`` are the simplex vertex indices.
+"""
+@generated function index(vertices::NTuple{k}) where k
+    # generate code of the form
+    # 1 + small_binomial(vertices[1] - 1, Val(k))
+    #   + small_binomial(vertices[2] - 1, Val(k-1))
+    #   ...
+    #   + small_binomial(vertices[k] - 1, Val(1))
+    expr = quote
+        1 + small_binomial(vertices[1]-1, Val($k))
+    end
+    for i in 2:k
+        expr = quote
+            $expr + small_binomial(vertices[$i]-1, Val($(k - i + 1)))
+        end
+    end
+    expr
+end
+
+# coboundaries =========================================================================== #
+"""
+    IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex{D-1}}
+
+Iterator that evaluates the coboundary of a `(D - 1)`-dimensional indexed simplex. Uses the
+filtration to determine which simplices are valid cofaces in the filtration and to determine
+their diameter. If the type parameter `all_cofaces` is `true`, return all cofaces, otherwise
+only return cofaces where the new vertex index is larger than all vertex indices in
+`simplex`. `all_cofaces=false` is used with during the call to [`assemble_columns!`](@ref)
+to generate the list of all simplices.
+
+# Fields
+
+* `filtration ::F`
+* `simplex    ::S`
+* `vertices   ::NTuple{D, Int}`
 
 # Constructor
 
-    Simplex{D, M}(::T, index::Integer, coef::Integer)
+    coboundary(filtration, simplex[, Val(false)])
+"""
+struct IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex}
+    filtration ::F
+    simplex    ::S
+    vertices   ::NTuple{D, Int}
+
+    IndexedCobounary{A}(filtration::F, simplex::S) where {A, D, F, S<:IndexedSimplex{D}} =
+        new{A, D + 1, F, S}(filtration, simplex, vertices(simplex))
+end
+
+coboundary(filtration, simplex::IndexedSimplex) =
+    IndexedCobounary{true}(filtration, simplex)
+coboundary(filtration, simplex::IndexedSimplex, ::Val{false}) =
+    IndexedCobounary{false}(filtration, simplex)
+
+function Base.iterate(
+    ci::IndexedCobounary{all_cofaces, D}, (v, k)=(n_vertices(ci.filtration) + 1, D),
+) where {all_cofaces, D}
+    diameter = ∞
+    @inbounds while diameter == ∞ && v > 0
+        v -= 1
+        while v > 0 && v in ci.vertices
+            all_cofaces || return nothing
+            v -= 1
+            k -= 1
+        end
+        v == 0 && break
+        diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
+    end
+    if diameter != ∞
+        sign = ifelse(iseven(k), 1, -1)
+        new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
+
+        return coface_type(ci.simplex)(new_index, diameter), (v, k)
+    else
+        return nothing
+    end
+end
+
+"""
+    Simplex{D, T, I} <: IndexedSimplex{D, T, I}
+
+The vanilla simplex type represented by dimension `D` and index of type `I` and a diameter
+of type `T`.
+
+# Constructor
+
+    Simplex{D[, T, I]}(::I, ::T)
 
 # Examples
 
 ```jldoctest
-julia> Simplex{2, 2}(1, 2, 3)
-2-dim Simplex{2}(1, 2, 1):
-  (4, 2, 1)
+julia> Simplex{2}(2, 1)
+2-dim Simplex{2}(2, 1):
+  +(4, 2, 1)
 
-julia> Simplex{10, 3}(1.0, Int128(10), 2)
+julia> Simplex{10}(Int128(-10), 1.0)
 4-dim Simplex{3}(1.0, 10, 2) with UInt128 index:
-  (12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
+  -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
 `˙`
 """
-struct Simplex{D, M, T, U<:Unsigned} <: AbstractSimplex{D, PrimeField{M}, T}
-    diam       ::T
-    index_coef ::U
+struct Simplex{D, T, I} <: IndexedSimplex{D, T, I}
+    index ::I
+    diam  ::T
 
-    function Simplex{D, M, T, U}(
-        diam::T, index::I, coef::Integer
-    ) where {D, M, T, I<:Integer, U}
-        is_prime(M) || throw(DomainError(M, "modulus must be a prime number"))
+    function Simplex{D, T, I}(index, diam) where {D, T, I}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
-        bits = n_bits(M)
-        new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + mod_prime(coef, Val(M)))
-    end
-
-    function Simplex{D, M, T, U}(
-        diam::T, index::I, coef::PrimeField{M}
-    ) where {D, M, T, I<:Integer, U}
-        D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        U === unsigned(I) || throw(DomainError(U, "type parameters must match"))
-        bits = n_bits(M)
-        new{D, M, T, unsigned(I)}(diam, unsigned(index) << bits + I(coef))
+        new{D, T, I}(I(index), T(diam))
     end
 end
 
-Simplex{D, M}(diam::T, index_or_vertices, coef::Integer) where {D, M, T} =
-    Simplex{D, M, T}(diam, index_or_vertices, coef)
-Simplex{D, M, T}(diam, index::I, coef::Integer) where {D, M, T, I<:Integer} =
-    Simplex{D, M, T, unsigned(I)}(T(diam), index, coef)
-Simplex{D, M, T}(diam, vertices, coef::Integer) where {D, M, T} =
-    Simplex{D, M, T}(T(diam), index(vertices), coef)
+Simplex{D}(index::I, diam::T) where {D, T, I<:Integer} =
+    Simplex{D, T, I}(index, diam)
+Simplex{D}(vertices::NTuple{<:Any, I}, diam::T) where {D, T, I<:Integer} =
+    Simplex{D, T, I}(vertices, diam)
+function Simplex{D, T, I}(vertices::NTuple{N}, diam) where {D, T, I<:Integer, N}
+    N == D + 1 || throw(ArgumentError("invalid number of vertices"))
 
-function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, M, <:Any, U}) where {D, M, U}
-    print(io, D, "-dim Simplex{", M, "}", (diam(sx), index(sx), Int(coef(sx))))
-    if !(U <: UInt)
-        print(io, " with ", U, " index")
+    Simplex{D, T, I}(index(vertices), T(diam))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
+    print(io, D, "-dim Simplex", (index(sx), diam(sx)))
+    if I ≢ Int64
+        print(io, " with ", I, " index")
     end
-    print(io, ":\n  ", vertices(sx))
+    print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
 end
 
 Base.show(io::IO, sx::Simplex{D, M}) where {D, M} =
-    print(io, "Simplex{", D, ", ", M, "}", (diam(sx), vertices(sx), Int(coef(sx))))
+    print(io, "Simplex{$D}($(sign(sx) == 1 ? '+' : '-')$(vertices(sx)), $(diam(sx)))")
 
 # Interface implementation =============================================================== #
-index(sx::Simplex{<:Any, M}) where M =
-    signed(sx.index_coef >> n_bits(M))
+index(sx::Simplex) = sx.index
 
-function coef(sx::Simplex{<:Any, M}) where M
-    mask = 1 << n_bits(M) - 1
-    PrimeField{M}(sx.index_coef & mask, check_mod=false)
-end
+diam(sx::Simplex) = sx.diam
 
-diam(sx::Simplex) =
-    sx.diam
-
-set_coef(sx::Simplex{D, M, T}, coef) where {D, M, T} =
-    Simplex{D, M, T}(diam(sx), index(sx), coef)
-
-@pure coface_type(::Type{Simplex{D, M, T, U}}) where {D, M, T, U} =
-    Simplex{D+1, M, T, U}
+coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}

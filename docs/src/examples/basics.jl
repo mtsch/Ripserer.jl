@@ -26,14 +26,14 @@ circ_100 = noisy_circle(100)
 scatter(circ_100, aspect_ratio=1, legend=false, title="Noisy Circle")
 
 # To compute the persistent homology, simply run the following. The `dim_max` argument sets
-# the maximum dimension persistent homology is compted in.
+# the maximum dimension persistent homology is computed in.
 
 result_circ = ripserer(circ_100, dim_max=3)
 
 # !!! warning "Warning"
-#     Computing persistent homology in high dimensions for large numbers of points
-#     is computationally expensive and requires a large amount of memory. Be careful or you
-#     **will** run out of memory. On an ordinary computer, you can expect to compute
+#     Computing Vietoris-Rips persistent homology in high dimensions for large numbers of
+#     points is computationally expensive and requires a large amount of memory. Be careful
+#     or you **will** run out of memory. On an ordinary computer, you can expect to compute
 #     one-dimensional persistent homology for datasets of a few thousand points and higher
 #     (2-3) dimensional persistent homology for datasets of a few hundred points. This, of
 #     course, depends on the data set itself.
@@ -47,8 +47,11 @@ plot(result_circ)
 barcode(result_circ)
 
 # ``H_1``, ``H_2`` and ``H_3`` in this plot are hard to see, because we have too many
-# ``H_0`` bars. We can plot only some of the diagrams. Note that `result` is just an array
-# of persistence diagrams, so the zero-dimensional diagram is found at index 1.
+# ``H_0`` bars. We can plot only some of the diagrams.
+
+# !!! note "Note"
+#     `result` is just an array of persistence diagrams, so the zero-dimensional diagram is
+#     found at index 1.
 
 barcode(result_circ[2:end], linewidth=2)
 
@@ -127,7 +130,7 @@ plot(result_cut)
 
 most_persistent = sort(result_cut[2], by=persistence)[end]
 
-# Notice the death time of this interval is around 1.83 and that no intervals occr after
+# Notice the death time of this interval is around 1.83 and that no intervals occur after
 # that time. This means that we could stop computing when we reach this time and the result
 # should not change. Let's try it out!
 
