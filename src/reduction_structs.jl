@@ -115,6 +115,11 @@ Base.empty!(col::Column) =
 Base.isempty(col::Column) =
     isempty(col.heap)
 
+function Base.sizehint!(col::Column, size)
+    sizehint!(col.heap, size)
+    col
+end
+
 """
     move_mul!(dst, col::Column{CE}, times=one(CE))
 

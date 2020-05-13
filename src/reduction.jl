@@ -28,9 +28,11 @@ struct ReductionState{
         SE = chain_element_type(S, Field)
         C = coface_type(S)
         CE = chain_element_type(C, Field)
+        working_column = Column{CE}()
+        reduction_entries = Column{SE}()
 
         new{Field, S, SE, C, CE, F}(
-            filtration, ReductionMatrix{C, SE}(), Column{CE}(), Column{SE}(),
+            filtration, ReductionMatrix{C, SE}(), working_column, reduction_entries
         )
     end
 end
@@ -86,8 +88,8 @@ reduced. Record it in the reduction matrix and return the persistence interval. 
 `true`, add representative cocycles to the interval.
 """
 function reduce_working_column!(
-    rs::ReductionState{F, S}, column_simplex, cutoff, ::Val{reps}
-) where {F, S, reps}
+    rs::ReductionState{F, S}, column_simplex, cutoff, reps
+) where {F, S}
     current_pivot = initialize!(rs, column_simplex)
 
     while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
@@ -122,9 +124,7 @@ Compute persistence intervals by reducing `columns`, a collection of simplices. 
 `PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
 representative cocycles if `reps` is `true`.
 """
-function compute_intervals!(
-    rs::ReductionState{F, S}, columns, cutoff, ::Val{reps}
-) where {S, F, reps}
+function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps) where {S, F}
     T = dist_type(rs.filtration)
     if reps
         intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
@@ -132,7 +132,7 @@ function compute_intervals!(
         intervals = PersistenceInterval{T, Nothing}[]
     end
     for column in columns
-        interval = reduce_working_column!(rs, column, cutoff, Val(reps))
+        interval = reduce_working_column!(rs, column, cutoff, reps)
         if !isnothing(interval)
             push!(intervals, interval)
         end
@@ -141,25 +141,40 @@ function compute_intervals!(
 end
 
 """
-    assemble_columns!(rs::ReductionState, columns, simplices)
+    assemble_columns!(rs::ReductionState, unreduced_columns, reduced_columns)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
-function assemble_columns!(rs::ReductionState{<:Any, S}, simplices) where S
+function assemble_columns!(
+    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns
+) where S
     C = coface_type(S)
-    columns = C[]
-    new_simplices = C[]
+    new_unreduced = C[]
+    new_reduced = C[]
 
-    for simplex in simplices
-        for coface in coboundary(rs.filtration, simplex, Val(false))
-            push!(new_simplices, abs(coface))
-            if !has_column(rs.reduction_matrix, coface)
-                push!(columns, abs(coface))
+    for cols in (unreduced_columns, reduced_columns)
+        for simplex in cols
+            for coface in coboundary(rs.filtration, simplex, Val(false))
+                if !has_column(rs.reduction_matrix, coface)
+                    push!(new_unreduced, abs(coface))
+                else
+                    push!(new_reduced, abs(coface))
+                end
             end
         end
     end
-    sort!(columns, rev=true)
-    columns, new_simplices
+    sort!(new_unreduced, rev=true)
+    new_unreduced, new_reduced
+end
+
+function zeroth_representative(dset, vertex, reps, CE, V)
+    if reps
+        map(find_leaves!(dset, vertex)) do u
+            CE(V((u,), birth(dset, u)))
+        end
+    else
+        nothing
+    end
 end
 
 """
@@ -170,7 +185,7 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
-function zeroth_intervals(filtration, cutoff, field_type, ::Val{reps}) where reps
+function zeroth_intervals(filtration, cutoff, field_type, reps)
     T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, field_type)
@@ -180,69 +195,55 @@ function zeroth_intervals(filtration, cutoff, field_type, ::Val{reps}) where rep
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
-    simplices = edge_type(filtration)[]
-    columns = edge_type(filtration)[]
+    reduced_columns = edge_type(filtration)[]
+    unreduced_columns = edge_type(filtration)[]
 
     for sx in edges(filtration)
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
-        push!(simplices, sx)
         if i ≠ j
-
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             dead = birth(dset, i) > birth(dset, j) ? i : j
             if diam(sx) - birth(dset, dead) > cutoff
-                if reps
-                    representative = map(find_leaves!(dset, dead)) do w
-                        CE(V((w,), birth(filtration, w)))
-                    end
-                else
-                    representative = nothing
-                end
+                representative = zeroth_representative(dset, dead, reps, CE, V)
                 interval = PersistenceInterval(birth(dset, dead), diam(sx), representative)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
+            push!(reduced_columns, sx)
         else
-            push!(columns, sx)
+            push!(unreduced_columns, sx)
         end
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
-            if reps
-                representative = map(find_leaves!(dset, v)) do w
-                    CE(V((w,), birth(filtration, w)))
-                end
-            else
-                representative = nothing
-            end
+            representative = zeroth_representative(dset, v, reps, CE, V)
             push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end
-    reverse!(columns)
-    sort!(PersistenceDiagram(0, intervals)), columns, simplices
+    reverse!(unreduced_columns)
+    sort!(PersistenceDiagram(0, intervals)), unreduced_columns, reduced_columns
 end
 
 """
     nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
 
 Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
-`eltype` of `columns`. If `next` is `true`, assemble columns for the next dimension.
+`eltype` of `columns`. If `assemble` is `true`, assemble columns for the next dimension.
 
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, columns::Vector{S}, simplices, cutoff, field_type, ::Val{reps}; next=true,
-) where {S<:AbstractSimplex, reps}
-
-    rs = ReductionState{field_type, S}(filtration)
-    sizehint!(rs.reduction_matrix, length(columns))
-    intervals = compute_intervals!(rs, columns, cutoff, Val(reps))
-    if next
-        (intervals, assemble_columns!(rs, simplices)...)
+    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble
+)
+    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
+    sizehint!(rs.reduction_matrix, length(unreduced_columns))
+    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
+    if assemble
+        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns)...)
     else
         (intervals, nothing, nothing)
     end
@@ -312,51 +313,17 @@ function ripserer(
     filtration::AbstractFiltration;
     dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), Val(representatives))
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{0}, ::Val{reps}) where reps
-    diagram, _, _ = zeroth_intervals(filtration, cutoff, field_type, Val(reps))
-    [diagram]
-end
-
-@generated function ripserer(
-    filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}
-) where {dim_max, reps}
-    # We unroll the loop over 1:dim_max to ensure type stability.
-    # Generated code looks something like:
-    #
-    # ints_0, cols_1, sxs_1 = zeroth_intervals(filtration, ...)
-    # ints_1, cols_2, sxs_2 = nth_itervals(filtration, cols_1, sxs_1, ...)
-    # ...
-    # ints_dim_max, _, _ = nth_itervals(filtration, cols_dim_max-1, sxs_dim_max-1, ..., next=false)
-    #
-    # [ints_0, ints_1, ..., ints_dim_max]
-    ints = [Symbol("ints_", i) for i in 1:dim_max]
-    cols = [Symbol("cols_", i) for i in 1:dim_max]
-    sxs = [Symbol("sxs_", i) for i in 1:dim_max]
-
-    expr = quote
-        ints_0, $(cols[1]), $(sxs[1]) = zeroth_intervals(
-            filtration, cutoff, field_type, Val(reps)
-        )
+function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps) where dim_max
+    res = PersistenceDiagram[]
+    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
+    push!(res, res_0)
+    for dim in 1:dim_max
+        res_n, cols, sxs = nth_intervals(
+            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max)
+        push!(res, res_n)
     end
-    for i in 1:dim_max-1
-        expr = quote
-            $expr
-            $(ints[i]), $(cols[i+1]), $(sxs[i+1]) = nth_intervals(
-                filtration, $(cols[i]), $(sxs[i]), cutoff, field_type, Val(reps)
-            )
-        end
-    end
-    quote
-        $expr
-        $(ints[dim_max]), _, _ =
-            nth_intervals(
-                filtration, $(cols[dim_max]), $(sxs[dim_max]), cutoff, field_type, Val(reps),
-                next=false
-            )
-
-        [ints_0, $(ints...)]
-    end
+    res
 end

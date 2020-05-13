@@ -37,6 +37,9 @@ index(::IndexedSimplex)
 Base.sign(sx::IndexedSimplex) =
     sign(index(sx))
 
+Base.abs(sx::S) where S<:IndexedSimplex =
+    S(abs(index(sx)), diam(sx))
+
 Base.:-(sx::S) where S<:IndexedSimplex =
     S(-index(sx), diam(sx))
 
@@ -60,8 +63,6 @@ always positive.
 small_binomial(_, ::Val{0}) = 1
 small_binomial(n, ::Val{1}) = n
 function small_binomial(n, ::Val{k}) where k
-    n0, k0 = n, k
-    sgn = 1
     x = nn = n - k + 1
     nn += 1
     for rr in 2:k
