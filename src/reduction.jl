@@ -28,9 +28,11 @@ struct ReductionState{
         SE = chain_element_type(S, Field)
         C = coface_type(S)
         CE = chain_element_type(C, Field)
+        working_column = Column{CE}()
+        reduction_entries = Column{SE}()
 
         new{Field, S, SE, C, CE, F}(
-            filtration, ReductionMatrix{C, SE}(), Column{CE}(), Column{SE}(),
+            filtration, ReductionMatrix{C, SE}(), working_column, reduction_entries
         )
     end
 end
@@ -150,8 +152,8 @@ function assemble_columns!(
     new_unreduced = C[]
     new_reduced = C[]
 
-    for arr in (unreduced_columns, reduced_columns)
-        for simplex in arr
+    for cols in (unreduced_columns, reduced_columns)
+        for simplex in cols
             for coface in coboundary(rs.filtration, simplex, Val(false))
                 if !has_column(rs.reduction_matrix, coface)
                     push!(new_unreduced, abs(coface))
