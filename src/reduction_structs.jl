@@ -12,7 +12,7 @@ operations.
   matrix.
 """
 struct ReductionMatrix{C<:AbstractSimplex, SE<:AbstractChainElement}
-    column_index ::Dict{C, Int}
+    column_index ::RobinDict{C, Int}
     colptr       ::Vector{Int}
     nzval        ::Vector{SE}
 
