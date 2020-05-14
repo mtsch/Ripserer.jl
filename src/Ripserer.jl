@@ -43,6 +43,7 @@ export PersistenceInterval, birth, death, persistence, representative,
 
 include("chainelement.jl")
 export simplex, coefficient
+include("karyheap.jl")
 include("reduction_structs.jl")
 include("reduction.jl")
 export ripserer

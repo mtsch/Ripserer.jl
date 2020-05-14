@@ -103,11 +103,13 @@ the same simplex are summed together and elements with coefficient value `0` are
 Support `push!`ing chain elements or simplices. Unlike a regular heap, it returns nothing
 when `pop!` is used on an empty column.
 """
-struct Column{CE<:AbstractChainElement}
-    heap::BinaryMinHeap{CE}
+struct Column{K, CE<:AbstractChainElement, H<:AbstractHeap{CE}}
+    heap::H
 
-    Column{CE}() where CE =
-        new{CE}(BinaryMinHeap{CE}())
+    Column{K, CE}() where {K, CE} =
+        new{K, CE, KAryMinHeap{K, CE}}(KAryMinHeap{K, CE}())
+    Column{2, CE}() where {K, CE} =
+        new{2, CE, BinaryMinHeap{CE}}(BinaryMinHeap{CE}())
 end
 
 Base.empty!(col::Column) =
@@ -127,7 +129,7 @@ Move contents of column into `dst` by repeatedly calling `pop_pivot!` on the col
 `push!`ing the pivot to `dst`. Multipy all elements that are moved are multiplied by
 `times`.
 """
-function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
+function move_mul!(dst, col::Column{<:Any, CE}, times=one(CE)) where CE
     pivot = pop_pivot!(col)
     while !isnothing(pivot)
         push!(dst, times * pivot)
@@ -174,9 +176,9 @@ function pivot(column::Column)
     pivot
 end
 
-Base.push!(column::Column{CE}, simplex) where CE =
+Base.push!(column::Column{<:Any, CE}, simplex) where CE =
     push!(column, CE(simplex))
-function Base.push!(column::Column{CE}, element::CE) where CE
+function Base.push!(column::Column{<:Any, CE}, element::CE) where CE
     heap = column.heap
     if !isempty(heap) && top(heap) == element
         heap.valtree[1] += element
