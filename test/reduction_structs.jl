@@ -51,9 +51,10 @@ using Compat
 end
 
 @testset "Column" begin
+    for K in 2:8
     @testset "single element" begin
         CE = ChainElement{Simplex{1, Float64, Int}, Mod{2}}
-        col = Column{CE}()
+        col = Column{K, CE}()
         push!(col, Simplex{1}(1, 2.0))
         push!(col, Simplex{1}(1, 2.0))
         push!(col, Simplex{1}(1, 2.0))
@@ -65,7 +66,7 @@ end
         @test isempty(col)
 
         CE = ChainElement{Simplex{2, Float64, Int}, Mod{3}}
-        col = Column{CE}()
+        col = Column{K, CE}()
         push!(col, Simplex{2}(1, 2.0))
         push!(col, Simplex{2}(1, 2.0))
         push!(col, Simplex{2}(1, 2.0))
@@ -75,7 +76,7 @@ end
         @test isempty(col)
 
         CE = ChainElement{Simplex{2, Int, Int}, Rational{Int}}
-        col = Column{CE}()
+        col = Column{K, CE}()
         push!(col, Simplex{2}(1, 2))
         push!(col, Simplex{2}(2, 3))
         push!(col, Simplex{2}(-1, 2))
@@ -90,7 +91,7 @@ end
     end
     @testset "multiple" begin
         CE = ChainElement{Simplex{3, Float64, Int}, Mod{5}}
-        col = Column{CE}()
+        col = Column{K, CE}()
         push!(col, CE(Simplex{3}(2, 1.0), 3))
         push!(col, CE(Simplex{3}(3, 2.0), 4))
         push!(col, CE(Simplex{3}(2, 1.0), 2))
@@ -108,4 +109,5 @@ end
         @test isnothing(pop_pivot!(col))
         @test isnothing(pop_pivot!(col))
     end
+end
 end

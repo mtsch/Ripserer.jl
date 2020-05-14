@@ -18,20 +18,21 @@ struct ReductionState{
     S<:AbstractSimplex, SE<:AbstractChainElement{S, Field},
     C<:AbstractSimplex, CE<:AbstractChainElement{C, Field},
     F,
+    K,
 }
     filtration        ::F
     reduction_matrix  ::ReductionMatrix{C, SE}
-    working_column    ::Column{CE}
-    reduction_entries ::Column{SE}
+    working_column    ::Column{K, CE}
+    reduction_entries ::Column{K, SE}
 
-    function ReductionState{Field, S}(filtration::F) where {Field, S<:AbstractSimplex, F}
+    function ReductionState{Field, S}(filtration::F, K=2) where {Field, S<:AbstractSimplex, F}
         SE = chain_element_type(S, Field)
         C = coface_type(S)
         CE = chain_element_type(C, Field)
-        working_column = Column{CE}()
-        reduction_entries = Column{SE}()
+        working_column = Column{K, CE}()
+        reduction_entries = Column{K, SE}()
 
-        new{Field, S, SE, C, CE, F}(
+        new{Field, S, SE, C, CE, F, K}(
             filtration, ReductionMatrix{C, SE}(), working_column, reduction_entries
         )
     end
@@ -237,9 +238,10 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble
-)
-    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
+    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble,
+    ::Val{K}
+) where K
+    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration, K)
     sizehint!(rs.reduction_matrix, length(unreduced_columns))
     intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
     if assemble
@@ -283,6 +285,7 @@ function ripserer(
     representatives=false,
     modulus=2,
     field_type=Mod{modulus},
+    K=8,
     kwargs..., # kwargs for filtration
 )
     if sparse || issparse(dists)
@@ -296,6 +299,7 @@ function ripserer(
         representatives=representatives,
         cutoff=cutoff,
         field_type=field_type,
+        K=K,
     )
 end
 
@@ -311,18 +315,18 @@ Compute persistent homology from `filtration` object.
 """
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, K=8
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives)
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, K)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps) where dim_max
+function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps, K=8) where dim_max
     res = PersistenceDiagram[]
     res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
     push!(res, res_0)
     for dim in 1:dim_max
         res_n, cols, sxs = nth_intervals(
-            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max)
+            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max, Val(K))
         push!(res, res_n)
     end
     res
