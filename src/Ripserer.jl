@@ -16,6 +16,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
+using ProgressMeter
 using RecipesBase
 using TupleTools
 

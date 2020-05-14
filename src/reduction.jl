@@ -124,18 +124,22 @@ Compute persistence intervals by reducing `columns`, a collection of simplices. 
 `PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
 representative cocycles if `reps` is `true`.
 """
-function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps) where {S, F}
+function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps, progress) where {S, F}
     T = dist_type(rs.filtration)
     if reps
         intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
+    if progress
+        progbar = Progress(length(columns), desc="Computing $(dim(S))d intervals... ")
+    end
     for column in columns
         interval = reduce_working_column!(rs, column, cutoff, reps)
         if !isnothing(interval)
             push!(intervals, interval)
         end
+        progress && next!(progbar)
     end
     sort!(PersistenceDiagram(dim(eltype(columns)), intervals))
 end
@@ -146,12 +150,16 @@ end
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
 function assemble_columns!(
-    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns
+    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns, progress
 ) where S
     C = coface_type(S)
     new_unreduced = C[]
     new_reduced = C[]
 
+    if progress
+        progbar = Progress(length(unreduced_columns) + length(reduced_columns),
+                           desc="Assembling columns...     ")
+    end
     for cols in (unreduced_columns, reduced_columns)
         for simplex in cols
             for coface in coboundary(rs.filtration, simplex, Val(false))
@@ -161,6 +169,7 @@ function assemble_columns!(
                     push!(new_reduced, abs(coface))
                 end
             end
+            progress && next!(progbar)
         end
     end
     sort!(new_unreduced, rev=true)
@@ -237,13 +246,14 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble
+    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble, progress
 )
     rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
     sizehint!(rs.reduction_matrix, length(unreduced_columns))
-    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
+    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps, progress)
+    GC.gc()
     if assemble
-        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns)...)
+        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns, progress)...)
     else
         (intervals, nothing, nothing)
     end
@@ -283,6 +293,7 @@ function ripserer(
     representatives=false,
     modulus=2,
     field_type=Mod{modulus},
+    show_progress=false,
     kwargs..., # kwargs for filtration
 )
     if sparse || issparse(dists)
@@ -296,6 +307,7 @@ function ripserer(
         representatives=representatives,
         cutoff=cutoff,
         field_type=field_type,
+        show_progress=show_progress,
     )
 end
 
@@ -311,18 +323,18 @@ Compute persistent homology from `filtration` object.
 """
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, show_progress=false
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives)
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, show_progress)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps) where dim_max
+function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps, progress) where dim_max
     res = PersistenceDiagram[]
     res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
     push!(res, res_0)
     for dim in 1:dim_max
         res_n, cols, sxs = nth_intervals(
-            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max)
+            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max, progress)
         push!(res, res_n)
     end
     res
