@@ -25,7 +25,7 @@ struct ReductionState{
     working_column    ::Column{K, CE}
     reduction_entries ::Column{K, SE}
 
-    function ReductionState{Field, S}(filtration::F, K=2) where {Field, S<:AbstractSimplex, F}
+    function ReductionState{Field, S}(filtration::F, ::Val{K}) where {Field, S<:AbstractSimplex, F, K}
         SE = chain_element_type(S, Field)
         C = coface_type(S)
         CE = chain_element_type(C, Field)
@@ -241,7 +241,7 @@ function nth_intervals(
     filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble,
     ::Val{K}
 ) where K
-    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration, K)
+    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration, Val(K))
     sizehint!(rs.reduction_matrix, length(unreduced_columns))
     intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
     if assemble
