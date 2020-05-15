@@ -142,13 +142,17 @@ Type for representing persistence diagrams. Behaves exactly like an array of
 `PersistenceInterval`s, but is aware of its dimension and supports pretty printing and
 plotting.
 """
-struct PersistenceDiagram{P<:PersistenceInterval} <: AbstractVector{P}
+struct PersistenceDiagram{T, P<:PersistenceInterval{T}} <: AbstractVector{P}
     dim       ::Int
+    threshold ::Union{T, Infinity}
     intervals ::Vector{P}
 end
 
-PersistenceDiagram(dim, intervals::AbstractVector{<:Tuple}) =
-    PersistenceDiagram(dim, PersistenceInterval.(intervals))
+PersistenceDiagram(dim, threshold, intervals::AbstractVector{<:Tuple}) =
+    PersistenceDiagram(dim, threshold, PersistenceInterval.(intervals))
+
+PersistenceDiagram(dim, intervals) =
+    PersistenceDiagram(dim, ∞, intervals)
 
 Base.show(io::IO, pd::PersistenceDiagram) =
     print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
@@ -186,6 +190,9 @@ function Base.show(io::IO, ::MIME"text/plain", pd::PersistenceDiagram)
     end
 end
 
+threshold(pd::PersistenceDiagram) =
+    pd.threshold
+
 Base.size(pd::PersistenceDiagram) =
     size(pd.intervals)
 
@@ -202,10 +209,10 @@ Base.lastindex(pd::PersistenceDiagram) =
     length(pd.intervals)
 
 Base.similar(pd::PersistenceDiagram) =
-    PersistenceDiagram(dim(pd), similar(pd.intervals))
+    PersistenceDiagram(dim(pd), threshold(pd), similar(pd.intervals))
 
 Base.similar(pd::PersistenceDiagram, dims::Tuple) =
-    PersistenceDiagram(dim(pd), similar(pd.intervals, dims))
+    PersistenceDiagram(dim(pd), threshold(pd), similar(pd.intervals, dims))
 
 """
     dim(::PersistenceDiagram)

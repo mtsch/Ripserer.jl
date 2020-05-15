@@ -81,11 +81,12 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
 end
 
 """
-    reduce_working_column!(rs::ReductionState, column_simplex, Val(reps))
+    reduce_working_column!(rs::ReductionState, column_simplex, cutoff, reps)
 
 Reduce the working column by adding other columns to it until it has the lowest pivot or is
-reduced. Record it in the reduction matrix and return the persistence interval. If `reps` is
-`true`, add representative cocycles to the interval.
+reduced. Record it in the reduction matrix and return the persistence intervals with
+persistence larger than `cutoff`. If `reps` is `true`, add representative cocycles to the
+interval.
 """
 function reduce_working_column!(
     rs::ReductionState{F, S}, column_simplex, cutoff, reps
@@ -118,41 +119,52 @@ function reduce_working_column!(
 end
 
 """
-    compute_pairs!(rs::ReductionState, columns)
+    compute_pairs!(rs::ReductionState, columns, cutoff, reps, progress)
 
 Compute persistence intervals by reducing `columns`, a collection of simplices. Return
-`PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
-representative cocycles if `reps` is `true`.
+`PersistenceDiagram`. Only keep intervals with persistence larger than `cutoff` and return
+representative cocycles if `reps` is `true`. If `progress` is set, show a progress bar.
 """
-function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps) where {S, F}
+function compute_intervals!(
+    rs::ReductionState{F, S}, columns, cutoff, reps, progress
+) where {S, F}
     T = dist_type(rs.filtration)
     if reps
         intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
+    if progress
+        progbar = Progress(length(columns), desc="Computing $(dim(S))d intervals... ")
+    end
     for column in columns
         interval = reduce_working_column!(rs, column, cutoff, reps)
         if !isnothing(interval)
             push!(intervals, interval)
         end
+        progress && next!(progbar)
     end
-    sort!(PersistenceDiagram(dim(eltype(columns)), intervals))
+    sort!(PersistenceDiagram(dim(eltype(columns)), threshold(rs.filtration), intervals))
 end
 
 """
-    assemble_columns!(rs::ReductionState, unreduced_columns, reduced_columns)
+    assemble_columns!(rs::ReductionState, unreduced, reduced, progress)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
 function assemble_columns!(
-    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns
+    rs::ReductionState{<:Any, S}, unreduced, reduced, progress
 ) where S
     C = coface_type(S)
     new_unreduced = C[]
     new_reduced = C[]
 
-    for cols in (unreduced_columns, reduced_columns)
+    if progress
+        progbar = Progress(
+            length(unreduced) + length(reduced), desc="Assembling columns...     "
+        )
+    end
+    for cols in (unreduced, reduced)
         for simplex in cols
             for coface in coboundary(rs.filtration, simplex, Val(false))
                 if !has_column(rs.reduction_matrix, coface)
@@ -161,16 +173,45 @@ function assemble_columns!(
                     push!(new_reduced, abs(coface))
                 end
             end
+            progress && next!(progbar)
         end
     end
     sort!(new_unreduced, rev=true)
     new_unreduced, new_reduced
 end
 
-function zeroth_representative(dset, vertex, reps, CE, V)
+"""
+    nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
+
+Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
+`eltype` of `columns`. If `assemble` is `true`, assemble columns for the next dimension.
+
+Only keep intervals with persistence larger than `cutoff`.  Compute homology with
+coefficients in `field_type`. If `reps` is `true`, compute representative cocycles. Show a
+progress bar if `progress` is set.
+"""
+function nth_intervals(
+    filtration, unreduced, reduced, cutoff, field_type, reps, assemble, progress
+)
+    rs = ReductionState{field_type, eltype(unreduced)}(filtration)
+    sizehint!(rs.reduction_matrix, length(unreduced))
+    intervals = compute_intervals!(rs, unreduced, cutoff, reps, progress)
+    if assemble
+        (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
+    else
+        (intervals, nothing, nothing)
+    end
+end
+
+"""
+    zeroth_representative(dset, vertex, reps, CE, V)
+
+Collect the zero dimensional representative of `vertex`.
+"""
+function zeroth_representative(filtration, dset, vertex, reps, CE, V)
     if reps
         map(find_leaves!(dset, vertex)) do u
-            CE(V((u,), birth(dset, u)))
+            CE(V((u,), birth(filtration, u)))
         end
     else
         nothing
@@ -178,14 +219,15 @@ function zeroth_representative(dset, vertex, reps, CE, V)
 end
 
 """
-    zeroth_intervals(filtration, cutoff, field_type, ::Val{reps})
+    zeroth_intervals(filtration, cutoff, field_type, reps, progress)
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
-`field_type`. If `reps` is `true`, compute representative cocycles.
+`field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
+`progress` is set.
 """
-function zeroth_intervals(filtration, cutoff, field_type, reps)
+function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, field_type)
@@ -195,10 +237,13 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
-    reduced_columns = edge_type(filtration)[]
-    unreduced_columns = edge_type(filtration)[]
-
-    for sx in edges(filtration)
+    reduced = edge_type(filtration)[]
+    unreduced = edge_type(filtration)[]
+    simplices = edges(filtration)
+    if progress
+        progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
+    end
+    for sx in simplices
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
@@ -207,54 +252,36 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
             # into a later interval.
             dead = birth(dset, i) > birth(dset, j) ? i : j
             if diam(sx) - birth(dset, dead) > cutoff
-                representative = zeroth_representative(dset, dead, reps, CE, V)
+                representative = zeroth_representative(filtration, dset, dead, reps, CE, V)
                 interval = PersistenceInterval(birth(dset, dead), diam(sx), representative)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
-            push!(reduced_columns, sx)
+            push!(reduced, sx)
         else
-            push!(unreduced_columns, sx)
+            push!(unreduced, sx)
         end
+        progress && next!(progbar)
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
-            representative = zeroth_representative(dset, v, reps, CE, V)
+            representative = zeroth_representative(filtration, dset, v, reps, CE, V)
             push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end
-    reverse!(unreduced_columns)
-    sort!(PersistenceDiagram(0, intervals)), unreduced_columns, reduced_columns
+    reverse!(unreduced)
+    sort!(PersistenceDiagram(0, threshold(filtration), intervals)), unreduced, reduced
 end
 
 """
-    nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
-
-Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
-`eltype` of `columns`. If `assemble` is `true`, assemble columns for the next dimension.
-
-Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
-`field_type`. If `reps` is `true`, compute representative cocycles.
-"""
-function nth_intervals(
-    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble
-)
-    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
-    sizehint!(rs.reduction_matrix, length(unreduced_columns))
-    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps)
-    if assemble
-        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns)...)
-    else
-        (intervals, nothing, nothing)
-    end
-end
-
-"""
-    ripserer(dists::AbstractMatrix{T}; kwargs...)
+    ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Euclidean(), births, kwargs...)
+    ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists` or `points` and
-`metric`. `points` must be an array of bitstypes, such as `NTuple`s or `SVectors`.
+Compute the persistent homology of metric space represented by `dists`, `points` and
+`metric` or an `::AbstractFiltration`.
+
+If using points, `points` must be an array of bitstypes, such as `NTuple`s or `SVectors`.
 
 # Keyoword Arguments
 
@@ -264,11 +291,10 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `field_type`: use this type of field of coefficients. Defaults to `Mod{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   For non-sparse Rips filtrations, it defaults to radius of input space.
-* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
-  argument is a sparse matrix, it overrides this option.
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `representatives`: if `true`, return representative cocycles along with persistence
   intervals. Defaults to `false`.
+* `progress`: If `true`, show a progress bar. Defaults to `false`.
 * `metric`: when calculating persistent homology from points, any metric from
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
   `Euclidean()`.
@@ -283,12 +309,13 @@ function ripserer(
     representatives=false,
     modulus=2,
     field_type=Mod{modulus},
+    progress=false,
     kwargs..., # kwargs for filtration
 )
-    if sparse || issparse(dists)
-        filtration = SparseRipsFiltration(dists; kwargs...)
+    if issparse(dists)
+        filtration = SparseRips(dists; kwargs...)
     else
-        filtration = RipsFiltration(dists; kwargs...)
+        filtration = Rips(dists; kwargs...)
     end
     ripserer(
         filtration;
@@ -296,6 +323,7 @@ function ripserer(
         representatives=representatives,
         cutoff=cutoff,
         field_type=field_type,
+        progress=progress,
     )
 end
 
@@ -304,26 +332,25 @@ function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
     ripserer(dists; kwargs...)
 end
 
-"""
-    ripserer(filtration::AbstractFiltration; dim_max=1)
-
-Compute persistent homology from `filtration` object.
-"""
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives)
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps) where dim_max
+function ripserer(
+    filtration, cutoff, field_type, ::Val{dim_max}, reps, progress
+) where dim_max
     res = PersistenceDiagram[]
-    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
+    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     push!(res, res_0)
     for dim in 1:dim_max
         res_n, cols, sxs = nth_intervals(
-            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max)
+            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max, progress)
         push!(res, res_n)
+        # TODO: A lot of things get allocated and then destroyed in nth_intervals, so it
+        # might make sense to do a GC.gc() here.
     end
     res
 end

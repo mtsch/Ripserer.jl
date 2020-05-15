@@ -47,12 +47,12 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
     end
 end
 
-@testset "CubicalFiltration" begin
-    test_filtration_interface(CubicalFiltration, (data1d, data2d, data3d))
+@testset "Cubical" begin
+    test_filtration_interface(Cubical, (data1d, data2d, data3d))
 
     @testset "n_vertices, indices, birth, diam" begin
         for data in (data1d, data2d, data3d)
-            flt = CubicalFiltration(data)
+            flt = Cubical(data)
 
             @test n_vertices(flt) == length(data)
             @test CartesianIndices(flt) == CartesianIndices(data)
@@ -71,7 +71,7 @@ end
 
     @testset "1d" begin
         cob = Cubelet{2, Float64, Int}[]
-        flt = CubicalFiltration(data1d)
+        flt = Cubical(data1d)
         cub = Cubelet{1}((3, 2), diam(flt, (3, 2)))
         for c in coboundary(flt, cub)
             push!(cob, c)
@@ -81,7 +81,7 @@ end
 
     @testset "2d" begin
         cob = Cubelet{2, Int, Int}[]
-        flt = CubicalFiltration(data2d)
+        flt = Cubical(data2d)
         cub = Cubelet{1}((10, 9), 1)
         for c in coboundary(flt, cub)
             push!(cob, c)
@@ -104,7 +104,7 @@ end
 
     @testset "3d" begin
         cob = Cubelet{2, Int, Int}[]
-        flt = CubicalFiltration(data3d)
+        flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)
         for c in coboundary(flt, cub)
             push!(cob, c)

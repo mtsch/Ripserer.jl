@@ -77,7 +77,7 @@ end
         int2 = PersistenceInterval(1, 3)
         int3 = PersistenceInterval(3, 4)
 
-        diag = PersistenceDiagram(1, [int1, int2, int3])
+        diag = PersistenceDiagram(1, 2, [int1, int2, int3])
         @test dim(diag) == 1
         sort!(diag)
         @test diag == [int2, int3, int1]
@@ -100,5 +100,7 @@ end
         @test similar(diag, (Base.OneTo(2),)) isa typeof(diag)
         @test sort(diag) isa typeof(diag)
         @test filter(isfinite, diag) isa typeof(diag)
+
+        @test threshold(diag) == 2
     end
 end

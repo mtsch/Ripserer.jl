@@ -63,19 +63,23 @@ birth(::AbstractFiltration, ::Any)
 ```
 
 ```@docs
+threshold(::AbstractFiltration)
+```
+
+```@docs
 AbstractFlagFiltration
 ```
 
 ```@docs
-RipsFiltration
+Rips
 ```
 
 ```@docs
-SparseRipsFiltration
+SparseRips
 ```
 
 ```@docs
-CubicalFiltration
+Cubical
 ```
 
 ## Simplex Types

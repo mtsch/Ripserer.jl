@@ -52,53 +52,48 @@ coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} =
     Cubelet{D+1, T, I}
 
 """
-    CubicalFiltration{T, N, V<:Cubelet{0, T}} <: AbstractFiltration{T, V}
+    Cubical{T, N, V<:Cubelet{0, T}} <: AbstractFiltration{T, V}
 
-A `CubicalFiltration` is used to compute sublevel persistent homology on `N`-dimensional
+A `Cubical` is used to compute sublevel persistent homology on `N`-dimensional
 images, which are of type `AbstractArray{T, N}`.
 """
-struct CubicalFiltration{
+struct Cubical{
     T, N, V<:Cubelet{0, T}, A<:AbstractArray{T, N}
 } <: AbstractFiltration{T, V}
-    data ::A
+    data      ::A
+    threshold ::T
 end
 
-function CubicalFiltration(
+function Cubical(
     data::AbstractArray{T, N};
     vertex_type::DataType=Cubelet{0, T, Int64}
 ) where {T, N}
-    CubicalFiltration{T, N, vertex_type, typeof(data)}(data)
+    Cubical{T, N, vertex_type, typeof(data)}(data, maximum(data))
 end
 
-n_vertices(cf::CubicalFiltration) =
+n_vertices(cf::Cubical) =
     length(cf.data)
 
-Base.CartesianIndices(cf::CubicalFiltration) =
+threshold(cf::Cubical) = cf.threshold
+
+birth(cf::Cubical, i) = cf.data[i]
+
+Base.CartesianIndices(cf::Cubical) =
     CartesianIndices(cf.data)
 
-Base.LinearIndices(cf::CubicalFiltration) =
+Base.LinearIndices(cf::Cubical) =
     LinearIndices(cf.data)
 
 # doesn't quite follow interface.
-# TODO: fix when compat gets fixed to support get with CartesianIndex
-function diam(cf::CubicalFiltration{T}, vertices) where {T}
+function diam(cf::Cubical{T}, vertices) where {T}
     res = typemin(T)
-    if eltype(vertices) <: CartesianIndex
-        for v in vertices
-            res = max(res, get(cf.data, v.I, ∞))
-        end
-    else
-        for v in vertices
-            res = max(res, get(cf.data, v, ∞))
-        end
+    for v in vertices
+        res = max(res, get(cf.data, v, ∞))
     end
     res
 end
 
-birth(cf::CubicalFiltration, i) =
-    cf.data[i]
-
-function edges(cf::CubicalFiltration{<:Any, N}) where N
+function edges(cf::Cubical{<:Any, N}) where N
     E = edge_type(cf)
     result = E[]
     for u_lin in eachindex(cf.data)
@@ -115,7 +110,7 @@ function edges(cf::CubicalFiltration{<:Any, N}) where N
 end
 
 # coboundary ============================================================================= #
-struct CubeletCoboundary{A, N, C<:Cubelet, F<:CubicalFiltration{<:Any, N}, K}
+struct CubeletCoboundary{A, N, C<:Cubelet, F<:Cubical{<:Any, N}, K}
     filtration ::F
     cubelet    ::C
     vertices   ::NTuple{K, CartesianIndex{N}}
@@ -123,15 +118,15 @@ end
 
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
-) where {A, N, D, F<:CubicalFiltration{<:Any, N}, C<:Cubelet{D}}
+) where {A, N, D, F<:Cubical{<:Any, N}, C<:Cubelet{D}}
     K = 2^D
     vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
     CubeletCoboundary{A, N, C, F, K}(filtration, cubelet, vxs)
 end
 
-coboundary(filtration::CubicalFiltration, cubelet::Cubelet) =
+coboundary(filtration::Cubical, cubelet::Cubelet) =
     CubeletCoboundary{true}(filtration, cubelet)
-coboundary(filtration::CubicalFiltration, cubelet::Cubelet, ::Val{false}) =
+coboundary(filtration::Cubical, cubelet::Cubelet, ::Val{false}) =
     CubeletCoboundary{false}(filtration, cubelet)
 
 function all_equal_in_dim(dim, vertices)
