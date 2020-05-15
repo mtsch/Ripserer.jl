@@ -33,7 +33,7 @@ heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))
 #     be careful with calculating representatives because calculating representatives for
 #     thousands of persistence intervals can take a while.
 
-result_min = ripserer(CubicalFiltration(blackhole_grayscale))
+result_min = ripserer(Cubical(blackhole_grayscale))
 
 # We plot the diagram with the `persistence` argument. This plots persistence vs birth
 # instead of death vs birth.
@@ -44,7 +44,7 @@ plot(result_min, persistence=true)
 # remove the noise by supplying the `cutoff` argument to `ripserer`. This removes all
 # intervals with persistence strictly smaller than cutoff.
 
-result_min = ripserer(CubicalFiltration(blackhole_grayscale), cutoff=0.1)
+result_min = ripserer(Cubical(blackhole_grayscale), cutoff=0.1)
 
 #
 
@@ -52,7 +52,7 @@ plot(result_min, persistence=true)
 
 # Now that we know we have a smaller number of intervals, we can compute the
 # representatives.
-result_min = ripserer(CubicalFiltration(blackhole_grayscale), cutoff=0.1, representatives=true)
+result_min = ripserer(Cubical(blackhole_grayscale), cutoff=0.1, representatives=true)
 
 # We separate the finite and infinite intervals. The finite one corresponds to the local
 # minimum in the middle of the image and the infinite one corresponds to the global minimum.
@@ -113,8 +113,7 @@ scatter!(result_min[2][2], blackhole_grayscale,
 
 # Let's repeat what we just did, but with the image negated.
 
-result_max = ripserer(CubicalFiltration(-blackhole_grayscale),
-                      cutoff=0.1, representatives=true)
+result_max = ripserer(Cubical(-blackhole_grayscale), cutoff=0.1, representatives=true)
 plot(result_max)
 
 heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))

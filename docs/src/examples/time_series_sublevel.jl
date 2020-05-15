@@ -23,13 +23,13 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # Even though this time series is noisy, we would like to locate the five local minima that
 # can clearly be seen from the plot.
 
-# We do this by computing 0-dimensional persistent homology of the `CubicalFiltration`. The
+# We do this by computing 0-dimensional persistent homology of the `Cubical`. The
 # resulting persistence diagram contains an interval for each local minimum. The interval's
 # birth time is equal to the `y`-value at the minimum. It's death time is equal to the
 # height of an adjacent local maximum. An interval with infinite persistence represents the
 # global minimum.
 
-res = ripserer(CubicalFiltration(y), dim_max=0, representatives=true)[1]
+res = ripserer(Cubical(y), dim_max=0, representatives=true)[1]
 plot(res)
 
 # We notice there is a lot of noise on the persistence diagram. We can filter it out by
