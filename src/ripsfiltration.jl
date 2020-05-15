@@ -105,20 +105,20 @@ default_rips_threshold(dists::AbstractMatrix{T}) where T =
     minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
 
 """
-    RipsFiltration{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
+    Rips{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
 
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
 # Constructor
 
-    RipsFiltration(
+    Rips(
         distance_matrix;
         threshold=default_rips_threshold(dist),
         vertex_type=Simplex{0, T, Int64},
     )
 """
-struct RipsFiltration{
+struct Rips{
     T, V<:AbstractSimplex{0, T}, A<:AbstractMatrix{T}
 } <: AbstractFlagFiltration{T, V}
 
@@ -126,7 +126,7 @@ struct RipsFiltration{
     threshold ::T
 end
 
-function RipsFiltration(
+function Rips(
     dist::AbstractMatrix{T};
     threshold=default_rips_threshold(dist),
     vertex_type::DataType=Simplex{0, T, Int64}
@@ -137,26 +137,26 @@ function RipsFiltration(
     vertex_type <: AbstractSimplex{0, T} ||
         throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
     !issparse(dist) ||
-        throw(ArgumentError("`dist` is sparse. Use `SparseRipsFiltration` instead"))
-    RipsFiltration{T, vertex_type, typeof(dist)}(dist, T(threshold))
+        throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
+    Rips{T, vertex_type, typeof(dist)}(dist, T(threshold))
 end
 
 # interface implementation
-n_vertices(rips::RipsFiltration) =
+n_vertices(rips::Rips) =
     size(rips.dist, 1)
 
-@propagate_inbounds dist(rips::RipsFiltration{T}, i, j) where T =
+@propagate_inbounds dist(rips::Rips{T}, i, j) where T =
     ifelse(i == j, zero(T), rips.dist[i, j])
 
-threshold(rips::RipsFiltration) =
-    rips.threshold
+threshold(rips::Rips) = rips.threshold
 
-birth(rips::RipsFiltration, i) =
-    rips.dist[i, i]
+max_death(rips::Rips) = rips.threshold
+
+birth(rips::Rips, i) = rips.dist[i, i]
 
 # sparse rips filtration ================================================================= #
 """
-    SparseRipsFiltration{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
+    SparseRips{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
 
 This type represents a filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -165,20 +165,21 @@ treated as vertex birth times.
 
 # Constructor
 
-    SparseRipsFiltration(
+    SparseRips(
         distance_matrix;
         threshold=nothing,
         vertex_type=Simplex{0, T, Int64},
     )
 """
-struct SparseRipsFiltration{
+struct SparseRips{
     T, V<:AbstractSimplex{0, T}, A<:AbstractSparseMatrix{T}
 }<: AbstractFlagFiltration{T, V}
 
-    dist ::A
+    dist      ::A
+    threshold ::T
 end
 
-function SparseRipsFiltration(
+function SparseRips(
     dist::AbstractMatrix{T};
     threshold=nothing,
     vertex_type::DataType=Simplex{0, T, Int64},
@@ -195,24 +196,27 @@ function SparseRipsFiltration(
         for i in 1:size(dist, 1)
             new_dist[i, i] = births[i]
         end
+    else
+        threshold = maximum(dist)
     end
-    SparseRipsFiltration{T, vertex_type, typeof(new_dist)}(new_dist)
+    SparseRips{T, vertex_type, typeof(new_dist)}(new_dist, threshold)
 end
 
 # interface implementation --------------------------------------------------------------- #
-n_vertices(rips::SparseRipsFiltration) =
+n_vertices(rips::SparseRips) =
     size(rips.dist, 1)
 
-@propagate_inbounds function dist(rips::SparseRipsFiltration{T}, i, j) where T
+@propagate_inbounds function dist(rips::SparseRips{T}, i, j) where T
     res = rips.dist[i, j]
     ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
 end
 
 # Threshold was handled by deleting entries in the matrix.
-threshold(rips::SparseRipsFiltration) =
-    ∞
+threshold(rips::SparseRips) = rips.threshold
 
-@propagate_inbounds function diam(rips::SparseRipsFiltration, sx::AbstractSimplex, us, v)
+max_death(rips::SparseRips) = maximum(rips.dist)
+
+@propagate_inbounds function diam(rips::SparseRips, sx::AbstractSimplex, us, v)
     res = diam(sx)
     for u in us
         # Since indexing in sparse matrices is expensive, we want to abort the loop early
@@ -224,5 +228,5 @@ threshold(rips::SparseRipsFiltration) =
     res
 end
 
-birth(rips::SparseRipsFiltration, i) =
+birth(rips::SparseRips, i) =
     rips.dist[i, i]

@@ -14,6 +14,7 @@ simplices.
 * [`diam(::AbstractFiltration, vs)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
+* [`max_death(::AbstractFiltration)`](@ref) - optional, defaults to returning `∞`.
 """
 abstract type AbstractFiltration{T, V<:AbstractSimplex{0, T}} end
 
@@ -58,9 +59,16 @@ Get the diameter of coface of `simplex` that is formed by adding `vertex` to `ve
 diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 
 """
-    birth(::AbstractFiltration{T}, v)
+    birth(::AbstractFiltration, v)
 
 Get the birth time of vertex `v`.
 """
 birth(::AbstractFiltration{T}, _) where T =
     zero(T)
+
+"""
+    max_death(::AbstractFiltration)
+
+Get the last death in filtration. Used only in plotting.
+"""
+max_death(::AbstractFiltration) = ∞

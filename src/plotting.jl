@@ -13,16 +13,20 @@ end
     t_limits(diagram)
 
 Get the minimum and maximum birth/death times in `diagram` and a boolean specifing if any of
-the intervals was infinite. If any of the intervals are infinite, guess a good number to
-place `∞` at.
+the intervals was infinite. If any of the intervals are infinite, use the value specified in
+persistence diagram or try to guess a good number to place `∞` at.
 """
 function t_limits(pd::PersistenceDiagram)
     t_min = foldl(min, [birth.(pd); death.(filter(isfinite, pd))], init=0)
     t_max = foldl(max, [birth.(pd); death.(filter(isfinite, pd))], init=0)
     infinite = any(!isfinite, pd)
     if infinite
-        rounded = round(t_max, RoundUp)
-        t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
+        if threshold(pd) ≢ ∞
+            t_max = threshold(pd)
+        else
+            rounded = round(t_max, RoundUp)
+            t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
+        end
     end
     t_min, t_max, infinite
 end
@@ -36,8 +40,17 @@ function t_limits(pds)
         infinite |= any(!isfinite, pd)
     end
     if infinite
-        rounded = round(t_max, RoundUp)
-        t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
+        if all(isa.(pds, PersistenceDiagram))
+            infinity = maximum(threshold.(pds))
+        else
+            infinity = ∞
+        end
+        if infinity ≢ ∞
+            t_max = infinity
+        else
+            rounded = round(t_max, RoundUp)
+            t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
+        end
     end
     t_min, t_max, infinite
 end
@@ -55,7 +68,6 @@ end
     end
     xguide --> "birth"
     yguide --> (persistence ? "persistence" : "death")
-    xlims --> (t_min, t_max)
     legend --> :bottomright
     title --> "Persistence Diagram"
 

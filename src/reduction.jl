@@ -124,7 +124,9 @@ Compute persistence intervals by reducing `columns`, a collection of simplices. 
 `PersistenceDiagram`. Only keep intervals with desired birth/death `cutoff` and return
 representative cocycles if `reps` is `true`.
 """
-function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps, progress) where {S, F}
+function compute_intervals!(
+    rs::ReductionState{F, S}, columns, cutoff, reps, progress
+) where {S, F}
     T = dist_type(rs.filtration)
     if reps
         intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
@@ -141,26 +143,26 @@ function compute_intervals!(rs::ReductionState{F, S}, columns, cutoff, reps, pro
         end
         progress && next!(progbar)
     end
-    sort!(PersistenceDiagram(dim(eltype(columns)), intervals))
+    sort!(PersistenceDiagram(dim(eltype(columns)), threshold(rs.filtration), intervals))
 end
 
 """
-    assemble_columns!(rs::ReductionState, unreduced_columns, reduced_columns)
+    assemble_columns!(rs::ReductionState, unreduced, reduced)
 
 Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
 """
 function assemble_columns!(
-    rs::ReductionState{<:Any, S}, unreduced_columns, reduced_columns, progress
+    rs::ReductionState{<:Any, S}, unreduced, reduced, progress
 ) where S
     C = coface_type(S)
     new_unreduced = C[]
     new_reduced = C[]
 
     if progress
-        progbar = Progress(length(unreduced_columns) + length(reduced_columns),
+        progbar = Progress(length(unreduced) + length(reduced),
                            desc="Assembling columns...     ")
     end
-    for cols in (unreduced_columns, reduced_columns)
+    for cols in (unreduced, reduced)
         for simplex in cols
             for coface in coboundary(rs.filtration, simplex, Val(false))
                 if !has_column(rs.reduction_matrix, coface)
@@ -194,7 +196,7 @@ Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
-function zeroth_intervals(filtration, cutoff, field_type, reps)
+function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, field_type)
@@ -204,10 +206,13 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
     else
         intervals = PersistenceInterval{T, Nothing}[]
     end
-    reduced_columns = edge_type(filtration)[]
-    unreduced_columns = edge_type(filtration)[]
-
-    for sx in edges(filtration)
+    reduced = edge_type(filtration)[]
+    unreduced = edge_type(filtration)[]
+    simplices = edges(filtration)
+    if progress
+        progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
+    end
+    for sx in simplices
         u, v = vertices(sx)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
@@ -221,10 +226,11 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
-            push!(reduced_columns, sx)
+            push!(reduced, sx)
         else
-            push!(unreduced_columns, sx)
+            push!(unreduced, sx)
         end
+        progress && next!(progbar)
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
@@ -232,8 +238,8 @@ function zeroth_intervals(filtration, cutoff, field_type, reps)
             push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
         end
     end
-    reverse!(unreduced_columns)
-    sort!(PersistenceDiagram(0, intervals)), unreduced_columns, reduced_columns
+    reverse!(unreduced)
+    sort!(PersistenceDiagram(0, threshold(filtration), intervals)), unreduced, reduced
 end
 
 """
@@ -246,14 +252,14 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles.
 """
 function nth_intervals(
-    filtration, unreduced_columns, reduced_columns, cutoff, field_type, reps, assemble, progress
+    filtration, unreduced, reduced, cutoff, field_type, reps, assemble, progress
 )
-    rs = ReductionState{field_type, eltype(unreduced_columns)}(filtration)
-    sizehint!(rs.reduction_matrix, length(unreduced_columns))
-    intervals = compute_intervals!(rs, unreduced_columns, cutoff, reps, progress)
+    rs = ReductionState{field_type, eltype(unreduced)}(filtration)
+    sizehint!(rs.reduction_matrix, length(unreduced))
+    intervals = compute_intervals!(rs, unreduced, cutoff, reps, progress)
     GC.gc()
     if assemble
-        (intervals, assemble_columns!(rs, unreduced_columns, reduced_columns, progress)...)
+        (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
     else
         (intervals, nothing, nothing)
     end
@@ -274,7 +280,7 @@ Compute the persistent homology of metric space represented by `dists` or `point
 * `field_type`: use this type of field of coefficients. Defaults to `Mod{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   For non-sparse Rips filtrations, it defaults to radius of input space.
-* `sparse`: if `true`, use `SparseRipsFiltration`. Defaults to `false`. If the `dists`
+* `sparse`: if `true`, use `SparseRips`. Defaults to `false`. If the `dists`
   argument is a sparse matrix, it overrides this option.
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `representatives`: if `true`, return representative cocycles along with persistence
@@ -293,13 +299,13 @@ function ripserer(
     representatives=false,
     modulus=2,
     field_type=Mod{modulus},
-    show_progress=false,
+    progress=false,
     kwargs..., # kwargs for filtration
 )
     if sparse || issparse(dists)
-        filtration = SparseRipsFiltration(dists; kwargs...)
+        filtration = SparseRips(dists; kwargs...)
     else
-        filtration = RipsFiltration(dists; kwargs...)
+        filtration = Rips(dists; kwargs...)
     end
     ripserer(
         filtration;
@@ -307,7 +313,7 @@ function ripserer(
         representatives=representatives,
         cutoff=cutoff,
         field_type=field_type,
-        show_progress=show_progress,
+        progress=progress,
     )
 end
 
@@ -323,14 +329,16 @@ Compute persistent homology from `filtration` object.
 """
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, show_progress=false
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, show_progress)
+    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
 end
 
-function ripserer(filtration, cutoff, field_type, ::Val{dim_max}, reps, progress) where dim_max
+function ripserer(
+    filtration, cutoff, field_type, ::Val{dim_max}, reps, progress
+) where dim_max
     res = PersistenceDiagram[]
-    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps)
+    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     push!(res, res_0)
     for dim in 1:dim_max
         res_n, cols, sxs = nth_intervals(

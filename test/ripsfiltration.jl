@@ -71,7 +71,7 @@ end
                                              1 2 1 0]
 end
 
-for Filtration in (RipsFiltration, SparseRipsFiltration)
+for Filtration in (Rips, SparseRips)
     @testset "$(string(Filtration))" begin
         test_filtration_interface(Filtration, (icosahedron, torus(100)))
 
@@ -86,7 +86,7 @@ for Filtration in (RipsFiltration, SparseRipsFiltration)
             @test dist(flt, 1, 3) == 2.0
             @test dist(flt, 3, 2) == 3.0
             @test diam(flt, Simplex{1}(3, 3), [3, 2], 1) == 3.0
-            @test threshold(flt) == (issparse(flt.dist) ? ∞ : 4.0)
+            @test threshold(flt) == (issparse(flt.dist) ? 9 : 4.0)
             @test vertex_type(flt) === Simplex{0, Float64, Int}
             @test edge_type(flt) === Simplex{1, Float64, Int}
             @test birth(flt, 1) == 0
@@ -105,7 +105,7 @@ for Filtration in (RipsFiltration, SparseRipsFiltration)
             @test dist(flt, 1, 3) == 2
             @test dist(flt, 3, 2) == (issparse(flt.dist) ? ∞ : 3)
             @test diam(flt, Simplex{2}(1, 1), [1, 2], 3) == ∞
-            @test threshold(flt) == (issparse(flt.dist) ? ∞ : 2)
+            @test threshold(flt) == 2
             @test vertex_type(flt) === Simplex{0, Int, Int}
             @test edge_type(flt) === Simplex{1, Int, Int}
 

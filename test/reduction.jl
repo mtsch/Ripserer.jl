@@ -135,7 +135,7 @@ include("data.jl")
 
     @testset "sparse matrix" begin
         @testset "icosahedron" begin
-            flt = SparseRipsFiltration(icosahedron, threshold=2)
+            flt = SparseRips(icosahedron, threshold=2)
             res = ripserer(flt, dim_max=2)
             @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
                              PersistenceInterval(0.0, ∞)]
@@ -251,9 +251,7 @@ include("data.jl")
                 0 2 2 2 0;
                 0 0 0 0 0]
 
-        d0, d1, d2, d3, d4 = ripserer(
-            CubicalFiltration(data), representatives=true, dim_max=4
-        )
+        d0, d1, d2, d3, d4 = ripserer(Cubical(data), representatives=true, dim_max=4)
 
         @test d0 == [(0, ∞), (1, 2)]
         @test d1 == [(0, 2)]

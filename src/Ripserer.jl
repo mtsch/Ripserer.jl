@@ -33,10 +33,10 @@ export IndexedSimplex, index, Simplex
 include("abstractfiltration.jl")
 export AbstractFiltration, n_vertices, edges, birth
 include("ripsfiltration.jl")
-export AbstractFlagFiltration, RipsFiltration, SparseRipsFiltration
+export AbstractFlagFiltration, Rips, SparseRips
 
 include("cubical.jl")
-export Cubelet, CubicalFiltration
+export Cubelet, Cubical
 
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,

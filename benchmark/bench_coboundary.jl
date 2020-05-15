@@ -22,11 +22,11 @@ dists = rand_dist_matrix(4000)
 dists[1, 2] = dists[2, 1] = 0.5
 sx = Simplex{2}(1, dists[1, 2])
 
-flt_full_nothreshold = RipsFiltration(dists, threshold=10)
-flt_full_threshold1 = RipsFiltration(dists, threshold=1)
-flt_sparse_75 = SparseRipsFiltration(dists, threshold=1.5)
-flt_sparse_50 = SparseRipsFiltration(dists, threshold=1)
-flt_sparse_25 = SparseRipsFiltration(dists, threshold=0.5)
+flt_full_nothreshold = Rips(dists, threshold=10)
+flt_full_threshold1 = Rips(dists, threshold=1)
+flt_sparse_75 = SparseRips(dists, threshold=1.5)
+flt_sparse_50 = SparseRips(dists, threshold=1)
+flt_sparse_25 = SparseRips(dists, threshold=0.5)
 
 suite["full, no threshold"] =
     @benchmarkable count_cofaces($flt_full_nothreshold, $sx, reps=50_000)
