@@ -16,7 +16,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
-Compat = "2.2.0"
+Compat = "3.10.0"
 DataStructures = "0.17"
 Distances = "0.8"
 IterTools = "1"

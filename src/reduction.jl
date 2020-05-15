@@ -257,7 +257,6 @@ function nth_intervals(
     rs = ReductionState{field_type, eltype(unreduced)}(filtration)
     sizehint!(rs.reduction_matrix, length(unreduced))
     intervals = compute_intervals!(rs, unreduced, cutoff, reps, progress)
-    GC.gc()
     if assemble
         (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
     else
@@ -344,6 +343,8 @@ function ripserer(
         res_n, cols, sxs = nth_intervals(
             filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max, progress)
         push!(res, res_n)
+        # TODO: A lot of things get allocated and then destroyed in nth_intervals, so it
+        # might make sense to do a GC.gc() here.
     end
     res
 end

@@ -85,18 +85,10 @@ Base.LinearIndices(cf::Cubical) =
     LinearIndices(cf.data)
 
 # doesn't quite follow interface.
-# TODO: fix when compat gets fixed to support get with CartesianIndex
-# https://github.com/JuliaLang/Compat.jl/pull/702
 function diam(cf::Cubical{T}, vertices) where {T}
     res = typemin(T)
-    if eltype(vertices) <: CartesianIndex
-        for v in vertices
-            res = max(res, get(cf.data, v.I, ∞))
-        end
-    else
-        for v in vertices
-            res = max(res, get(cf.data, v, ∞))
-        end
+    for v in vertices
+        res = max(res, get(cf.data, v, ∞))
     end
     res
 end
