@@ -150,12 +150,10 @@ plot(result_cut_thr, title="Persistence Diagram, threshold=1.83")
 anim = @animate for threshold in 1.83:-0.03:0.09
     result_cut_i = ripserer(cutout_2000, threshold=threshold)
     pd_plt = plot(result_cut_i,
-                  infinity=threshold, # set the position of the infinity line
                   xticks=0:0.1:1.9,
                   yticks=0:0.1:1.9,
                   title="threshold=$threshold")
     bc_plt = barcode(result_cut_i[2],
-                     infinity=threshold,
                      xticks=0:0.1:1.9,
                      ylim=(1, length(result_cut[2])))
     plot(pd_plt, bc_plt,

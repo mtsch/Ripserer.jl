@@ -14,7 +14,7 @@ simplices.
 * [`diam(::AbstractFiltration, vs)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
-* [`max_death(::AbstractFiltration)`](@ref) - optional, defaults to returning `∞`.
+* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `∞`.
 """
 abstract type AbstractFiltration{T, V<:AbstractSimplex{0, T}} end
 
@@ -67,8 +67,9 @@ birth(::AbstractFiltration{T}, _) where T =
     zero(T)
 
 """
-    max_death(::AbstractFiltration)
+    threshold(::AbstractFiltration)
 
-Get the last death in filtration. Used only in plotting.
+Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
+can have. Used only for placing the infinity line in plotting.
 """
-max_death(::AbstractFiltration) = ∞
+threshold(::AbstractFiltration) = ∞

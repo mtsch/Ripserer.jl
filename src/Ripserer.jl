@@ -31,7 +31,7 @@ include("simplex.jl")
 export IndexedSimplex, index, Simplex
 
 include("abstractfiltration.jl")
-export AbstractFiltration, n_vertices, edges, birth
+export AbstractFiltration, n_vertices, edges, birth, threshold
 include("ripsfiltration.jl")
 export AbstractFlagFiltration, Rips, SparseRips
 
@@ -40,7 +40,7 @@ export Cubelet, Cubical
 
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,
-    PersistenceDiagram
+    PersistenceDiagram, threshold
 
 include("chainelement.jl")
 export simplex, coefficient

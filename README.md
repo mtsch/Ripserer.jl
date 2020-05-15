@@ -15,10 +15,9 @@ See the [docs](https://mtsch.github.io/Ripserer.jl/dev) for more info and exampl
 
 ## Installation
 
-This package is still under development and is currently unregistered. To install it, run
-the following.
+This package is registered. To install it, run the following.
 
 ```julia
 julia> using Pkg
-julia> Pkg.add("https://github.com/mtsch/Ripserer.jl")
+julia> Pkg.add("Ripserer")
 ```

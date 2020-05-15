@@ -14,6 +14,15 @@ introduction](https://towardsdatascience.com/persistent-homology-with-examples-1
 
 See the Examples for further info.
 
+## Installation
+
+This package is registered. To install it, run the following.
+
+```julia
+julia> using Pkg
+julia> Pkg.add("Ripserer")
+```
+
 ## Features
 
 Ripserer supports the following:
@@ -53,7 +62,8 @@ have found benchmarking on my computer or a CI system to be too unreliable.
 Ripserer is designed to be easily extended with new simplex or filtration types. The
 interfaces are specified in the docstrings for `AbstractSimplex` and
 `AbstractFiltration`. Also see the [API](@ref) for more info. To see an example of an
-extension, check out [`src/cubical.jl`](src/cubical.jl).
+extension, check out the implementation of cubical simplices and filtrations in
+[`src/cubical.jl`](https://github.com/mtsch/Ripserer.jl/blob/master/src/cubical.j).
 
 If you have written an extension or have trouble implementing one, please open a pull
 request or an issue.
