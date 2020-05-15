@@ -75,6 +75,8 @@ function test_filtration_interface(Filtration, datasets)
             @test E <: AbstractSimplex{1}
             @test E isa DataType
 
+            @test threshold(flt) isa Union{T, Infinity}
+
             sx = first(edges(flt))
             @test sx isa E
             @test diam(sx) isa T

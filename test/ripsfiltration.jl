@@ -100,6 +100,7 @@ for Filtration in (Rips, SparseRips)
                              vertex_type=Simplex{0, Int, Int})
 
             @test n_vertices(flt) == 3
+            @test threshold(flt) == 2
             @test dist(flt, 3, 3) == 0
             @test dist(flt, 1, 2) == 1
             @test dist(flt, 1, 3) == 2
