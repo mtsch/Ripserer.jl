@@ -60,16 +60,16 @@ Base.hash(sx::IndexedSimplex, h::UInt64) =
 Binomial coefficients for small, statically known values of `k`, where `n` and `k` are
 always positive.
 """
-small_binomial(_, ::Val{0}) = 1
+small_binomial(::I, ::Val{0}) where I = one(I)
 small_binomial(n, ::Val{1}) = n
-function small_binomial(n, ::Val{k}) where k
+function small_binomial(n::I, ::Val{k}) where {k, I}
     x = nn = n - k + 1
     nn += 1
     for rr in 2:k
         x = div(x * nn, rr)
         nn += 1
     end
-    x
+    I(x)
 end
 
 """
@@ -85,11 +85,11 @@ function find_max_vertex(idx::I, ::Val{k}) where {I, k}
         lo = hi
         hi <<= 1
     end
-    find_max_vertex(idx, Val(k), hi + 1, lo)
+    find_max_vertex(idx, Val(k), hi + one(I), lo)
 end
 
-function find_max_vertex(idx::I, ::Val{k}, hi, lo=I(k-1)) where {I, k}
-    while lo < hi - 1
+function find_max_vertex(idx::I, ::Val{k}, hi::I, lo::I=I(k-1)) where {I, k}
+    while lo < hi - one(I)
         m = lo + ((hi - lo) >>> 0x01)
         if small_binomial(m, Val(k)) ≤ idx
             lo = m
@@ -117,7 +117,7 @@ For regular simplices, `N` should be equal to `dim+1`!
     # (vk, ..., v0) .+ 1
     vars = Symbol[Symbol("v", k) for k in N-1:-1:0]
     expr = quote
-        index = abs(index) - 1
+        index = abs(index) - one(I)
         $(vars[1]) = find_max_vertex(index, Val($N))
         index -= small_binomial($(vars[1]), Val($N))
     end
@@ -131,7 +131,7 @@ For regular simplices, `N` should be equal to `dim+1`!
     end
     quote
         $expr
-        (tuple($(vars...)) .+ 1)
+        (tuple($(vars...)) .+ I(1))
     end
 end
 
@@ -155,12 +155,13 @@ where ``i_k`` are the simplex vertex indices.
     #   + small_binomial(vertices[2] - 1, Val(k-1))
     #   ...
     #   + small_binomial(vertices[k] - 1, Val(1))
+    I = eltype(vertices)
     expr = quote
-        1 + small_binomial(vertices[1]-1, Val($k))
+        one($I) + small_binomial(vertices[1] - one($I), Val($k))
     end
     for i in 2:k
         expr = quote
-            $expr + small_binomial(vertices[$i]-1, Val($(k - i + 1)))
+            $expr + small_binomial(vertices[$i] - one($I), Val($(k - i + 1)))
         end
     end
     expr
