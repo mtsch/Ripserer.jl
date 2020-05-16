@@ -123,5 +123,10 @@ end
 coefficient(ce::PackedElement{<:Any, F, M, U}) where {F, U, M} =
     F(ce.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
 
-chain_element_type(::Type{S}, ::Type{F}) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}} =
-    PackedElement{S, F, M, unsigned(I), T}
+function chain_element_type(::Type{S}, ::Type{F}) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}}
+    if n_bits(M) ≤ 8
+        PackedElement{S, F, M, unsigned(I), T}
+    else
+        ChainElement{S, F}
+    end
+end
