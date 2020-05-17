@@ -76,7 +76,7 @@ struct ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
     simplex::S
     coefficient::F
 
-    ChainElement{S, F}(simplex::S, coefficient=1) where {S, F} =
+    ChainElement{S, F}(simplex::S, coefficient=one(F)) where {S, F} =
         new{S, F}(abs(simplex), sign(simplex) * F(coefficient))
 end
 
@@ -96,7 +96,7 @@ struct PackedElement{
     diam       ::T
 
     function PackedElement{S, F, M, U, T}(
-        simplex::S, coefficient=1
+        simplex::S, coefficient=one(F)
     ) where {M, U, T, S<:IndexedSimplex{<:Any, T}, F<:Mod{M}}
         idx = index(simplex)
         coef = F(coefficient) * sign(idx)
