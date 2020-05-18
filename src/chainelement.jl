@@ -76,11 +76,8 @@ struct ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
     simplex::S
     coefficient::F
 
-    ChainElement{S, F}(simplex::S, coefficient) where {S, F} =
+    ChainElement{S, F}(simplex::S, coefficient=one(F)) where {S, F} =
         new{S, F}(abs(simplex), sign(simplex) * F(coefficient))
-
-    ChainElement{S, F}(simplex::S) where {S, F} =
-        new{S, F}(abs(simplex), F(sign(simplex)))
 end
 
 simplex(ce::ChainElement) = ce.simplex
@@ -90,3 +87,46 @@ chain_element_type(::Type{S}, ::Type{F}) where {S, F} =
     ChainElement{S, F}
 
 # TODO? efficient packing of Simplex and PrimeField?
+# TODO: assert F is less than say 8 bits?
+# TODO: check that nothing overflows
+struct PackedElement{
+    S<:IndexedSimplex, F<:Mod, M, U, T
+} <: AbstractChainElement{S, F}
+    index_coef ::U
+    diam       ::T
+
+    function PackedElement{S, F, M, U, T}(
+        simplex::S, coefficient=one(F)
+    ) where {M, U, T, S<:IndexedSimplex{<:Any, T}, F<:Mod{M}}
+        idx = index(simplex)
+        coef = F(coefficient) * sign(idx)
+        uidx = U(abs(idx))
+        diameter = diam(simplex)
+
+        index_coef = Int(coef) << (sizeof(U) * 8 - n_bits(M)) | uidx
+
+        new{S, F, M, U, T}(index_coef, diameter)
+    end
+end
+
+"""
+    n_bits(M)
+Get numer of bits needed to represent number mod `M`.
+"""
+@pure n_bits(M::Int) =
+    floor(Int, log2(M-1)) + 1
+
+function simplex(pe::PackedElement{S, <:Any, M, U}) where {S, M, U}
+    mask = typemax(U) << n_bits(M) >> n_bits(M)
+    S(pe.index_coef & mask, pe.diam)
+end
+coefficient(ce::PackedElement{<:Any, F, M, U}) where {F, U, M} =
+    F(ce.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
+
+function chain_element_type(::Type{S}, ::Type{F}) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}}
+    if n_bits(M) ≤ 8
+        PackedElement{S, F, M, unsigned(I), T}
+    else
+        ChainElement{S, F}
+    end
+end

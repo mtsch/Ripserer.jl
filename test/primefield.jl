@@ -41,4 +41,13 @@ end
     @test_throws DomainError Mod{-1}(1)
 
     @test sprint(print, Mod{3}(1)) == "1 mod 3"
+
+    for T in (Int8, Int16, Int32, Int64, Int128)
+        @test Mod{3}(one(T)) == Mod{3}(1)
+        @test Mod{3}(one(unsigned(T))) == Mod{3}(1)
+        for op in (+, -, *, /)
+            @test op(Mod{3}(1), one(T)) isa Mod{3}
+            @test op(Mod{3}(1), one(unsigned(T))) isa Mod{3}
+        end
+    end
 end

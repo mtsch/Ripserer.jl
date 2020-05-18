@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: zeroth_intervals, ChainElement
+using Ripserer: zeroth_intervals, ChainElement, PackedElement
 
 using Compat
 
@@ -190,24 +190,25 @@ include("data.jl")
 
     @testset "representatives - types" begin
         d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
-        @test eltype(d0) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{2}}}}
-        @test eltype(d1) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{2}}}}
-        @test eltype(d2) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{2}}}}
-        @test eltype(d3) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{2}}}}
+        @test eltype(d0) <: PersistenceInterval{
+            Int, <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
+        @test eltype(d1) <: PersistenceInterval{
+            Int, <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
+        @test eltype(d2) <: PersistenceInterval{
+            Int, <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
+        @test eltype(d3) <: PersistenceInterval{
+            Int, <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
-        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true, field_type=Mod{5})
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true,
+                                  field_type=Rational{Int})
         @test eltype(d0) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{0, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
         @test eltype(d1) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{1, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
         @test eltype(d2) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{2, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
         @test eltype(d3) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{3, Int, Int}, Mod{5}}}}
+            Int, Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
     end
 
     @testset "representatives - thresh" begin

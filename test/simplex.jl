@@ -23,18 +23,20 @@ end
     test_indexed_simplex_interface(Simplex, D->D+1)
 
     @testset "vertices, index" begin
-        @test vertices(Simplex{2}(1, rand())) == (3, 2, 1)
-        @test vertices(Simplex{3}(2, rand())) == (5, 3, 2, 1)
-        @test vertices(Simplex{1}(3, rand())) == (3, 2)
-        @test vertices(Simplex{4}(4, rand())) == (6, 5, 4, 2, 1)
-        @test vertices(Simplex{2}(5, rand())) == (5, 2, 1)
+        @test vertices(Simplex{2}(1, rand())) ≡ (3, 2, 1)
+        @test vertices(Simplex{3}(Int32(2), rand())) ≡ Int32.((5, 3, 2, 1))
+        @test vertices(Simplex{1}(Int128(3), rand())) ≡ Int128.((3, 2))
+        @test vertices(Simplex{4}(4, rand())) ≡ (6, 5, 4, 2, 1)
+        @test vertices(Simplex{2}(5, rand())) ≡ (5, 2, 1)
 
-        for i in 1:20
-            sx = Simplex{5}(i, rand())
-            @test index(vertices(sx)) == i
-            @test Simplex{5}(vertices(sx), diam(sx)) == sx
-            @test_throws ArgumentError Simplex{4}(vertices(sx), rand())
-            @test_throws ArgumentError Simplex{6}(vertices(sx), rand())
+        for i in 1:2:20
+            for I in (Int64, Int32, Int128)
+                sx = Simplex{5}(I(i), rand())
+                @test index(vertices(sx)) ≡ I(i)
+                @test Simplex{5}(vertices(sx), diam(sx)) ≡ sx
+                @test_throws ArgumentError Simplex{4}(vertices(sx), rand())
+                @test_throws ArgumentError Simplex{6}(vertices(sx), rand())
+            end
         end
     end
     @testset "show" begin
