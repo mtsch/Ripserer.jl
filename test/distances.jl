@@ -1,6 +1,6 @@
 using Ripserer
 
-@testset "Bottleneck" begin
+@testset "Bottleneck basic" begin
     diag1 = PersistenceDiagram(0, [(1, 2), (5, 8)])
     diag2 = PersistenceDiagram(0, [(1, 2), (3, 4), (5, 10)])
 
@@ -8,11 +8,12 @@ using Ripserer
     @test matching(m) == [(1,2) => (1,2), (3,3) => (3,4), (5,8) => (5,10)]
     @test distance(m) ≡ 2
     @test distance(Bottleneck(), diag1, diag2) ≡ 2
+    @test distance(Bottleneck(), diag1, diag2) == distance(Bottleneck(), diag2, diag1)
 
     @test distance(Bottleneck(), diag1, diag1) ≡ 0
 end
 
-@testset "Wasserstein" begin
+@testset "Wasserstein basic" begin
     diag1 = PersistenceDiagram(0, [(1, 2), (5, 8)])
     diag2 = PersistenceDiagram(0, [(1, 2), (3, 4), (5, 10)])
 
@@ -21,6 +22,22 @@ end
     @test distance(m) ≡ 3
     @test distance(Wasserstein(), diag1, diag2) ≡ 3
     @test distance(Wasserstein(2), diag1, diag2) ≡ √(1 + 4)
+    for i in 1:3
+        @test distance(Wasserstein(i), diag1, diag2) ≡
+            distance(Wasserstein(i), diag2, diag1)
+    end
 
     @test distance(Wasserstein(), diag1, diag1) ≡ 0
+end
+
+@testset "different sizes" begin
+    diag1 = PersistenceDiagram(5, vcat((90, 100), [(i, i+1) for i in 1:100]))
+    diag2 = PersistenceDiagram(5, [(100, 110)])
+
+    @test distance(Bottleneck(), diag1, diag2) == 10
+    @test distance(Bottleneck(), diag2, diag1) == 10
+    @test distance(Wasserstein(), diag1, diag2) == 110
+    @test distance(Wasserstein(), diag2, diag1) == 110
+    @test distance(Wasserstein(2), diag1, diag2) == √200
+    @test distance(Wasserstein(2), diag2, diag1) == √200
 end
