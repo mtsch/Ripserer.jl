@@ -10,12 +10,17 @@ struct PersistenceInterval{T, R}
     death          ::Union{T, Infinity}
     representative ::R
 
-    PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
-        new{T, Nothing}(birth, death, nothing)
-    PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R) where {T, R} =
-        new{T, R}(birth, death, rep)
+    function PersistenceInterval{T, R}(birth, death, rep::R=nothing) where {T, R}
+        if death ≡ ∞
+            return new{T, R}(T(birth), death, rep)
+        else
+            return new{T, R}(T(birth), T(death), rep)
+        end
+    end
 end
 
+PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R=nothing) where {T, R} =
+    PersistenceInterval{T, R}(birth, death)
 PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
 
@@ -157,36 +162,40 @@ PersistenceDiagram(dim, intervals) =
 Base.show(io::IO, pd::PersistenceDiagram) =
     print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
 
+function show_intervals(io::IO, pd)
+    limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
+    if length(pd) + 1 < limit
+        for i in eachindex(pd)
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+    else
+        for i in 1:limit÷2-2
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+        print(io, "\n ⋮")
+        for i in lastindex(pd)-limit÷2+3:lastindex(pd)
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+    end
+end
+
 function Base.show(io::IO, ::MIME"text/plain", pd::PersistenceDiagram)
     print(io, pd)
     if length(pd) > 0
         print(io, ":")
-        limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
-        if length(pd) + 1 < limit
-            for i in eachindex(pd)
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-        else
-            for i in 1:limit÷2-2
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-            print(io, "\n ⋮")
-            for i in lastindex(pd)-limit÷2+3:lastindex(pd)
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-        end
+        show_intervals(io, pd.intervals)
     end
 end
 

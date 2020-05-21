@@ -239,14 +239,21 @@ of type `T`.
 # Examples
 
 ```jldoctest
-julia> Simplex{2}(2, 1)
+Simplex{2}(2, 1)
+
+# output
+
 2-dim Simplex{2}(2, 1):
   +(4, 2, 1)
+```
+```jldoctest
+Simplex{10}(Int128(-10), 1.0)
 
-julia> Simplex{10}(Int128(-10), 1.0)
+# output
+
 4-dim Simplex{3}(1.0, 10, 2) with UInt128 index:
   -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
-`˙`
+```
 """
 struct Simplex{D, T, I} <: IndexedSimplex{D, T, I}
     index ::I

@@ -24,6 +24,9 @@ end
 @safetestset "diagram" begin
     include("diagram.jl")
 end
+@safetestset "diagram" begin
+    include("distances.jl")
+end
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
