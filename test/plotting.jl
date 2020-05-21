@@ -9,8 +9,8 @@ RecipesBase.is_key_supported(::Symbol) = true
 
 """
 Idea: apply recipe and check the number of series on plots.
-Not a perfect way to test, but at least it makes sure the infinity is drawn only when it
-needs to be and that there are no errors.
+Not a perfect way to test, but at least it makes sure all points are plotted and checks that
+there are no errors.
 """
 series(args...; kwargs...) =
     apply_recipe(Dict{Symbol, Any}(kwargs), args...)
@@ -23,23 +23,23 @@ series(args...; kwargs...) =
     diag1 = PersistenceDiagram(1, [int1, int2, int3])
     diag2 = PersistenceDiagram(2, [(1, 2), (3, 4)])
 
-    # inf, x=y, points, ()
-    @test length(series(diag1)) == 4
-    # x=y, points, ()
+    # inf + x=y, points, ()
+    @test length(series(diag1)) == 3
+    # x=y + points, ()
     @test length(series(diag2)) == 3
-    # inf, x=y, points 2×, ()
-    @test length(series([diag1, diag2])) == 5
+    # inf + x=y, points 2×, ()
+    @test length(series([diag1, diag2])) == 4
 
-    # inf, lines, ()
+    # inf + lines, ()
     @test length(series(Barcode((diag1,)))) == 3
     # lines, ()
     @test length(series(Barcode((diag2,)))) == 2
-    # inf, lines 2×, ()
+    # inf + lines 2×, ()
     @test length(series(Barcode(([diag1, diag2],)))) == 4
 
-    @test length(series(diag1, infinity=10)) == 4
+    @test length(series(diag1, infinity=10)) == 3
     @test length(series(diag2, infinity=10)) == 3
-    @test length(series([diag1, diag2], infinity=10)) == 5
+    @test length(series([diag1, diag2], infinity=10)) == 4
 
     @test length(series(Barcode((diag1,)), infinity=10)) == 3
     @test length(series(Barcode((diag2,)), infinity=10)) == 2

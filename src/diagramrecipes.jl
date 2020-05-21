@@ -63,15 +63,17 @@ struct DiagramStuff
     persistence::Bool
 end
 
+function clamp_death(int::PersistenceInterval, t_max)
+    return isfinite(int) ? death(int) : t_max
+end
+function clamp_persistence(int::PersistenceInterval, t_max)
+    return isfinite(int) ? persistence(int) : t_max
+end
+
 @recipe function f(arg::DiagramStuff)
     t_min, t_max = arg.t_lims
     infinite = arg.infinite
     persistence = arg.persistence
-
-    xguide --> "birth"
-    yguide --> (persistence ? "persistence" : "death")
-    legend --> :bottomright
-    title --> "Persistence Diagram"
 
     # line at infinity
     if infinite
@@ -80,9 +82,6 @@ end
             seriescolor := :grey
             line := :dot
             primary := false
-            if infinite
-                annotations --> (t_max/2, t_max, "∞")
-            end
 
             [t_max]
         end
@@ -92,7 +91,6 @@ end
     @series begin
         seriestype := :path
         seriescolor := :black
-        label := ""
         primary := false
 
         if persistence
@@ -102,7 +100,6 @@ end
         end
     end
 
-    primary := false
     ()
 end
 
@@ -121,7 +118,13 @@ end
     end
     different_dims = allunique(dim.(pds))
 
+    xguide --> "birth"
+    yguide --> (persistence ? "persistence" : "death")
+    legend --> :bottomright
+    title --> "Persistence Diagram"
+
     @series begin
+        primary := false
         DiagramStuff((t_min, t_max), infinite, persistence)
     end
 
@@ -138,25 +141,32 @@ end
 
             births = birth.(pd)
             if persistence
-                deaths = map(x -> isfinite(x) ? death(x) - birth(x) : t_max, pd)
+                deaths = clamp_persistence.(pd, t_max)
             else
-                deaths = map(x -> isfinite(x) ? death(x) : t_max, pd)
+                deaths = clamp_death.(pd, t_max)
             end
             births, deaths
         end
     end
-
+    if infinite
+        annotations --> (t_min + (t_max - t_min)/2, t_max, "∞")
+    end
     primary := false
     ()
 end
 
 @recipe function f(match::Matching; persistence=false)
     pds = [match.left, match.right]
+    t_min, t_max, infinite = t_limits(pds)
+
+    xguide --> "birth"
+    yguide --> (persistence ? "persistence" : "death")
+    legend --> :bottomright
+    title --> "Persistence Diagram"
 
     plotattributes[:infinity] = nothing
     plotattributes[:persistence] = persistence
     @series begin
-        # There are no infinite intervals, so this is straightforward.
         label --> "matching"
 
         xs = Float64[]
@@ -164,9 +174,9 @@ end
         for (l, r) in matching(match)
             append!(xs, (birth(l), birth(r), NaN))
             if persistence
-                append!(ys, (death(l) - birth(l), death(r) - birth(r), NaN))
+                append!(ys, (clamp_persistence(l, t_max), clamp_persistence(r, t_max), NaN))
             else
-                append!(ys, (death(l), death(r), NaN))
+                append!(ys, (clamp_death(l, t_max), clamp_death(r, t_max), NaN))
             end
         end
         xs, ys
@@ -175,6 +185,12 @@ end
     @series begin
         pds
     end
+
+    if infinite
+        annotations --> (t_min + (t_max - t_min)/2, t_max, "∞")
+    end
+    primary := false
+    ()
 end
 
 """
