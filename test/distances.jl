@@ -1,4 +1,5 @@
 using Ripserer
+using Ripserer: adj_matrix
 
 @testset "Bottleneck basic" begin
     diag1 = PersistenceDiagram(0, [(1, 2), (5, 8)])
@@ -28,6 +29,23 @@ end
     end
 
     @test distance(Wasserstein(), diag1, diag1) ≡ 0
+end
+
+@testset "infinite intervals" begin
+    diag1 = PersistenceDiagram(0, [(1, 2), (5, 8), (1, ∞)])
+    diag2 = PersistenceDiagram(0, [(1, 2), (3, 4), (5, 10)])
+    diag3 = PersistenceDiagram(0, [(1, 2), (3, 4), (5, 10), (1, ∞)])
+    diag4 = PersistenceDiagram(1, [(1, ∞)])
+    diag5 = PersistenceDiagram(1, [(2, ∞)])
+
+    for dist_type in (Bottleneck(), Wasserstein(), Wasserstein(2))
+        @test distance(dist_type, diag1, diag2) ≡ ∞
+        @test distance(dist_type, diag2, diag1) ≡ ∞
+        @test distance(dist_type, diag1, diag1) == 0
+        @test 0 < distance(dist_type, diag1, diag3) < ∞
+        @test distance(dist_type, diag4, diag5) == 1
+    end
+
 end
 
 @testset "different sizes" begin

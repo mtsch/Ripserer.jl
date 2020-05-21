@@ -26,13 +26,17 @@ end
 function Matching(left, right, weight, match)
     n = length(left)
     m = length(right)
-    match_left = fill(0, n + m)
-    match_right = fill(0, m + n)
-    for (l, r) in match
-        match_left[l] = r
-        match_right[r] = l
+    if isempty(match)
+        return Matching(left, right, weight, Int[], Int[])
+    else
+        match_left = fill(0, n + m)
+        match_right = fill(0, m + n)
+        for (l, r) in match
+            match_left[l] = r
+            match_right[r] = l
+        end
+        return Matching(left, right, weight, match_left, match_right)
     end
-    return Matching(left, right, weight, match_left, match_right)
 end
 
 """
@@ -43,6 +47,7 @@ Get the weight of a `Matching` object.
 distance(match::Matching) = match.weight
 
 Base.length(match::Matching) = length(matching(match))
+Base.isempty(match::Matching) = isempty(match.match_left)
 
 """
     matching(::Matching)
@@ -52,32 +57,36 @@ Get the matching of a `Matching` object represented by a vector of pairs of inte
 function matching(match::Matching{T}) where T
     n = length(match.left)
     m = length(match.right)
-
-    # We convert both sides to `PersistenceInterval{T}` in case their types don't match.
     P = PersistenceInterval{T, Nothing}
-    result = Pair{P, P}[]
-    for i in 1:n
-        l = P(match.left[i]...)
-        j = match.match_left[i]
-        if j > m
-            r = P(birth(l), birth(l))
-        else
+
+    if !isempty(match)
+        # We convert both sides to `PersistenceInterval{T}` in case their types don't match.
+        result = Pair{P, P}[]
+        for i in 1:n
+            l = P(match.left[i]...)
+            j = match.match_left[i]
+            if j > m
+                r = P(birth(l), birth(l))
+            else
+                r = P(match.right[j]...)
+            end
+            push!(result, l => r)
+        end
+        # Collect rights matched to diagonals.
+        for j in 1:m
             r = P(match.right[j]...)
+            i = match.match_right[j]
+            if i > n
+                l = P(birth(r), birth(r))
+            else
+                continue
+            end
+            push!(result, l => r)
         end
-        push!(result, l => r)
+        sort!(result)
+    else
+        P[]
     end
-    # Collect rights matched to diagonals.
-    for j in 1:m
-        r = P(match.right[j]...)
-        i = match.match_right[j]
-        if i > n
-            l = P(birth(r), birth(r))
-        else
-            continue
-        end
-        push!(result, l => r)
-    end
-    sort!(result)
 end
 
 Base.show(io::IO, match::Matching) =
@@ -93,10 +102,12 @@ end
 
 
 """
-    adj_matrix(diag1::PersistenceDiagram, diag2::PersistenceDiagram, inf)
+    adj_matrix(diag1::PersistenceDiagram, diag2::PersistenceDiagram, power)
 
-Get the adjacency matrix of the matching between `diag1` and `diag2`. Distances between
-diagonal points and values that should not be matched with them are set to `inf`.
+Get the adjacency matrix of the matching between `diag1` and `diag2`. Edge weights are equal
+to distances between intervals raised to the power of `power`. Distances between diagonal
+points and values that should not be matched with them are set to `typemax(T)`. The same
+holds for distances between finite and infinite intervals.
 
 For `length(diag1) == n` and `length(diag2) == m`, it returns a ``(n m) × (m n)`` matrix.
 
@@ -106,7 +117,7 @@ For `length(diag1) == n` and `length(diag2) == m`, it returns a ``(n m) × (m n)
 diag1 = PersistenceDiagram(0, [(0.0, 1.0), (3.0, 4.5)])
 diag2 = PersistenceDiagram(0, [(0.0, 1.0), (4.0, 5.0), (4.0, 7.0)])
 
-adj_matrix(diag1, diag2, Inf)
+adj_matrix(diag1, diag2)
 
 # output
 
@@ -118,28 +129,42 @@ adj_matrix(diag1, diag2, Inf)
  Inf    1.5   0.0   0.0   0.0
 ```
 """
-function adj_matrix(diag1::PersistenceDiagram, diag2::PersistenceDiagram, inf)
+function adj_matrix(diag1, diag2, power=1)
     function _to_matrix(diag, T)
-        pts = [(T(birth(i)), T(death(i))) for i in diag]
+        pts = Tuple{T, T}[T.((birth(i), death(i))) for i in diag if isfinite(i)]
         return reshape(reinterpret(T, pts), (2, length(pts)))
     end
-    T = promote_type(dist_type(diag1), dist_type(diag2))
+
+    # float to handle inf correctly.
+    T = float(promote_type(dist_type(diag1), dist_type(diag2), typeof(power)))
+    P = PersistenceInterval{T, Nothing}
 
     n = length(diag1)
     m = length(diag2)
-    adj = Matrix{promote_type(T, typeof(inf))}(undef, n + m, m + n)
-    adj .= inf
+    adj = fill(typemax(T), n + m, m + n)
 
     dists = pairwise(Chebyshev(), _to_matrix(diag2, T), _to_matrix(diag1, T), dims=2)
-    adj[1:m, 1:n] .= dists
+    adj[axes(dists)...] .= dists
+    sort!(diag1, by=death)
+    sort!(diag2, by=death)
+    for i in size(dists, 2)+1:n, j in size(dists, 1)+1:m
+        adj[j, i] = abs(birth(diag1[i]) - birth(diag2[j]))
+    end
     for i in 1:n
-        adj[i + m, i] = persistence(diag1[i])
+        p = persistence(diag1[i])
+        adj[i + m, i] = p ≡ ∞ ? typemax(T) : p
     end
     for j in 1:m
-        adj[j, j + n] = persistence(diag2[j])
+        p = persistence(diag2[j])
+        adj[j, j + n] = p ≡ ∞ ? typemax(T) : p
     end
     adj[m + 1:m + n, n + 1:n + m] .= zero(T)
-    return adj
+
+    if power ≠ 1
+        return adj.^power
+    else
+        return adj
+    end
 end
 
 """
@@ -172,16 +197,12 @@ struct BottleneckGraph{T}
 end
 
 function BottleneckGraph(diag1::PersistenceDiagram, diag2::PersistenceDiagram)
-    diag1 = filter(isfinite, diag1)
-    diag2 = filter(isfinite, diag2)
-
     n = length(diag1)
     m = length(diag2)
-    T = promote_type(dist_type(diag1), dist_type(diag2))
-    adj = adj_matrix(diag1, diag2, typemax(T))
+    adj = adj_matrix(diag1, diag2)
+    T = eltype(adj)
 
-    edges = vcat(vec(adj), persistence.(diag1), persistence.(diag2))
-    edges = filter!(e -> e < typemax(T), edges) |> unique! |> sort!
+    edges = filter!(isfinite, sort!(unique!(copy(vec(adj)))))
 
     return BottleneckGraph(adj, fill(0, n + m), fill(0, m + n), edges, n, m)
 end
@@ -389,8 +410,9 @@ matching(Bottleneck(), diag1, diag2)
 * [`distance`](@ref)
 """
 function matching(::Bottleneck, diag1, diag2)
-    diag1 = filter(isfinite, diag1)
-    diag2 = filter(isfinite, diag2)
+    if count(!isfinite, diag1) ≠ count(!isfinite, diag2)
+        return Matching(diag1, diag2, ∞, [])
+    end
 
     graph = BottleneckGraph(diag1, diag2)
     edges = graph.edges
@@ -413,8 +435,8 @@ function matching(::Bottleneck, diag1, diag2)
         match, _ = hopcroft_karp!(graph, edges[hi])
     end
     @assert length(match) == length(diag1) + length(diag2)
-
-    return Matching(diag1, diag2, distance, match)
+    T = promote_type(dist_type(diag1), dist_type(diag2))
+    return Matching(diag1, diag2, T(distance), match)
 end
 
 """
@@ -495,11 +517,20 @@ matching(Wasserstein(), diag1, diag2)
 * [`distance`](@ref)
 """
 function matching(w::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceDiagram)
-    adj = adj_matrix(diag2, diag1, missing).^w.q
-    match = collect(enumerate(hungarian(adj)[1]))
-    distance = sum(adj[i, j] for (i, j) in match)^(w.q == 1 ? 1 : 1/w.q)
+    if count(!isfinite, diag1) == count(!isfinite, diag2)
+        adj = adj_matrix(diag2, diag1, w.q)
+        match = collect(enumerate(hungarian(adj)[1]))
+        distance = sum(adj[i, j] for (i, j) in match)
 
-    return Matching(diag1, diag2, distance, match)
+        if w.q == 1
+            T = promote_type(dist_type(diag1), dist_type(diag2))
+            return Matching(diag1, diag2, T(distance), match)
+        else
+            return Matching(diag1, diag2, distance^(1/w.q), match)
+        end
+    else
+        return Matching(diag1, diag2, ∞, [])
+    end
 end
 
 """
