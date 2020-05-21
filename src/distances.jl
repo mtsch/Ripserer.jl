@@ -192,8 +192,7 @@ struct BottleneckGraph{T}
 
     edges::Vector{T}
 
-    n::Int
-    m::Int
+    n_vertices::Int
 end
 
 function BottleneckGraph(diag1::PersistenceDiagram, diag2::PersistenceDiagram)
@@ -204,7 +203,7 @@ function BottleneckGraph(diag1::PersistenceDiagram, diag2::PersistenceDiagram)
 
     edges = filter!(isfinite, sort!(unique!(copy(vec(adj)))))
 
-    return BottleneckGraph(adj, fill(0, n + m), fill(0, m + n), edges, n, m)
+    return BottleneckGraph(adj, fill(0, n + m), fill(0, m + n), edges, n + m)
 end
 
 function left_neighbors!(buff, graph::BottleneckGraph, vertices, ε, pred)
@@ -233,15 +232,15 @@ exposed_left(graph::BottleneckGraph) =
     findall(iszero, graph.match_left)
 
 """
-    layer_graph(graph::BottleneckGraph, ε)
+    depths(graph::BottleneckGraph, ε)
 
 Split `graph` into layers by how deep they are from a bfs starting at exposed left
 vertices in `graph` only taking into account edges of length smaller than or equal to `ε`.
 Return depts of right vertices and maximum depth reached.
 """
-function layer_graph(graph::BottleneckGraph, ε)
-    depths = fill(0, graph.m + graph.n)
-    visited = falses(graph.m + graph.n)
+function depth_layers(graph::BottleneckGraph, ε)
+    depths = fill(0, graph.n_vertices)
+    visited = fill(false, graph.n_vertices)
     lefts = exposed_left(graph)
     rights = Int[]
     i = 1
@@ -268,13 +267,11 @@ find a maximal set of augmenting paths in graph, taking only edges with weight l
 equal to `ε` into account.
 """
 function augmenting_paths(graph::BottleneckGraph, ε)
-    depths, max_depth = layer_graph(graph, ε)
+    depths, max_depth = depth_layers(graph, ε)
     paths = Vector{Int}[]
     isnothing(depths) && return paths
 
-    prev_left = fill(0, graph.n + graph.m)
-    prev_right = fill(0, graph.m + graph.n)
-
+    prev = fill(0, graph.n_vertices)
     rights = Int[]
     lefts = Int[]
     stack = Tuple{Int, Int}[]
@@ -282,23 +279,26 @@ function augmenting_paths(graph::BottleneckGraph, ε)
     for l_start in exposed_left(graph)
         empty!(stack)
         push!(stack, (l_start, 1))
+        prev .= 0
 
         while !isempty(stack)
             l, i = pop!(stack)
+            parent = graph.match_left[l]
             left_neighbors!(rights, graph, l, ε, r -> depths[r] == i)
             if i < max_depth
-                prev_right[rights] .= l
+                prev[rights] .= l
                 right_neighbors!(lefts, graph, rights)
                 append!(stack, (l, i + 1) for l in lefts)
             else
                 found_path = false
                 for r in rights
                     if is_exposed_right(graph, r)
-                        prev_right[r] = l
+                        prev[r] = l
                         path = Int[r]
                         depths[r] = 0
-                        while (l = prev_right[r]) ≠ l_start
-                            i -= 1
+
+                        while (l = prev[r]) ≠ l_start
+                            @assert prev[r] ≠ 0
                             r = graph.match_left[l]
                             depths[r] = 0
                             append!(path, (l, r))
@@ -318,27 +318,18 @@ function augmenting_paths(graph::BottleneckGraph, ε)
     return paths
 end
 
-function match!(graph::BottleneckGraph, l, r)
-    graph.match_left[l] = r
-    graph.match_right[r] = l
-    return (l, r)
-end
-
-function matched(graph::BottleneckGraph, l, r)
-    return graph.match_left[l] == r && graph.match_right[r] == l
-end
-
-function unmatch!(graph::BottleneckGraph, l, r)
-    @assert matched(graph, l, r)
-    graph.match_left[l] = 0
-    graph.match_right[r] = 0
-    return (0, 0)
-end
-
 function unmatch_all!(graph::BottleneckGraph)
     graph.match_left .= 0
     graph.match_right .= 0
     return (0, 0)
+end
+
+function augment!(graph, p)
+    for i in 1:2:length(p) - 1
+        l, r = p[i], p[i + 1]
+        graph.match_left[l] = r
+        graph.match_right[r] = l
+    end
 end
 
 function hopcroft_karp!(graph, ε)
@@ -346,20 +337,15 @@ function hopcroft_karp!(graph, ε)
     paths = augmenting_paths(graph, ε)
     while !isempty(paths)
         for p in paths
-            for i in 1:length(p)-1
-                if matched(graph, p[i], p[i + 1])
-                    unmatch!(graph, p[i], p[i+1])
-                else
-                    match!(graph, p[i], p[i+1])
-                end
-            end
+            augment!(graph, p)
         end
         paths = augmenting_paths(graph, ε)
     end
     matching = [(i, graph.match_left[i])
-                for i in 1:graph.n + graph.m if graph.match_left[i] ≠ 0]
-    is_maximum = length(matching) == graph.n + graph.m
-    return matching, is_maximum
+                for i in 1:graph.n_vertices if graph.match_left[i] ≠ 0]
+    is_perfect = length(matching) == graph.n_vertices
+
+    return matching, is_perfect
 end
 
 """
