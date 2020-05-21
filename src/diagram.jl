@@ -20,7 +20,7 @@ struct PersistenceInterval{T, R}
 end
 
 PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R=nothing) where {T, R} =
-    PersistenceInterval{T, R}(birth, death)
+    PersistenceInterval{T, R}(birth, death, rep)
 PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
 

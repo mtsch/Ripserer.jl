@@ -6,7 +6,7 @@ using Ripserer
 
     m = matching(Bottleneck(), diag1, diag2)
     @test matching(m) == [(1,2) => (1,2), (3,3) => (3,4), (5,8) => (5,10)]
-    @test distance(m) == 2
+    @test distance(m) ≡ 2
     @test distance(Bottleneck(), diag1, diag2) ≡ 2
 
     @test distance(Bottleneck(), diag1, diag1) ≡ 0
@@ -18,7 +18,7 @@ end
 
     m = matching(Wasserstein(), diag1, diag2)
     @test matching(m) == [(1,2) => (1,2), (3,3) => (3,4), (5,8) => (5,10)]
-    @test distance(m) == 2
+    @test distance(m) ≡ 3
     @test distance(Wasserstein(), diag1, diag2) ≡ 3
     @test distance(Wasserstein(2), diag1, diag2) ≡ √(1 + 4)
 

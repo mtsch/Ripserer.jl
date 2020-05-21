@@ -180,7 +180,8 @@ function BottleneckGraph(diag1::PersistenceDiagram, diag2::PersistenceDiagram)
     T = promote_type(dist_type(diag1), dist_type(diag2))
     adj = adj_matrix(diag1, diag2, typemax(T))
 
-    edges = vcat(vec(adj), persistence.(diag1), persistence.(diag2)) |> unique! |> sort!
+    edges = vcat(vec(adj), persistence.(diag1), persistence.(diag2))
+    edges = filter!(e -> e < typemax(T), edges) |> unique! |> sort!
 
     return BottleneckGraph(adj, fill(0, n + m), fill(0, m + n), edges, n, m)
 end
@@ -398,17 +399,22 @@ function matching(::Bottleneck, diag1, diag2)
     hi = length(edges)
     while lo < hi - 1
         m = lo + ((hi - lo) >>> 0x01)
-        match, succ = hopcroft_karp!(graph, edges[m])
+        _, succ = hopcroft_karp!(graph, edges[m])
         if succ
             hi = m
         else
             lo = m
         end
     end
-    match, _ = hopcroft_karp!(graph, edges[hi])
+    match, succ = hopcroft_karp!(graph, edges[lo])
+    distance = edges[lo]
+    if !succ
+        distance = edges[hi]
+        match, _ = hopcroft_karp!(graph, edges[hi])
+    end
     @assert length(match) == length(diag1) + length(diag2)
 
-    return Matching(diag1, diag2, edges[hi], match)
+    return Matching(diag1, diag2, distance, match)
 end
 
 """
@@ -519,5 +525,5 @@ distance(Wasserstein(), diag1, diag2)
 * [`Wasserstein`](@ref)
 * [`matching`](@ref)
 """
-distance(::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceDiagram) =
-    matching(Wasserstein(), diag1, diag2).weight
+distance(w::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceDiagram) =
+    matching(w, diag1, diag2).weight
