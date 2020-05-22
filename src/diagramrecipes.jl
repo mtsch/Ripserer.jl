@@ -155,7 +155,7 @@ end
     ()
 end
 
-@recipe function f(match::Matching; persistence=false)
+@recipe function f(match::Matching; persistence=false, bottleneck=match.bottleneck)
     pds = [match.left, match.right]
     t_min, t_max, infinite = t_limits(pds)
 
@@ -171,7 +171,7 @@ end
 
         xs = Float64[]
         ys = Float64[]
-        for (l, r) in matching(match)
+        for (l, r) in matching(match, bottleneck=bottleneck)
             append!(xs, (birth(l), birth(r), NaN))
             if persistence
                 append!(ys, (clamp_persistence(l, t_max), clamp_persistence(r, t_max), NaN))

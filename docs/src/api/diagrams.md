@@ -45,3 +45,7 @@ Bottleneck
 ```@docs
 Wasserstein
 ```
+
+```@docs
+Matching
+```

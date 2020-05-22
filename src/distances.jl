@@ -21,13 +21,14 @@ struct Matching{T, L, R}
     weight::T
     match_left::Vector{Int}
     match_right::Vector{Int}
+    bottleneck::Bool
 end
 
-function Matching(left, right, weight, match)
+function Matching(left, right, weight, match, bottleneck)
     n = length(left)
     m = length(right)
     if isempty(match)
-        return Matching(left, right, weight, Int[], Int[])
+        return Matching(left, right, weight, Int[], Int[], bottleneck)
     else
         match_left = fill(0, n + m)
         match_right = fill(0, m + n)
@@ -35,7 +36,7 @@ function Matching(left, right, weight, match)
             match_left[l] = r
             match_right[r] = l
         end
-        return Matching(left, right, weight, match_left, match_right)
+        return Matching(left, right, weight, match_left, match_right, bottleneck)
     end
 end
 
@@ -49,12 +50,24 @@ distance(match::Matching) = match.weight
 Base.length(match::Matching) = length(matching(match))
 Base.isempty(match::Matching) = isempty(match.match_left)
 
-"""
-    matching(::Matching)
+function distance(int1::PersistenceInterval, int2::PersistenceInterval)
+    if isfinite(int1) && isfinite(int2)
+        return max(abs(birth(int1) - birth(int2)), abs(death(int1) - death(int2)))
+    elseif isfinite(int1) && isfinite(int2)
+        return abs(birth(int1) - birth(int2))
+    else
+        return ∞
+    end
+end
 
-Get the matching of a `Matching` object represented by a vector of pairs of intervals.
 """
-function matching(match::Matching{T}) where T
+    matching(m::Matching; bottleneck=m.bottleneck)
+
+Get the matching of a `Matching` object represented by a vector of pairs of intervals. If
+`bottleneck` is set to true, only return the edges with length equal to the weight of the
+matching.
+"""
+function matching(match::Matching{T}; bottleneck=match.bottleneck) where T
     n = length(match.left)
     m = length(match.right)
     P = PersistenceInterval{T, Nothing}
@@ -84,13 +97,20 @@ function matching(match::Matching{T}) where T
             push!(result, l => r)
         end
         sort!(result)
+        if !bottleneck
+            return result
+        else
+            return filter!(m -> distance(m...) == match.weight, result)
+        end
     else
         P[]
     end
 end
 
-Base.show(io::IO, match::Matching) =
-    print(io, "$(length(match))-element Matching with weight $(match.weight)")
+function Base.show(io::IO, match::Matching)
+    b = match.bottleneck ? "bottleneck " : ""
+    print(io, "$(length(match))-element $(b)Matching with weight $(match.weight)")
+end
 
 function Base.show(io::IO, ::MIME"text/plain", match::Matching)
     print(io, match)
@@ -397,7 +417,7 @@ matching(Bottleneck(), diag1, diag2)
 """
 function matching(::Bottleneck, diag1, diag2)
     if count(!isfinite, diag1) ≠ count(!isfinite, diag2)
-        return Matching(diag1, diag2, ∞, [])
+        return Matching(diag1, diag2, ∞, [], true)
     end
 
     graph = BottleneckGraph(diag1, diag2)
@@ -422,7 +442,7 @@ function matching(::Bottleneck, diag1, diag2)
     end
     @assert length(match) == length(diag1) + length(diag2)
     T = promote_type(dist_type(diag1), dist_type(diag2))
-    return Matching(diag1, diag2, T(distance), match)
+    return Matching(diag1, diag2, T(distance), match, true)
 end
 
 """
@@ -448,7 +468,7 @@ distance(Bottleneck(), diag1, diag2)
 * [`Bottleneck`](@ref)
 * [`matching`](@ref)
 """
-distance(::Bottleneck, diag1::PersistenceDiagram, diag2::PersistenceDiagram) =
+distance(::Bottleneck, diag1, diag2) =
     matching(Bottleneck(), diag1, diag2).weight
 
 """
@@ -467,8 +487,9 @@ points, as the diagonal points are considered in the matching as well.
 
 # Methods
 
-* [`matching(::Wasserstein, ::Any, ::Any)`](@ref): construct a bottleneck [`Matching`](@ref).
-* [`distance(::Wasserstein, ::Any, ::Any)`](@ref): find the bottleneck distance.
+* [`matching(::Wasserstein, ::Any, ::Any)`](@ref): construct a Wasserstein
+  [`Matching`](@ref).
+* [`distance(::Wasserstein, ::Any, ::Any)`](@ref): find the Wasserstein distance.
 """
 struct Wasserstein{T}
     q::T
@@ -502,7 +523,7 @@ matching(Wasserstein(), diag1, diag2)
 * [`Wasserstein`](@ref)
 * [`distance`](@ref)
 """
-function matching(w::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceDiagram)
+function matching(w::Wasserstein, diag1, diag2)
     if count(!isfinite, diag1) == count(!isfinite, diag2)
         adj = adj_matrix(diag2, diag1, w.q)
         match = collect(enumerate(hungarian(adj)[1]))
@@ -510,12 +531,12 @@ function matching(w::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceD
 
         if w.q == 1
             T = promote_type(dist_type(diag1), dist_type(diag2))
-            return Matching(diag1, diag2, T(distance), match)
+            return Matching(diag1, diag2, T(distance), match, false)
         else
-            return Matching(diag1, diag2, distance^(1/w.q), match)
+            return Matching(diag1, diag2, distance^(1/w.q), match, false)
         end
     else
-        return Matching(diag1, diag2, ∞, [])
+        return Matching(diag1, diag2, ∞, [], false)
     end
 end
 
@@ -542,5 +563,5 @@ distance(Wasserstein(), diag1, diag2)
 * [`Wasserstein`](@ref)
 * [`matching`](@ref)
 """
-distance(w::Wasserstein, diag1::PersistenceDiagram, diag2::PersistenceDiagram) =
+distance(w::Wasserstein, diag1, diag2) =
     matching(w, diag1, diag2).weight
