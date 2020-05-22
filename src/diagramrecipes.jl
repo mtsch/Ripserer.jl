@@ -123,6 +123,12 @@ end
     legend --> :bottomright
     title --> "Persistence Diagram"
 
+    # For some reason, the plot's limits want to be between -1 and t_max. This is a
+    # workaround.
+    gap = (t_max - t_min)*0.05
+    xlims --> (t_min - gap, t_max + gap)
+    ylims --> (t_min - gap, t_max + gap)
+
     @series begin
         primary := false
         DiagramStuff((t_min, t_max), infinite, persistence)

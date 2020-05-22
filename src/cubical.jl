@@ -52,10 +52,14 @@ coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} =
     Cubelet{D+1, T, I}
 
 """
-    Cubical{T, N, V<:Cubelet{0, T}} <: AbstractFiltration{T, V}
+    Cubical{T, N} <: AbstractFiltration{T, <:Cubelet{0, T}}
 
-A `Cubical` is used to compute sublevel persistent homology on `N`-dimensional
+`Cubical` is used to compute sublevel persistent homology on `N`-dimensional
 images, which are of type `AbstractArray{T, N}`.
+
+# Constructor
+
+    Cubical(::AbstractArray{T, N})
 """
 struct Cubical{
     T, N, V<:Cubelet{0, T}, A<:AbstractArray{T, N}

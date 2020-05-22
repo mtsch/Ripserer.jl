@@ -44,7 +44,7 @@ include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,
     PersistenceDiagram, threshold
 include("distances.jl")
-export matching, distance, Bottleneck, Wasserstein
+export matching, distance, Bottleneck, Wasserstein, Matching
 include("diagramrecipes.jl")
 export barcode, barcode!
 
