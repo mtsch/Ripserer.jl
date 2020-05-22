@@ -154,6 +154,8 @@ function adj_matrix(diag1, diag2, power=1)
         pts = Tuple{T, T}[T.((birth(i), death(i))) for i in diag if isfinite(i)]
         return reshape(reinterpret(T, pts), (2, length(pts)))
     end
+    sort!(diag1, by=death)
+    sort!(diag2, by=death)
 
     # float to handle inf correctly.
     T = float(promote_type(dist_type(diag1), dist_type(diag2), typeof(power)))
@@ -165,8 +167,6 @@ function adj_matrix(diag1, diag2, power=1)
 
     dists = pairwise(Chebyshev(), _to_matrix(diag2, T), _to_matrix(diag1, T), dims=2)
     adj[axes(dists)...] .= dists
-    sort!(diag1, by=death)
-    sort!(diag2, by=death)
     for i in size(dists, 2)+1:n, j in size(dists, 1)+1:m
         adj[j, i] = abs(birth(diag1[i]) - birth(diag2[j]))
     end
@@ -382,6 +382,10 @@ where ``X`` and ``Y`` are the persistence diagrams and ``\\eta`` is a perfect ma
 between the intervals. Note the ``X`` and ``Y`` don't need to have the same number of
 points, as the diagonal points are considered in the matching as well.
 
+# Warning
+
+Computing the bottleneck distance requires ``\\mathcal{O}(n^2)`` space!
+
 # Methods
 
 * [`matching(::Bottleneck, ::Any, ::Any)`](@ref): construct a bottleneck [`Matching`](@ref).
@@ -484,6 +488,10 @@ W_q(X,Y)=\\left[\\inf_{\\eta:X\\rightarrow Y}\\sum_{x\\in X}||x-\\eta(x)||_\\inf
 where ``X`` and ``Y`` are the persistence diagrams and ``\\eta`` is a perfect matching
 between the intervals. Note the ``X`` and ``Y`` don't need to have the same number of
 points, as the diagonal points are considered in the matching as well.
+
+# Warning
+
+Computing the Wasserstein distance requires ``\\mathcal{O}(n^2)`` space!
 
 # Methods
 

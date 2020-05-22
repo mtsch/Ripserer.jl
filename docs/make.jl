@@ -25,6 +25,7 @@ makedocs(sitename="Ripserer.jl",
              "Examples" => [
                  "generated/basics.md",
                  "generated/stability.md",
+                 "generated/distances.md",
                  "generated/cocycles.md",
                  "generated/time_series_sublevel.md",
                  "generated/image_sublevel.md",
