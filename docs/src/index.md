@@ -33,12 +33,9 @@ Ripserer supports the following:
   with the default of ``\mathbb{Z}_p`` for a prime ``p``.
 * Sparse distance matrix and thresholding support.
 * Computing representative cocycles of persistent cohomology.
-* Plotting persistence diagrams, barcodes and representative cocycles.
+* Wasserstein and Bottleneck distances and matchings.
+* Plotting persistence diagrams, barcodes, matchings and representative cocycles.
 * Generic API.
-
-Ripserer is not yet a full TDA software framework, since some essential features such as
-computing distances between persistence diagrams are not available. Vietoris-Rips complexes
-are also not the right fit for all kinds of data.
 
 ## Performance
 
@@ -61,8 +58,9 @@ have found benchmarking on my computer or a CI system to be too unreliable.
 
 Ripserer is designed to be easily extended with new simplex or filtration types. The
 interfaces are specified in the docstrings for `AbstractSimplex` and
-`AbstractFiltration`. Also see the [API](@ref) for more info. To see an example of an
-extension, check out the implementation of cubical simplices and filtrations in
+`AbstractFiltration`. Also see the [Filtrations](@ref) and [Simplices](@ref) API sections
+for more info. To see an example of an extension, check out the implementation of cubical
+simplices and filtrations in
 [`src/cubical.jl`](https://github.com/mtsch/Ripserer.jl/blob/master/src/cubical.j).
 
 If you have written an extension or have trouble implementing one, please open a pull

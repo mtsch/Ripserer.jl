@@ -15,6 +15,7 @@ using SparseArrays
 
 using DataStructures
 using Distances
+using Hungarian
 using IterTools
 using ProgressMeter
 using RecipesBase
@@ -38,17 +39,21 @@ export AbstractFlagFiltration, Rips, SparseRips
 include("cubical.jl")
 export Cubelet, Cubical
 
+# TODO: split these into a separate package
 include("diagram.jl")
 export PersistenceInterval, birth, death, persistence, representative,
     PersistenceDiagram, threshold
+include("distances.jl")
+export matching, distance, Bottleneck, Wasserstein, Matching
+include("diagramrecipes.jl")
+export barcode, barcode!
 
 include("chainelement.jl")
 export simplex, coefficient
 include("reduction_structs.jl")
 include("reduction.jl")
 export ripserer
-include("plotting.jl")
-export barcode, barcode!
+include("simplexrecipes.jl")
 
 
 end

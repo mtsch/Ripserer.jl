@@ -177,6 +177,7 @@ function assemble_columns!(
         end
     end
     sort!(new_unreduced, rev=true)
+    progress && printstyled("Assembled $(length(new_unreduced)) columns.\n", color=:green)
     new_unreduced, new_reduced
 end
 
@@ -270,6 +271,7 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
         end
     end
     reverse!(unreduced)
+    progress && printstyled("Assembled $(length(unreduced)) columns.\n", color=:green)
     sort!(PersistenceDiagram(0, threshold(filtration), intervals)), unreduced, reduced
 end
 

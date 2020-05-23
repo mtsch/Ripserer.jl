@@ -1,6 +1,8 @@
 using Ripserer
 using Compat
 
+using Ripserer: dist_type
+
 @testset "PersistenceInterval" begin
     @testset "no representative" begin
         int1 = PersistenceInterval(1, 2)
@@ -10,6 +12,8 @@ using Compat
         @test d == death(int1) == 2
         @test persistence(int1) == 1
         @test int1 == (1, 2)
+        @test convert(PersistenceInterval{Int, Nothing}, (1, 2)) ≡ PersistenceInterval(1, 2)
+        @test convert(PersistenceInterval{Int, Nothing}, (1, ∞)) ≡ PersistenceInterval(1, ∞)
         @test_throws BoundsError int1[0]
         @test int1[1] == 1
         @test int1[2] == 2
@@ -21,6 +25,18 @@ using Compat
         @test b == birth(int2) == 1
         @test d == death(int2) == ∞
         @test persistence(int2) == ∞
+
+        # Iteration
+        @test length(int1) == 2
+        @test collect(int1) == [1, 2]
+        @test eltype(collect(int1)) ≡ Union{Infinity, Int}
+        @test tuple(int1...) ≡ (1, 2)
+        @test firstindex(int1) == 1
+        @test lastindex(int1) == 2
+        @test first(int1) == 1
+        @test last(int1) == 2
+
+        @test dist_type(int1) ≡ dist_type(typeof(int1)) ≡ Int
 
         @test int1 < int2
         @test int1 < PersistenceInterval(2, 2)
@@ -49,8 +65,8 @@ using Compat
         @test eltype(int2) == Union{Float64, Infinity}
         b, d = int2
         @test b == birth(int2) == 1.0
-        @test d == death(int2) == Inf
-        @test persistence(int2) == Inf
+        @test d == death(int2) == ∞
+        @test persistence(int2) == ∞
 
         @test int1 > int2
         @test int1 > PersistenceInterval(2.0, 2.0, [1, 2])
@@ -102,5 +118,14 @@ end
         @test filter(isfinite, diag) isa typeof(diag)
 
         @test threshold(diag) == 2
+
+        diag[2] = (3, 5)
+        @test diag == PersistenceDiagram(1, [(1, 3), (3, 5), (3, ∞)])
+        @test firstindex(diag) == 1
+        @test lastindex(diag) == 3
+        @test first(diag) == (1, 3)
+        @test last(diag) == (3, ∞)
+
+        @test dist_type(diag) ≡ dist_type(typeof(diag)) ≡ Int
     end
 end

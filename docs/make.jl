@@ -25,11 +25,17 @@ makedocs(sitename="Ripserer.jl",
              "Examples" => [
                  "generated/basics.md",
                  "generated/stability.md",
+                 "generated/distances.md",
                  "generated/cocycles.md",
                  "generated/time_series_sublevel.md",
                  "generated/image_sublevel.md",
              ],
-             "API" => "api.md",
+             "API" => [
+                 "api/ripserer.md",
+                 "api/diagrams.md",
+                 "api/filtrations.md",
+                 "api/simplices.md",
+             ],
          ])
 
 deploydocs(

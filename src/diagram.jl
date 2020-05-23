@@ -10,14 +10,28 @@ struct PersistenceInterval{T, R}
     death          ::Union{T, Infinity}
     representative ::R
 
-    PersistenceInterval(birth::T, death::Union{T, Infinity}) where T =
-        new{T, Nothing}(birth, death, nothing)
-    PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R) where {T, R} =
-        new{T, R}(birth, death, rep)
+    function PersistenceInterval{T, R}(birth, death, rep::R=nothing) where {T, R}
+        if death ≡ ∞
+            return new{T, R}(T(birth), death, rep)
+        else
+            return new{T, R}(T(birth), T(death), rep)
+        end
+    end
+    function PersistenceInterval{T, R}((birth, death), rep::R=nothing) where {T, R}
+        if death ≡ ∞
+            return new{T, R}(T(birth), death, rep)
+        else
+            return new{T, R}(T(birth), T(death), rep)
+        end
+    end
 end
 
+PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R=nothing) where {T, R} =
+    PersistenceInterval{T, R}(birth, death, rep)
 PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
+Base.convert(::Type{P}, tp::Tuple{<:Any, <:Any}) where P<:PersistenceInterval =
+    P(tp)
 
 Base.show(io::IO, int::PersistenceInterval) =
     print(io, "[", birth(int), ", ", death(int), ")")
@@ -45,12 +59,10 @@ birth(int::PersistenceInterval) =
 """
     death(interval::PersistenceInterval)
 
-Get the death time of `interval`. When `T<:AbstractFloat`, `Inf` is returned instead of `∞`.
+Get the death time of `interval`.
 """
 death(int::PersistenceInterval) =
     int.death
-death(int::PersistenceInterval{T}) where T<:AbstractFloat =
-    isfinite(int.death) ? int.death : typemax(T)
 
 """
     death(interval::PersistenceInterval)
@@ -60,8 +72,6 @@ Get the persistence of `interval`, which is equal to `death - birth`. When
 """
 persistence(int::PersistenceInterval) =
     isfinite(death(int)) ? death(int) - birth(int) : ∞
-persistence(int::PersistenceInterval{T}) where T<:AbstractFloat =
-    isfinite(death(int)) ? death(int) - birth(int) : typemax(T)
 
 Base.isfinite(int::PersistenceInterval) =
     isfinite(death(int))
@@ -157,36 +167,40 @@ PersistenceDiagram(dim, intervals) =
 Base.show(io::IO, pd::PersistenceDiagram) =
     print(io, length(pd), "-element ", dim(pd), "-dimensional PersistenceDiagram")
 
+function show_intervals(io::IO, pd)
+    limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
+    if length(pd) + 1 < limit
+        for i in eachindex(pd)
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+    else
+        for i in 1:limit÷2-2
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+        print(io, "\n ⋮")
+        for i in lastindex(pd)-limit÷2+3:lastindex(pd)
+            if isassigned(pd, i)
+                print(io, "\n ", pd[i])
+            else
+                print(io, "\n #undef")
+            end
+        end
+    end
+end
+
 function Base.show(io::IO, ::MIME"text/plain", pd::PersistenceDiagram)
     print(io, pd)
     if length(pd) > 0
         print(io, ":")
-        limit = get(io, :limit, false) ? first(displaysize(io)) : typemax(Int)
-        if length(pd) + 1 < limit
-            for i in eachindex(pd)
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-        else
-            for i in 1:limit÷2-2
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-            print(io, "\n ⋮")
-            for i in lastindex(pd)-limit÷2+3:lastindex(pd)
-                if isassigned(pd.intervals, i)
-                    print(io, "\n ", pd[i])
-                else
-                    print(io, "\n #undef")
-                end
-            end
-        end
+        show_intervals(io, pd.intervals)
     end
 end
 
