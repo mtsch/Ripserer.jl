@@ -17,12 +17,21 @@ struct PersistenceInterval{T, R}
             return new{T, R}(T(birth), T(death), rep)
         end
     end
+    function PersistenceInterval{T, R}((birth, death), rep::R=nothing) where {T, R}
+        if death ≡ ∞
+            return new{T, R}(T(birth), death, rep)
+        else
+            return new{T, R}(T(birth), T(death), rep)
+        end
+    end
 end
 
 PersistenceInterval(birth::T, death::Union{T, Infinity}, rep::R=nothing) where {T, R} =
     PersistenceInterval{T, R}(birth, death, rep)
 PersistenceInterval(t::Tuple{<:Any, <:Any}) =
     PersistenceInterval(t...)
+Base.convert(::Type{P}, tp::Tuple{<:Any, <:Any}) where P<:PersistenceInterval =
+    P(tp)
 
 Base.show(io::IO, int::PersistenceInterval) =
     print(io, "[", birth(int), ", ", death(int), ")")
@@ -50,12 +59,10 @@ birth(int::PersistenceInterval) =
 """
     death(interval::PersistenceInterval)
 
-Get the death time of `interval`. When `T<:AbstractFloat`, `Inf` is returned instead of `∞`.
+Get the death time of `interval`.
 """
 death(int::PersistenceInterval) =
     int.death
-death(int::PersistenceInterval{T}) where T<:AbstractFloat =
-    isfinite(int.death) ? int.death : typemax(T)
 
 """
     death(interval::PersistenceInterval)
@@ -65,8 +72,6 @@ Get the persistence of `interval`, which is equal to `death - birth`. When
 """
 persistence(int::PersistenceInterval) =
     isfinite(death(int)) ? death(int) - birth(int) : ∞
-persistence(int::PersistenceInterval{T}) where T<:AbstractFloat =
-    isfinite(death(int)) ? death(int) - birth(int) : typemax(T)
 
 Base.isfinite(int::PersistenceInterval) =
     isfinite(death(int))

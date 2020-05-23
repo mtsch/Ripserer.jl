@@ -57,8 +57,6 @@ Mod{M}(i::Mod{M}) where M =
 Base.Int(i::Mod) =
     i.value
 
-Base.promote_rule(m::M, i::Integer) where M<:Mod = M
-
 Base.show(io::IO, i::Mod{M}) where M =
     print(io, Int(i), " mod ", M)
 
@@ -67,16 +65,13 @@ for op in (:+, :-, :*)
         Mod{M}($op(Int(i), Int(j)))
 end
 
-Base.:/(i::Mod{M}, j::Mod{M}) where M =
-    i * inv(j)
-Base.:-(i::Mod{M}) where M =
-    Mod{M}(M - Int(i), check_mod=false)
-Base.zero(::Type{Mod{M}}) where M =
-    Mod{M}(0, check_mod=false)
-Base.one(::Type{Mod{M}}) where M =
-    Mod{M}(1, check_mod=false)
-Base.promote_rule(::Type{Mod{M}}, ::Type{<:Integer}) where {M} =
-    Mod{M}
+Base.:/(i::Mod{M}, j::Mod{M}) where M = i * inv(j)
+Base.:-(i::Mod{M}) where M = Mod{M}(M - Int(i), check_mod=false)
+Base.zero(::Type{Mod{M}}) where M = Mod{M}(0, check_mod=false)
+Base.one(::Type{Mod{M}}) where M = Mod{M}(1, check_mod=false)
+Base.sign(i::M) where M<:Mod = ifelse(iszero(i), zero(M), one(M))
+
+Base.promote_rule(::Type{Mod{M}}, ::Type{<:Integer}) where {M} = Mod{M}
 
 # Idea: precompute inverses and generate a function with the inverses hard-coded.
 @generated function Base.inv(i::Mod{M}) where M

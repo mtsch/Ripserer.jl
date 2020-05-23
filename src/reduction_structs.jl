@@ -21,14 +21,6 @@ struct ReductionMatrix{C<:AbstractSimplex, SE<:AbstractChainElement}
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", rm::ReductionMatrix{C, SE}) where {C, SE}
-    println(io, "ReductionMatrix{$C, $SE} [")
-    for i in keys(rm.column_index)
-        println(io, "  $i: ", collect(rm[i]))
-    end
-    print(io, "]")
-end
-
 has_column(rm::ReductionMatrix{C}, sx::C) where C =
     haskey(rm.column_index, abs(sx))
 has_column(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C =

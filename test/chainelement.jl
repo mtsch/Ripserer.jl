@@ -3,10 +3,13 @@ using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, si
 
 @testset "arithmetic" begin
     for F in (Mod{2}, Mod{11}, Rational{Int}, Mod{251}, Mod{257})
-        CE = @inferred chain_element_type(Simplex, F)
+        CE = @inferred chain_element_type(Simplex{2, Float64, Int}, F)
 
-        sx = Simplex{2}(3, 1.0)
+        sx = Simplex{2}(3, 5.0)
         α = F(5)
+
+        @test CE === chain_element_type(sx, α)
+
         a = @inferred CE(-sx, F(13))
         b = @inferred CE(sx, 17)
         c = @inferred CE(sx, 21)
@@ -17,6 +20,10 @@ using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, si
         @test simplex(a) == sx
         @test simplex(b) == sx
         @test simplex(c) == sx
+        @test hash(a) == hash(sx)
+        @test diam(b) == diam(sx)
+        @test sign(a) == sign(F(-13))
+        @test sign(b) == sign(F(17))
 
         @test (a + b) + c == a + (b + c)
         @test a + b == b + a
@@ -35,6 +42,8 @@ using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, si
         @test CE(sx) == oneunit(CE(sx))
         @test CE(-sx) == -CE(sx)
         @test iszero(CE(-sx) + CE(sx))
+
+        @test sprint(show, CE(sx)) == "$(sx) => $(one(F))"
     end
 end
 

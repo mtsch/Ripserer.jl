@@ -30,6 +30,9 @@ end
     @test Mod{7}(2) - 3 == Mod{7}(6)
     @test Mod{13}(10) / 2 == Mod{13}(5)
 
+    @test sign(Mod{2}(1)) == Mod{2}(1)
+    @test sign(Mod{13}(0)) == Mod{13}(0)
+
     @test zero(Mod{2}) == Mod{2}(0)
     @test zero(Mod{5}(1)) == Mod{5}(0)
 
@@ -43,6 +46,9 @@ end
     @test sprint(print, Mod{3}(1)) == "1 mod 3"
 
     for T in (Int8, Int16, Int32, Int64, Int128)
+        @test promote_type(T, Mod{2}) ≡ Mod{2}
+        @test promote(one(T), Mod{5}(2)) == (Mod{5}(1), Mod{5}(2))
+
         @test Mod{3}(one(T)) == Mod{3}(1)
         @test Mod{3}(one(unsigned(T))) == Mod{3}(1)
         for op in (+, -, *, /)
