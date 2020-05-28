@@ -10,30 +10,28 @@ const IntervalWithRep{D} = PersistenceInterval{
 Index into each arg with `indices`, placing `NaN`s where `indices` are zero.
 """
 function index_data(indices, pts::AbstractVector{<:NTuple{N}}) where N
-    map(indices) do i
+    return map(indices) do i
         i == 0 ? ntuple(_ -> NaN, N) : Float64.(pts[i])
     end
 end
-
 function index_data(indices, x::AbstractVector)
-    map(indices) do i
+    return map(indices) do i
         i == 0 ? NaN : Float64(x[i])
     end
 end
-
 # images
 function index_data(indices, x::AbstractMatrix)
     cart = CartesianIndices(x)
-    map(indices) do i
+    return map(indices) do i
         i == 0 ? (NaN, NaN) : (cart[i][2], cart[i][1])
     end
 end
-
-index_data(indices, x, y) =
-    index_data(indices, x), index_data(indices, y)
-
-index_data(indices, x, y, z) =
-    index_data(indices, x), index_data(indices, y), index_data(indices, z)
+function index_data(indices, x, y)
+    return index_data(indices, x), index_data(indices, y)
+end
+function index_data(indices, x, y, z)
+    return index_data(indices, x), index_data(indices, y), index_data(indices, z)
+end
 
 """
     plottable(sx::AbstractSimplex, args...)
@@ -43,27 +41,25 @@ index_data(indices, x, y, z) =
 Turn `sx` into a series that can be plotted. `args...`, should contain the data which tells
 the plot where to place simplex vertices.
 """
-plottable(sx::AbstractSimplex, args...) =
-    plottable([sx], args...)
-
-plottable(int::PersistenceInterval, args...) =
-    plottable(simplex.(representative(int)), args...)
-
-plottable(int::PersistenceInterval{<:Any, Nothing}, args...) =
+function plottable(sx::AbstractSimplex, args...)
+    return plottable([sx], args...)
+end
+function plottable(int::PersistenceInterval, args...)
+    return plottable(simplex.(representative(int)), args...)
+end
+function plottable(int::PersistenceInterval{<:Any, Nothing}, args...)
     error("interval has no representative. Run `ripserer` with `representatives=true`")
-
+end
 function plottable(sxs::SxVector{0}, args...)
     indices = only.(vertices.(sxs))
-    index_data(indices, args...), [:seriestype => :scatter], 0
+    return index_data(indices, args...), [:seriestype => :scatter], 0
 end
-
 function plottable(sxs::SxVector{1}, args...)
     indices = mapreduce(vcat, vertices.(sxs)) do (u, v)
         [u, v, 0]
     end
-    index_data(indices, args...), [:seriestype => :path], 1
+    return index_data(indices, args...), [:seriestype => :path], 1
 end
-
 function plottable(sxs::SxVector{D}, args...) where D
     indices = mapreduce(vcat, vertices.(sxs)) do vs
         idxs = Int[]
@@ -73,16 +69,18 @@ function plottable(sxs::SxVector{D}, args...) where D
         push!(idxs, 0)
         idxs
     end
-    index_data(indices, args...), [:seriestype => :path], D
+    return index_data(indices, args...), [:seriestype => :path], D
 end
 
-apply_threshold(sx::AbstractSimplex, thresh, thresh_strict) =
-    diam(sx) ≤ thresh && diam(sx) < thresh_strict ? sx : nothing
-apply_threshold(sxs::SxVector, thresh, thresh_strict) =
-    filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, sxs)
+function apply_threshold(sx::AbstractSimplex, thresh, thresh_strict)
+    return diam(sx) ≤ thresh && diam(sx) < thresh_strict ? sx : nothing
+end
+function apply_threshold(sxs::SxVector, thresh, thresh_strict)
+    return filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, sxs)
+end
 function apply_threshold(int::PersistenceInterval, thresh, thresh_strict)
     reps = filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, representative(int))
-    PersistenceInterval(birth(int), death(int), reps)
+    return PersistenceInterval(birth(int), death(int), reps)
 end
 
 @recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...;
@@ -101,5 +99,5 @@ end
             plotattributes[attr] = mapreduce(x -> fill(x, n), vcat, value)
         end
     end
-    series
+    return series
 end

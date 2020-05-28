@@ -22,12 +22,9 @@ function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
-vertex_type(::AbstractFiltration{<:Any, V}) where V =
-    V
-edge_type(::AbstractFiltration{<:Any, V}) where V =
-    coface_type(V)
-dist_type(::AbstractFiltration{T}) where T =
-    T
+vertex_type(::AbstractFiltration{<:Any, V}) where V = V
+edge_type(::AbstractFiltration{<:Any, V}) where V = coface_type(V)
+dist_type(::AbstractFiltration{T}) where T = T
 
 """
     n_vertices(filtration::AbstractFiltration)
@@ -63,8 +60,7 @@ diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 
 Get the birth time of vertex `v`.
 """
-birth(::AbstractFiltration{T}, _) where T =
-    zero(T)
+birth(::AbstractFiltration{T}, _) where T = zero(T)
 
 """
     threshold(::AbstractFiltration)

@@ -103,7 +103,7 @@ function matching(match::Matching{T}; bottleneck=match.bottleneck) where T
             return filter!(m -> distance(m...) == match.weight, result)
         end
     else
-        P[]
+        return P[]
     end
 end
 
@@ -111,7 +111,6 @@ function Base.show(io::IO, match::Matching)
     b = match.bottleneck ? "bottleneck " : ""
     print(io, "$(length(match))-element $(b)Matching with weight $(match.weight)")
 end
-
 function Base.show(io::IO, ::MIME"text/plain", match::Matching)
     print(io, match)
     if length(match) > 0
@@ -119,7 +118,6 @@ function Base.show(io::IO, ::MIME"text/plain", match::Matching)
         show_intervals(io, matching(match))
     end
 end
-
 
 """
     adj_matrix(diag1::PersistenceDiagram, diag2::PersistenceDiagram, power)
@@ -245,11 +243,8 @@ function right_neighbors!(buff, graph::BottleneckGraph, vertices)
 end
 
 is_exposed_left(graph::BottleneckGraph, l) = graph.match_left[l] == 0
-
 is_exposed_right(graph::BottleneckGraph, r) = graph.match_right[r] == 0
-
-exposed_left(graph::BottleneckGraph) =
-    findall(iszero, graph.match_left)
+exposed_left(graph::BottleneckGraph) = findall(iszero, graph.match_left)
 
 """
     depths(graph::BottleneckGraph, ε)
@@ -472,8 +467,7 @@ distance(Bottleneck(), diag1, diag2)
 * [`Bottleneck`](@ref)
 * [`matching`](@ref)
 """
-distance(::Bottleneck, diag1, diag2) =
-    matching(Bottleneck(), diag1, diag2).weight
+distance(::Bottleneck, diag1, diag2) = matching(Bottleneck(), diag1, diag2).weight
 
 """
     Wasserstein(q=1)
@@ -571,5 +565,4 @@ distance(Wasserstein(), diag1, diag2)
 * [`Wasserstein`](@ref)
 * [`matching`](@ref)
 """
-distance(w::Wasserstein, diag1, diag2) =
-    matching(w, diag1, diag2).weight
+distance(w::Wasserstein, diag1, diag2) = matching(w, diag1, diag2).weight

@@ -29,35 +29,35 @@ for op in (:oneunit, :zero, :-, :+)
     @eval (Base.$op)(ce::C) where C<:AbstractChainElement =
         C(simplex(ce), $op(coefficient(ce)))
 end
-Base.:*(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), coefficient(ce) * x)
-Base.:*(x::F, ce::C) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), x * coefficient(ce))
-Base.:/(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}} =
-    C(simplex(ce), coefficient(ce) / x)
-Base.one(::Type{<:AbstractChainElement{<:Any, F}}) where F =
-    one(F)
-Base.one(::AbstractChainElement{<:Any, F}) where F =
-    one(F)
-Base.iszero(ce::AbstractChainElement) =
-    iszero(coefficient(ce))
+function Base.:*(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(ce), coefficient(ce) * x)
+end
+function Base.:*(x::F, ce::C) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(ce), x * coefficient(ce))
+end
+function Base.:/(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(ce), coefficient(ce) / x)
+end
+Base.one(::Type{<:AbstractChainElement{<:Any, F}}) where F = one(F)
+Base.one(::AbstractChainElement{<:Any, F}) where F = one(F)
+Base.iszero(ce::AbstractChainElement) = iszero(coefficient(ce))
 
-Base.hash(ce::AbstractChainElement, u::UInt64) =
-    hash(simplex(ce), u)
-Base.:(==)(ce1::AbstractChainElement, ce2::AbstractChainElement) =
-    simplex(ce1) == simplex(ce2)
-Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement) =
-    isless(simplex(ce1), simplex(ce2))
+Base.hash(ce::AbstractChainElement, u::UInt64) = hash(simplex(ce), u)
+function Base.:(==)(ce1::AbstractChainElement, ce2::AbstractChainElement)
+    return simplex(ce1) == simplex(ce2)
+end
+function Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement)
+    return isless(simplex(ce1), simplex(ce2))
+end
 
 # Make chain elements useful when they come out as representatives.
 diam(ce::AbstractChainElement) = diam(simplex(ce))
 Base.sign(ce::AbstractChainElement) = sign(coefficient(ce))
 vertices(ce::AbstractChainElement) = vertices(simplex(ce))
 
-Base.show(io::IO, ce::AbstractChainElement) =
+function Base.show(io::IO, ce::AbstractChainElement)
     print(io, simplex(ce), " => ", coefficient(ce))
-
-# TODO printing, iteration
+end
 
 """
     chain_element_type(simplex, coefficient)
@@ -76,22 +76,19 @@ struct ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
     simplex::S
     coefficient::F
 
-    ChainElement{S, F}(simplex::S, coefficient=one(F)) where {S, F} =
-        new{S, F}(abs(simplex), sign(simplex) * F(coefficient))
+    function ChainElement{S, F}(simplex::S, coefficient=one(F)) where {S, F}
+        return new{S, F}(abs(simplex), sign(simplex) * F(coefficient))
+    end
 end
 
+# Interface specification.
 simplex(ce::ChainElement) = ce.simplex
 coefficient(ce::ChainElement) = ce.coefficient
+chain_element_type(::Type{S}, ::Type{F}) where {S, F} = ChainElement{S, F}
 
-chain_element_type(::Type{S}, ::Type{F}) where {S, F} =
-    ChainElement{S, F}
-
-# TODO? efficient packing of Simplex and PrimeField?
 # TODO: assert F is less than say 8 bits?
-# TODO: check that nothing overflows
-struct PackedElement{
-    S<:IndexedSimplex, F<:Mod, M, U, T
-} <: AbstractChainElement{S, F}
+# TODO: check that nothing overflows - maybe in `ripserer`.
+struct PackedElement{S<:IndexedSimplex, F<:Mod, M, U, T} <: AbstractChainElement{S, F}
     index_coef ::U
     diam       ::T
 
@@ -105,7 +102,7 @@ struct PackedElement{
 
         index_coef = Int(coef) << (sizeof(U) * 8 - n_bits(M)) | uidx
 
-        new{S, F, M, U, T}(index_coef, diameter)
+        return new{S, F, M, U, T}(index_coef, diameter)
     end
 end
 
@@ -113,20 +110,23 @@ end
     n_bits(M)
 Get numer of bits needed to represent number mod `M`.
 """
-@pure n_bits(M::Int) =
-    floor(Int, log2(M-1)) + 1
+@pure n_bits(M::Int) = floor(Int, log2(M-1)) + 1
 
 function simplex(pe::PackedElement{S, <:Any, M, U}) where {S, M, U}
     mask = typemax(U) << n_bits(M) >> n_bits(M)
-    S(pe.index_coef & mask, pe.diam)
+    return S(pe.index_coef & mask, pe.diam)
 end
-coefficient(ce::PackedElement{<:Any, F, M, U}) where {F, U, M} =
-    F(ce.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
+function coefficient(ce::PackedElement{<:Any, F, M, U}) where {F, U, M}
+    return F(ce.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
+end
 
-function chain_element_type(::Type{S}, ::Type{F}) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}}
+function chain_element_type(
+    ::Type{S}, ::Type{F}
+) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}}
+
     if n_bits(M) ≤ 8
-        PackedElement{S, F, M, unsigned(I), T}
+        return PackedElement{S, F, M, unsigned(I), T}
     else
-        ChainElement{S, F}
+        return ChainElement{S, F}
     end
 end

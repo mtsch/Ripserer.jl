@@ -66,10 +66,10 @@ Base.:-(::AbstractSimplex)
 Base.:+(sx::AbstractSimplex) = sx
 
 Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
-Base.:(==)(sx1::AbstractSimplex{D}, sx2::AbstractSimplex{D}) where D =
-    diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
-Base.hash(sx::AbstractSimplex, h::UInt64) =
-    hash(vertices(sx), hash(diam(sx), h))
+function Base.:(==)(sx1::AbstractSimplex{D}, sx2::AbstractSimplex{D}) where D
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))
 
 """
     coface_type(::AbstractSimplex)

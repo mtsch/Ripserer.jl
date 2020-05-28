@@ -6,7 +6,7 @@ Get `dim` as subscript string.
 """
 function dim_str(pd)
     sub_digits = ("₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉")
-    join(reverse(sub_digits[digits(dim(pd)) .+ 1]))
+    return join(reverse(sub_digits[digits(dim(pd)) .+ 1]))
 end
 
 """
@@ -28,7 +28,7 @@ function t_limits(pd::PersistenceDiagram)
             t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
         end
     end
-    t_min, t_max, infinite
+    return t_min, t_max, infinite
 end
 function t_limits(pds)
     t_min = 0
@@ -52,7 +52,7 @@ function t_limits(pds)
             t_max = rounded + (t_max ≥ 1 ? ndigits(Int(rounded)) : 0)
         end
     end
-    t_min, t_max, infinite
+    return t_min, t_max, infinite
 end
 
 # This type handles plotting the background things in a persistence diagram, such as the
@@ -99,8 +99,8 @@ end
             [t_min, t_max], [t_min, t_max]
         end
     end
-
-    ()
+    primary := false
+    return ()
 end
 
 @recipe function f(
@@ -158,7 +158,7 @@ end
         annotations --> (t_min + (t_max - t_min)/2, t_max, "∞")
     end
     primary := false
-    ()
+    return ()
 end
 
 @recipe function f(match::Matching; persistence=false, bottleneck=match.bottleneck)
@@ -196,7 +196,7 @@ end
         annotations --> (t_min + (t_max - t_min)/2, t_max, "∞")
     end
     primary := false
-    ()
+    return ()
 end
 
 """
@@ -208,9 +208,7 @@ guess a good infinity poistion.
 """
 barcode(::Union{PersistenceDiagram, AbstractVector{<:PersistenceDiagram}})
 
-@userplot struct Barcode{
-    T<:Union{PersistenceDiagram,AbstractVector{<:PersistenceDiagram}},
-}
+@userplot struct Barcode{T<:Union{PersistenceDiagram,AbstractVector{<:PersistenceDiagram}}}
     args::Tuple{T}
 end
 @recipe function f(bc::Barcode; infinity=nothing)
@@ -265,5 +263,5 @@ end
         annotations --> (t_max, (offset+1)/2, "∞")
     end
     primary := false
-    ()
+    return ()
 end

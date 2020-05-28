@@ -18,7 +18,7 @@ function edges(dist::AbstractMatrix{T}, thresh, edge_type) where T
         l = dist[i, j]
         l ≤ thresh && push!(res, E((i, j), l))
     end
-    sort!(res)
+    return sort!(res)
 end
 
 function edges(dist::AbstractSparseMatrix{T}, thresh, edge_type) where T
@@ -30,7 +30,7 @@ function edges(dist::AbstractSparseMatrix{T}, thresh, edge_type) where T
         i > j || continue
         l ≤ thresh && push!(res, E((i, j), l))
     end
-    sort!(res)
+    return sort!(res)
 end
 
 """
@@ -48,7 +48,7 @@ function distances(metric, points, births=nothing)
             dists[i, i] = births[i]
         end
     end
-    dists
+    return dists
 end
 
 # flag filtration ======================================================================== #
@@ -68,7 +68,7 @@ abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
         d = dist(flt, vertices[j], vertices[i])
         res = ifelse(res > d, res, d)
     end
-    ifelse(res > threshold(flt), ∞, res)
+    return ifelse(res > threshold(flt), ∞, res)
 end
 
 @propagate_inbounds function diam(flt::AbstractFlagFiltration, sx::AbstractSimplex, us, v)
@@ -79,11 +79,10 @@ end
         d = dist(flt, v, u)
         res = ifelse(res > d, res, d)
     end
-    ifelse(res > threshold(flt), ∞, res)
+    return ifelse(res > threshold(flt), ∞, res)
 end
 
-edges(flt::AbstractFlagFiltration) =
-    edges(flt.dist, threshold(flt), edge_type(flt))
+edges(flt::AbstractFlagFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
 
 """
     dist(::AbstractFlagFiltration, u, v)
@@ -101,8 +100,9 @@ The default threshold is equal to the radius of the input space. At this thresho
 vertices are connected to a vertex `x` and the homology becomes trivial. If any of the
 distances is negative, default threshold defaults to `typemax(eltype(dists))`.
 """
-default_rips_threshold(dists::AbstractMatrix{T}) where T =
-    minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
+function default_rips_threshold(dists::AbstractMatrix{T}) where T
+    return minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
+end
 
 """
     Rips{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
@@ -138,20 +138,18 @@ function Rips(
         throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
     !issparse(dist) ||
         throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
-    Rips{T, vertex_type, typeof(dist)}(dist, T(threshold))
+    return Rips{T, vertex_type, typeof(dist)}(dist, T(threshold))
 end
 
 # interface implementation
-n_vertices(rips::Rips) =
-    size(rips.dist, 1)
+n_vertices(rips::Rips) = size(rips.dist, 1)
 
-@propagate_inbounds dist(rips::Rips{T}, i, j) where T =
-    ifelse(i == j, zero(T), rips.dist[i, j])
+@propagate_inbounds function dist(rips::Rips{T}, i, j) where T
+    return ifelse(i == j, zero(T), rips.dist[i, j])
+end
 
 threshold(rips::Rips) = rips.threshold
-
 max_death(rips::Rips) = rips.threshold
-
 birth(rips::Rips, i) = rips.dist[i, i]
 
 # sparse rips filtration ================================================================= #
@@ -199,21 +197,19 @@ function SparseRips(
     else
         threshold = maximum(dist)
     end
-    SparseRips{T, vertex_type, typeof(new_dist)}(new_dist, threshold)
+    return SparseRips{T, vertex_type, typeof(new_dist)}(new_dist, threshold)
 end
 
 # interface implementation --------------------------------------------------------------- #
-n_vertices(rips::SparseRips) =
-    size(rips.dist, 1)
+n_vertices(rips::SparseRips) = size(rips.dist, 1)
 
 @propagate_inbounds function dist(rips::SparseRips{T}, i, j) where T
     res = rips.dist[i, j]
-    ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
+    return ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
 end
 
 # Threshold was handled by deleting entries in the matrix.
 threshold(rips::SparseRips) = rips.threshold
-
 max_death(rips::SparseRips) = maximum(rips.dist)
 
 @propagate_inbounds function diam(rips::SparseRips, sx::AbstractSimplex, us, v)
@@ -225,8 +221,7 @@ max_death(rips::SparseRips) = maximum(rips.dist)
         d == ∞ && return ∞
         res = ifelse(res > d, res, d)
     end
-    res
+    return res
 end
 
-birth(rips::SparseRips, i) =
-    rips.dist[i, i]
+birth(rips::SparseRips, i) = rips.dist[i, i]

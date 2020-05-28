@@ -17,27 +17,30 @@ struct ReductionMatrix{C<:AbstractSimplex, SE<:AbstractChainElement}
     nzval        ::Vector{SE}
 
     function ReductionMatrix{C, SE}() where {C, SE}
-        new{C, SE}(Dict{C, Int}(), Int[1], SE[])
+        return new{C, SE}(Dict{C, Int}(), Int[1], SE[])
     end
 end
 
-has_column(rm::ReductionMatrix{C}, sx::C) where C =
-    haskey(rm.column_index, abs(sx))
-has_column(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C =
-    haskey(rm.column_index, simplex(ce))
+function has_column(rm::ReductionMatrix{C}, sx::C) where C
+    return haskey(rm.column_index, abs(sx))
+end
+function has_column(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C
+    return haskey(rm.column_index, simplex(ce))
+end
 
-insert_column!(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C =
-    insert_column!(rm, simplex(ce))
+function insert_column!(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C
+    return insert_column!(rm, simplex(ce))
+end
 function insert_column!(rm::ReductionMatrix{C}, sx::C) where C
     rm.column_index[abs(sx)] = length(rm.colptr)
     push!(rm.colptr, rm.colptr[end])
-    rm
+    return rm
 end
 
 function Base.push!(rm::ReductionMatrix, value)
     push!(rm.nzval, value)
     rm.colptr[end] += 1
-    value
+    return value
 end
 
 function Base.sizehint!(rm::ReductionMatrix, n)
@@ -46,16 +49,15 @@ function Base.sizehint!(rm::ReductionMatrix, n)
     sizehint!(rm.nzval, n)
 end
 
-Base.eltype(::Type{<:ReductionMatrix{<:Any, SE}}) where SE =
-    SE
-Base.length(rm::ReductionMatrix) =
-    length(rm.colptr) - 1
-Base.lastindex(rm::ReductionMatrix) =
-    length(rm.colptr) - 1
-Base.getindex(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C =
-    RMColumnIterator{typeof(rm)}(rm, rm.column_index[simplex(ce)])
-Base.getindex(rm::ReductionMatrix{C}, sx::C) where C =
-    RMColumnIterator{typeof(rm)}(rm, rm.column_index[sx])
+Base.eltype(::Type{<:ReductionMatrix{<:Any, SE}}) where SE = SE
+Base.length(rm::ReductionMatrix) = length(rm.colptr) - 1
+Base.lastindex(rm::ReductionMatrix) = length(rm.colptr) - 1
+function Base.getindex(rm::ReductionMatrix{C}, ce::AbstractChainElement{C}) where C
+    return RMColumnIterator{typeof(rm)}(rm, rm.column_index[simplex(ce)])
+end
+function Base.getindex(rm::ReductionMatrix{C}, sx::C) where C
+    return RMColumnIterator{typeof(rm)}(rm, rm.column_index[sx])
+end
 
 """
     RMColumnIterator{R}
@@ -67,22 +69,18 @@ struct RMColumnIterator{R<:ReductionMatrix}
     idx ::Int
 end
 
-Base.IteratorSize(::Type{RMColumnIterator}) =
-    Base.HasLength()
-Base.IteratorEltype(::Type{RMColumnIterator}) =
-    Base.HasEltype()
-Base.eltype(::Type{<:RMColumnIterator{R}}) where R =
-    eltype(R)
-Base.length(ci::RMColumnIterator) =
-    ci.rm.colptr[ci.idx + 1] - ci.rm.colptr[ci.idx]
+Base.IteratorSize(::Type{RMColumnIterator}) = Base.HasLength()
+Base.IteratorEltype(::Type{RMColumnIterator}) = Base.HasEltype()
+Base.eltype(::Type{<:RMColumnIterator{R}}) where R = eltype(R)
+Base.length(ci::RMColumnIterator) = ci.rm.colptr[ci.idx + 1] - ci.rm.colptr[ci.idx]
 
 function Base.iterate(ci::RMColumnIterator, i=1)
     colptr = ci.rm.colptr
     index = i + colptr[ci.idx] - 1
     if index ≥ colptr[ci.idx + 1]
-        nothing
+        return nothing
     else
-        (ci.rm.nzval[index], i + 1)
+        return (ci.rm.nzval[index], i + 1)
     end
 end
 
@@ -98,18 +96,15 @@ when `pop!` is used on an empty column.
 struct Column{CE<:AbstractChainElement}
     heap::BinaryMinHeap{CE}
 
-    Column{CE}() where CE =
-        new{CE}(BinaryMinHeap{CE}())
+    Column{CE}() where CE = new{CE}(BinaryMinHeap{CE}())
 end
 
-Base.empty!(col::Column) =
-    empty!(col.heap.valtree)
-Base.isempty(col::Column) =
-    isempty(col.heap)
+Base.empty!(col::Column) = empty!(col.heap.valtree)
+Base.isempty(col::Column) = isempty(col.heap)
 
 function Base.sizehint!(col::Column, size)
     sizehint!(col.heap, size)
-    col
+    return col
 end
 
 """
@@ -125,7 +120,7 @@ function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
         push!(dst, times * pivot)
         pivot = pop_pivot!(col)
     end
-    dst
+    return dst
 end
 
 """
@@ -149,7 +144,7 @@ function pop_pivot!(column::Column)
             break
         end
     end
-    iszero(pivot) ? nothing : pivot
+    return iszero(pivot) ? nothing : pivot
 end
 
 """
@@ -163,11 +158,10 @@ function pivot(column::Column)
     if !isnothing(pivot)
         push!(column, pivot)
     end
-    pivot
+    return pivot
 end
 
-Base.push!(column::Column{CE}, simplex) where CE =
-    push!(column, CE(simplex))
+Base.push!(column::Column{CE}, simplex) where CE = push!(column, CE(simplex))
 function Base.push!(column::Column{CE}, element::CE) where CE
     heap = column.heap
     if !isempty(heap) && top(heap) == element
@@ -175,7 +169,7 @@ function Base.push!(column::Column{CE}, element::CE) where CE
     else
         push!(heap, element)
     end
-    column
+    return column
 end
 
 # disjointset with birth ================================================================= #
@@ -192,7 +186,7 @@ struct DisjointSetsWithBirth{T}
 
     function DisjointSetsWithBirth(births::AbstractVector{T}) where T
         n = length(births)
-        new{T}(collect(1:n), fill(0, n), copy(births))
+        return new{T}(collect(1:n), fill(0, n), copy(births))
     end
 end
 
@@ -205,7 +199,7 @@ function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
     @inbounds if parents[p] != p
         parents[x] = p = find_root!(s, p)
     end
-    p
+    return p
 end
 
 """
@@ -218,7 +212,7 @@ function find_leaves!(s::DisjointSetsWithBirth, x)
     for i in 1:length(s)
         find_root!(s, i) == x && push!(leaves, i)
     end
-    leaves
+    return leaves
 end
 
 function Base.union!(s::DisjointSetsWithBirth, x, y)
@@ -242,8 +236,7 @@ function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
     end
     @inbounds parents[y] = x
     @inbounds births[x] = min(births[x], births[y])
-    x
+    return x
 end
 
-birth(dset::DisjointSetsWithBirth, i) =
-    dset.births[i]
+birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
