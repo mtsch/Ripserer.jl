@@ -25,7 +25,7 @@ using TupleTools
 # reexport basics from PersistenceDiagrams
 import PersistenceDiagrams: birth
 export PersistenceDiagram, PersistenceInterval
-export birth, death, persistence, representative, barcode, barcode!
+export birth, death, persistence, representative, barcode
 
 export Mod
 export AbstractSimplex, diam, coface_type, vertices, coboundary, dim

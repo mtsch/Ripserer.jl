@@ -3,7 +3,9 @@
 # In this example we will demonstrate the stability of persistent homology. The stability
 # theorem roughly states, that a small change in the input data will result in a small
 # change in the resulting persistence diagram. In other words, persistent homology is very
-# tolerant of noisy data. Also see the [Distances](@ref) example.
+# tolerant of noisy data. Also see the
+# [Distances](https://mtsch.github.io/PersistenceDiagrams.jl/dev/generated/distances/)
+# example in [PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl).
 
 # Again, start with loading some packages.
 
