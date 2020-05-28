@@ -17,43 +17,37 @@ using DataStructures
 using Distances
 using Hungarian
 using IterTools
+using PersistenceDiagrams
 using ProgressMeter
 using RecipesBase
 using TupleTools
 
-include("infinity.jl")
-export Infinity, ∞
-include("primefield.jl")
+# reexport basics from PersistenceDiagrams
+import PersistenceDiagrams: birth
+export PersistenceDiagram, PersistenceInterval
+export birth, death, persistence, representative, barcode, barcode!
+
 export Mod
+export AbstractSimplex, diam, coface_type, vertices, coboundary, dim
+export IndexedSimplex, index, Simplex
+export AbstractFiltration, n_vertices, edges, threshold
+export AbstractFlagFiltration, Rips, SparseRips
+export Cubelet, Cubical
+export simplex, coefficient
+export ripserer
+
+include("primefield.jl")
 
 include("abstractsimplex.jl")
-export AbstractSimplex, diam, coface_type, vertices, coboundary, dim
 include("simplex.jl")
-export IndexedSimplex, index, Simplex
 
 include("abstractfiltration.jl")
-export AbstractFiltration, n_vertices, edges, birth, threshold
 include("ripsfiltration.jl")
-export AbstractFlagFiltration, Rips, SparseRips
-
 include("cubical.jl")
-export Cubelet, Cubical
-
-# TODO: split these into a separate package
-include("diagram.jl")
-export PersistenceInterval, birth, death, persistence, representative,
-    PersistenceDiagram, threshold
-include("distances.jl")
-export matching, distance, Bottleneck, Wasserstein, Matching
-include("diagramrecipes.jl")
-export barcode, barcode!
 
 include("chainelement.jl")
-export simplex, coefficient
 include("reduction_structs.jl")
 include("reduction.jl")
-export ripserer
 include("simplexrecipes.jl")
-
 
 end

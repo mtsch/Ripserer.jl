@@ -1,7 +1,7 @@
 # simplex plots ========================================================================== #
 const SxVector{D} = AbstractVector{<:AbstractSimplex{D}}
 const IntervalWithRep{D} = PersistenceInterval{
-    <:Any, <:AbstractVector{<:Pair{<:AbstractSimplex{D}, <:Any}}
+    <:AbstractVector{<:Pair{<:AbstractSimplex{D}, <:Any}}
 }
 
 """
@@ -47,7 +47,7 @@ end
 function plottable(int::PersistenceInterval, args...)
     return plottable(simplex.(representative(int)), args...)
 end
-function plottable(int::PersistenceInterval{<:Any, Nothing}, args...)
+function plottable(int::PersistenceInterval{Nothing}, args...)
     error("interval has no representative. Run `ripserer` with `representatives=true`")
 end
 function plottable(sxs::SxVector{0}, args...)
@@ -84,7 +84,7 @@ function apply_threshold(int::PersistenceInterval, thresh, thresh_strict)
 end
 
 @recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...;
-                   threshold=∞, threshold_strict=∞)
+                   threshold=Inf, threshold_strict=Inf)
     sx = apply_threshold(sx, threshold, threshold_strict)
     isnothing(sx) && return ()
     series, attrs, D = plottable(sx, args...)

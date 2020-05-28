@@ -11,13 +11,14 @@ Ripserer.n_vertices(::FakeFiltration) =
 
 struct FakeFiltrationWithThreshold end
 Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
-    v ≤ 10 ? 1 : ∞
+    v ≤ 10 ? 1 : missing
 Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
     20
 
 @testset "Binomials" begin
     @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
 end
+
 
 @testset "Simplex" begin
     test_indexed_simplex_interface(Simplex, D->D+1)

@@ -83,7 +83,7 @@ Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 function diam(cf::Cubical{T}, vertices) where {T}
     res = typemin(T)
     for v in vertices
-        res = max(res, get(cf.data, v, ∞))
+        res = max(res, get(cf.data, v, missing))
     end
     return res
 end
@@ -138,9 +138,9 @@ end
 function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {A, N, C}
     # If not all indices in a given dimension are equal, we can't create a coface by
     # expanding in that direction.
-    diameter = ∞
+    diameter = missing
     new_vertices = cc.vertices
-    while diameter == ∞
+    while ismissing(diameter)
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += 1
         end
@@ -156,7 +156,7 @@ function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {
         dir *= -1
     end
 
-    if diameter == ∞
+    if ismissing(diameter)
         return nothing
     # We swapped the direction of dir at the end of the loop so we use -dir everywhere.
     elseif dir == -1

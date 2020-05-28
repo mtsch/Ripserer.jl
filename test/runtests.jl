@@ -6,9 +6,6 @@ include("test_helpers.jl")
 @safetestset "Aqua" begin
     include("aqua.jl")
 end
-@safetestset "infinity" begin
-    include("infinity.jl")
-end
 @safetestset "simplex" begin
     include("simplex.jl")
 end
@@ -20,12 +17,6 @@ end
 end
 @safetestset "primefield" begin
     include("primefield.jl")
-end
-@safetestset "diagram" begin
-    include("diagram.jl")
-end
-@safetestset "distances" begin
-    include("distances.jl")
 end
 @safetestset "chainelement" begin
     include("chainelement.jl")

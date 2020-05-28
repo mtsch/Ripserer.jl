@@ -33,9 +33,12 @@ Ripserer supports the following:
   with the default of ``\mathbb{Z}_p`` for a prime ``p``.
 * Sparse distance matrix and thresholding support.
 * Computing representative cocycles of persistent cohomology.
-* Wasserstein and Bottleneck distances and matchings.
 * Plotting persistence diagrams, barcodes, matchings and representative cocycles.
 * Generic API.
+
+Ripserer uses [PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl) to
+represent persistence diagrams. It reexports some basic functionality, but please see that
+package for more persistence diagram-related functions.
 
 ## Performance
 

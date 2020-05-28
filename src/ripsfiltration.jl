@@ -56,7 +56,7 @@ end
     AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V}
 
 An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
-`dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Infinity}` instead of `diam`.
+`dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Missing}` instead of `diam`.
 `diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
 """
 abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
@@ -66,9 +66,9 @@ abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
     res = typemin(dist_type(flt))
     for i in 1:n, j in i+1:n
         d = dist(flt, vertices[j], vertices[i])
-        res = ifelse(res > d, res, d)
+        res = ifelse(isless(d, res), res, d)
     end
-    return ifelse(res > threshold(flt), ∞, res)
+    return ifelse(res > threshold(flt), missing, res)
 end
 
 @propagate_inbounds function diam(flt::AbstractFlagFiltration, sx::AbstractSimplex, us, v)
@@ -77,9 +77,9 @@ end
         # Even though this looks like a tight loop, v changes way more often than us, so
         # this is the faster order of indexing by u and v.
         d = dist(flt, v, u)
-        res = ifelse(res > d, res, d)
+        res = ifelse(isless(d, res), res, d)
     end
-    return ifelse(res > threshold(flt), ∞, res)
+    return ifelse(res > threshold(flt), missing, res)
 end
 
 edges(flt::AbstractFlagFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
@@ -88,7 +88,7 @@ edges(flt::AbstractFlagFiltration) = edges(flt.dist, threshold(flt), edge_type(f
     dist(::AbstractFlagFiltration, u, v)
 
 Return the distance between vertices `u` and `v`. If the distance is higher than the
-threshold, return `Infinity()` instead.
+threshold, return `missing` instead.
 """
 dist(::AbstractFlagFiltration, ::Any, ::Any)
 
@@ -158,8 +158,8 @@ birth(rips::Rips, i) = rips.dist[i, i]
 
 This type represents a filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
-threshold deleted. Off-diagonal zeros in the matrix are treated as ∞. Diagonal items are
-treated as vertex birth times.
+threshold deleted. Off-diagonal zeros in the matrix are treated as `missing`. Diagonal items
+are treated as vertex birth times.
 
 # Constructor
 
@@ -205,7 +205,7 @@ n_vertices(rips::SparseRips) = size(rips.dist, 1)
 
 @propagate_inbounds function dist(rips::SparseRips{T}, i, j) where T
     res = rips.dist[i, j]
-    return ifelse(i == j, zero(T), ifelse(iszero(res), ∞, res))
+    return ifelse(i == j, zero(T), ifelse(iszero(res), missing, res))
 end
 
 # Threshold was handled by deleting entries in the matrix.
@@ -218,7 +218,7 @@ max_death(rips::SparseRips) = maximum(rips.dist)
         # Since indexing in sparse matrices is expensive, we want to abort the loop early
         # even though the number of vertices in us is small.
         d = dist(rips, v, u)
-        d == ∞ && return ∞
+        ismissing(d) && return missing
         res = ifelse(res > d, res, d)
     end
     return res

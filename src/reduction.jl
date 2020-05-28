@@ -95,7 +95,7 @@ function reduce_working_column!(
         current_pivot = add!(rs, current_pivot)
     end
     if isnothing(current_pivot)
-        death = ∞
+        death = Inf
     else
         insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
@@ -128,9 +128,9 @@ function compute_intervals!(
 ) where {S, F}
     T = dist_type(rs.filtration)
     if reps
-        intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
+        intervals = PersistenceInterval{Vector{chain_element_type(S, F)}}[]
     else
-        intervals = PersistenceInterval{T, Nothing}[]
+        intervals = PersistenceInterval{Nothing}[]
     end
     if progress
         progbar = Progress(length(columns), desc="Computing $(dim(S))d intervals... ")
@@ -143,7 +143,7 @@ function compute_intervals!(
         progress && next!(progbar)
     end
     return sort!(
-        PersistenceDiagram(dim(eltype(columns)), threshold(rs.filtration), intervals)
+        PersistenceDiagram(dim(eltype(columns)), intervals, threshold(rs.filtration))
     )
 end
 
@@ -234,9 +234,9 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     CE = chain_element_type(V, field_type)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     if reps
-        intervals = PersistenceInterval{T, Vector{CE}}[]
+        intervals = PersistenceInterval{Vector{CE}}[]
     else
-        intervals = PersistenceInterval{T, Nothing}[]
+        intervals = PersistenceInterval{Nothing}[]
     end
     reduced = edge_type(filtration)[]
     unreduced = edge_type(filtration)[]
@@ -267,13 +267,13 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
             representative = zeroth_representative(filtration, dset, v, reps, CE, V)
-            push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
+            push!(intervals, PersistenceInterval(birth(dset, v), Inf, representative))
         end
     end
     reverse!(unreduced)
     progress && printstyled("Assembled $(length(unreduced)) columns.\n", color=:green)
     return (
-        sort!(PersistenceDiagram(0, threshold(filtration), intervals)), unreduced, reduced
+        sort!(PersistenceDiagram(0, intervals, threshold(filtration))), unreduced, reduced,
     )
 end
 

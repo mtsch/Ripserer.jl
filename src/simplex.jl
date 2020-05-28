@@ -210,8 +210,8 @@ function Base.iterate(
     ci::IndexedCobounary{all_cofaces, D}, (v, k)=(n_vertices(ci.filtration) + 1, D),
 ) where {all_cofaces, D}
 
-    diameter = ∞
-    @inbounds while diameter == ∞ && v > 0
+    diameter = missing
+    @inbounds while ismissing(diameter) && v > 0
         v -= 1
         while v > 0 && v in ci.vertices
             all_cofaces || return nothing
@@ -221,7 +221,7 @@ function Base.iterate(
         v == 0 && break
         diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
     end
-    if diameter != ∞
+    if !ismissing(diameter)
         sign = ifelse(iseven(k), 1, -1)
         new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
 
