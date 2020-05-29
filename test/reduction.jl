@@ -10,7 +10,7 @@ include("data.jl")
         @testset "icosahedron" begin
             res = ripserer(icosahedron, dim_max=2)
             @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                             PersistenceInterval(0.0, ∞)]
+                             PersistenceInterval(0.0, Inf)]
             @test isempty(res[2])
             @test res[3] == [PersistenceInterval(1.0, 2.0)]
         end
@@ -38,7 +38,7 @@ include("data.jl")
         @testset "cycle" begin
             d0, d1, d2, d3, d4 = ripserer(cycle, dim_max=4)
             @test d0 == [fill(PersistenceInterval(0, 1), size(cycle, 1) - 1);
-                         PersistenceInterval(0, ∞)]
+                         PersistenceInterval(0, Inf)]
             @test d1 == [PersistenceInterval(1, 6)]
             @test d2 == fill(PersistenceInterval(6, 7), 5)
             @test d3 == [PersistenceInterval(7, 8)]
@@ -72,20 +72,20 @@ include("data.jl")
         @testset "icosahedron, high threshold" begin
             res = ripserer(icosahedron, threshold=2, dim_max=2)
             @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                             PersistenceInterval(0.0, ∞)]
+                             PersistenceInterval(0.0, Inf)]
             @test isempty(res[2])
             @test res[3] == [PersistenceInterval(1.0, 2.0)]
         end
         @testset "icosahedron, med threshold" begin
             res = ripserer(icosahedron, dim_max=2, threshold=1)
             @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                             PersistenceInterval(0.0, ∞)]
+                             PersistenceInterval(0.0, Inf)]
             @test isempty(res[2])
-            @test res[3] == [PersistenceInterval(1.0, ∞)]
+            @test res[3] == [PersistenceInterval(1.0, Inf)]
         end
         @testset "icosahedron, low threshold" begin
             res = ripserer(icosahedron, dim_max=2, threshold=0.5)
-            @test res[1] == fill(PersistenceInterval(0.0, ∞), 12)
+            @test res[1] == fill(PersistenceInterval(0.0, Inf), 12)
             @test isempty(res[2])
             @test isempty(res[3])
         end
@@ -106,10 +106,10 @@ include("data.jl")
             @test length(d0) == 16
 
             @test all(x -> birth(x) ≈ 0.5, d1)
-            @test count(x -> death(x) == ∞, d1) == 2
+            @test count(x -> death(x) == Inf, d1) == 2
             @test count(x -> isapprox(death(x), 0.71, atol=0.1), d1) == 15
 
-            @test last(only(d2)) == ∞
+            @test last(only(d2)) == Inf
         end
         @testset "torus 16, low threshold" begin
             d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.5)
@@ -117,7 +117,7 @@ include("data.jl")
             @test length(d0) == 16
 
             @test all(x -> birth(x) ≈ 0.5, d1)
-            @test all(x -> death(x) == ∞, d1)
+            @test all(x -> death(x) == Inf, d1)
 
             @test isempty(d2)
         end
@@ -126,8 +126,8 @@ include("data.jl")
                                      dim_max=2, threshold=1)
             _, d1_3, d2_3 = ripserer(projective_plane,
                                      dim_max=2, modulus=3, threshold=1)
-            @test d1_2 == [PersistenceInterval(1, ∞)]
-            @test d2_2 == [PersistenceInterval(1, ∞)]
+            @test d1_2 == [PersistenceInterval(1, Inf)]
+            @test d2_2 == [PersistenceInterval(1, Inf)]
             @test isempty(d1_3)
             @test isempty(d2_3)
         end
@@ -138,7 +138,7 @@ include("data.jl")
             flt = SparseRips(icosahedron, threshold=2)
             res = ripserer(flt, dim_max=2)
             @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                             PersistenceInterval(0.0, ∞)]
+                             PersistenceInterval(0.0, Inf)]
             @test isempty(res[2])
             @test res[3] == [PersistenceInterval(1.0, 2.0)]
         end
@@ -162,8 +162,8 @@ include("data.jl")
 
             _, d1_2, d2_2 = ripserer(dists, dim_max=2, threshold=1)
             _, d1_3, d2_3 = ripserer(dists, dim_max=2, modulus=3, threshold=1)
-            @test d1_2 == [PersistenceInterval(1, ∞)]
-            @test d2_2 == [PersistenceInterval(1, ∞)]
+            @test d1_2 == [PersistenceInterval(1, Inf)]
+            @test d2_2 == [PersistenceInterval(1, Inf)]
             @test isempty(d1_3)
             @test isempty(d2_3)
         end
@@ -191,24 +191,24 @@ include("data.jl")
     @testset "representatives - types" begin
         d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
         @test eltype(d0) <: PersistenceInterval{
-            Int, <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
+            <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
         @test eltype(d1) <: PersistenceInterval{
-            Int, <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
+            <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
         @test eltype(d2) <: PersistenceInterval{
-            Int, <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
+            <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
         @test eltype(d3) <: PersistenceInterval{
-            Int, <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
+            <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
         d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true,
                                   field_type=Rational{Int})
         @test eltype(d0) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
+            Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
         @test eltype(d1) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
+            Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
         @test eltype(d2) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
+            Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
         @test eltype(d3) ≡ PersistenceInterval{
-            Int, Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
+            Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
     end
 
     @testset "representatives - thresh" begin
@@ -254,7 +254,7 @@ include("data.jl")
 
         d0, d1, d2, d3, d4 = ripserer(Cubical(data), representatives=true, dim_max=4)
 
-        @test d0 == [(0, ∞), (1, 2)]
+        @test d0 == [(0, Inf), (1, 2)]
         @test d1 == [(0, 2)]
         @test isempty(d2)
         @test isempty(d3)

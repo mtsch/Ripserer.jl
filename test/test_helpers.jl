@@ -75,14 +75,14 @@ function test_filtration_interface(Filtration, datasets)
             @test E <: AbstractSimplex{1}
             @test E isa DataType
 
-            @test threshold(flt) isa Union{T, Infinity}
+            @test threshold(flt) isa Union{T, Missing}
 
             sx = first(edges(flt))
             @test sx isa E
             @test diam(sx) isa T
             @test birth(flt, 1) isa T
 
-            @test diam(flt, (4, 3, 2, 1)) isa Union{T, Infinity}
+            @test diam(flt, (4, 3, 2, 1)) isa Union{T, Missing}
 
             @test begin @inferred edges(flt); true end
         end

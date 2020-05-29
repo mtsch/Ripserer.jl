@@ -13,19 +13,18 @@ struct Cubelet{D, T, I} <: IndexedSimplex{D, T, I}
 
     function Cubelet{D, T, I}(index, diam) where {D, T, I}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        new{D, T, I}(I(index), T(diam))
+        return new{D, T, I}(I(index), T(diam))
     end
 end
-Cubelet{D}(index::I, diam::T) where {D, T, I} =
-    Cubelet{D, T, I}(index, diam)
+Cubelet{D}(index::I, diam::T) where {D, T, I} = Cubelet{D, T, I}(index, diam)
 
 function Cubelet{D}(vertices::NTuple{K, I}, diam::T) where {D, T, K, I}
     K == 2^D || throw(ArgumentError("a `Cubelet` must have 2^D simplices"))
-    Cubelet{D, T, I}(index(vertices), diam)
+    return Cubelet{D, T, I}(index(vertices), diam)
 end
-Cubelet{D, T, I}(vertices::NTuple, diam) where {D, T, I} =
-    Cubelet{D, T, I}(index(vertices), diam)
-
+function Cubelet{D, T, I}(vertices::NTuple, diam) where {D, T, I}
+    return Cubelet{D, T, I}(index(vertices), diam)
+end
 
 function Base.show(io::IO, ::MIME"text/plain", csx::Cubelet{D, T, I}) where {D, T, I}
     print(io, D, "-dim Cubelet", (index(csx), diam(csx)))
@@ -35,21 +34,19 @@ function Base.show(io::IO, ::MIME"text/plain", csx::Cubelet{D, T, I}) where {D, 
     print(io, ":\n  $(sign(csx) == 1 ? '+' : '-')$(vertices(csx))")
 end
 
-Base.show(io::IO, csx::Cubelet{D, M}) where {D, M} =
+function Base.show(io::IO, csx::Cubelet{D, M}) where {D, M}
     print(io, "Cubelet{$D}($(sign(csx) == 1 ? '+' : '-')$(vertices(csx)), $(diam(csx)))")
+end
 
-diam(csx::Cubelet) =
-    csx.diam
-
-index(csx::Cubelet) =
-    csx.index
+diam(csx::Cubelet) = csx.diam
+index(csx::Cubelet) = csx.index
 
 # @generated used because inference doesn't work well for 2^D
-@generated vertices(csx::Cubelet{D, <:Any, I}) where {D, I} =
-    :(vertices(index(csx), Val($(2^D))))
+@generated function vertices(csx::Cubelet{D, <:Any, I}) where {D, I}
+    return :(vertices(index(csx), Val($(2^D))))
+end
 
-coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} =
-    Cubelet{D+1, T, I}
+coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D+1, T, I}
 
 """
     Cubical{T, N} <: AbstractFiltration{T, <:Cubelet{0, T}}
@@ -72,29 +69,23 @@ function Cubical(
     data::AbstractArray{T, N};
     vertex_type::DataType=Cubelet{0, T, Int64}
 ) where {T, N}
-    Cubical{T, N, vertex_type, typeof(data)}(data, maximum(data))
+    return Cubical{T, N, vertex_type, typeof(data)}(data, maximum(data))
 end
 
-n_vertices(cf::Cubical) =
-    length(cf.data)
-
+n_vertices(cf::Cubical) = length(cf.data)
 threshold(cf::Cubical) = cf.threshold
-
 birth(cf::Cubical, i) = cf.data[i]
 
-Base.CartesianIndices(cf::Cubical) =
-    CartesianIndices(cf.data)
-
-Base.LinearIndices(cf::Cubical) =
-    LinearIndices(cf.data)
+Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
+Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 
 # doesn't quite follow interface.
 function diam(cf::Cubical{T}, vertices) where {T}
     res = typemin(T)
     for v in vertices
-        res = max(res, get(cf.data, v, ∞))
+        res = max(res, get(cf.data, v, missing))
     end
-    res
+    return res
 end
 
 function edges(cf::Cubical{<:Any, N}) where N
@@ -110,7 +101,7 @@ function edges(cf::Cubical{<:Any, N}) where N
             end
         end
     end
-    sort!(result)
+    return sort!(result)
 end
 
 # coboundary ============================================================================= #
@@ -123,30 +114,33 @@ end
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
 ) where {A, N, D, F<:Cubical{<:Any, N}, C<:Cubelet{D}}
+
     K = 2^D
     vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    CubeletCoboundary{A, N, C, F, K}(filtration, cubelet, vxs)
+    return CubeletCoboundary{A, N, C, F, K}(filtration, cubelet, vxs)
 end
 
-coboundary(filtration::Cubical, cubelet::Cubelet) =
-    CubeletCoboundary{true}(filtration, cubelet)
-coboundary(filtration::Cubical, cubelet::Cubelet, ::Val{false}) =
-    CubeletCoboundary{false}(filtration, cubelet)
+function coboundary(filtration::Cubical, cubelet::Cubelet)
+    return CubeletCoboundary{true}(filtration, cubelet)
+end
+function coboundary(filtration::Cubical, cubelet::Cubelet, ::Val{false})
+    return CubeletCoboundary{false}(filtration, cubelet)
+end
 
 function all_equal_in_dim(dim, vertices)
     i1 = vertices[1][dim]
     for v in vertices
         v[dim] ≠ i1 && return false
     end
-    true
+    return true
 end
 
 function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {A, N, C}
     # If not all indices in a given dimension are equal, we can't create a coface by
     # expanding in that direction.
-    diameter = ∞
+    diameter = missing
     new_vertices = cc.vertices
-    while diameter == ∞
+    while ismissing(diameter)
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += 1
         end
@@ -162,7 +156,7 @@ function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {
         dir *= -1
     end
 
-    if diameter == ∞
+    if ismissing(diameter)
         return nothing
     # We swapped the direction of dir at the end of the loop so we use -dir everywhere.
     elseif dir == -1
@@ -173,5 +167,5 @@ function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {
                            TupleTools.vcat(cc.vertices, new_vertices))
     end
     all_vertices = TupleTools.sort(all_vertices, rev=true)
-    coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+    return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
 end

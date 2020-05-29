@@ -10,7 +10,7 @@ include("data.jl")
                 1 0 4 5;
                 2 4 0 4;
                 3 5 4 0]
-        res = edges(dist, ∞, Simplex{1, Int, Int})
+        res = edges(dist, Inf, Simplex{1, Int, Int})
         @test eltype(res) ≡ Simplex{1, Int, Int}
         @test res[1] == Simplex{1}(1, 1)
         @test res[2] == Simplex{1}(2, 2)
@@ -30,7 +30,7 @@ include("data.jl")
                        1 0 4 5;
                        0 4 0 4;
                        3 5 4 0])
-        res = edges(dist, ∞, Simplex{1, Int, Int128})
+        res = edges(dist, Inf, Simplex{1, Int, Int128})
         @test eltype(res) ≡ Simplex{1, Int, Int128}
         @test res[1] == Simplex{1}(1, 1)
         @test res[2] == Simplex{1}(4, 3)
@@ -41,7 +41,7 @@ include("data.jl")
     @testset "n edges dense" begin
         dist = rand_dist_matrix(100)
         n_edges = binomial(size(dist, 1), 2)
-        res = edges(dist, ∞, Simplex{1})
+        res = edges(dist, Inf, Simplex{1})
         @test eltype(res) ≡ Simplex{1, Float64, Int}
         @test length(res) == n_edges
         @test issorted(res, by=diam)
@@ -50,7 +50,7 @@ include("data.jl")
         for _ in 1:10
             dist = rand_dist_matrix(100, 0.5)
             n_edges = nnz(dist) ÷ 2
-            res = edges(dist, ∞, Simplex{1, Float64, Int128})
+            res = edges(dist, Inf, Simplex{1, Float64, Int128})
             @test eltype(res) ≡ Simplex{1, Float64, Int128}
             @test length(res) == n_edges
             @test issorted(res, by=diam)
@@ -104,8 +104,8 @@ for Filtration in (Rips, SparseRips)
             @test dist(flt, 3, 3) == 0
             @test dist(flt, 1, 2) == 1
             @test dist(flt, 1, 3) == 2
-            @test dist(flt, 3, 2) == (issparse(flt.dist) ? ∞ : 3)
-            @test diam(flt, Simplex{2}(1, 1), [1, 2], 3) == ∞
+            @test dist(flt, 3, 2) ≡ (issparse(flt.dist) ? missing : 3)
+            @test ismissing(diam(flt, Simplex{2}(1, 1), [1, 2], 3))
             @test threshold(flt) == 2
             @test vertex_type(flt) === Simplex{0, Int, Int}
             @test edge_type(flt) === Simplex{1, Int, Int}

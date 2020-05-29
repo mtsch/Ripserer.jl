@@ -14,7 +14,7 @@ simplices.
 * [`diam(::AbstractFiltration, vs)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
-* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `∞`.
+* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `missing`.
 """
 abstract type AbstractFiltration{T, V<:AbstractSimplex{0, T}} end
 
@@ -22,12 +22,9 @@ function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
-vertex_type(::AbstractFiltration{<:Any, V}) where V =
-    V
-edge_type(::AbstractFiltration{<:Any, V}) where V =
-    coface_type(V)
-dist_type(::AbstractFiltration{T}) where T =
-    T
+vertex_type(::AbstractFiltration{<:Any, V}) where V = V
+edge_type(::AbstractFiltration{<:Any, V}) where V = coface_type(V)
+dist_type(::AbstractFiltration{T}) where T = T
 
 """
     n_vertices(filtration::AbstractFiltration)
@@ -63,8 +60,7 @@ diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 
 Get the birth time of vertex `v`.
 """
-birth(::AbstractFiltration{T}, _) where T =
-    zero(T)
+birth(::AbstractFiltration{T}, _) where T = zero(T)
 
 """
     threshold(::AbstractFiltration)
@@ -72,4 +68,4 @@ birth(::AbstractFiltration{T}, _) where T =
 Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
 can have. Used only for placing the infinity line in plotting.
 """
-threshold(::AbstractFiltration) = ∞
+threshold(::AbstractFiltration) = missing

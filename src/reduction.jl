@@ -37,10 +37,8 @@ struct ReductionState{
     end
 end
 
-simplex_type(rs::ReductionState{<:Any, S}) where S =
-    S
-coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE =
-    CE
+simplex_type(rs::ReductionState{<:Any, S}) where S = S
+coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE = CE
 
 """
     add!(rs::ReductionState, current_pivot)
@@ -57,7 +55,7 @@ function add!(rs::ReductionState, current_pivot)
             push!(rs.working_column, coface_element(rs)(coface, λ * coefficient(element)))
         end
     end
-    pivot(rs.working_column)
+    return pivot(rs.working_column)
 end
 
 """
@@ -77,7 +75,7 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
         end
         push!(rs.working_column, coface)
     end
-    pivot(rs.working_column)
+    return pivot(rs.working_column)
 end
 
 """
@@ -97,7 +95,7 @@ function reduce_working_column!(
         current_pivot = add!(rs, current_pivot)
     end
     if isnothing(current_pivot)
-        death = ∞
+        death = Inf
     else
         insert_column!(rs.reduction_matrix, current_pivot)
         push!(rs.reduction_entries, column_simplex)
@@ -107,14 +105,14 @@ function reduce_working_column!(
     birth = diam(column_simplex)
 
     if reps && !isfinite(death)
-        PersistenceInterval(birth, death, chain_element_type(S, F)[])
+        return PersistenceInterval(birth, death, chain_element_type(S, F)[])
     elseif reps && death - birth > cutoff
         representative = collect(rs.reduction_matrix[current_pivot])
-        PersistenceInterval(birth, death, representative)
+        return PersistenceInterval(birth, death, representative)
     elseif !isfinite(death) || death - birth > cutoff
-        PersistenceInterval(birth, death)
+        return PersistenceInterval(birth, death)
     else
-        nothing
+        return nothing
     end
 end
 
@@ -130,9 +128,9 @@ function compute_intervals!(
 ) where {S, F}
     T = dist_type(rs.filtration)
     if reps
-        intervals = PersistenceInterval{T, Vector{chain_element_type(S, F)}}[]
+        intervals = PersistenceInterval{Vector{chain_element_type(S, F)}}[]
     else
-        intervals = PersistenceInterval{T, Nothing}[]
+        intervals = PersistenceInterval{Nothing}[]
     end
     if progress
         progbar = Progress(length(columns), desc="Computing $(dim(S))d intervals... ")
@@ -144,7 +142,9 @@ function compute_intervals!(
         end
         progress && next!(progbar)
     end
-    sort!(PersistenceDiagram(dim(eltype(columns)), threshold(rs.filtration), intervals))
+    return sort!(
+        PersistenceDiagram(dim(eltype(columns)), intervals, threshold(rs.filtration))
+    )
 end
 
 """
@@ -178,7 +178,7 @@ function assemble_columns!(
     end
     sort!(new_unreduced, rev=true)
     progress && printstyled("Assembled $(length(new_unreduced)) columns.\n", color=:green)
-    new_unreduced, new_reduced
+    return new_unreduced, new_reduced
 end
 
 """
@@ -198,9 +198,9 @@ function nth_intervals(
     sizehint!(rs.reduction_matrix, length(unreduced))
     intervals = compute_intervals!(rs, unreduced, cutoff, reps, progress)
     if assemble
-        (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
+        return (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
     else
-        (intervals, nothing, nothing)
+        return (intervals, nothing, nothing)
     end
 end
 
@@ -211,11 +211,11 @@ Collect the zero dimensional representative of `vertex`.
 """
 function zeroth_representative(filtration, dset, vertex, reps, CE, V)
     if reps
-        map(find_leaves!(dset, vertex)) do u
+        return map(find_leaves!(dset, vertex)) do u
             CE(V((u,), birth(filtration, u)))
         end
     else
-        nothing
+        return nothing
     end
 end
 
@@ -234,9 +234,9 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     CE = chain_element_type(V, field_type)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     if reps
-        intervals = PersistenceInterval{T, Vector{CE}}[]
+        intervals = PersistenceInterval{Vector{CE}}[]
     else
-        intervals = PersistenceInterval{T, Nothing}[]
+        intervals = PersistenceInterval{Nothing}[]
     end
     reduced = edge_type(filtration)[]
     unreduced = edge_type(filtration)[]
@@ -267,12 +267,14 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
             representative = zeroth_representative(filtration, dset, v, reps, CE, V)
-            push!(intervals, PersistenceInterval(birth(dset, v), ∞, representative))
+            push!(intervals, PersistenceInterval(birth(dset, v), Inf, representative))
         end
     end
     reverse!(unreduced)
     progress && printstyled("Assembled $(length(unreduced)) columns.\n", color=:green)
-    sort!(PersistenceDiagram(0, threshold(filtration), intervals)), unreduced, reduced
+    return (
+        sort!(PersistenceDiagram(0, intervals, threshold(filtration))), unreduced, reduced,
+    )
 end
 
 """
@@ -319,7 +321,7 @@ function ripserer(
     else
         filtration = Rips(dists; kwargs...)
     end
-    ripserer(
+    return ripserer(
         filtration;
         dim_max=dim_max,
         representatives=representatives,
@@ -331,14 +333,14 @@ end
 
 function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
     dists = distances(metric, points, births)
-    ripserer(dists; kwargs...)
+    return ripserer(dists; kwargs...)
 end
 
 function ripserer(
     filtration::AbstractFiltration;
     dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false
 )
-    ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
+    return ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
 end
 
 function ripserer(
@@ -354,5 +356,5 @@ function ripserer(
         # TODO: A lot of things get allocated and then destroyed in nth_intervals, so it
         # might make sense to do a GC.gc() here.
     end
-    res
+    return res
 end

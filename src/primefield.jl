@@ -6,7 +6,7 @@ Return `true` if `n` is a prime number.
 """
 @pure function is_prime(n::Int)
     if iseven(n) || n < 2
-        n == 2
+        return n == 2
     else
         p = 3
         q = n ÷ p
@@ -15,11 +15,10 @@ Return `true` if `n` is a prime number.
             p += 2
             q = n ÷ p
         end
-        true
+        return true
     end
 end
-@pure is_prime(::Any) =
-    false
+@pure is_prime(::Any) = false
 
 """
     mod_prime(i, ::Val{M})
@@ -29,10 +28,9 @@ Like `mod`, but with prime `M`.
 function mod_prime(i, ::Val{M}) where M
     is_prime(M) || throw(DomainError(M, "modulus must be a prime number"))
     i = i % M
-    i + ifelse(signbit(i), M, 0)
+    return i + ifelse(signbit(i), M, 0)
 end
-mod_prime(i, ::Val{2}) =
-    i & 1
+mod_prime(i, ::Val{2}) = i & 1
 
 """
     Mod{M} <: Integer
@@ -45,24 +43,20 @@ struct Mod{M} <: Integer
 
     function Mod{M}(value::Integer; check_mod=true) where M
         if check_mod
-            new{M}(mod_prime(value, Val(M)))
+            return new{M}(mod_prime(value, Val(M)))
         else
-            new{M}(value)
+            return new{M}(value)
         end
     end
 end
-Mod{M}(i::Mod{M}) where M =
-    i
+Mod{M}(i::Mod{M}) where M = i
 
-Base.Int(i::Mod) =
-    i.value
+Base.Int(i::Mod) = i.value
 
-Base.show(io::IO, i::Mod{M}) where M =
-    print(io, Int(i), " mod ", M)
+Base.show(io::IO, i::Mod{M}) where M = print(io, Int(i), " mod ", M)
 
 for op in (:+, :-, :*)
-    @eval (Base.$op)(i::Mod{M}, j::Mod{M}) where M =
-        Mod{M}($op(Int(i), Int(j)))
+    @eval (Base.$op)(i::Mod{M}, j::Mod{M}) where M = Mod{M}($op(Int(i), Int(j)))
 end
 
 Base.:/(i::Mod{M}, j::Mod{M}) where M = i * inv(j)
@@ -86,12 +80,12 @@ Base.promote_rule(::Type{Mod{M}}, ::Type{<:Integer}) where {M} = Mod{M}
         end
         inverse = (inverse_arr...,)
 
-        quote
+        return quote
             $err_check
             @inbounds $inverse[i]
         end
     else
-        quote
+        return quote
             $err_check
             i
         end

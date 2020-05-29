@@ -34,24 +34,24 @@ index(Simplex{2}((3, 2, 1), 3.2))
 """
 index(::IndexedSimplex)
 
-Base.sign(sx::IndexedSimplex) =
-    sign(index(sx))
+Base.sign(sx::IndexedSimplex) = sign(index(sx))
+Base.abs(sx::S) where S<:IndexedSimplex = S(abs(index(sx)), diam(sx))
+Base.:-(sx::S) where S<:IndexedSimplex = S(-index(sx), diam(sx))
 
-Base.abs(sx::S) where S<:IndexedSimplex =
-    S(abs(index(sx)), diam(sx))
+function Base.isless(sx1::S, sx2::S) where S<:IndexedSimplex
+    return ifelse(
+        diam(sx1) ≠ diam(sx2),
+        diam(sx1) < diam(sx2),
+        abs(index(sx1)) > abs(index(sx2))
+    )
+end
 
-Base.:-(sx::S) where S<:IndexedSimplex =
-    S(-index(sx), diam(sx))
-
-Base.isless(sx1::S, sx2::S) where S<:IndexedSimplex =
-    ifelse(diam(sx1) ≠ diam(sx2),
-           diam(sx1) < diam(sx2),
-           abs(index(sx1)) > abs(index(sx2)))
-
-Base.:(==)(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D =
-    (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
-Base.hash(sx::IndexedSimplex, h::UInt64) =
-    hash(index(sx), hash(diam(sx), h))
+function Base.:(==)(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D
+    return (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
+end
+function Base.hash(sx::IndexedSimplex, h::UInt64)
+    return hash(index(sx), hash(diam(sx), h))
+end
 
 # vertices and indices =================================================================== #
 """
@@ -69,7 +69,7 @@ function small_binomial(n::I, ::Val{k}) where {k, I}
         x = div(x * nn, rr)
         nn += 1
     end
-    I(x)
+    return I(x)
 end
 
 """
@@ -85,7 +85,7 @@ function find_max_vertex(idx::I, ::Val{k}) where {I, k}
         lo = hi
         hi <<= 1
     end
-    find_max_vertex(idx, Val(k), hi + one(I), lo)
+    return find_max_vertex(idx, Val(k), hi + one(I), lo)
 end
 
 function find_max_vertex(idx::I, ::Val{k}, hi::I, lo::I=I(k-1)) where {I, k}
@@ -97,7 +97,7 @@ function find_max_vertex(idx::I, ::Val{k}, hi::I, lo::I=I(k-1)) where {I, k}
             hi = m
         end
     end
-    lo
+    return lo
 end
 
 """
@@ -129,14 +129,15 @@ For regular simplices, `N` should be equal to `dim+1`!
             index -= small_binomial($(vars[i+1]), Val($k))
         end
     end
-    quote
+    return quote
         $expr
         (tuple($(vars...)) .+ I(1))
     end
 end
 
-vertices(sx::IndexedSimplex{D, <:Any, I}) where {D, I} =
-    vertices(index(sx), Val(D+1))::NTuple{D+1, I}
+function vertices(sx::IndexedSimplex{D, <:Any, I}) where {D, I}
+    return vertices(index(sx), Val(D+1))::NTuple{D+1, I}
+end
 
 """
     index(vertices)
@@ -164,7 +165,7 @@ where ``i_k`` are the simplex vertex indices.
             $expr + small_binomial(vertices[$i] - one($I), Val($(k - i + 1)))
         end
     end
-    expr
+    return expr
 end
 
 # coboundaries =========================================================================== #
@@ -193,20 +194,24 @@ struct IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex}
     simplex    ::S
     vertices   ::NTuple{D, Int}
 
-    IndexedCobounary{A}(filtration::F, simplex::S) where {A, D, F, S<:IndexedSimplex{D}} =
-        new{A, D + 1, F, S}(filtration, simplex, vertices(simplex))
+    function IndexedCobounary{A}(
+        filtration::F, simplex::S
+    ) where {A, D, F, S<:IndexedSimplex{D}}
+
+        return new{A, D + 1, F, S}(filtration, simplex, vertices(simplex))
+    end
 end
 
-coboundary(filtration, simplex::IndexedSimplex) =
-    IndexedCobounary{true}(filtration, simplex)
-coboundary(filtration, simplex::IndexedSimplex, ::Val{false}) =
-    IndexedCobounary{false}(filtration, simplex)
+function coboundary(filtration, simplex::IndexedSimplex, ::Val{A}=Val(true)) where A
+    return IndexedCobounary{A}(filtration, simplex)
+end
 
 function Base.iterate(
     ci::IndexedCobounary{all_cofaces, D}, (v, k)=(n_vertices(ci.filtration) + 1, D),
 ) where {all_cofaces, D}
-    diameter = ∞
-    @inbounds while diameter == ∞ && v > 0
+
+    diameter = missing
+    @inbounds while ismissing(diameter) && v > 0
         v -= 1
         while v > 0 && v in ci.vertices
             all_cofaces || return nothing
@@ -216,7 +221,7 @@ function Base.iterate(
         v == 0 && break
         diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
     end
-    if diameter != ∞
+    if !ismissing(diameter)
         sign = ifelse(iseven(k), 1, -1)
         new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
 
@@ -261,18 +266,19 @@ struct Simplex{D, T, I} <: IndexedSimplex{D, T, I}
 
     function Simplex{D, T, I}(index, diam) where {D, T, I}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        new{D, T, I}(I(index), T(diam))
+        return new{D, T, I}(I(index), T(diam))
     end
 end
 
-Simplex{D}(index::I, diam::T) where {D, T, I<:Integer} =
-    Simplex{D, T, I}(index, diam)
-Simplex{D}(vertices::NTuple{<:Any, I}, diam::T) where {D, T, I<:Integer} =
-    Simplex{D, T, I}(vertices, diam)
+function Simplex{D}(index::I, diam::T) where {D, T, I<:Integer}
+    return Simplex{D, T, I}(index, diam)
+end
+function Simplex{D}(vertices::NTuple{<:Any, I}, diam::T) where {D, T, I<:Integer}
+    return Simplex{D, T, I}(vertices, diam)
+end
 function Simplex{D, T, I}(vertices::NTuple{N}, diam) where {D, T, I<:Integer, N}
     N == D + 1 || throw(ArgumentError("invalid number of vertices"))
-
-    Simplex{D, T, I}(index(vertices), T(diam))
+    return Simplex{D, T, I}(index(vertices), T(diam))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
@@ -283,12 +289,11 @@ function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T
     print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
 end
 
-Base.show(io::IO, sx::Simplex{D, M}) where {D, M} =
+function Base.show(io::IO, sx::Simplex{D, M}) where {D, M}
     print(io, "Simplex{$D}($(sign(sx) == 1 ? '+' : '-')$(vertices(sx)), $(diam(sx)))")
+end
 
 # Interface implementation =============================================================== #
 index(sx::Simplex) = sx.index
-
 diam(sx::Simplex) = sx.diam
-
 coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}
