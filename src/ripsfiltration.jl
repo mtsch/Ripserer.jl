@@ -66,7 +66,8 @@ abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
     res = typemin(dist_type(flt))
     for i in 1:n, j in i+1:n
         d = dist(flt, vertices[j], vertices[i])
-        res = ifelse(isless(d, res), res, d)
+        ismissing(d) && return missing
+        res = ifelse(d < res, res, d)
     end
     return ifelse(res > threshold(flt), missing, res)
 end
@@ -77,9 +78,13 @@ end
         # Even though this looks like a tight loop, v changes way more often than us, so
         # this is the faster order of indexing by u and v.
         d = dist(flt, v, u)
-        res = ifelse(isless(d, res), res, d)
+        if ismissing(d) || d > threshold(flt)
+            return missing
+        else
+            res = ifelse(res > d, res, d)
+        end
     end
-    return ifelse(res > threshold(flt), missing, res)
+    return res
 end
 
 edges(flt::AbstractFlagFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
@@ -211,17 +216,5 @@ end
 # Threshold was handled by deleting entries in the matrix.
 threshold(rips::SparseRips) = rips.threshold
 max_death(rips::SparseRips) = maximum(rips.dist)
-
-@propagate_inbounds function diam(rips::SparseRips, sx::AbstractSimplex, us, v)
-    res = diam(sx)
-    for u in us
-        # Since indexing in sparse matrices is expensive, we want to abort the loop early
-        # even though the number of vertices in us is small.
-        d = dist(rips, v, u)
-        ismissing(d) && return missing
-        res = ifelse(res > d, res, d)
-    end
-    return res
-end
 
 birth(rips::SparseRips, i) = rips.dist[i, i]
