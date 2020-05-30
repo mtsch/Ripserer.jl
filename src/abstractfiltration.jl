@@ -44,14 +44,16 @@ edges(::AbstractFiltration)
 """
     diam(flt::AbstractFiltration, vertices)
 
-Get the diameter of list of vertices i.e. diameter of simplex with `vertices`.
+Get the diameter of list of vertices i.e. diameter of simplex with `vertices`. Retrun
+`missing` if `vertices` do not form a valid simplex.
 """
 diam(::AbstractFiltration, ::Any)
 
 """
     diam(flt::AbstractFiltration, simplex, vertices, vertex)
 
-Get the diameter of coface of `simplex` that is formed by adding `vertex` to `vertices`.
+Get the diameter of coface of a `Simplex` that is formed by adding `vertex` to `vertices`.
+Return `missing` if new simplex is not valid.
 """
 diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 

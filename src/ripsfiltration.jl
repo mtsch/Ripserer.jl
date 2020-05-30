@@ -78,9 +78,11 @@ end
         # Even though this looks like a tight loop, v changes way more often than us, so
         # this is the faster order of indexing by u and v.
         d = dist(flt, v, u)
-        #ismissing(d) && return missing
-        (ismissing(d) || d > threshold(flt)) && return missing
-        res = ifelse(res > d, res, d)
+        if ismissing(d) || d > threshold(flt)
+            return missing
+        else
+            res = ifelse(res > d, res, d)
+        end
     end
     return res
 end
