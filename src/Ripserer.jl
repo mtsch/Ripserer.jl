@@ -23,7 +23,7 @@ using RecipesBase
 using TupleTools
 
 # reexport basics from PersistenceDiagrams
-import PersistenceDiagrams: birth
+import PersistenceDiagrams: birth, threshold
 export PersistenceDiagram, PersistenceInterval
 export birth, death, persistence, representative, barcode
 
