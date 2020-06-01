@@ -40,23 +40,6 @@ end
 simplex_type(rs::ReductionState{<:Any, S}) where S = S
 coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE = CE
 
-"""
-    add!(rs::ReductionState, current_pivot)
-
-Add column with column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by
-the correct factor to `rs.working_column`. Also record the addition in
-`rs.reduction_entries`.
-"""
-function add!(rs::ReductionState, current_pivot)
-    λ = -coefficient(current_pivot)
-    for element in rs.reduction_matrix[current_pivot]
-        push!(rs.reduction_entries, λ * element)
-        for coface in coboundary(rs.filtration, simplex(element))
-            push!(rs.working_column, coface_element(rs)(coface, λ * coefficient(element)))
-        end
-    end
-    return pivot(rs.working_column)
-end
 
 """
     initialize!(rs::ReductionState, column_simplex)
@@ -76,6 +59,24 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
         nonheap_push!(rs.working_column, coface)
     end
     repair!(rs.working_column)
+    return first(rs.working_column) # There are no duplicates on the heap at this point.
+end
+
+"""
+    add!(rs::ReductionState, current_pivot)
+
+Add column with column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by
+the correct factor to `rs.working_column`. Also record the addition in
+`rs.reduction_entries`.
+"""
+function add!(rs::ReductionState, current_pivot)
+    λ = -coefficient(current_pivot)
+    for element in rs.reduction_matrix[current_pivot]
+        push!(rs.reduction_entries, λ * element)
+        for coface in coboundary(rs.filtration, simplex(element))
+            push!(rs.working_column, coface_element(rs)(coface, λ * coefficient(element)))
+        end
+    end
     return pivot(rs.working_column)
 end
 

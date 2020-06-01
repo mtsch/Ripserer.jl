@@ -153,7 +153,6 @@ end
 Return the pivot of the column - the element with the lowest diameter.
 """
 function pivot(column::Column)
-    heap = column.heap
     pivot = pop_pivot!(column)
     if !isnothing(pivot)
         heappush!(column.heap, pivot)
@@ -164,7 +163,7 @@ end
 Base.push!(column::Column{CE}, simplex) where CE = push!(column, CE(simplex))
 function Base.push!(column::Column{CE}, element::CE) where CE
     heap = column.heap
-    if !isempty(heap) && first(heap) == element
+    @inbounds if !isempty(heap) && heap[1] == element
         heap[1] += element
     else
         heappush!(heap, element)
@@ -173,7 +172,8 @@ function Base.push!(column::Column{CE}, element::CE) where CE
 end
 
 nonheap_push!(column::Column{CE}, simplex) where CE = push!(column.heap, CE(simplex))
-repair!(column) = heapify!(column.heap)
+repair!(column::Column) = heapify!(column.heap)
+Base.first(column::Column) = isempty(column) ? nothing : first(column.heap)
 
 # disjointset with birth ================================================================= #
 """
