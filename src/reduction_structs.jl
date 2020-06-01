@@ -94,12 +94,12 @@ Support `push!`ing chain elements or simplices. Unlike a regular heap, it return
 when `pop!` is used on an empty column.
 """
 struct Column{CE<:AbstractChainElement}
-    heap::BinaryMinHeap{CE}
+    heap::Vector{CE}#BinaryMinHeap{CE}
 
-    Column{CE}() where CE = new{CE}(BinaryMinHeap{CE}())
+    Column{CE}() where CE = new{CE}(CE[])
 end
 
-Base.empty!(col::Column) = empty!(col.heap.valtree)
+Base.empty!(col::Column) = empty!(col.heap)
 Base.isempty(col::Column) = isempty(col.heap)
 
 function Base.sizehint!(col::Column, size)
@@ -134,12 +134,12 @@ function pop_pivot!(column::Column)
     isempty(column) && return nothing
     heap = column.heap
 
-    pivot = pop!(heap)
+    pivot = heappop!(heap)
     while !isempty(heap)
         if iszero(pivot)
-            pivot = pop!(heap)
-        elseif top(heap) == pivot
-            pivot += pop!(heap)
+            pivot = heappop!(heap)
+        elseif first(heap) == pivot
+            pivot += heappop!(heap)
         else
             break
         end
@@ -156,7 +156,7 @@ function pivot(column::Column)
     heap = column.heap
     pivot = pop_pivot!(column)
     if !isnothing(pivot)
-        push!(column, pivot)
+        heappush!(column.heap, pivot)
     end
     return pivot
 end
@@ -164,13 +164,16 @@ end
 Base.push!(column::Column{CE}, simplex) where CE = push!(column, CE(simplex))
 function Base.push!(column::Column{CE}, element::CE) where CE
     heap = column.heap
-    if !isempty(heap) && top(heap) == element
-        heap.valtree[1] += element
+    if !isempty(heap) && first(heap) == element
+        heap[1] += element
     else
-        push!(heap, element)
+        heappush!(heap, element)
     end
     return column
 end
+
+nonheap_push!(column::Column{CE}, simplex) where CE = push!(column.heap, CE(simplex))
+repair!(column) = heapify!(column.heap)
 
 # disjointset with birth ================================================================= #
 """

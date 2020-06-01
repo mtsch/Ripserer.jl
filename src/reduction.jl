@@ -73,8 +73,9 @@ function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
             empty!(rs.working_column)
             return coface_element(rs)(coface)
         end
-        push!(rs.working_column, coface)
+        nonheap_push!(rs.working_column, coface)
     end
+    repair!(rs.working_column)
     return pivot(rs.working_column)
 end
 
