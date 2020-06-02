@@ -22,14 +22,14 @@ struct ReductionState{
     filtration        ::F
     reduction_matrix  ::ReductionMatrix{C, SE}
     working_column    ::Column{CE}
-    reduction_entries ::Column{SE}
+    reduction_entries ::Vector{SE}
 
     function ReductionState{Field, S}(filtration::F) where {Field, S<:AbstractSimplex, F}
         SE = chain_element_type(S, Field)
         C = coface_type(S)
         CE = chain_element_type(C, Field)
         working_column = Column{CE}()
-        reduction_entries = Column{SE}()
+        reduction_entries = SE[]
 
         new{Field, S, SE, C, CE, F}(
             filtration, ReductionMatrix{C, SE}(), working_column, reduction_entries
@@ -65,9 +65,8 @@ end
 """
     add!(rs::ReductionState, current_pivot)
 
-Add column with column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by
-the correct factor to `rs.working_column`. Also record the addition in
-`rs.reduction_entries`.
+Add column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by the correct
+factor to `rs.working_column`. Also record the addition in `rs.reduction_entries`.
 """
 function add!(rs::ReductionState, current_pivot)
     λ = -coefficient(current_pivot)
@@ -100,8 +99,10 @@ function reduce_working_column!(
         death = Inf
     else
         insert_column!(rs.reduction_matrix, current_pivot)
-        push!(rs.reduction_entries, column_simplex)
-        move_mul!(rs.reduction_matrix, rs.reduction_entries, inv(coefficient(current_pivot)))
+        push!(rs.reduction_entries, chain_element_type(S, F)(column_simplex))
+        append_unique_times!(
+            rs.reduction_matrix, rs.reduction_entries, inv(coefficient(current_pivot))
+        )
         death = diam(simplex(current_pivot))
     end
     birth = diam(column_simplex)

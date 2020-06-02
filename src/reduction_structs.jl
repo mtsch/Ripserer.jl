@@ -43,6 +43,26 @@ function Base.push!(rm::ReductionMatrix, value)
     return value
 end
 
+"""
+    append_unique_times!(rm::ReductionMatrix, values, factor)
+
+Append `values`, sorted with duplicates added together and multiplied by `factor` to `rm`.
+"""
+function append_unique_times!(rm::ReductionMatrix, values, factor)
+    sort!(values, alg=QuickSort)
+    prev = values[1]
+    for i in 2:length(values)
+        @inbounds current = values[i]
+        if current == prev
+            prev += current
+        else
+            !iszero(prev) && push!(rm, prev * factor)
+            prev = current
+        end
+    end
+    !iszero(prev) && push!(rm, prev * factor)
+end
+
 function Base.sizehint!(rm::ReductionMatrix, n)
     sizehint!(rm.column_index, n)
     sizehint!(rm.colptr, n)
@@ -84,6 +104,7 @@ function Base.iterate(ci::RMColumnIterator, i=1)
     end
 end
 
+
 # columns ================================================================================ #
 """
     Column{CE<:AbstractChainElement}
@@ -94,7 +115,7 @@ Support `push!`ing chain elements or simplices. Unlike a regular heap, it return
 when `pop!` is used on an empty column.
 """
 struct Column{CE<:AbstractChainElement}
-    heap::Vector{CE}#BinaryMinHeap{CE}
+    heap::Vector{CE}
 
     Column{CE}() where CE = new{CE}(CE[])
 end
@@ -105,22 +126,6 @@ Base.isempty(col::Column) = isempty(col.heap)
 function Base.sizehint!(col::Column, size)
     sizehint!(col.heap, size)
     return col
-end
-
-"""
-    move_mul!(dst, col::Column{CE}, times=one(CE))
-
-Move contents of column into `dst` by repeatedly calling `pop_pivot!` on the column and
-`push!`ing the pivot to `dst`. Multipy all elements that are moved are multiplied by
-`times`.
-"""
-function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
-    pivot = pop_pivot!(col)
-    while !isnothing(pivot)
-        push!(dst, times * pivot)
-        pivot = pop_pivot!(col)
-    end
-    return dst
 end
 
 """
