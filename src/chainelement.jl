@@ -98,11 +98,9 @@ struct PackedElement{S<:IndexedSimplex, F<:Mod, M, U, T} <: AbstractChainElement
         idx = index(simplex)
         coef = F(coefficient) * sign(idx)
         uidx = U(abs(idx))
-        diameter = diam(simplex)
-
         index_coef = Int(coef) << (sizeof(U) * 8 - n_bits(M)) | uidx
 
-        return new{S, F, M, U, T}(index_coef, diameter)
+        return new{S, F, M, U, T}(index_coef, diam(simplex))
     end
 end
 

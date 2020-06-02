@@ -43,6 +43,26 @@ function Base.push!(rm::ReductionMatrix, value)
     return value
 end
 
+"""
+    append_unique_times!(rm::ReductionMatrix, values, factor)
+
+Append `values`, sorted with duplicates added together and multiplied by `factor` to `rm`.
+"""
+function append_unique_times!(rm::ReductionMatrix, values, factor)
+    sort!(values, alg=QuickSort)
+    prev = values[1]
+    for i in 2:length(values)
+        @inbounds current = values[i]
+        if current == prev
+            prev += current
+        else
+            !iszero(prev) && push!(rm, prev * factor)
+            prev = current
+        end
+    end
+    !iszero(prev) && push!(rm, prev * factor)
+end
+
 function Base.sizehint!(rm::ReductionMatrix, n)
     sizehint!(rm.column_index, n)
     sizehint!(rm.colptr, n)
@@ -84,6 +104,7 @@ function Base.iterate(ci::RMColumnIterator, i=1)
     end
 end
 
+
 # columns ================================================================================ #
 """
     Column{CE<:AbstractChainElement}
@@ -94,33 +115,17 @@ Support `push!`ing chain elements or simplices. Unlike a regular heap, it return
 when `pop!` is used on an empty column.
 """
 struct Column{CE<:AbstractChainElement}
-    heap::BinaryMinHeap{CE}
+    heap::Vector{CE}
 
-    Column{CE}() where CE = new{CE}(BinaryMinHeap{CE}())
+    Column{CE}() where CE = new{CE}(CE[])
 end
 
-Base.empty!(col::Column) = empty!(col.heap.valtree)
+Base.empty!(col::Column) = empty!(col.heap)
 Base.isempty(col::Column) = isempty(col.heap)
 
 function Base.sizehint!(col::Column, size)
     sizehint!(col.heap, size)
     return col
-end
-
-"""
-    move_mul!(dst, col::Column{CE}, times=one(CE))
-
-Move contents of column into `dst` by repeatedly calling `pop_pivot!` on the column and
-`push!`ing the pivot to `dst`. Multipy all elements that are moved are multiplied by
-`times`.
-"""
-function move_mul!(dst, col::Column{CE}, times=one(CE)) where CE
-    pivot = pop_pivot!(col)
-    while !isnothing(pivot)
-        push!(dst, times * pivot)
-        pivot = pop_pivot!(col)
-    end
-    return dst
 end
 
 """
@@ -134,12 +139,12 @@ function pop_pivot!(column::Column)
     isempty(column) && return nothing
     heap = column.heap
 
-    pivot = pop!(heap)
+    pivot = heappop!(heap)
     while !isempty(heap)
         if iszero(pivot)
-            pivot = pop!(heap)
-        elseif top(heap) == pivot
-            pivot += pop!(heap)
+            pivot = heappop!(heap)
+        elseif first(heap) == pivot
+            pivot += heappop!(heap)
         else
             break
         end
@@ -153,10 +158,9 @@ end
 Return the pivot of the column - the element with the lowest diameter.
 """
 function pivot(column::Column)
-    heap = column.heap
     pivot = pop_pivot!(column)
     if !isnothing(pivot)
-        push!(column, pivot)
+        heappush!(column.heap, pivot)
     end
     return pivot
 end
@@ -164,13 +168,17 @@ end
 Base.push!(column::Column{CE}, simplex) where CE = push!(column, CE(simplex))
 function Base.push!(column::Column{CE}, element::CE) where CE
     heap = column.heap
-    if !isempty(heap) && top(heap) == element
-        heap.valtree[1] += element
+    @inbounds if !isempty(heap) && heap[1] == element
+        heap[1] += element
     else
-        push!(heap, element)
+        heappush!(heap, element)
     end
     return column
 end
+
+nonheap_push!(column::Column{CE}, simplex) where CE = push!(column.heap, CE(simplex))
+repair!(column::Column) = heapify!(column.heap)
+Base.first(column::Column) = isempty(column) ? nothing : first(column.heap)
 
 # disjointset with birth ================================================================= #
 """
