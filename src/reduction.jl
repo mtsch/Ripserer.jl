@@ -1,211 +1,70 @@
 """
-    ReductionState
+    DisjointSetsWithBirth{T}
 
-This structure represents the reduction matrix in the current dimension. A new one is
-created for every dimension.
-
-# Fields:
-
-* `filtration`: the filtration we are analyzing.
-* `reduction_matrix`: the reduction matrix. Each column of the matrix records the operations
-  that were performed when reducing the column.
-* `working_column`: the current working column, the column we are currently reducing.
-* `reduction_entries`: this is where we record which simplices we added to the working
-  column.
+Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
+Has no `num_groups` method.
 """
-struct ReductionState{
-    Field,
-    S<:AbstractSimplex, SE<:AbstractChainElement{S, Field},
-    C<:AbstractSimplex, CE<:AbstractChainElement{C, Field},
-    F,
-}
-    filtration        ::F
-    reduction_matrix  ::ReductionMatrix{C, SE}
-    working_column    ::Column{CE}
-    reduction_entries ::Vector{SE}
+struct DisjointSetsWithBirth{T}
+    parents ::Vector{Int}
+    ranks   ::Vector{Int}
+    births  ::Vector{T}
 
-    function ReductionState{Field, S}(filtration::F) where {Field, S<:AbstractSimplex, F}
-        SE = chain_element_type(S, Field)
-        C = coface_type(S)
-        CE = chain_element_type(C, Field)
-        working_column = Column{CE}()
-        reduction_entries = SE[]
-
-        new{Field, S, SE, C, CE, F}(
-            filtration, ReductionMatrix{C, SE}(), working_column, reduction_entries
-        )
+    function DisjointSetsWithBirth(births::AbstractVector{T}) where T
+        n = length(births)
+        return new{T}(collect(1:n), fill(0, n), copy(births))
     end
 end
 
-simplex_type(rs::ReductionState{<:Any, S}) where S = S
-coface_element(rs::ReductionState{<:Any, <:Any, <:Any, <:Any, CE}) where CE = CE
+Base.length(s::DisjointSetsWithBirth) =
+    length(s.parents)
 
-
-"""
-    initialize!(rs::ReductionState, column_simplex)
-
-Initialize the columns in `rs`. Empty both `rs.working_column` and `rs.reduction_entries`,
-then push the coboundary of `column_simplex` to `rs.working_column`.
-"""
-function initialize!(rs::ReductionState, column_simplex::AbstractSimplex)
-    empty!(rs.working_column)
-    empty!(rs.reduction_entries)
-
-    for coface in coboundary(rs.filtration, column_simplex)
-        if diam(coface) == diam(column_simplex) && !has_column(rs.reduction_matrix, coface)
-            empty!(rs.working_column)
-            return coface_element(rs)(coface)
-        end
-        nonheap_push!(rs.working_column, coface)
+function DataStructures.find_root!(s::DisjointSetsWithBirth, x)
+    parents = s.parents
+    p = parents[x]
+    @inbounds if parents[p] != p
+        parents[x] = p = find_root!(s, p)
     end
-    repair!(rs.working_column)
-    return first(rs.working_column) # There are no duplicates on the heap at this point.
+    return p
 end
 
 """
-    add!(rs::ReductionState, current_pivot)
+    find_leaves!(s::DisjointSetsWithBirth, x)
 
-Add column in `rs.reduction_matrix` indexed by `current_pivot` and multiplied by the correct
-factor to `rs.working_column`. Also record the addition in `rs.reduction_entries`.
+Find all leaves below `x`, i.e. vertices that have `x` as root.
 """
-function add!(rs::ReductionState, current_pivot)
-    λ = -coefficient(current_pivot)
-    for element in rs.reduction_matrix[current_pivot]
-        push!(rs.reduction_entries, λ * element)
-        for coface in coboundary(rs.filtration, simplex(element))
-            push!(rs.working_column, coface_element(rs)(coface, λ * coefficient(element)))
-        end
+function find_leaves!(s::DisjointSetsWithBirth, x)
+    leaves = Int[]
+    for i in 1:length(s)
+        find_root!(s, i) == x && push!(leaves, i)
     end
-    return pivot(rs.working_column)
+    return leaves
 end
 
-"""
-    reduce_working_column!(rs::ReductionState, column_simplex, cutoff, reps)
-
-Reduce the working column by adding other columns to it until it has the lowest pivot or is
-reduced. Record it in the reduction matrix and return the persistence intervals with
-persistence larger than `cutoff`. If `reps` is `true`, add representative cocycles to the
-interval.
-"""
-function reduce_working_column!(
-    rs::ReductionState{F, S}, column_simplex, cutoff, reps
-) where {F, S}
-    current_pivot = initialize!(rs, column_simplex)
-
-    while !isnothing(current_pivot) && has_column(rs.reduction_matrix, current_pivot)
-        current_pivot = add!(rs, current_pivot)
-    end
-    if isnothing(current_pivot)
-        death = Inf
-    else
-        insert_column!(rs.reduction_matrix, current_pivot)
-        push!(rs.reduction_entries, chain_element_type(S, F)(column_simplex))
-        append_unique_times!(
-            rs.reduction_matrix, rs.reduction_entries, inv(coefficient(current_pivot))
-        )
-        death = diam(simplex(current_pivot))
-    end
-    birth = diam(column_simplex)
-
-    if reps && !isfinite(death)
-        return PersistenceInterval(birth, death, chain_element_type(S, F)[])
-    elseif reps && death - birth > cutoff
-        representative = collect(rs.reduction_matrix[current_pivot])
-        return PersistenceInterval(birth, death, representative)
-    elseif !isfinite(death) || death - birth > cutoff
-        return PersistenceInterval(birth, death)
-    else
-        return nothing
-    end
+function Base.union!(s::DisjointSetsWithBirth, x, y)
+    parents = s.parents
+    xroot = find_root!(s, x)
+    yroot = find_root!(s, y)
+    xroot != yroot ? root_union!(s, xroot, yroot) : xroot
 end
 
-"""
-    compute_pairs!(rs::ReductionState, columns, cutoff, reps, progress)
+function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
+    parents = s.parents
+    rks = s.ranks
+    births = s.births
+    @inbounds xrank = rks[x]
+    @inbounds yrank = rks[y]
 
-Compute persistence intervals by reducing `columns`, a collection of simplices. Return
-`PersistenceDiagram`. Only keep intervals with persistence larger than `cutoff` and return
-representative cocycles if `reps` is `true`. If `progress` is set, show a progress bar.
-"""
-function compute_intervals!(
-    rs::ReductionState{F, S}, columns, cutoff, reps, progress
-) where {S, F}
-    T = dist_type(rs.filtration)
-    if reps
-        intervals = PersistenceInterval{Vector{chain_element_type(S, F)}}[]
-    else
-        intervals = PersistenceInterval{Nothing}[]
+    if xrank < yrank
+        x, y = y, x
+    elseif xrank == yrank
+        rks[x] += 1
     end
-    if progress
-        progbar = Progress(length(columns), desc="Computing $(dim(S))d intervals... ")
-    end
-    for column in columns
-        interval = reduce_working_column!(rs, column, cutoff, reps)
-        if !isnothing(interval)
-            push!(intervals, interval)
-        end
-        progress && next!(progbar)
-    end
-    return sort!(
-        PersistenceDiagram(dim(eltype(columns)), intervals, threshold(rs.filtration))
-    )
+    @inbounds parents[y] = x
+    @inbounds births[x] = min(births[x], births[y])
+    return x
 end
 
-"""
-    assemble_columns!(rs::ReductionState, unreduced, reduced, progress)
-
-Assemble columns that need to be reduced in the next dimension. Apply clearing optimization.
-"""
-function assemble_columns!(
-    rs::ReductionState{<:Any, S}, unreduced, reduced, progress
-) where S
-    C = coface_type(S)
-    new_unreduced = C[]
-    new_reduced = C[]
-
-    if progress
-        progbar = Progress(
-            length(unreduced) + length(reduced), desc="Assembling columns...     "
-        )
-    end
-    for cols in (unreduced, reduced)
-        for simplex in cols
-            for coface in coboundary(rs.filtration, simplex, Val(false))
-                if !has_column(rs.reduction_matrix, coface)
-                    push!(new_unreduced, abs(coface))
-                else
-                    push!(new_reduced, abs(coface))
-                end
-            end
-            progress && next!(progbar)
-        end
-    end
-    sort!(new_unreduced, rev=true)
-    progress && printstyled("Assembled $(length(new_unreduced)) columns.\n", color=:green)
-    return new_unreduced, new_reduced
-end
-
-"""
-    nth_intervals(filtration, columns, simplices, cutoff, field_type, ::Val{reps}; next=true)
-
-Compute the ``n``-th intervals of persistent cohomology. The ``n`` is determined from the
-`eltype` of `columns`. If `assemble` is `true`, assemble columns for the next dimension.
-
-Only keep intervals with persistence larger than `cutoff`.  Compute homology with
-coefficients in `field_type`. If `reps` is `true`, compute representative cocycles. Show a
-progress bar if `progress` is set.
-"""
-function nth_intervals(
-    filtration, unreduced, reduced, cutoff, field_type, reps, assemble, progress
-)
-    rs = ReductionState{field_type, eltype(unreduced)}(filtration)
-    sizehint!(rs.reduction_matrix, length(unreduced))
-    intervals = compute_intervals!(rs, unreduced, cutoff, reps, progress)
-    if assemble
-        return (intervals, assemble_columns!(rs, unreduced, reduced, progress)...)
-    else
-        return (intervals, nothing, nothing)
-    end
-end
+birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
 """
     zeroth_representative(dset, vertex, reps, CE, V)
@@ -349,15 +208,11 @@ end
 function ripserer(
     filtration, cutoff, field_type, ::Val{dim_max}, reps, progress
 ) where dim_max
-    res = PersistenceDiagram[]
-    res_0, cols, sxs = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
-    push!(res, res_0)
-    for dim in 1:dim_max
-        res_n, cols, sxs = nth_intervals(
-            filtration, cols, sxs, cutoff, field_type, reps, dim ≠ dim_max, progress)
-        push!(res, res_n)
-        # TODO: A lot of things get allocated and then destroyed in nth_intervals, so it
-        # might make sense to do a GC.gc() here.
-    end
-    return res
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+    push!(result, zeroth)
+
+    higer_intervals!(result, to_reduce, to_skip, filtration, cutoff, reps, progress, dim_max, field_type)
+
+    return result
 end

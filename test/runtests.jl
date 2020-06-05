@@ -21,8 +21,8 @@ end
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
-@safetestset "reduction_structs" begin
-    include("reduction_structs.jl")
+@safetestset "reductionmatrix" begin
+    include("reductionmatrix.jl")
 end
 @safetestset "reduction" begin
     include("reduction.jl")
