@@ -118,3 +118,42 @@ end
         @test length(cocob) == 1
     end
 end
+
+@testset "boundary" begin
+    @testset "1d" begin
+        bnd = Cubelet{0, Float64, Int}[]
+        flt = Cubical(data3d)
+        cub = Cubelet{1}((3, 2), 1.0)
+        for f in boundary(flt, cub)
+            push!(bnd, f)
+        end
+        @test bnd == [Cubelet{0}((3,), 1.0), -Cubelet{0}((2,), 1.0)]
+    end
+
+    @testset "2d" begin
+        bnd = Cubelet{1, Int, Int}[]
+        flt = Cubical(data2d)
+        cub = Cubelet{2}((10, 9, 3, 2), 2)
+        for f in boundary(flt, cub)
+            push!(bnd, f)
+        end
+        @test bnd == [Cubelet{1}((10, 3), 2), -Cubelet{1}((9, 2), 2),
+                      Cubelet{1}((10, 9), 2), -Cubelet{1}((3, 2), 2)]
+    end
+
+    @testset "3d" begin
+        bnd = Cubelet{2, Float64, Int}[]
+        flt = Cubical(data3d)
+        cub = Cubelet{3}((112, 111, 102, 101, 12, 11, 2, 1), 1.0)
+        for f in boundary(flt, cub)
+            push!(bnd, f)
+        end
+        @test bnd == [Cubelet{2}((112, 102, 12, 2), 1.0),
+                      -Cubelet{2}((111, 101, 11, 1), 1.0),
+                      Cubelet{2}((112, 111, 12, 11), 1.0),
+                      -Cubelet{2}((102, 101, 2, 1), 1.0),
+                      Cubelet{2}((112, 111, 102, 101), 1.0),
+                      -Cubelet{2}((12, 11, 2, 1), 1.0),
+        ]
+    end
+end
