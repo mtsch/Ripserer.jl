@@ -212,7 +212,13 @@ function ripserer(
     zeroth, to_reduce, to_skip = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
     push!(result, zeroth)
 
-    higer_intervals!(result, to_reduce, to_skip, filtration, cutoff, reps, progress, dim_max, field_type)
+    matrix = ReductionMatrix{true, field_type}(filtration, to_reduce, to_skip)
+    for dim in 1:dim_max
+        push!(result, compute_intervals!(matrix, cutoff, reps, progress))
+        if dim < dim_max
+            matrix = next_matrix(matrix, progress)
+        end
+    end
 
     return result
 end

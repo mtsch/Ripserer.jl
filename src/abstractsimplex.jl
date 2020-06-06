@@ -75,7 +75,7 @@ Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h)
     coface_type(::AbstractSimplex)
     coface_type(::Type{<:AbstractSimplex})
 
-Get the type of coface a simplex hax. For a `D`-dimensional simplex, this is usually its
+Get the type of simplex's coface. For a `D`-dimensional simplex, this is usually its
 `D+1`-dimensional counterpart. Only the method for the type needs to be implemented.
 
 ```jldoctest
@@ -87,6 +87,23 @@ Simplex{3, Float64, Int}
 ```
 """
 coface_type(sx::AbstractSimplex) = coface_type(typeof(sx))
+
+"""
+    face_type(::AbstractSimplex)
+    face_type(::Type{<:AbstractSimplex})
+
+Get the type of a simplex's face. For a `D`-dimensional simplex, this is usually its
+`D-1`-dimensional counterpart. Only the method for the type needs to be implemented.
+
+```jldoctest
+coface_type(Simplex{2}((3, 2, 1), 3.2))
+
+# output
+
+Simplex{1, Float64, Int}
+```
+"""
+face_type(sx::AbstractSimplex) = face_type(typeof(sx))
 
 """
     dim(::AbstractSimplex)

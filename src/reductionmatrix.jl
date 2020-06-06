@@ -8,15 +8,16 @@ Changes to the matrix are recorded in a buffer with `record!`. Once a column is 
 added, use `commit!` to move the changes from the buffer to the matrix and create a
 column. Changes can also be discarded with `discard!`.
 """
-struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement}
+struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement, O<:Base.Ordering}
     column_index::Dict{S, Int}
     indices::Vector{Int}
     values::Vector{E}
     buffer::Vector{E}
-    is_homology::Bool
+    ordering::O
 
-    function ReducedMatrix{S, E}(is_homology) where {S, E}
-        return new{S, E}(Dict{S, Int}(), Int[1], E[], E[], is_homology)
+    function ReducedMatrix{S, E}(is_cohomology) where {S, E}
+        ordering = is_cohomology ? Base.Order.Forward : Base.Order.Reverse
+        return new{S, E, typeof(ordering)}(Dict{S, Int}(), Int[1], E[], E[], ordering)
     end
 end
 
@@ -39,7 +40,7 @@ sorts the buffer and adds duplicates together. All entries are multiplied by `fa
 function commit!(matrix::ReducedMatrix, simplex, factor)
     isempty(matrix.buffer) && return matrix
 
-    sort!(matrix.buffer, alg=QuickSort, rev=matrix.is_homology)
+    sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
     i = 0
     @inbounds prev = matrix.buffer[1]
     @inbounds for j in 2:length(matrix.buffer)
@@ -83,8 +84,7 @@ Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
 function Base.getindex(matrix::ReducedMatrix{C}, element::AbstractChainElement{C}) where C
-    index = get(matrix.column_index, abs(simplex(element)), 0)
-    return RMColumnIterator{typeof(matrix)}(matrix, index)
+    matrix[simplex(element)]
 end
 
 function Base.getindex(matrix::ReducedMatrix{C}, simplex::C) where C
@@ -133,11 +133,16 @@ function Base.iterate(iter::RMColumnIterator, i)
 end
 
 # ======================================================================================== #
-struct WorkingBoundary{E<:AbstractChainElement}
+struct WorkingBoundary{E<:AbstractChainElement, O<:Base.Ordering}
     heap::Vector{E}
+    ordering::O
+
+    function WorkingBoundary{E}(is_cohomology) where E
+        ordering = is_cohomology ? Base.Order.Forward : Base.Order.Reverse
+        new{E, typeof(ordering)}(E[], ordering)
+    end
 end
 
-WorkingBoundary{E}() where E = WorkingBoundary{E}(E[])
 
 Base.empty!(col::WorkingBoundary) = empty!(col.heap)
 Base.isempty(col::WorkingBoundary) = isempty(col.heap)
@@ -151,12 +156,12 @@ function _pop_pivot!(column::WorkingBoundary)
     isempty(column) && return nothing
     heap = column.heap
 
-    pivot = heappop!(heap)
+    pivot = heappop!(heap, column.ordering)
     while !isempty(heap)
         if iszero(pivot)
-            pivot = heappop!(heap)
+            pivot = heappop!(heap, column.ordering)
         elseif first(heap) == pivot
-            pivot += heappop!(heap)
+            pivot += heappop!(heap, column.ordering)
         else
             break
         end
@@ -165,41 +170,51 @@ function _pop_pivot!(column::WorkingBoundary)
 end
 
 """
-    pivot(column)
+    get_pivot!(column)
 
 Return the pivot of the column - the element with the lowest diameter.
 """
 function get_pivot!(column::WorkingBoundary)
     pivot = _pop_pivot!(column)
     if !isnothing(pivot)
-        heappush!(column.heap, pivot)
+        heappush!(column.heap, pivot, column.ordering)
     end
     return pivot
 end
 
-Base.push!(column::WorkingBoundary{E}, simplex) where E = push!(column, E(simplex))
+function Base.push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
+    push!(column, E(simplex))
+end
 function Base.push!(column::WorkingBoundary{E}, element::E) where E
     heap = column.heap
     @inbounds if !isempty(heap) && heap[1] == element
         heap[1] += element
         if iszero(heap[1])
-            heappop!(heap)
+            heappop!(heap, column.ordering)
         end
     else
-        heappush!(heap, element)
+        heappush!(heap, element, column.ordering)
     end
     return column
 end
 
-nonheap_push!(column::WorkingBoundary{E}, simplex) where E = push!(column.heap, E(simplex))
-repair!(column::WorkingBoundary) = heapify!(column.heap)
+function nonheap_push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
+    push!(column.heap, E(simplex))
+end
+function nonheap_push!(column::WorkingBoundary{E}, element::E) where E
+    push!(column.heap, element)
+end
+
+repair!(column::WorkingBoundary) = heapify!(column.heap, column.ordering)
 Base.first(column::WorkingBoundary) = isempty(column) ? nothing : first(column.heap)
 
 # ======================================================================================== #
-struct ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem}
+struct ReductionMatrix{
+    Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O<:Base.Ordering
+}
     filtration::Filtration
-    reduced::ReducedMatrix{Face, SimplexElem}
-    working_boundary::WorkingBoundary{FaceElem}
+    reduced::ReducedMatrix{Face, SimplexElem, O}
+    working_boundary::WorkingBoundary{FaceElem, O}
     columns_to_reduce::Vector{Simplex}
     columns_to_skip::Vector{Simplex}
 end
@@ -210,13 +225,14 @@ function ReductionMatrix{Co, Field}(
 
     Simplex = eltype(columns_to_reduce)
     Face = Co ? coface_type(Simplex) : face_type(Simplex)
+    O = Co ? typeof(Base.Order.Forward) : typeof(Base.Order.Reverse)
     SimplexElem = chain_element_type(Simplex, Field)
     FaceElem = chain_element_type(Face, Field)
 
-    reduced = ReducedMatrix{Face, SimplexElem}(!Co)
-    working_boundary = WorkingBoundary{FaceElem}()
+    reduced = ReducedMatrix{Face, SimplexElem}(Co)
+    working_boundary = WorkingBoundary{FaceElem}(Co)
 
-    return ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem}(
+    return ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O}(
         filtration,
         reduced,
         working_boundary,
@@ -228,9 +244,9 @@ end
 boundary(matrix::ReductionMatrix{true}, simplex) = coboundary(matrix.filtration, simplex)
 boundary(matrix::ReductionMatrix{false}, simplex) = boundary(matrix.filtration, simplex)
 
-face_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
-simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
+simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
+face_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
 dim(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
 
 function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
@@ -321,7 +337,7 @@ function compute_intervals!(matrix::ReductionMatrix, cutoff, reps, progress)
     )
 end
 
-function assemble_columns!(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Field}
+function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Field}
     C = coface_type(simplex_type(matrix))
     new_to_reduce = C[]
     new_to_skip = C[]
@@ -347,26 +363,4 @@ function assemble_columns!(matrix::ReductionMatrix{Co, Field}, progress) where {
     progress && printstyled("Assembled $(length(new_to_reduce)) columns.\n", color=:green)
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)
-end
-
-function nth_intervals!(result, matrix, cutoff, reps, progress, dim_max)
-
-    diagram = compute_intervals!(matrix, cutoff, reps, progress)
-    push!(result, diagram)
-
-    if dim(matrix) < dim_max
-        new_matrix = assemble_columns!(matrix, progress)
-        return nth_intervals!(result, new_matrix, cutoff, reps, progress, dim_max)
-    else
-        return result
-    end
-end
-
-function higer_intervals!(
-    result, columns_to_reduce, columns_to_skip, filtration, cutoff, reps, progress, dim_max, ::Type{field_type}
-) where field_type
-    matrix = ReductionMatrix{true, field_type}(
-        filtration, columns_to_reduce, columns_to_skip
-    )
-    return nth_intervals!(result, matrix, cutoff, reps, progress, dim_max)
 end
