@@ -83,7 +83,11 @@ Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 function diam(cf::Cubical{T}, vertices) where {T}
     res = typemin(T)
     for v in vertices
-        res = max(res, get(cf.data, v, missing))
+        if isnothing(get(cf.data, v, nothing))
+            return missing
+        else
+            res = max(res, cf.data[v])
+        end
     end
     return res
 end
@@ -148,7 +152,7 @@ function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {
             break
         end
 
-        diff = CartesianIndex(ntuple(i -> i == dim ? dir : 0, N))
+        diff = CartesianIndex{N}(ntuple(isequal(dim), N) .* dir)
         new_vertices = cc.vertices .+ Ref(diff)
         diameter = max(diam(cc.cubelet), diam(cc.filtration, new_vertices))
 
