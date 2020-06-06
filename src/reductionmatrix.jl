@@ -241,8 +241,18 @@ function ReductionMatrix{Co, Field}(
     )
 end
 
-boundary(matrix::ReductionMatrix{true}, simplex) = coboundary(matrix.filtration, simplex)
-boundary(matrix::ReductionMatrix{false}, simplex) = boundary(matrix.filtration, simplex)
+"""
+    co_boundary(matrix, simplex)
+
+Iterate over the (co)boundary of the `simplex`. Chooses between the boundary and the
+coboundary based on the matrix type.
+"""
+function co_boundary(matrix::ReductionMatrix{true}, simplex::AbstractSimplex)
+    return coboundary(matrix.filtration, simplex)
+end
+function co_boundary(matrix::ReductionMatrix{false}, simplex::AbstractSimplex)
+    return boundary(matrix.filtration, simplex)
+end
 
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
 simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
@@ -252,7 +262,7 @@ dim(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
 function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
     emergent_check = Co
     empty!(matrix.working_boundary)
-    for face in boundary(matrix, column_simplex)
+    for face in co_boundary(matrix, column_simplex)
         if emergent_check && diam(face) == diam(column_simplex)
             if isempty(matrix.reduced[face])
                 empty!(matrix.working_boundary)
@@ -273,7 +283,7 @@ end
 function add!(matrix::ReductionMatrix, column, factor)
     for element in column
         record!(matrix.reduced, factor * element)
-        for face in boundary(matrix, simplex(element))
+        for face in co_boundary(matrix, simplex(element))
             push!(
                 matrix.working_boundary,
                 face_element(matrix)(face, factor * coefficient(element))

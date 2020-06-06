@@ -46,7 +46,8 @@ index(csx::Cubelet) = csx.index
     return :(vertices(index(csx), Val($(2^D))))
 end
 
-coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D+1, T, I}
+coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
+face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
 
 """
     Cubical{T, N} <: AbstractFiltration{T, <:Cubelet{0, T}}

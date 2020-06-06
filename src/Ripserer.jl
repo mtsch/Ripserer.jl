@@ -28,7 +28,7 @@ export PersistenceDiagram, PersistenceInterval
 export birth, death, persistence, representative, barcode
 
 export Mod
-export AbstractSimplex, diam, coface_type, face_type, vertices, coboundary, dim
+export AbstractSimplex, diam, coface_type, face_type, vertices, coboundary, boundary, dim
 export IndexedSimplex, index, Simplex
 export AbstractFiltration, n_vertices, edges, threshold
 export AbstractFlagFiltration, Rips, SparseRips

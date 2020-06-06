@@ -110,4 +110,37 @@ end
             end
         end
     end
+
+    @testset "boundary" begin
+        @testset "number of faces" begin
+            for dim in 1:10
+                simplex = Simplex{dim}(10, 1)
+                simplex_vxs = vertices(simplex)
+                bnd = face_type(simplex)[]
+                for face in boundary(FakeFiltration(), simplex)
+                    push!(bnd, face)
+                end
+                @test length(bnd) == dim + 1
+                @test all(isequal(1), diam.(bnd))
+                @test all(issubset(vertices(f), simplex_vxs) for f in bnd)
+            end
+        end
+        @testset "type stability" begin
+            for dim in 1:10
+                simplex = Simplex{dim}(10, 1)
+                @test begin @inferred boundary(FakeFiltration(), simplex); true end
+                biter = boundary(FakeFiltration(), simplex)
+                @static if VERSION ≥ v"1.1.0"
+                    @test begin @inferred Union{
+                        Nothing,
+                        Tuple{face_type(simplex), Int},
+                    } iterate(biter); true end
+                    @test begin @inferred Union{
+                        Nothing,
+                        Tuple{face_type(simplex), Int},
+                    } iterate(biter, 1); true end
+                end
+            end
+        end
+    end
 end
