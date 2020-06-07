@@ -133,7 +133,7 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
         end
     end
     reverse!(unreduced)
-    progress && printstyled("Assembled $(length(unreduced)) columns.\n", color=:green)
+    progress && printstyled("Assembled $(length(unreduced)) edges.\n", color=:green)
     return (
         sort!(PersistenceDiagram(0, intervals, threshold(filtration))), unreduced, reduced,
     )
@@ -176,6 +176,7 @@ function ripserer(
     modulus=2,
     field_type=Mod{modulus},
     progress=false,
+    co=true,
     kwargs..., # kwargs for filtration
 )
     if issparse(dists)
@@ -190,6 +191,7 @@ function ripserer(
         cutoff=cutoff,
         field_type=field_type,
         progress=progress,
+        co=co,
     )
 end
 
@@ -200,12 +202,16 @@ end
 
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false
+    dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false, co=true
 )
-    return ripserer(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
+    if co
+        return _cohomology(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
+    else
+        return _homology(filtration, cutoff, field_type, Val(dim_max), representatives, progress)
+    end
 end
 
-function ripserer(
+function _cohomology(
     filtration, cutoff, field_type, ::Val{dim_max}, reps, progress
 ) where dim_max
     result = PersistenceDiagram[]
@@ -213,6 +219,27 @@ function ripserer(
     push!(result, zeroth)
 
     matrix = ReductionMatrix{true, field_type}(filtration, to_reduce, to_skip)
+    for dim in 1:dim_max
+        push!(result, compute_intervals!(matrix, cutoff, reps, progress))
+        if dim < dim_max
+            matrix = next_matrix(matrix, progress)
+        end
+    end
+
+    return result
+end
+
+function _homology(filtration, cutoff, field_type, ::Val{dim_max}, reps, progress) where dim_max
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+    push!(result, zeroth)
+
+    # We want to start with triangles. Starting at the highest dimension and going down, as
+    # dictated by the twist algorithm might not be worth it. The highest dimension may be
+    # sparse and twist is not supposed to bring a huge improvement to regular persistent
+    # homology. We achieve this by immediately getting the next matrix. This may be ugly
+    # but it wors for now.
+    matrix = next_matrix(ReductionMatrix{false, field_type}(filtration, to_reduce, to_skip), progress)
     for dim in 1:dim_max
         push!(result, compute_intervals!(matrix, cutoff, reps, progress))
         if dim < dim_max

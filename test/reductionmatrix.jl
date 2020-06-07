@@ -250,7 +250,7 @@ end
                 @test simplex_type(matrix) == S
                 @test simplex_element(matrix) == SE
                 @test face_element(matrix) == FE
-                @test dim(matrix) == dim(S)
+                @test dim(matrix) == (Co ? dim(S) : dim(S) - 1)
             end
         end
     end

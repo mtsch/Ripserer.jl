@@ -208,6 +208,14 @@ end
 repair!(column::WorkingBoundary) = heapify!(column.heap, column.ordering)
 Base.first(column::WorkingBoundary) = isempty(column) ? nothing : first(column.heap)
 
+function move!(column::WorkingBoundary{E}) where E
+    dst = E[]
+    while (pivot = _pop_pivot!(column)) ≠ nothing
+        push!(dst, pivot)
+    end
+    return dst
+end
+
 # ======================================================================================== #
 struct ReductionMatrix{
     Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O<:Base.Ordering
@@ -257,10 +265,11 @@ end
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
 simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
 face_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
-dim(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
+dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
+dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
-    emergent_check = Co
+    emergent_check = matrix.filtration isa AbstractFlagFiltration
     empty!(matrix.working_boundary)
     for face in co_boundary(matrix, column_simplex)
         if emergent_check && diam(face) == diam(column_simplex)
@@ -294,30 +303,38 @@ function add!(matrix::ReductionMatrix, column, factor)
 end
 
 function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, reps)
-    current_pivot = initialize_boundary!(matrix, column_simplex)
+    pivot = initialize_boundary!(matrix, column_simplex)
 
-    while !isnothing(current_pivot)
-        column = matrix.reduced[current_pivot]
+    while !isnothing(pivot)
+        column = matrix.reduced[pivot]
         isempty(column) && break
 
-        add!(matrix, column, -coefficient(current_pivot))
-        current_pivot = get_pivot!(matrix.working_boundary)
+        add!(matrix, column, -coefficient(pivot))
+        pivot = get_pivot!(matrix.working_boundary)
     end
-    if isnothing(current_pivot)
+    if isnothing(pivot)
         discard!(matrix.reduced)
-        death = Inf
     else
         record!(matrix.reduced, simplex_element(matrix)(column_simplex))
         isempty(matrix.reduced.buffer) && error()
-        commit!(matrix.reduced, simplex(current_pivot), inv(coefficient(current_pivot)))
-        death = diam(current_pivot)
+        commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
     end
+
+    return interval(matrix, column_simplex, pivot, cutoff, reps)
+end
+
+function interval(matrix::ReductionMatrix{true}, column_simplex, pivot, cutoff, reps)
     birth = diam(column_simplex)
+    if isnothing(pivot)
+        death = Inf
+    else
+        death = diam(pivot)
+    end
 
     if reps && !isfinite(death)
         return PersistenceInterval(birth, death, simplex_element(matrix)[])
     elseif reps && death - birth > cutoff
-        representative = collect(matrix.reduced[current_pivot])
+        representative = collect(matrix.reduced[pivot])
         return PersistenceInterval(birth, death, representative)
     elseif !isfinite(death) || death - birth > cutoff
         return PersistenceInterval(birth, death)
@@ -326,14 +343,40 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, reps)
     end
 end
 
-function compute_intervals!(matrix::ReductionMatrix, cutoff, reps, progress)
+function interval(matrix::ReductionMatrix{false}, column_simplex, pivot, cutoff, reps)
+    if isnothing(pivot)
+        return nothing
+    else
+        birth = diam(pivot)
+        death = diam(column_simplex)
+    end
+
+    if reps && !isfinite(death)
+        return PersistenceInterval(birth, death, face_element(matrix)[])
+    elseif reps && death - birth > cutoff
+        representative = move!(matrix.working_boundary)
+        return PersistenceInterval(birth, death, representative)
+    elseif !isfinite(death) || death - birth > cutoff
+        return PersistenceInterval(birth, death)
+    else
+        return nothing
+    end
+end
+
+function compute_intervals!(matrix::ReductionMatrix{Co}, cutoff, reps, progress) where Co
     if reps
-        intervals = PersistenceInterval{Vector{simplex_element(matrix)}}[]
+        if Co
+            intervals = PersistenceInterval{Vector{simplex_element(matrix)}}[]
+        else
+            intervals = PersistenceInterval{Vector{face_element(matrix)}}[]
+        end
     else
         intervals = PersistenceInterval{Nothing}[]
     end
     if progress
-        progbar = Progress(length(columns), desc="Computing $(dim(matrix))d intervals... ")
+        progbar = Progress(
+            length(matrix.columns_to_reduce), desc="Computing $(dim(matrix))d intervals... "
+        )
     end
     for column in matrix.columns_to_reduce
         interval = reduce_column!(matrix, column, cutoff, reps)
@@ -347,6 +390,10 @@ function compute_intervals!(matrix::ReductionMatrix, cutoff, reps, progress)
     )
 end
 
+simplex_name(::Type{<:Simplex{2}}) = "triangles"
+simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
+simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
+
 function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Field}
     C = coface_type(simplex_type(matrix))
     new_to_reduce = C[]
@@ -354,23 +401,25 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
 
     if progress
         progbar = Progress(
-            length(to_reduce) + length(reduced), desc="Assembling columns...     "
+            length(matrix.columns_to_reduce) + length(matrix.columns_to_skip),
+            desc="Assembling...             "
         )
     end
-    for cols in (matrix.columns_to_reduce, matrix.columns_to_skip)
-        for simplex in cols
-            for coface in coboundary(matrix.filtration, simplex, Val(false))
-                if isempty(matrix.reduced[coface])
-                    push!(new_to_reduce, abs(coface))
-                else
-                    push!(new_to_skip, abs(coface))
-                end
+    for simplex in Iterators.flatten((matrix.columns_to_reduce, matrix.columns_to_skip))
+        for coface in coboundary(matrix.filtration, simplex, Val(false))
+            # Clearing optimization only enabled for cohomology.
+            if Co && !isempty(matrix.reduced[coface])
+                push!(new_to_skip, abs(coface))
+            else
+                push!(new_to_reduce, abs(coface))
             end
-            progress && next!(progbar)
         end
+        progress && next!(progbar)
     end
-    sort!(new_to_reduce, rev=true)
-    progress && printstyled("Assembled $(length(new_to_reduce)) columns.\n", color=:green)
+    sort!(new_to_reduce, rev=Co)
+    if progress
+        printstyled("Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green)
+    end
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)
 end
