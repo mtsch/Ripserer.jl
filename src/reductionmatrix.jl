@@ -21,6 +21,13 @@ struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement, O<:Base.Orderi
     end
 end
 
+function Base.sizehint!(matrix::ReducedMatrix, size)
+    sizehint!(matrix.column_index, size)
+    sizehint!(matrix.indices, size)
+    sizehint!(matrix.values, size)
+    return matrix
+end
+
 """
     record!(matrix::ReducedMatrix, element)
 
@@ -238,6 +245,7 @@ function ReductionMatrix{Co, Field}(
     FaceElem = chain_element_type(Face, Field)
 
     reduced = ReducedMatrix{Face, SimplexElem}(Co)
+    sizehint!(reduced, length(columns_to_reduce))
     working_boundary = WorkingBoundary{FaceElem}(Co)
 
     return ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O}(
@@ -418,7 +426,7 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
     end
     sort!(new_to_reduce, rev=Co)
     if progress
-        printstyled("Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green)
+        printstyled(stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green)
     end
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)

@@ -46,8 +46,9 @@ include("ripsfiltration.jl")
 include("cubical.jl")
 
 include("chainelement.jl")
+include("zerodimensional.jl")
 include("reductionmatrix.jl")
-include("reduction.jl")
+include("ripserer.jl")
 
 include("simplexrecipes.jl")
 

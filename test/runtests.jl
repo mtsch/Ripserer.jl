@@ -21,11 +21,14 @@ end
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
+@safetestset "zerodimensional" begin
+    include("zerodimensional.jl")
+end
 @safetestset "reductionmatrix" begin
     include("reductionmatrix.jl")
 end
-@safetestset "reduction" begin
-    include("reduction.jl")
+@safetestset "ripserer" begin
+    include("ripserer.jl")
 end
 @safetestset "plotting" begin
     include("plotting.jl")
