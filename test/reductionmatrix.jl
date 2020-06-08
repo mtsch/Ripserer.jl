@@ -17,9 +17,12 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
         columns = C.([3, 10, 6, 8], 1)
         colelems = CE.(columns)
 
+        fwd = Base.Order.Forward
+        rev = Base.Order.Reverse
+
         @testset "ReducedMatrix with simplex type $S and field type $T" begin
             @testset "a fresh ReducedMatrix is empty even if you commit nothing." begin
-                matrix = ReducedMatrix{C, SE}(true)
+                matrix = ReducedMatrix{C, SE}(fwd)
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 0
@@ -30,7 +33,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
             end
 
             @testset "is still empty after recording values" begin
-                matrix = ReducedMatrix{C, SE}(false)
+                matrix = ReducedMatrix{C, SE}(rev)
                 vals = [
                     SE(S(1, 1)),
                     SE(S(2, 1)),
@@ -49,7 +52,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
             end
 
             @testset "commiting adds a column and changes length" begin
-                matrix = ReducedMatrix{C, SE}(true)
+                matrix = ReducedMatrix{C, SE}(fwd)
                 vals = [
                     SE(S(1, 1)),
                     SE(S(2, 1)),
@@ -78,7 +81,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
             end
 
             @testset "discard! undos changes" begin
-                matrix = ReducedMatrix{C, SE}(false)
+                matrix = ReducedMatrix{C, SE}(rev)
                 vals = [
                     SE(S(1, 1)),
                     SE(S(2, 1)),
@@ -111,7 +114,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
             end
 
             @testset "committing values that sum to 0 does not create a column" begin
-                matrix = ReducedMatrix{C, SE}(true)
+                matrix = ReducedMatrix{C, SE}(fwd)
                 vals = [
                     SE(S(1, 1)),
                     SE(S(-2, 1)),
@@ -132,7 +135,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
             end
 
             @testset "committing multiple times creates multiple columns" begin
-                matrix = ReducedMatrix{C, SE}(false)
+                matrix = ReducedMatrix{C, SE}(rev)
                 vals_1 = [
                     SE(S(1, 1)),
                     SE(S(-4, 1)),
@@ -176,16 +179,19 @@ end
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
 
+        fwd = Base.Order.Forward
+        rev = Base.Order.Reverse
+
         @testset "a fresh WorkingBoundary is empty and its pivot is nothing" begin
-            working_boundary = WorkingBoundary{SE}(true)
+            working_boundary = WorkingBoundary{SE}(fwd)
 
             @test isempty(working_boundary)
             @test get_pivot!(working_boundary) ≡ nothing
-            @test first(working_boundary) ≡ nothing
+            @test_throws BoundsError first(working_boundary)
         end
 
         @testset "pushing elements and getting pivot finds the lowest simplex (cohomology)" begin
-            working_boundary = WorkingBoundary{SE}(true)
+            working_boundary = WorkingBoundary{SE}(fwd)
             for e in elements
                 push!(working_boundary, e)
             end
@@ -194,7 +200,7 @@ end
         end
 
         @testset "the same happens for nonheap_push! with repair! (homology)" begin
-            working_boundary = WorkingBoundary{SE}(false)
+            working_boundary = WorkingBoundary{SE}(rev)
             for e in elements
                 nonheap_push!(working_boundary, e)
             end
@@ -204,7 +210,7 @@ end
         end
 
         @testset "getting pivot and adding its inverse to the boundary repeatedly" begin
-            working_boundary = WorkingBoundary{SE}(true)
+            working_boundary = WorkingBoundary{SE}(fwd)
             for e in elements[1:3]
                 nonheap_push!(working_boundary, e)
             end

@@ -64,9 +64,13 @@ function ripserer(
     dim_max=1, representatives=false, cutoff=0, field_type=Mod{2}, progress=false, co=true
 )
     if co
-        return _cohomology(filtration, cutoff, field_type, Val(dim_max), Val(representatives), progress)
+        return _cohomology(
+            filtration, cutoff, field_type, Val(dim_max), Val(representatives), progress
+        )
     else
-        return _homology(filtration, cutoff, field_type, Val(dim_max), Val(representatives), progress)
+        return _homology(
+            filtration, cutoff, field_type, Val(dim_max), Val(representatives), progress
+        )
     end
 end
 
@@ -74,7 +78,9 @@ function _cohomology(
     filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}, progress
 ) where {dim_max, reps}
     result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, field_type, reps, progress
+    )
     push!(result, zeroth)
 
     matrix = ReductionMatrix{true, field_type}(filtration, to_reduce, to_skip)
@@ -89,17 +95,24 @@ function _cohomology(
     return result
 end
 
-function _homology(filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}, progress) where {dim_max, reps}
+function _homology(
+    filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}, progress
+) where {dim_max, reps}
     result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, field_type, reps, progress
+    )
     push!(result, zeroth)
 
     # We want to start with triangles. Starting at the highest dimension and going down, as
     # dictated by the twist algorithm might not be worth it. The highest dimension may be
     # sparse and twist is not supposed to bring a huge improvement to regular persistent
-    # homology. We achieve this by immediately getting the next matrix. This may be ugly
-    # but it wors for now.
-    matrix = next_matrix(ReductionMatrix{false, field_type}(filtration, to_reduce, to_skip), progress)
+    # homology.
+    # Constructing a matrix and throwing it away has some overhead, but is nothing compared
+    # to the slowness of homology.
+    matrix = next_matrix(
+        ReductionMatrix{false, field_type}(filtration, to_reduce, to_skip), progress
+    )
     for dim in 1:dim_max
         push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
 
