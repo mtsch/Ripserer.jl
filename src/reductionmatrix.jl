@@ -373,6 +373,7 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
     C = coface_type(simplex_type(matrix))
     new_to_reduce = C[]
     new_to_skip = C[]
+    sizehint!(new_to_skip, length(matrix.reduced))
 
     if progress
         progbar = Progress(
@@ -392,11 +393,9 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
         progress && next!(progbar)
     end
     sort!(new_to_reduce, rev=Co)
-    if progress
-        printstyled(
-            stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green
-        )
-    end
+    progress && printstyled(
+        stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green
+    )
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)
 end
