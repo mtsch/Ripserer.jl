@@ -101,7 +101,7 @@ function _homology(filtration, cutoff, field_type, ::Val{dim_max}, ::Val{reps}, 
     # but it wors for now.
     matrix = next_matrix(ReductionMatrix{false, field_type}(filtration, to_reduce, to_skip), progress)
     for dim in 1:dim_max
-        push!(result, compute_intervals!(matrix, cutoff, reps, progress))
+        push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
 
         if dim < dim_max
             matrix = next_matrix(matrix, progress)

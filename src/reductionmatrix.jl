@@ -45,6 +45,7 @@ Commit the changes that were `record!`ed, creating a new column indexed by `simp
 sorts the buffer and adds duplicates together. All entries are multiplied by `factor`.
 """
 function commit!(matrix::ReducedMatrix, simplex, factor)
+    @assert sign(simplex) == 1
     isempty(matrix.buffer) && return matrix
 
     sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
@@ -70,7 +71,7 @@ function commit!(matrix::ReducedMatrix, simplex, factor)
         resize!(matrix.buffer, i)
         append!(matrix.values, matrix.buffer)
         push!(matrix.indices, matrix.indices[end] + i)
-        matrix.column_index[abs(simplex)] = length(matrix.indices) - 1
+        matrix.column_index[simplex] = length(matrix.indices) - 1
     end
 
     empty!(matrix.buffer)
@@ -89,6 +90,8 @@ end
 
 Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
+
+Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, abs(simplex))
 
 function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where S
     return matrix[simplex(element)]
@@ -245,11 +248,12 @@ dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
-    emergent_check = matrix.filtration isa AbstractFlagFiltration
+    # TODO: can this safely be enabled for all kinds of complexes?
+    emergent_check = true
     empty!(matrix.working_boundary)
     for face in co_boundary(matrix, column_simplex)
         if emergent_check && diam(face) == diam(column_simplex)
-            if isempty(matrix.reduced[face])
+            if !haskey(matrix.reduced, face)
                 empty!(matrix.working_boundary)
                 return face_element(matrix)(face)
             end
@@ -302,7 +306,7 @@ function birth_death(matrix::ReductionMatrix{true}, simplex, pivot)
     return diam(simplex), isnothing(pivot) ? Inf : diam(pivot)
 end
 function birth_death(matrix::ReductionMatrix{false}, simplex, pivot)
-    return isnothing(pivot) ? -Inf : diam(pivot), diam(simplex)
+    return isnothing(pivot) ? Inf : diam(pivot), diam(simplex)
 end
 
 # Interval with no representative, (co)homology.
@@ -321,7 +325,7 @@ function interval(
     if !isfinite(death)
         return PersistenceInterval(birth, death, V())
     elseif death - birth > cutoff
-        return PersistenceInterval(birth, death, collect(matrix[pivot]))
+        return PersistenceInterval(birth, death, collect(matrix.reduced[pivot]))
     else
         return nothing
     end
@@ -384,7 +388,7 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
     for simplex in Iterators.flatten((matrix.columns_to_reduce, matrix.columns_to_skip))
         for coface in coboundary(matrix.filtration, simplex, Val(false))
             # Clearing optimization only enabled for cohomology.
-            if Co && !isempty(matrix.reduced[coface])
+            if Co && haskey(matrix.reduced, coface)
                 push!(new_to_skip, abs(coface))
             else
                 push!(new_to_reduce, abs(coface))
