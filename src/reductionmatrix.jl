@@ -90,53 +90,21 @@ end
 Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
-function Base.getindex(matrix::ReducedMatrix{C}, element::AbstractChainElement{C}) where C
-    matrix[simplex(element)]
+function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where S
+    return matrix[simplex(element)]
 end
-
-function Base.getindex(matrix::ReducedMatrix{C}, simplex::C) where C
+function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where S
     index = get(matrix.column_index, abs(simplex), 0)
-    return RMColumnIterator{typeof(matrix)}(matrix, index)
-end
-
-"""
-    RMColumnIterator{R}
-
-An iterator over a column of a `ReducedMatrix`.
-"""
-struct RMColumnIterator{R<:ReducedMatrix}
-    matrix::R
-    index::Int
-end
-
-Base.IteratorSize(::Type{RMColumnIterator}) = Base.HasLength()
-Base.IteratorEltype(::Type{RMColumnIterator}) = Base.HasEltype()
-Base.eltype(::Type{<:RMColumnIterator{R}}) where R = eltype(R)
-function Base.length(iter::RMColumnIterator)
-    index = iter.index
     if index == 0
-        return 0
+        from = 0
+        to = -1
     else
-        return iter.matrix.indices[index + 1] - iter.matrix.indices[index]
+        from = matrix.indices[index]
+        to = matrix.indices[index + 1] - 1
     end
-end
 
-function Base.iterate(iter::RMColumnIterator)
-    if iter.index == 0
-        return nothing
-    else
-        return iterate(iter, 1)
-    end
-end
-
-function Base.iterate(iter::RMColumnIterator, i)
-    indices = iter.matrix.indices
-    index = i + indices[iter.index] - 1
-    if index ≥ indices[iter.index + 1]
-        return nothing
-    else
-        return (iter.matrix.values[index], i + 1)
-    end
+    # Constructing directly is equivalent to Base.unsafe_view
+    return SubArray(matrix.values, (from:to,))
 end
 
 # ======================================================================================== #
@@ -149,7 +117,6 @@ struct WorkingBoundary{E<:AbstractChainElement, O<:Base.Ordering}
         new{E, typeof(ordering)}(E[], ordering)
     end
 end
-
 
 Base.empty!(col::WorkingBoundary) = empty!(col.heap)
 Base.isempty(col::WorkingBoundary) = isempty(col.heap)
@@ -179,7 +146,8 @@ end
 """
     get_pivot!(column)
 
-Return the pivot of the column - the element with the lowest diameter.
+Return the pivot of the column - the element with the lowest diameter. Duplicates are summed
+together, zero elements are discarded. Return `nothing` if there is no pivot.
 """
 function get_pivot!(column::WorkingBoundary)
     pivot = _pop_pivot!(column)
@@ -324,7 +292,6 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, reps)
         discard!(matrix.reduced)
     else
         record!(matrix.reduced, simplex_element(matrix)(column_simplex))
-        isempty(matrix.reduced.buffer) && error()
         commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
     end
 
