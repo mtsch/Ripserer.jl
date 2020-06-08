@@ -12,9 +12,11 @@ accessed by [`dim`](@ref).
 * [`Base.sign(::AbstractSimplex)`](@ref)
 * [`Base.:-(::AbstractSimplex)`](@ref)
 * `Base.isless(::AbstractSimplex, ::AbstractSimplex)`
-* [`coface_type(::AbstractSimplex)`](@ref)
 * [`vertices(::AbstractSimplex)`](@ref)
+* [`coface_type(::AbstractSimplex)`](@ref)
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
+* [`face_type(::AbstractSimplex)`](@ref) only required for homology.
+* [`boundary(::Any, ::AbstractSimplex)`](@ref) only required for homology.
 """
 abstract type AbstractSimplex{D, T} end
 
@@ -96,7 +98,7 @@ Get the type of a simplex's face. For a `D`-dimensional simplex, this is usually
 `D-1`-dimensional counterpart. Only the method for the type needs to be implemented.
 
 ```jldoctest
-coface_type(Simplex{2}((3, 2, 1), 3.2))
+face_type(Simplex{2}((3, 2, 1), 3.2))
 
 # output
 

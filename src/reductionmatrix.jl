@@ -15,15 +15,14 @@ struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement, O<:Base.Orderi
     buffer::Vector{E}
     ordering::O
 
-    function ReducedMatrix{S, E}(is_cohomology) where {S, E}
-        ordering = is_cohomology ? Base.Order.Forward : Base.Order.Reverse
-        return new{S, E, typeof(ordering)}(Dict{S, Int}(), Int[1], E[], E[], ordering)
+    function ReducedMatrix{S, E}(ordering::O) where {S, E, O}
+        return new{S, E, O}(Dict{S, Int}(), Int[1], E[], E[], ordering)
     end
 end
 
 function Base.sizehint!(matrix::ReducedMatrix, size)
     sizehint!(matrix.column_index, size)
-    sizehint!(matrix.indices, size)
+    sizehint!(matrix.indices, size + 1)
     sizehint!(matrix.values, size)
     return matrix
 end
@@ -33,9 +32,19 @@ end
 
 Record the operation that was performed in the buffer.
 """
-function record!(matrix::ReducedMatrix, element)
+function record!(matrix::ReducedMatrix, element::AbstractChainElement)
     push!(matrix.buffer, element)
     return element
+end
+
+function record!(matrix::ReducedMatrix, elements, factor)
+    i = length(matrix.buffer)
+    resize!(matrix.buffer, length(matrix.buffer) + length(elements))
+    @inbounds for element in elements
+        i += 1
+        matrix.buffer[i] = element * factor
+    end
+    return elements
 end
 
 """
@@ -115,9 +124,8 @@ struct WorkingBoundary{E<:AbstractChainElement, O<:Base.Ordering}
     heap::Vector{E}
     ordering::O
 
-    function WorkingBoundary{E}(is_cohomology) where E
-        ordering = is_cohomology ? Base.Order.Forward : Base.Order.Reverse
-        new{E, typeof(ordering)}(E[], ordering)
+    function WorkingBoundary{E}(ordering::O) where {E, O}
+        new{E, O}(E[], ordering)
     end
 end
 
@@ -184,7 +192,7 @@ function nonheap_push!(column::WorkingBoundary{E}, element::E) where E
 end
 
 repair!(column::WorkingBoundary) = heapify!(column.heap, column.ordering)
-Base.first(column::WorkingBoundary) = isempty(column) ? nothing : first(column.heap)
+Base.first(column::WorkingBoundary) = first(column.heap)
 
 function move!(column::WorkingBoundary{E}) where E
     dst = E[]
@@ -211,13 +219,14 @@ function ReductionMatrix{Co, Field}(
 
     Simplex = eltype(columns_to_reduce)
     Face = Co ? coface_type(Simplex) : face_type(Simplex)
-    O = Co ? typeof(Base.Order.Forward) : typeof(Base.Order.Reverse)
+    ordering = Co ? Base.Order.Forward : Base.Order.Reverse
+    O = typeof(ordering)
     SimplexElem = chain_element_type(Simplex, Field)
     FaceElem = chain_element_type(Face, Field)
 
-    reduced = ReducedMatrix{Face, SimplexElem}(Co)
+    reduced = ReducedMatrix{Face, SimplexElem}(ordering)
     sizehint!(reduced, length(columns_to_reduce))
-    working_boundary = WorkingBoundary{FaceElem}(Co)
+    working_boundary = WorkingBoundary{FaceElem}(ordering)
 
     return ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O}(
         filtration,
@@ -248,16 +257,14 @@ dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
-    # TODO: can this safely be enabled for all kinds of complexes?
-    emergent_check = true
+    # TODO: can emergent pairs be safely be enabled for all kinds of complexes?
+    # An argument that disables it could be added.
     empty!(matrix.working_boundary)
     for face in co_boundary(matrix, column_simplex)
-        if emergent_check && diam(face) == diam(column_simplex)
-            if !haskey(matrix.reduced, face)
-                empty!(matrix.working_boundary)
-                return face_element(matrix)(face)
-            end
-            emergent_check = false
+        # Checking this on every face helps if more than one face has the same diameter.
+        if diam(face) == diam(column_simplex) && !haskey(matrix.reduced, face)
+            empty!(matrix.working_boundary)
+            return face_element(matrix)(face)
         end
         nonheap_push!(matrix.working_boundary, face)
     end
@@ -270,12 +277,12 @@ function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where
 end
 
 function add!(matrix::ReductionMatrix, column, factor)
+    record!(matrix.reduced, column, factor)
     for element in column
-        record!(matrix.reduced, factor * element)
         for face in co_boundary(matrix, simplex(element))
             push!(
                 matrix.working_boundary,
-                face_element(matrix)(face, factor * coefficient(element))
+                face_element(matrix)(face, coefficient(element) * factor)
             )
         end
     end
