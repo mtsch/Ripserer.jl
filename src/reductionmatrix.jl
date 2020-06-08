@@ -278,7 +278,7 @@ function add!(matrix::ReductionMatrix, column, factor)
     return matrix
 end
 
-function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, reps)
+function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, ::Type{I}) where I
     pivot = initialize_boundary!(matrix, column_simplex)
 
     while !isnothing(pivot)
@@ -295,56 +295,56 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, reps)
         commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
     end
 
-    return interval(matrix, column_simplex, pivot, cutoff, reps)
+    return interval(I, matrix, column_simplex, pivot, cutoff)
 end
 
-function interval(matrix::ReductionMatrix{true}, column_simplex, pivot, cutoff, reps)
-    birth = diam(column_simplex)
-    if isnothing(pivot)
-        death = Inf
-    else
-        death = diam(pivot)
-    end
+function birth_death(matrix::ReductionMatrix{true}, simplex, pivot)
+    return diam(simplex), isnothing(pivot) ? Inf : diam(pivot)
+end
+function birth_death(matrix::ReductionMatrix{false}, simplex, pivot)
+    return isnothing(pivot) ? -Inf : diam(pivot), diam(simplex)
+end
 
-    if reps && !isfinite(death)
-        return PersistenceInterval(birth, death, simplex_element(matrix)[])
-    elseif reps && death - birth > cutoff
-        representative = collect(matrix.reduced[pivot])
-        return PersistenceInterval(birth, death, representative)
-    elseif !isfinite(death) || death - birth > cutoff
-        return PersistenceInterval(birth, death)
+# Interval with no representative, (co)homology.
+function interval(
+    ::Type{PersistenceInterval{Nothing}}, matrix, simplex, pivot, cutoff
+)
+    birth, death = birth_death(matrix, simplex, pivot)
+    return death - birth > cutoff ? PersistenceInterval(birth, death) : nothing
+end
+# With representative, cohomology.
+function interval(
+    ::Type{PersistenceInterval{V}}, matrix::ReductionMatrix{true}, simplex, pivot, cutoff
+) where V<:AbstractVector
+    birth, death = birth_death(matrix, simplex, pivot)
+
+    if !isfinite(death)
+        return PersistenceInterval(birth, death, V())
+    elseif death - birth > cutoff
+        return PersistenceInterval(birth, death, collect(matrix[pivot]))
+    else
+        return nothing
+    end
+end
+# With representative, homology.
+function interval(
+    ::Type{PersistenceInterval{V}}, matrix::ReductionMatrix{false}, simplex, pivot, cutoff
+) where V<:AbstractVector
+    birth, death = birth_death(matrix, simplex, pivot)
+
+    if death - birth > cutoff
+        return PersistenceInterval(birth, death, move!(matrix.working_boundary))
     else
         return nothing
     end
 end
 
-function interval(matrix::ReductionMatrix{false}, column_simplex, pivot, cutoff, reps)
-    if isnothing(pivot)
-        return nothing
-    else
-        birth = diam(pivot)
-        death = diam(column_simplex)
-    end
-
-    if reps && !isfinite(death)
-        return PersistenceInterval(birth, death, face_element(matrix)[])
-    elseif reps && death - birth > cutoff
-        representative = move!(matrix.working_boundary)
-        return PersistenceInterval(birth, death, representative)
-    elseif !isfinite(death) || death - birth > cutoff
-        return PersistenceInterval(birth, death)
-    else
-        return nothing
-    end
-end
-
-function compute_intervals!(matrix::ReductionMatrix{Co}, cutoff, reps, progress) where Co
+function compute_intervals!(
+    matrix::ReductionMatrix{Co}, cutoff, progress, ::Val{reps}
+) where {Co, reps}
     if reps
-        if Co
-            intervals = PersistenceInterval{Vector{simplex_element(matrix)}}[]
-        else
-            intervals = PersistenceInterval{Vector{face_element(matrix)}}[]
-        end
+        representative_type = Co ? simplex_element(matrix) : face_element(matrix)
+        intervals = PersistenceInterval{Vector{representative_type}}[]
     else
         intervals = PersistenceInterval{Nothing}[]
     end
@@ -354,7 +354,7 @@ function compute_intervals!(matrix::ReductionMatrix{Co}, cutoff, reps, progress)
         )
     end
     for column in matrix.columns_to_reduce
-        interval = reduce_column!(matrix, column, cutoff, reps)
+        interval = reduce_column!(matrix, column, cutoff, eltype(intervals))
         if !isnothing(interval)
             push!(intervals, interval)
         end
@@ -393,7 +393,9 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
     end
     sort!(new_to_reduce, rev=Co)
     if progress
-        printstyled(stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green)
+        printstyled(
+            stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green
+        )
     end
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)

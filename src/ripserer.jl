@@ -79,7 +79,7 @@ function _cohomology(
 
     matrix = ReductionMatrix{true, field_type}(filtration, to_reduce, to_skip)
     for dim in 1:dim_max
-        push!(result, compute_intervals!(matrix, cutoff, reps, progress))
+        push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
 
         if dim < dim_max
             matrix = next_matrix(matrix, progress)
