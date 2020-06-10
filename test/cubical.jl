@@ -138,7 +138,7 @@ end
             push!(bnd, f)
         end
         @test bnd == [Cubelet{1}((10, 3), 2), -Cubelet{1}((9, 2), 2),
-                      Cubelet{1}((10, 9), 2), -Cubelet{1}((3, 2), 2)]
+                      Cubelet{1}((10, 9), 1), -Cubelet{1}((3, 2), 2)]
     end
 
     @testset "3d" begin

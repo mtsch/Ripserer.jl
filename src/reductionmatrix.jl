@@ -262,7 +262,7 @@ function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where
     empty!(matrix.working_boundary)
     for face in co_boundary(matrix, column_simplex)
         # Checking this on every face helps if more than one face has the same diameter.
-        if diam(face) == diam(column_simplex) && !haskey(matrix.reduced, face)
+        if Co && diam(face) == diam(column_simplex) && !haskey(matrix.reduced, face)
             empty!(matrix.working_boundary)
             return face_element(matrix)(face)
         end
@@ -384,7 +384,7 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
     C = coface_type(simplex_type(matrix))
     new_to_reduce = C[]
     new_to_skip = C[]
-    sizehint!(new_to_skip, length(matrix.reduced))
+    Co && sizehint!(new_to_skip, length(matrix.reduced))
 
     if progress
         progbar = Progress(
@@ -403,10 +403,12 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
         end
         progress && next!(progbar)
     end
-    sort!(new_to_reduce, rev=Co)
     progress && printstyled(
-        stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)).\n", color=:green
+        stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)). Sorting... ",
+        color=:green
     )
+    sort!(new_to_reduce, rev=Co)
+    progress && printstyled(stderr, "done.\n", color=:green)
 
     return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)
 end

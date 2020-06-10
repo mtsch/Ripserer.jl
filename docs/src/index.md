@@ -14,9 +14,13 @@ introduction](https://towardsdatascience.com/persistent-homology-with-examples-1
 
 See the Examples for further info.
 
+This project was created by Matija Čufar. If you used this software in your project, or if
+you have any comments, questions or suggestions, feel free to contact me at
+[matijacufar@gmail.com](mailto:matijacufar@gmail.com).
+
 ## Installation
 
-This package is registered. To install it, run the following.
+This package is registered. To install it, simply run the following.
 
 ```julia
 julia> using Pkg
@@ -50,12 +54,12 @@ Much like Ripser, Ripserer uses the following optimizations to achieve its speed
 * Skip apparent and emergent persistence pairs.
 
 For a detailed description of the algorithm, please see the
-[original article](https://arxiv.org/abs/1908.02518).
+[Ulrich Bauer's article on Ripser](https://arxiv.org/abs/1908.02518).
 
 In general, the performance of Ripserer is very close to
-[Ripser](https://github.com/Ripser/ripser). Depending on the data set, one or the other may
-be faster and the differences are usually small. There are no official benchmarks, because I
-have found benchmarking on my computer or a CI system to be too unreliable.
+[Ripser](https://github.com/Ripser/ripser), within around 30%. Depending on the data set,
+one or the other may be faster. There are no official benchmarks, because I have found
+benchmarking on my computer or a CI system to be too unreliable.
 
 ## Extending
 
@@ -78,3 +82,4 @@ I would like to thank:
 * [@ctralie](https://github.com/ctralie) and [@sauln](https://github.com/sauln) for creating
   [ripser.py](https://github.com/scikit-tda/ripser.py/) which has been a source of
   inspiration.
+* Žiga Virk, for giving ideas and helping with the theoretical side of things.

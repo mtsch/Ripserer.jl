@@ -81,7 +81,7 @@ function zeroth_representative(filtration, dset, vertex, reps, CE, V)
 end
 
 """
-    zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+    zeroth_intervals(filtration, cutoff, progress, field_type, Val(reps))
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 
@@ -89,18 +89,20 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
 `progress` is set.
 """
-function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
+function zeroth_intervals(
+    filtration, cutoff, progress, ::Type{F}, ::Val{reps}
+) where {F, reps}
     T = dist_type(filtration)
     V = vertex_type(filtration)
-    CE = chain_element_type(V, field_type)
+    CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     if reps
         intervals = PersistenceInterval{Vector{CE}}[]
     else
         intervals = PersistenceInterval{Nothing}[]
     end
-    reduced = edge_type(filtration)[]
-    unreduced = edge_type(filtration)[]
+    to_skip = edge_type(filtration)[]
+    to_reduce = edge_type(filtration)[]
     simplices = edges(filtration)
     if progress
         progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
@@ -119,9 +121,9 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
                 push!(intervals, interval)
             end
             union!(dset, i, j)
-            push!(reduced, sx)
+            push!(to_skip, sx)
         else
-            push!(unreduced, sx)
+            push!(to_reduce, sx)
         end
         progress && next!(progbar)
     end
@@ -131,9 +133,9 @@ function zeroth_intervals(filtration, cutoff, field_type, reps, progress)
             push!(intervals, PersistenceInterval(birth(dset, v), Inf, representative))
         end
     end
-    reverse!(unreduced)
-    progress && printstyled(stderr, "Assembled $(length(unreduced)) edges.\n", color=:green)
+    reverse!(to_reduce)
+    progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)
     return (
-        sort!(PersistenceDiagram(0, intervals, threshold(filtration))), unreduced, reduced,
+        sort!(PersistenceDiagram(0, intervals, threshold(filtration))), to_reduce, to_skip,
     )
 end

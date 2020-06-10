@@ -169,8 +169,8 @@ end
     end
 end
 
-@testset "representatives" begin
-    _, d1, d2 = ripserer(projective_plane, dim_max=2, representatives=true)
+@testset "reps" begin
+    _, d1, d2 = ripserer(projective_plane, dim_max=2, reps=true)
 
     @test simplex.(representative(only(d1))) == [
         Simplex{1}((11, 10), 1),
@@ -188,8 +188,8 @@ end
     @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
 end
 
-@testset "representatives - types" begin
-    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true)
+@testset "reps - types" begin
+    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true)
     @test eltype(d0) <: PersistenceInterval{
         <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
     @test eltype(d1) <: PersistenceInterval{
@@ -199,7 +199,7 @@ end
     @test eltype(d3) <: PersistenceInterval{
         <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
-    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, representatives=true,
+    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true,
                               field_type=Rational{Int})
     @test eltype(d0) ≡ PersistenceInterval{
         Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
@@ -213,7 +213,7 @@ end
 
 @testset "Representative of infinite interval." begin
     _, d1 = ripserer(
-        cycle, dim_max=1, representatives=true, threshold=1, field_type=Rational{Int}
+        cycle, dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
     )
     @test representative(only(d1)) == ChainElement{
         Simplex{0, Int, Int}, Rational{Int}
@@ -252,7 +252,7 @@ end
             0 2 2 2 0;
             0 0 0 0 0]
 
-    d0, d1, d2, d3, d4 = ripserer(Cubical(data), representatives=true, dim_max=4)
+    d0, d1, d2, d3, d4 = ripserer(Cubical(data), reps=true, dim_max=4)
 
     @test d0 == [(0, Inf), (1, 2)]
     @test d1 == [(0, 2)]
@@ -265,17 +265,17 @@ end
 end
 
 @testset "Persistent homology." begin
-    res_hom = ripserer(cycle, co=false, dim_max=3)
-    res_coh = ripserer(cycle, dim_max=3)
+    res_hom = ripserer(cycle, cohomology=false, dim_max=3)
+    res_coh = ripserer(cycle, cohomology=true, dim_max=3)
 
     @test res_hom == res_coh
 
-    res_hom = ripserer(cycle, co=false, representatives=true, dim_max=3)
+    res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
     @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!([
         [(i+1, i) for i in 1:17]; (18, 1)
     ])
 
-    @test_broken ripserer(cycle, co=false, threshold=2)[2][1] == (1.0, Inf)
+    @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
 end
 
 @testset "Only print to stderr and only when progress is enabled." begin

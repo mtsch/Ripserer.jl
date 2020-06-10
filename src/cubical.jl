@@ -197,13 +197,16 @@ function Base.iterate(cb::CubeletBoundary{D, C}, (dim, dir)=(1, 1)) where {D, C}
     if dim > D
         return nothing
     else
-        vertices = map(v -> LinearIndices(cb.filtration)[v],
-                       TupleTools.sort(cb.vertices, by=v -> v[dim], rev=true))
-        diameter = diam(cb.filtration, vertices)
+        lin_vertices = map(v -> LinearIndices(cb.filtration)[v],
+                           TupleTools.sort(cb.vertices, by=v -> v[dim], rev=true))
         if dir == 1
-            return face_type(C)(index(vertices[1:end÷2]), diameter), (dim, -dir)
+            new_vertices = lin_vertices[1:end÷2]
+            diameter = diam(cb.filtration, new_vertices)
+            return face_type(C)(index(new_vertices), diameter), (dim, -dir)
         else
-            return face_type(C)(-index(vertices[end÷2+1:end]), diameter), (dim + 1, 1)
+            new_vertices = lin_vertices[end÷2+1:end]
+            diameter = diam(cb.filtration, new_vertices)
+            return face_type(C)(-index(new_vertices), diameter), (dim + 1, 1)
         end
     end
 end
