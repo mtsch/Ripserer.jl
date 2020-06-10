@@ -14,16 +14,19 @@ introduction](https://towardsdatascience.com/persistent-homology-with-examples-1
 
 See the Examples for further info.
 
-This project was created by Matija Čufar. If you used this software in your project, or if
+Ripserer was created by Matija Čufar. If you used this software in your project, or if
 you have any comments, questions or suggestions, feel free to contact me at
 [matijacufar@gmail.com](mailto:matijacufar@gmail.com).
+
+While this package is fully functional, it is still in development and should not be
+considered stable. Interfaces and internals may still change.
 
 ## Installation
 
 This package is registered. To install it, simply run the following.
 
 ```julia
-julia> using Pkg
+julia> import Pkg
 julia> Pkg.add("Ripserer")
 ```
 
