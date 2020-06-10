@@ -30,8 +30,8 @@ heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))
 # !!! note "Note"
 #     Unlike with Rips filtrations, we can use large data sets here because the number of
 #     simplices in a cubical filtration is linear to the size of the input. We still want to
-#     be careful with calculating representatives because calculating representatives for
-#     thousands of persistence intervals can take a while.
+#     be careful with computing representatives because collecting them for thousands of
+#     persistence intervals can take a while.
 
 result_min = ripserer(Cubical(blackhole_grayscale))
 
@@ -52,7 +52,7 @@ plot(result_min, persistence=true)
 
 # Now that we know we have a smaller number of intervals, we can compute the
 # representatives.
-result_min = ripserer(Cubical(blackhole_grayscale), cutoff=0.1, representatives=true)
+result_min = ripserer(Cubical(blackhole_grayscale), cutoff=0.1, reps=true)
 
 # We separate the finite and infinite intervals. The finite one corresponds to the local
 # minimum in the middle of the image and the infinite one corresponds to the global minimum.
@@ -113,7 +113,7 @@ scatter!(result_min[2][2], blackhole_grayscale,
 
 # Let's repeat what we just did, but with the image negated.
 
-result_max = ripserer(Cubical(-blackhole_grayscale), cutoff=0.1, representatives=true)
+result_max = ripserer(Cubical(-blackhole_grayscale), cutoff=0.1, reps=true)
 plot(result_max)
 
 heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))

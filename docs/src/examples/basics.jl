@@ -134,29 +134,24 @@ most_persistent = sort(result_cut[2], by=persistence)[end]
 # that time. This means that we could stop computing when we reach this time and the result
 # should not change. Let's try it out!
 
-@time result_cut_thr = ripserer(cutout_2000, threshold=1.83)
+@time result_cut_thresh_2 = ripserer(cutout_2000, threshold=2)
 nothing; # hide
 
 #
 
-plot(result_cut_thr, title="Persistence Diagram, threshold=1.83")
+plot(result_cut_thresh_2, title="Persistence Diagram, threshold=2")
 
 # Indeed, the result is exactly the same, but it took less than a third of the time to
 # compute.
 
-# If we pick a threshold that is too low, we still detect the interval, but its death time
-# will become infinite. Let's demonstrate that with an animation.
+result_cut_thresh_2 == result_cut
 
-anim = @animate for threshold in 1.83:-0.03:0.09
-    result_cut_i = ripserer(cutout_2000, threshold=threshold)
-    pd_plt = plot(result_cut_i,
-                  xticks=0:0.1:1.9,
-                  yticks=0:0.1:1.9,
-                  title="threshold=$threshold")
-    bc_plt = barcode(result_cut_i[2],
-                     xticks=0:0.1:1.9,
-                     ylim=(1, length(result_cut[2])))
-    plot(pd_plt, bc_plt,
-         size=(800, 400))
-end
-mp4(anim, "basics_anim.mp4") # hide
+# If we pick a threshold that is too low, we still detect the interval, but its death time
+# becomes infinite.
+
+@time result_cut_thresh_1 = ripserer(cutout_2000, threshold=1)
+nothing; # hide
+
+#
+
+plot(result_cut_thresh_1, title="Persistence Diagram, threshold=1")

@@ -168,27 +168,7 @@ where ``i_k`` are the simplex vertex indices.
     return expr
 end
 
-# coboundaries =========================================================================== #
-"""
-    IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex{D-1}}
-
-Iterator that evaluates the coboundary of a `(D - 1)`-dimensional indexed simplex. Uses the
-filtration to determine which simplices are valid cofaces in the filtration and to determine
-their diameter. If the type parameter `all_cofaces` is `true`, return all cofaces, otherwise
-only return cofaces where the new vertex index is larger than all vertex indices in
-`simplex`. `all_cofaces=false` is used with during the call to [`assemble_columns!`](@ref)
-to generate the list of all simplices.
-
-# Fields
-
-* `filtration ::F`
-* `simplex    ::S`
-* `vertices   ::NTuple{D, Int}`
-
-# Constructor
-
-    coboundary(filtration, simplex[, Val(false)])
-"""
+# (co)boundaries ========================================================================= #
 struct IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex}
     filtration ::F
     simplex    ::S
@@ -226,6 +206,38 @@ function Base.iterate(
         new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
 
         return coface_type(ci.simplex)(new_index, diameter), (v, k)
+    else
+        return nothing
+    end
+end
+
+struct IndexedBoundary{D, F, S<:IndexedSimplex}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, Int}
+
+    function IndexedBoundary(filtration::F, simplex::S) where {D, F, S<:IndexedSimplex{D}}
+        return new{D + 1, F, S}(filtration, simplex, vertices(simplex))
+    end
+end
+
+function boundary(filtration, simplex::IndexedSimplex)
+    return IndexedBoundary(filtration, simplex)
+end
+
+function Base.iterate(bi::IndexedBoundary{D}, k=1) where D
+    diameter = missing
+    face_vertices = TupleTools.unsafe_tail(bi.vertices)
+    while ismissing(diameter) && k ≤ D
+        face_vertices = TupleTools.deleteat(bi.vertices, k)
+        diameter = diam(bi.filtration, face_vertices)
+        k += 1
+    end
+    if !ismissing(diameter)
+        sign = ifelse(iseven(k), 1, -1)
+        new_index = index(face_vertices) * sign
+
+        return face_type(bi.simplex)(new_index, diameter), k
     else
         return nothing
     end
@@ -297,3 +309,4 @@ end
 index(sx::Simplex) = sx.index
 diam(sx::Simplex) = sx.diam
 coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}
+face_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D-1, T, I}

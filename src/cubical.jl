@@ -46,7 +46,8 @@ index(csx::Cubelet) = csx.index
     return :(vertices(index(csx), Val($(2^D))))
 end
 
-coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D+1, T, I}
+coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
+face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
 
 """
     Cubical{T, N} <: AbstractFiltration{T, <:Cubelet{0, T}}
@@ -172,4 +173,40 @@ function Base.iterate(cc::CubeletCoboundary{A, N, C}, (dim, dir)=(1, 1)) where {
     end
     all_vertices = TupleTools.sort(all_vertices, rev=true)
     return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+end
+
+struct CubeletBoundary{D, C<:Cubelet, N, F<:Cubical{<:Any, N}, K}
+    filtration ::F
+    cubelet    ::C
+    vertices   ::NTuple{K, CartesianIndex{N}}
+end
+
+function CubeletBoundary(
+    filtration::F, cubelet::C
+) where {N, D, F<:Cubical{<:Any, N}, C<:Cubelet{D}}
+
+    K = 2^D
+    vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
+    return CubeletBoundary{D, C, N, F, K}(filtration, cubelet, vxs)
+end
+
+boundary(filtration::Cubical, cubelet::Cubelet) = CubeletBoundary(filtration, cubelet)
+
+# Idea: split the cube in each dimension, returning two halves depending on dir.
+function Base.iterate(cb::CubeletBoundary{D, C}, (dim, dir)=(1, 1)) where {D, C}
+    if dim > D
+        return nothing
+    else
+        lin_vertices = map(v -> LinearIndices(cb.filtration)[v],
+                           TupleTools.sort(cb.vertices, by=v -> v[dim], rev=true))
+        if dir == 1
+            new_vertices = lin_vertices[1:end÷2]
+            diameter = diam(cb.filtration, new_vertices)
+            return face_type(C)(index(new_vertices), diameter), (dim, -dir)
+        else
+            new_vertices = lin_vertices[end÷2+1:end]
+            diameter = diam(cb.filtration, new_vertices)
+            return face_type(C)(-index(new_vertices), diameter), (dim + 1, 1)
+        end
+    end
 end
