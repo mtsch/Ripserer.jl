@@ -29,7 +29,7 @@ plot(x, y, xlab="x", ylab="y", legend=false, title="Data")
 # height of an adjacent local maximum. An interval with infinite persistence represents the
 # global minimum.
 
-res = ripserer(Cubical(y), dim_max=0, representatives=true)[1]
+res = ripserer(Cubical(y), dim_max=0, reps=true)[1]
 plot(res)
 
 # We notice there is a lot of noise on the persistence diagram. We can filter it out by

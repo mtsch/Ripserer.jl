@@ -25,7 +25,7 @@ plot(curve(100), legend=false, title="Curve", aspect_ratio=1, xlab="x", ylab="y"
 
 anim = @animate for i in vcat(3:100, 100:-1:3)
     points = curve(i)
-    res = ripserer(points, representatives=true)
+    res = ripserer(points, reps=true)
 
     plt1 = plot(title="1-dimensional Representative Cocycle",
                 xlab="x",
