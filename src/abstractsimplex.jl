@@ -1,9 +1,12 @@
 """
-    AbstractSimplex{D, T}
+    AbstractSimplex{D, T, I} <: AbstractVector{I}
 
 An abstract type for representing simplices. A simplex must have a diameter of type `T`,
 which is its birth time. The dimension must be encoded in the type as `D` and can be
 accessed by [`dim`](@ref).
+
+The simplex is expected to act like an array of indices of type `I`, but this is not
+actually needed for the main algorithm.
 
 # Interface
 
@@ -18,7 +21,7 @@ accessed by [`dim`](@ref).
 * [`face_type(::AbstractSimplex)`](@ref) only required for homology.
 * [`boundary(::Any, ::AbstractSimplex)`](@ref) only required for homology.
 """
-abstract type AbstractSimplex{D, T} end
+abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
 
 """
     diam(simplex::AbstractSimplex)
