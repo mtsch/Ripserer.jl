@@ -1,6 +1,7 @@
 using Ripserer
-using Ripserer: small_binomial
+using StaticArrays
 
+using Ripserer: small_binomial
 using ..TestHelpers: test_indexed_simplex_interface
 
 struct FakeFiltration end
@@ -19,16 +20,15 @@ Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
     @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
 end
 
-
 @testset "Simplex" begin
     test_indexed_simplex_interface(Simplex, D->D+1)
 
     @testset "vertices, index" begin
-        @test vertices(Simplex{2}(1, rand())) ≡ (3, 2, 1)
-        @test vertices(Simplex{3}(Int32(2), rand())) ≡ Int32.((5, 3, 2, 1))
-        @test vertices(Simplex{1}(Int128(3), rand())) ≡ Int128.((3, 2))
-        @test vertices(Simplex{4}(4, rand())) ≡ (6, 5, 4, 2, 1)
-        @test vertices(Simplex{2}(5, rand())) ≡ (5, 2, 1)
+        @test vertices(Simplex{2}(1, rand())) ≡ SVector{3}(3, 2, 1)
+        @test vertices(Simplex{3}(Int32(2), rand())) ≡ SVector{4, Int32}(5, 3, 2, 1)
+        @test vertices(Simplex{1}(Int128(3), rand())) ≡ SVector{2, Int128}(3, 2)
+        @test vertices(Simplex{4}(4, rand())) ≡ SVector{5}(6, 5, 4, 2, 1)
+        @test vertices(Simplex{2}(5, rand())) ≡ SVector{3}(5, 2, 1)
 
         for i in 1:2:20
             for I in (Int64, Int32, Int128)
@@ -41,16 +41,16 @@ end
         end
     end
     @testset "show" begin
-        @test sprint(print, Simplex{1}(1, 1)) == "Simplex{1}(+(2, 1), 1)"
-        @test sprint(print, Simplex{2}(-1, 1)) == "Simplex{2}(-(3, 2, 1), 1)"
+        @test sprint(print, Simplex{1}(1, 1)) == "Simplex{1}(+[2, 1], 1)"
+        @test sprint(print, Simplex{2}(-1, 1)) == "Simplex{2}(-[3, 2, 1], 1)"
 
         @test sprint(Simplex{2}(1, 1)) do io, sx
             show(io, MIME"text/plain"(), sx)
-        end == "2-dim Simplex(1, 1):\n  +(3, 2, 1)"
+        end == "2-dim Simplex(1, 1):\n  +[3, 2, 1]"
 
         @test sprint(Simplex{1}(Int128(1), 1)) do io, sx
             show(io, MIME"text/plain"(), sx)
-        end == "1-dim Simplex(1, 1) with Int128 index:\n  +(2, 1)"
+        end == "1-dim Simplex(1, 1):\n  +Int128[2, 1]"
 
     end
     @testset "coboundary" begin

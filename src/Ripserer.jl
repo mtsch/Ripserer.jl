@@ -21,7 +21,6 @@ using PersistenceDiagrams
 using ProgressMeter
 using RecipesBase
 using StaticArrays
-using TupleTools
 
 # reexporting basics these makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold

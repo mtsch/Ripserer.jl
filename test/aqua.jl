@@ -1,4 +1,5 @@
 using Ripserer
 using Aqua
 
-Aqua.test_all(Ripserer)
+# Ignore ambiguities in StaticArrays.
+Aqua.test_all(Ripserer, ambiguities=(exclude=[Base.convert, Base.unsafe_convert],))

@@ -175,6 +175,9 @@ where ``i_k`` are the simplex vertex indices.
     return expr
 end
 
+index(vertex::Integer) = vertex
+index(vertex::CartesianIndex) = index(vertex.I)
+
 # (co)boundaries ========================================================================= #
 struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
     filtration ::F
@@ -269,15 +272,15 @@ Simplex{2}(2, 1)
 # output
 
 2-dim Simplex{2}(2, 1):
-  +(4, 2, 1)
+  +[4, 2, 1]
 ```
 ```jldoctest
 Simplex{10}(Int128(-10), 1.0)
 
 # output
 
-4-dim Simplex{3}(1.0, 10, 2) with UInt128 index:
-  -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
+4-dim Simplex{3}(1.0, 10, 2):
+  -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
 ```
 """
 struct Simplex{D, T, I} <: IndexedSimplex{D, T, I}
@@ -293,7 +296,7 @@ end
 function Simplex{D}(index::I, diam::T) where {D, T, I<:Integer}
     return Simplex{D, T, I}(index, diam)
 end
-function Simplex{D}(vertices, diam::T) where {D, T, I<:Integer}
+function Simplex{D}(vertices, diam::T) where {D, T}
     return Simplex{D, T, eltype(vertices)}(vertices, diam)
 end
 function Simplex{D, T, I}(vertices, diam) where {D, T, I<:Integer}
@@ -305,9 +308,6 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
     print(io, D, "-dim Simplex", (index(sx), diam(sx)))
-    if I ≢ Int64
-        print(io, " with ", I, " index")
-    end
     print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
 end
 

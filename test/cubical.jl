@@ -1,4 +1,6 @@
 using Ripserer
+using StaticArrays
+
 using Ripserer: all_equal_in_dim
 
 data1d = cos.(range(0, 4π, length=1000))
@@ -19,11 +21,11 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
     test_indexed_simplex_interface(Cubelet, D -> 2^D)
 
     @testset "vertices, index" begin
-        @test vertices(Cubelet{2}(1, rand())) == (4, 3, 2, 1)
-        @test vertices(Cubelet{2}(2, rand())) == (5, 3, 2, 1)
-        @test vertices(Cubelet{1}(3, rand())) == (3, 2)
-        @test vertices(Cubelet{0}(4, rand())) == (4,)
-        @test vertices(Cubelet{3}(5, rand())) == (9, 8, 7, 6, 4, 3, 2, 1)
+        @test vertices(Cubelet{2}(1, rand())) == SVector{4}(4, 3, 2, 1)
+        @test vertices(Cubelet{2}(Int128(2), rand())) == SVector{4, Int128}(5, 3, 2, 1)
+        @test vertices(Cubelet{1}(3, rand())) == SVector{2}(3, 2)
+        @test vertices(Cubelet{0}(Int32(4), rand())) == SVector{1, Int32}(4)
+        @test vertices(Cubelet{3}(5, rand())) == SVector{8}(9, 8, 7, 6, 4, 3, 2, 1)
 
         for i in 1:20
             sx = Cubelet{5}(i, rand())
@@ -34,16 +36,16 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
         end
     end
     @testset "show" begin
-        @test sprint(print, Cubelet{1}(1, 1)) == "Cubelet{1}(+(2, 1), 1)"
-        @test sprint(print, Cubelet{2}(-1, 1)) == "Cubelet{2}(-(4, 3, 2, 1), 1)"
+        @test sprint(print, Cubelet{1}(1, 1)) == "Cubelet{1}(+[2, 1], 1)"
+        @test sprint(print, Cubelet{2}(-1, 1)) == "Cubelet{2}(-[4, 3, 2, 1], 1)"
 
         @test sprint(Cubelet{2}(1, 1)) do io, sx
             show(io, MIME"text/plain"(), sx)
-        end == "2-dim Cubelet(1, 1):\n  +(4, 3, 2, 1)"
+        end == "2-dim Cubelet(1, 1):\n  +[4, 3, 2, 1]"
 
         @test sprint(Cubelet{1}(Int128(1), 1)) do io, sx
             show(io, MIME"text/plain"(), sx)
-        end == "1-dim Cubelet(1, 1) with Int128 index:\n  +(2, 1)"
+        end == "1-dim Cubelet(1, 1):\n  +Int128[2, 1]"
     end
 end
 
