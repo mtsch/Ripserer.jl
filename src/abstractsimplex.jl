@@ -18,8 +18,9 @@ actually needed for the main algorithm.
 * [`vertices(::AbstractSimplex)`](@ref)
 * [`coface_type(::AbstractSimplex)`](@ref)
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
-* [`face_type(::AbstractSimplex)`](@ref) only required for homology.
-* [`boundary(::Any, ::AbstractSimplex)`](@ref) only required for homology.
+* [`face_type(::AbstractSimplex)`](@ref) - only required for homology.
+* [`boundary(::Any, ::AbstractSimplex)`](@ref) - only required for homology.
+* [`check_overflow(::Type{<:AbstractSimplex}, ::Any)`](@ref) - optional.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
 
@@ -71,7 +72,10 @@ Base.:-(::AbstractSimplex)
 Base.:+(sx::AbstractSimplex) = sx
 
 Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
-function Base.:(==)(sx1::AbstractSimplex{D}, sx2::AbstractSimplex{D}) where D
+function Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+function Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex
     return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
 end
 Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))

@@ -253,13 +253,11 @@ end
             0 2 2 2 0;
             0 0 0 0 0]
 
-    d0, d1, d2, d3, d4 = ripserer(Cubical(data), reps=true, dim_max=4)
+    d0, d1, d2 = ripserer(Cubical(data), reps=true, dim_max=2)
 
     @test d0 == [(0, Inf), (1, 2)]
     @test d1 == [(0, 2)]
     @test isempty(d2)
-    @test isempty(d3)
-    @test isempty(d4)
 
     @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
     @test vertices(only(representative(d0[2]))) == SVector(13)

@@ -1,5 +1,5 @@
 """
-    AbstractFiltration{T, V<:AbstractSimplex{0, T}}
+    AbstractFiltration{T, S<:AbstractSimplex}
 
 A filtration is used to find the edges in filtration and to determine diameters of
 simplices.
@@ -11,19 +11,28 @@ simplices.
 
 * [`n_vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
-* [`diam(::AbstractFiltration, vs)`](@ref)
-* [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref)
+* [`diam(::AbstractFiltration, vertices)`](@ref)
+* [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref) - only used for
+  `Simplex`.
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
 * [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `missing`.
+* [`simplex_type(::AbstractFiltration, dim)`](@ref)
 """
-abstract type AbstractFiltration{T, V<:AbstractSimplex{0, T}} end
+abstract type AbstractFiltration{T, S<:AbstractSimplex} end
 
 function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
 end
 
-vertex_type(::AbstractFiltration{<:Any, V}) where V = V
-edge_type(::AbstractFiltration{<:Any, V}) where V = coface_type(V)
+"""
+    simplex_type(::AbstractFiltration, dim)
+
+Return the `dim`-dimensional simplex in the filtration.
+"""
+simplex_type(::AbstractFiltration, dim)
+
+vertex_type(flt::AbstractFiltration) = simplex_type(flt, 0)
+edge_type(flt::AbstractFiltration) = simplex_type(flt, 1)
 dist_type(::AbstractFiltration{T}) where T = T
 
 """

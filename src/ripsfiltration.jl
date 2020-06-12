@@ -53,13 +53,13 @@ end
 
 # flag filtration ======================================================================== #
 """
-    AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V}
+    AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
 
 An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
 `dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Missing}` instead of `diam`.
 `diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
 """
-abstract type AbstractFlagFiltration{T, V} <: AbstractFiltration{T, V} end
+abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
 
 @propagate_inbounds function diam(flt::AbstractFlagFiltration, vertices)
     n = length(vertices)
@@ -110,7 +110,7 @@ function default_rips_threshold(dists::AbstractMatrix{T}) where T
 end
 
 """
-    Rips{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
+    Rips{I, T} <: AbstractFlagFiltration{T, Simplex}
 
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
@@ -123,43 +123,36 @@ Diagonal items are treated as vertex birth times.
         vertex_type=Simplex{0, T, Int64},
     )
 """
-struct Rips{
-    T, V<:AbstractSimplex{0, T}, A<:AbstractMatrix{T}
-} <: AbstractFlagFiltration{T, V}
-
-    dist      ::A
-    threshold ::T
+struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractFlagFiltration{T, Simplex}
+    dist::A
+    threshold::T
 end
 
-function Rips(
-    dist::AbstractMatrix{T};
-    threshold=default_rips_threshold(dist),
-    vertex_type::DataType=Simplex{0, T, Int64}
-) where T
-
+function Rips{I}(
+    dist::AbstractMatrix{T}; threshold=default_rips_threshold(dist)
+) where {I, T}
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
-    vertex_type <: AbstractSimplex{0, T} ||
-        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
     !issparse(dist) ||
         throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
-    return Rips{T, vertex_type, typeof(dist)}(dist, T(threshold))
+    return Rips{I, T, typeof(dist)}(dist, T(threshold))
+end
+function Rips(dist; threshold=default_rips_threshold(dist))
+    return Rips{Int}(dist; threshold=threshold)
 end
 
-# interface implementation
-n_vertices(rips::Rips) = size(rips.dist, 1)
-
-@propagate_inbounds function dist(rips::Rips{T}, i, j) where T
+@propagate_inbounds function dist(rips::Rips{<:Any, T}, i, j) where T
     return ifelse(i == j, zero(T), rips.dist[i, j])
 end
 
+n_vertices(rips::Rips) = size(rips.dist, 1)
 threshold(rips::Rips) = rips.threshold
-max_death(rips::Rips) = rips.threshold
 birth(rips::Rips, i) = rips.dist[i, i]
+simplex_type(rips::Rips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 # sparse rips filtration ================================================================= #
 """
-    SparseRips{T, V<:AbstractSimplex{<:Any, T}} <: AbstractFlagFiltration{T, V}
+    SparseRips{I, T} <: AbstractFlagFiltration{T, Simplex}
 
 This type represents a filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -168,53 +161,43 @@ are treated as vertex birth times.
 
 # Constructor
 
-    SparseRips(
+    SparseRips{I}(
         distance_matrix;
         threshold=nothing,
-        vertex_type=Simplex{0, T, Int64},
     )
 """
-struct SparseRips{
-    T, V<:AbstractSimplex{0, T}, A<:AbstractSparseMatrix{T}
-}<: AbstractFlagFiltration{T, V}
-
-    dist      ::A
-    threshold ::T
+struct SparseRips{I, T, A<:AbstractSparseMatrix{T}} <: AbstractFlagFiltration{T, Simplex}
+    dist::A
+    threshold::T
 end
 
-function SparseRips(
-    dist::AbstractMatrix{T};
-    threshold=nothing,
-    vertex_type::DataType=Simplex{0, T, Int64},
-) where T
-    issymmetric(dist) ||
-        throw(ArgumentError("`dist` must be a distance matrix"))
-    vertex_type <: AbstractSimplex{0, T} ||
-        throw(ArgumentError("`vertex_type` must be a subtype of `AbstractSimplex{0, $T}`"))
-
-    new_dist = sparse(dist)
-    if !isnothing(threshold)
-        births = diag(dist)
-        SparseArrays.fkeep!(new_dist, (_, _ , v) -> v ≤ threshold)
-        for i in 1:size(dist, 1)
-            new_dist[i, i] = births[i]
-        end
+function SparseRips{I}(
+    dist::AbstractSparseMatrix{T}; threshold=nothing
+) where {I, T}
+    issymmetric(dist) || throw(ArgumentError("`dist` must be a distance matrix"))
+    if isnothing(threshold)
+        thresh = maximum(dist)
+        dists = dist
     else
-        threshold = maximum(dist)
+        thresh = threshold
+        dists = SparseArrays.fkeep!(copy(dist), (_, _, v) -> v ≤ threshold)
     end
-    return SparseRips{T, vertex_type, typeof(new_dist)}(new_dist, threshold)
+    return SparseRips{I, T, typeof(dists)}(dists, thresh)
+end
+function SparseRips(dist; threshold=nothing)
+    return SparseRips{Int}(dist; threshold=threshold)
+end
+function SparseRips{I}(dist; threshold=nothing) where I
+    return SparseRips{I}(sparse(dist); threshold=threshold)
 end
 
-# interface implementation --------------------------------------------------------------- #
-n_vertices(rips::SparseRips) = size(rips.dist, 1)
-
-@propagate_inbounds function dist(rips::SparseRips{T}, i, j) where T
+@propagate_inbounds function dist(rips::SparseRips{<:Any, T}, i, j) where T
     res = rips.dist[i, j]
     return ifelse(i == j, zero(T), ifelse(iszero(res), missing, res))
 end
 
 # Threshold was handled by deleting entries in the matrix.
+n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
-max_death(rips::SparseRips) = maximum(rips.dist)
-
 birth(rips::SparseRips, i) = rips.dist[i, i]
+simplex_type(rips::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}

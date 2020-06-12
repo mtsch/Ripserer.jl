@@ -93,11 +93,10 @@ for Filtration in (Rips, SparseRips)
             @test birth(flt, 4) == 0
         end
         @testset "threshold, vertex_type" begin
-            flt = Filtration([1 1 2;
-                              1 2 3;
-                              2 3 3];
-                             threshold=2,
-                             vertex_type=Simplex{0, Int, Int})
+            flt = Filtration{Int128}([1 1 2;
+                                      1 2 3;
+                                      2 3 2];
+                                     threshold=2)
 
             @test n_vertices(flt) == 3
             @test threshold(flt) == 2
@@ -107,26 +106,17 @@ for Filtration in (Rips, SparseRips)
             @test dist(flt, 3, 2) ≡ (issparse(flt.dist) ? missing : 3)
             @test ismissing(diam(flt, Simplex{2}(1, 1), [1, 2], 3))
             @test threshold(flt) == 2
-            @test vertex_type(flt) === Simplex{0, Int, Int}
-            @test edge_type(flt) === Simplex{1, Int, Int}
+            @test vertex_type(flt) === Simplex{0, Int, Int128}
+            @test edge_type(flt) === Simplex{1, Int, Int128}
 
             @test birth(flt, 1) == 1
             @test birth(flt, 2) == 2
-            @test birth(flt, 3) == 3
+            @test birth(flt, 3) == 2
         end
         @testset "errors" begin
             @test_throws ArgumentError Filtration([1 2 3;
                                                    4 5 6;
                                                    7 8 9])
-            dists = [0 1 2; 1 0 3; 2 3 0]
-            @test_throws ArgumentError Filtration(dists, vertex_type=Int)
-            @test_throws ArgumentError Filtration(
-                dists, vertex_type=Simplex{1, Int, Int}
-            )
-            @test_throws ArgumentError Filtration(
-                dists, vertex_type=Simplex{0, Float64, Int}
-            )
-            @test_throws TypeError Filtration(dists, vertex_type=Simplex{0, Int})
         end
     end
 end

@@ -69,9 +69,7 @@ images, which are of type `AbstractArray{T, N}`.
 
     Cubical(::AbstractArray{T, N})
 """
-struct Cubical{
-    I, T, N, V<:Cubelet{0, T, I}, A<:AbstractArray{T, N}
-} <: AbstractFiltration{T, V}
+struct Cubical{I, T, N, A<:AbstractArray{T, N}} <: AbstractFiltration{T, Cubelet}
     data::A
     threshold::T
 end
@@ -80,18 +78,18 @@ function Cubical(data)
     return Cubical{Int}(data)
 end
 function Cubical{I}(data::AbstractArray{T, N}) where {I, T, N}
-    V = Cubelet{0, T, I}
-    return Cubical{I, T, N, V, typeof(data)}(data, maximum(data))
+    return Cubical{I, T, N, typeof(data)}(data, maximum(data))
 end
 
 n_vertices(cf::Cubical) = length(cf.data)
 threshold(cf::Cubical) = cf.threshold
 birth(cf::Cubical, i) = cf.data[i]
+simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
 
 Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
 Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 
-function diam(cf::Cubical{T}, vertices) where {T}
+function diam(cf::Cubical{<:Any, T}, vertices) where {T}
     res = typemin(T)
     for v in vertices
         if isnothing(get(cf.data, v, nothing))

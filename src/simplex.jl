@@ -50,6 +50,9 @@ end
 function Base.:(==)(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D
     return (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
 end
+function Base.isequal(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D
+    return (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
+end
 function Base.hash(sx::IndexedSimplex, h::UInt64)
     return hash(index(sx), hash(diam(sx), h))
 end
@@ -70,11 +73,11 @@ always positive.
 small_binomial(::I, ::Val{0}) where I = one(I)
 small_binomial(n, ::Val{1}) = n
 function small_binomial(n::I, ::Val{k}) where {k, I}
-    x = nn = n - k + 1
-    nn += 1
-    for rr in 2:k
+    x = nn = I(n - k + 1)
+    nn += one(I)
+    for rr in I(2):I(k)
         x = div(x * nn, rr)
-        nn += 1
+        nn += one(I)
     end
     return I(x)
 end
@@ -180,14 +183,14 @@ index(vertex::CartesianIndex) = index(vertex.I)
 
 # (co)boundaries ========================================================================= #
 struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
-    filtration ::F
-    simplex    ::S
-    vertices   ::SVector{D, I}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
 
     function IndexedCobounary{A}(
         filtration::F, simplex::S
     ) where {A, D, I, F, S<:IndexedSimplex{D, <:Any, I}}
-        return new{A, D + 1, I, F, S}(filtration, simplex, vertices(simplex))
+        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
@@ -196,39 +199,35 @@ function coboundary(filtration, simplex::IndexedSimplex, ::Val{A}=Val(true)) whe
 end
 
 function Base.iterate(
-    ci::IndexedCobounary{all_cofaces, D, I}, (v, k)=(n_vertices(ci.filtration) + 1, D),
+    ci::IndexedCobounary{all_cofaces, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
 ) where {all_cofaces, D, I}
-
-    diameter = missing
-    @inbounds while ismissing(diameter) && v > 0
-        v -= 1
-        while v > 0 && v in ci.vertices
+    @inbounds while true
+        v -= one(I)
+        while k > 0 && v == ci.vertices[end + 1 - k]
             all_cofaces || return nothing
-            v -= 1
+            v -= one(I)
             k -= 1
         end
-        v == 0 && break
+        v > 0 || return nothing
         diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
-    end
-    if !ismissing(diameter)
-        sign = ifelse(iseven(k), one(I), -one(I))
-        new_index = index(insert(ci.vertices, D - k + 1, v)) * sign
+        if !ismissing(diameter)
+            sign = ifelse(iseven(k), one(I), -one(I))
+            new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
 
-        return coface_type(ci.simplex)(new_index, diameter), (v, k)
-    else
-        return nothing
+            return coface_type(ci.simplex)(new_index, diameter), (v, k)
+        end
     end
 end
 
 struct IndexedBoundary{D, I, F, S<:IndexedSimplex}
     filtration::F
     simplex::S
-    vertices::SVector{D, I}
+    vertices::NTuple{D, I}
 
     function IndexedBoundary(
         filtration::F, simplex::S
     ) where {D, I, F, S<:IndexedSimplex{D, <:Any, I}}
-        return new{D + 1, I, F, S}(filtration, simplex, vertices(simplex))
+        return new{D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
@@ -237,21 +236,18 @@ function boundary(filtration, simplex::IndexedSimplex)
 end
 
 function Base.iterate(bi::IndexedBoundary{D, I}, k=1) where {D, I}
-    diameter = missing
-    face_vertices = zeros(SVector{D - 1, I})
-    while ismissing(diameter) && k ≤ D
-        face_vertices = deleteat(bi.vertices, k)
+    while k ≤ D
+        face_vertices = TupleTools.deleteat(bi.vertices, k)
         diameter = diam(bi.filtration, face_vertices)
         k += 1
-    end
-    if !ismissing(diameter)
-        sign = ifelse(iseven(k), one(I), -one(I))
-        new_index = index(face_vertices) * sign
+        if !ismissing(diameter)
+            sign = ifelse(iseven(k), one(I), -one(I))
+            new_index = index(face_vertices) * sign
 
-        return face_type(bi.simplex)(new_index, diameter), k
-    else
-        return nothing
+            return face_type(bi.simplex)(new_index, diameter), k
+        end
     end
+    return nothing
 end
 
 """

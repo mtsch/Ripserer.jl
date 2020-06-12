@@ -289,7 +289,7 @@ function add!(matrix::ReductionMatrix, column, factor)
     return matrix
 end
 
-function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, ::Type{I}) where I
+function reduce_column!(matrix::ReductionMatrix, column_simplex)
     pivot = initialize_boundary!(matrix, column_simplex)
 
     while !isnothing(pivot)
@@ -306,7 +306,7 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex, cutoff, ::Type{
         commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
     end
 
-    return interval(I, matrix, column_simplex, pivot, cutoff)
+    return pivot
 end
 
 function birth_death(matrix::ReductionMatrix{true}, simplex, pivot)
@@ -365,12 +365,13 @@ function compute_intervals!(
         )
     end
     for column in matrix.columns_to_reduce
-        interval = reduce_column!(matrix, column, cutoff, eltype(intervals))
-        if !isnothing(interval)
-            push!(intervals, interval)
+        pivot = reduce_column!(matrix, column)
+        int = interval(eltype(intervals), matrix, column, pivot, cutoff)
+        if !isnothing(int)
+            push!(intervals, int)
         end
         progress && next!(progbar)
-    end
+   end
     return sort!(
         PersistenceDiagram(dim(matrix), intervals, threshold(matrix.filtration))
     )
