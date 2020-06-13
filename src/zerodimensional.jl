@@ -108,7 +108,7 @@ function zeroth_intervals(
         progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
     end
     for sx in simplices
-        u, v = vertices(sx)
+        u, v = index.(vertices(sx))
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j

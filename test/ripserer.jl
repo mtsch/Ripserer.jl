@@ -2,6 +2,7 @@ using Ripserer
 using Ripserer: zeroth_intervals, ChainElement, PackedElement
 
 using Compat
+using StaticArrays
 using Suppressor
 
 include("data.jl")
@@ -252,16 +253,14 @@ end
             0 2 2 2 0;
             0 0 0 0 0]
 
-    d0, d1, d2, d3, d4 = ripserer(Cubical(data), reps=true, dim_max=4)
+    d0, d1, d2 = ripserer(Cubical(data), reps=true, dim_max=2)
 
     @test d0 == [(0, Inf), (1, 2)]
     @test d1 == [(0, 2)]
     @test isempty(d2)
-    @test isempty(d3)
-    @test isempty(d4)
 
-    @test vertices.(representative(d0[1])) == [(i,) for i in 1:length(data)]
-    @test vertices(only(representative(d0[2]))) == (13,)
+    @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
+    @test vertices(only(representative(d0[2]))) == SVector(13)
 end
 
 @testset "Persistent homology." begin
@@ -271,9 +270,9 @@ end
     @test res_hom == res_coh
 
     res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
-    @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!([
-        [(i+1, i) for i in 1:17]; (18, 1)
-    ])
+    @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
+        [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
+    ))
 
     @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
 end

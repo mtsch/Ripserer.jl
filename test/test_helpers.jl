@@ -12,45 +12,73 @@ Test the `IndexedSimplex` interface for a simplex type `S` where a `D`-simplex h
 """
 function test_indexed_simplex_interface(S, n_vertices)
     @testset "interface" begin
-        for D in (0, 2, 5)
-            for T in (Float64, Float32, Int)
-                d = rand(T)
-                for I in (Int64, Int128)
-                    i = rand(I)
+        for D in (0, 2, 4),
+            T in (Float64, Float32, Int),
+            I in (Int32, Int64, Int128)
 
-                    @test index(S{D}(i, d)) == i
-                    @test diam(S{D}(i, d)) == d
-                    @test typeof(S{D}(i, d)) ≡ S{D, T, I}
-                    @test S{D}(i, d) isa IndexedSimplex{D, T, I}
-                    @test S{D}(i, d) isa AbstractSimplex{D, T}
-                    D > 0 && @test_throws DomainError S{-D}(i, d)
-
-                    @test -S{D}(i, d) == S{D}(-i, d)
-                    @test sign(+S{D}(i, d)) == sign(i)
-                    @test sign(-S{D}(i, d)) == -sign(i)
-
-                    @test coface_type(S{D}(i, d)) ≡ S{D + 1, T, I}
-                    @test coface_type(typeof(S{D}(i, d))) ≡ S{D + 1, T, I}
-
-                    @test dim(S{D}(i, d)) == D
-                    @test abs(S{D}(i, d)) == S{D}(abs(i), d)
-                    @test abs(-S{D}(i, d)) == abs(S{D}(i, d))
+            # Check for overflow.
+            try
+                vxs_sml = vertices(I(1000), Val(n_vertices(D)))
+                vxs_big = vertices(big(1000), Val(n_vertices(D)))
+                if vxs_sml ≠ vxs_big
+                    continue
                 end
-                # don't want to do this with random int value.
-                @test length(vertices(S{D}(10, d))) == n_vertices(D)
-                @test length(vertices(S{D}(-10, d))) == n_vertices(D)
-
-                @test begin @inferred vertices(S{D}(10, d)); true end
-                @test begin @inferred vertices(S{D}(-10, d)); true end
+            catch InexactError
+                continue
             end
-        end
 
-        for sgn in (1, -1)
-            @test isless(S{0}(sgn * 10, 1), S{0}(10, 2))
-            @test !isless(S{1}(sgn * 10, 2), S{1}(10, 1))
-            @test isless(S{2}(sgn * 11, 1), S{2}(10, 1))
-            @test !isless(S{3}(sgn * 9, 1), S{3}(10, 1))
-            @test !isless(S{4}(sgn * 10, 1), S{4}(10, 1))
+            @testset "basics" begin
+                d = rand(T)
+                i = I(1000)
+
+                @test S{D}(I(i), d) ≡ S{D, T, I}(i, d)
+                @test S{D}(I(i), T(1)) ≡ S{D, T, I}(i, 1)
+
+                @test index(S{D}(i, d)) ≡ i
+                @test diam(S{D}(i, d)) ≡ d
+                @test typeof(S{D}(i, d)) ≡ S{D, T, I}
+                @test S{D}(i, d) isa IndexedSimplex{D, T, I}
+                D > 0 && @test_throws DomainError S{-D}(i, d)
+
+                @test -S{D}(i, d) == S{D}(-i, d)
+                @test sign(+S{D}(i, d)) == sign(i)
+                @test sign(-S{D}(i, d)) == -sign(i)
+
+                @test coface_type(S{D}(i, d)) ≡ S{D + 1, T, I}
+                @test coface_type(typeof(S{D}(i, d))) ≡ S{D + 1, T, I}
+                @test face_type(S{D}(i, d)) ≡ S{D - 1, T, I}
+                @test face_type(typeof(S{D}(i, d))) ≡ S{D - 1, T, I}
+
+                @test dim(S{D}(i, d)) == D
+                @test abs(S{D}(i, d)) == S{D}(abs(i), d)
+                @test abs(-S{D}(i, d)) == abs(S{D}(i, d))
+
+                @test eltype(S{D}(i, d)) == I
+
+                for sgn in (1, -1)
+                    @test isless(S{D}(sgn * 10, 1), S{D}(10, 2))
+                    @test !isless(S{D}(sgn * 10, 2), S{D}(10, 1))
+                    @test isless(S{D}(sgn * 11, 1), S{D}(10, 1))
+                    @test !isless(S{D}(sgn * 9, 1), S{D}(10, 1))
+                    @test !isless(S{D}(sgn * 10, 1), S{D}(10, 1))
+                end
+            end
+
+            @testset "array interface, vertices" begin
+                d = rand(T)
+                # don't want to do this with random int value.
+                @test eltype(S{D}(I(9), d)) == eltype(vertices(S{D}(I(9), d)))
+                @test length(S{D}(I(9), d)) == n_vertices(D)
+                @test size(S{D}(-I(9), d)) == (n_vertices(D),)
+                @test length(vertices(S{D}(I(10), d))) == n_vertices(D)
+                @test length(vertices(S{D}(-I(10), d))) == n_vertices(D)
+                @test firstindex(S{D}(I(11), d)) == 1
+                @test lastindex(S{D}(I(11), d)) == n_vertices(D)
+                @test (1:1000)[S{D}(-I(12), d)] == Int.(vertices(S{D}(I(12), d)))
+
+                @test begin @inferred vertices(S{D}(I(10), d)); true end
+                @test begin @inferred vertices(S{D}(-I(10), d)); true end
+            end
         end
     end
 end
@@ -89,5 +117,5 @@ function test_filtration_interface(Filtration, datasets)
     end
 end
 
-export test_simplex_interface, test_filtration_interface
+export test_indexed_simplex_interface, test_filtration_interface
 end

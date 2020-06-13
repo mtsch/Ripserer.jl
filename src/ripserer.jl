@@ -1,4 +1,42 @@
 """
+    check_overflow(filtration::AbstractFiltration, dim_max)
+
+Check if `dim`-dimensional simplex with largest index on `n_vertices(filtration)` can safely
+be constructed. Throw `OverflowError` error if it can't.
+"""
+function check_overflow(flt::AbstractFiltration, dim_max, field)
+    return check_overflow(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
+end
+
+"""
+    check_overflow(::Type{AbstractSimplex}, n_vertices, field)
+
+Check if simplex with largest index on `n_vertices` can safely be constructed with
+overflow. Throw `OverflowError` error if it would overflow.
+"""
+check_overflow(::Type{<:AbstractSimplex}, ::Any, ::Any) = nothing
+
+function check_overflow(S::Type{<:IndexedSimplex{D, T, I}}, n_vertices, field) where {D, T, I}
+    len = length(S(1, one(T)))
+    len > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
+    acc_int = zero(I)
+    acc_big = big(0)
+    i = n_vertices
+    for k in len:-1:1
+        acc_int += small_binomial(I(i), Val(k))
+        acc_big += binomial(big(i), big(k))
+        acc_int ≠ acc_big && throw(OverflowError(
+            "$S on $(n_vertices) vertices overflows. Try using a bigger index type"
+        ))
+        i -= 1
+    end
+    CE = chain_element_type(S, field)
+    index(simplex(CE(S(acc_int, one(T))))) ≠ acc_int && throw(OverflowError(
+        "$S on $(n_vertices) vertices overflows. Try using a bigger index type"
+    ))
+end
+
+"""
     ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Euclidean(), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
@@ -63,6 +101,7 @@ function ripserer(
     filtration::AbstractFiltration;
     dim_max=1, reps=false, cutoff=0, field_type=Mod{2}, progress=false, cohomology=true
 )
+    check_overflow(filtration, dim_max, field_type)
     if cohomology
         return _cohomology(
             filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)

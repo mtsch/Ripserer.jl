@@ -1,9 +1,10 @@
 """
-    IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T}
+    IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I}
 
 A refinement of [`AbstractSimplex`](@ref). An indexed simplex is represented by its
-dimension, diameter and combinatorial index. It does not need to hold information about its
-the vertices it includes, since they can be recomputed from the index and dimension.
+dimension, diameter and combinatorial index of type `I`. It does not need to hold
+information about the vertices it includes, since they can be recomputed from the index
+and dimension.
 
 By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
 [`vertices`](@ref) and [`coboundary`](@ref) is provided.
@@ -16,7 +17,7 @@ By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
 * [`coface_type(::AbstractSimplex)`](@ref)
 * [`index(::IndexedSimplex)`](@ref)
 """
-abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T} end
+abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I} end
 
 """
     index(simplex::IndexedSimplex)
@@ -49,9 +50,18 @@ end
 function Base.:(==)(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D
     return (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
 end
+function Base.isequal(sx1::IndexedSimplex{D}, sx2::IndexedSimplex{D}) where D
+    return (index(sx1) == index(sx2)) & (diam(sx1) == diam(sx2))
+end
 function Base.hash(sx::IndexedSimplex, h::UInt64)
     return hash(index(sx), hash(diam(sx), h))
 end
+
+Base.eltype(sx::IndexedSimplex{<:Any, <:Any, I}) where I = I
+Base.getindex(sx::IndexedSimplex, i) = vertices(sx)[i]
+Base.firstindex(sx::IndexedSimplex) = 1
+Base.lastindex(sx::IndexedSimplex{D}) where D = D + 1
+Base.size(sx::IndexedSimplex{D}) where D = (D + 1,)
 
 # vertices and indices =================================================================== #
 """
@@ -63,11 +73,11 @@ always positive.
 small_binomial(::I, ::Val{0}) where I = one(I)
 small_binomial(n, ::Val{1}) = n
 function small_binomial(n::I, ::Val{k}) where {k, I}
-    x = nn = n - k + 1
-    nn += 1
-    for rr in 2:k
+    x = nn = I(n - k + 1)
+    nn += one(I)
+    for rr in I(2):I(k)
         x = div(x * nn, rr)
-        nn += 1
+        nn += one(I)
     end
     return I(x)
 end
@@ -106,7 +116,7 @@ end
 Get the vertices of simplex represented by index. Returns `NTuple{N, I}`.
 For regular simplices, `N` should be equal to `dim+1`!
 """
-@generated function vertices(index::I, ::Val{N})::NTuple{N, I} where {I, N}
+@generated function vertices(index::I, ::Val{N})::SVector{N, I} where {I, N}
     # Generate code of the form
     # index = abs(index) - 1
     # vk   = find_max_vertex(index, Val(k))
@@ -131,12 +141,12 @@ For regular simplices, `N` should be equal to `dim+1`!
     end
     return quote
         $expr
-        (tuple($(vars...)) .+ I(1))
+        SVector($(vars...)) .+ I(1)
     end
 end
 
 function vertices(sx::IndexedSimplex{D, <:Any, I}) where {D, I}
-    return vertices(index(sx), Val(D+1))::NTuple{D+1, I}
+    return vertices(index(sx), Val(D+1))::SVector{D+1, I}
 end
 
 """
@@ -150,7 +160,7 @@ Calculate the index from tuple of vertices. The index is equal to
 
 where ``i_k`` are the simplex vertex indices.
 """
-@generated function index(vertices::NTuple{k}) where k
+@generated function index(vertices::Union{NTuple{k}, SVector{k}}) where k
     # generate code of the form
     # 1 + small_binomial(vertices[1] - 1, Val(k))
     #   + small_binomial(vertices[2] - 1, Val(k-1))
@@ -168,17 +178,19 @@ where ``i_k`` are the simplex vertex indices.
     return expr
 end
 
+index(vertex::Integer) = vertex
+index(vertex::CartesianIndex) = index(vertex.I)
+
 # (co)boundaries ========================================================================= #
-struct IndexedCobounary{all_cofaces, D, F, S<:IndexedSimplex}
-    filtration ::F
-    simplex    ::S
-    vertices   ::NTuple{D, Int}
+struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
 
     function IndexedCobounary{A}(
         filtration::F, simplex::S
-    ) where {A, D, F, S<:IndexedSimplex{D}}
-
-        return new{A, D + 1, F, S}(filtration, simplex, vertices(simplex))
+    ) where {A, D, I, F, S<:IndexedSimplex{D, <:Any, I}}
+        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
@@ -187,37 +199,35 @@ function coboundary(filtration, simplex::IndexedSimplex, ::Val{A}=Val(true)) whe
 end
 
 function Base.iterate(
-    ci::IndexedCobounary{all_cofaces, D}, (v, k)=(n_vertices(ci.filtration) + 1, D),
-) where {all_cofaces, D}
-
-    diameter = missing
-    @inbounds while ismissing(diameter) && v > 0
-        v -= 1
-        while v > 0 && v in ci.vertices
+    ci::IndexedCobounary{all_cofaces, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+) where {all_cofaces, D, I}
+    @inbounds while true
+        v -= one(I)
+        while k > 0 && v == ci.vertices[end + 1 - k]
             all_cofaces || return nothing
-            v -= 1
+            v -= one(I)
             k -= 1
         end
-        v == 0 && break
+        v > 0 || return nothing
         diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
-    end
-    if !ismissing(diameter)
-        sign = ifelse(iseven(k), 1, -1)
-        new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
+        if !ismissing(diameter)
+            sign = ifelse(iseven(k), one(I), -one(I))
+            new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
 
-        return coface_type(ci.simplex)(new_index, diameter), (v, k)
-    else
-        return nothing
+            return coface_type(ci.simplex)(new_index, diameter), (v, k)
+        end
     end
 end
 
-struct IndexedBoundary{D, F, S<:IndexedSimplex}
+struct IndexedBoundary{D, I, F, S<:IndexedSimplex}
     filtration::F
     simplex::S
-    vertices::NTuple{D, Int}
+    vertices::NTuple{D, I}
 
-    function IndexedBoundary(filtration::F, simplex::S) where {D, F, S<:IndexedSimplex{D}}
-        return new{D + 1, F, S}(filtration, simplex, vertices(simplex))
+    function IndexedBoundary(
+        filtration::F, simplex::S
+    ) where {D, I, F, S<:IndexedSimplex{D, <:Any, I}}
+        return new{D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
@@ -225,22 +235,19 @@ function boundary(filtration, simplex::IndexedSimplex)
     return IndexedBoundary(filtration, simplex)
 end
 
-function Base.iterate(bi::IndexedBoundary{D}, k=1) where D
-    diameter = missing
-    face_vertices = TupleTools.unsafe_tail(bi.vertices)
-    while ismissing(diameter) && k ≤ D
+function Base.iterate(bi::IndexedBoundary{D, I}, k=1) where {D, I}
+    while k ≤ D
         face_vertices = TupleTools.deleteat(bi.vertices, k)
         diameter = diam(bi.filtration, face_vertices)
         k += 1
-    end
-    if !ismissing(diameter)
-        sign = ifelse(iseven(k), 1, -1)
-        new_index = index(face_vertices) * sign
+        if !ismissing(diameter)
+            sign = ifelse(iseven(k), one(I), -one(I))
+            new_index = index(face_vertices) * sign
 
-        return face_type(bi.simplex)(new_index, diameter), k
-    else
-        return nothing
+            return face_type(bi.simplex)(new_index, diameter), k
+        end
     end
+    return nothing
 end
 
 """
@@ -261,22 +268,22 @@ Simplex{2}(2, 1)
 # output
 
 2-dim Simplex{2}(2, 1):
-  +(4, 2, 1)
+  +[4, 2, 1]
 ```
 ```jldoctest
 Simplex{10}(Int128(-10), 1.0)
 
 # output
 
-4-dim Simplex{3}(1.0, 10, 2) with UInt128 index:
-  -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
+4-dim Simplex{3}(1.0, 10, 2):
+  -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
 ```
 """
 struct Simplex{D, T, I} <: IndexedSimplex{D, T, I}
     index ::I
     diam  ::T
 
-    function Simplex{D, T, I}(index, diam) where {D, T, I}
+    function Simplex{D, T, I}(index::Integer, diam) where {D, T, I<:Integer}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
         return new{D, T, I}(I(index), T(diam))
     end
@@ -285,19 +292,18 @@ end
 function Simplex{D}(index::I, diam::T) where {D, T, I<:Integer}
     return Simplex{D, T, I}(index, diam)
 end
-function Simplex{D}(vertices::NTuple{<:Any, I}, diam::T) where {D, T, I<:Integer}
-    return Simplex{D, T, I}(vertices, diam)
+function Simplex{D}(vertices, diam::T) where {D, T}
+    return Simplex{D, T, eltype(vertices)}(vertices, diam)
 end
-function Simplex{D, T, I}(vertices::NTuple{N}, diam) where {D, T, I<:Integer, N}
-    N == D + 1 || throw(ArgumentError("invalid number of vertices"))
-    return Simplex{D, T, I}(index(vertices), T(diam))
+function Simplex{D, T, I}(vertices, diam) where {D, T, I<:Integer}
+    length(vertices) == D + 1 ||
+        throw(ArgumentError("invalid number of vertices $(length(vertices))"))
+    vertices_svec = sort(SVector{D + 1}(vertices), rev=true)
+    return Simplex{D, T, I}(index(vertices_svec), T(diam))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
     print(io, D, "-dim Simplex", (index(sx), diam(sx)))
-    if I ≢ Int64
-        print(io, " with ", I, " index")
-    end
     print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
 end
 
