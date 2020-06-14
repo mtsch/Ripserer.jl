@@ -49,7 +49,7 @@ include("cubical.jl")
 include("chainelement.jl")
 include("zerodimensional.jl")
 include("reductionmatrix.jl")
-include("ripserer.jl")
+include("main.jl")
 
 include("simplexrecipes.jl")
 
