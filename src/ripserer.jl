@@ -17,7 +17,7 @@ overflow. Throw `OverflowError` error if it would overflow.
 check_overflow(::Type{<:AbstractSimplex}, ::Any, ::Any) = nothing
 
 function check_overflow(S::Type{<:IndexedSimplex{D, T, I}}, n_vertices, field) where {D, T, I}
-    len = length(S(1, one(T)))
+    len = length(S(1, oneunit(T)))
     len > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
     acc_int = zero(I)
     acc_big = big(0)
@@ -31,7 +31,7 @@ function check_overflow(S::Type{<:IndexedSimplex{D, T, I}}, n_vertices, field) w
         i -= 1
     end
     CE = chain_element_type(S, field)
-    index(simplex(CE(S(acc_int, one(T))))) ≠ acc_int && throw(OverflowError(
+    index(simplex(CE(S(acc_int, oneunit(T))))) ≠ acc_int && throw(OverflowError(
         "$S on $(n_vertices) vertices overflows. Try using a bigger index type"
     ))
 end
