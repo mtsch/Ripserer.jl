@@ -25,21 +25,21 @@ uninfected = shuffle!(load.(readdir(joinpath(data_dir, "uninfected"), join=true)
 infected = shuffle!(load.(readdir(joinpath(data_dir, "infected"), join=true)))
 
 images = [uninfected; infected]
-isinfected = [fill(false, length(uninfected)); fill(true, length(infected))]
+classes = [fill(false, length(uninfected)); fill(true, length(infected))]
 nothing # hide
 
 # Let's see what the images look like.
 
-plot(plot(uninfected[1], title="Healthy cell"),
-     plot(uninfected[2], title="Healthy cell"),
-     plot(infected[1], title="Infected cell"),
-     plot(infected[2], title="Infected cell"))
+plot(plot(uninfected[1], title="Healthy"),
+     plot(uninfected[2], title="Healthy"),
+     plot(infected[1], title="Infected"),
+     plot(infected[2], title="Infected"))
 
-# Next, we convert images to floating point gray scale values. We do not have to resize the
-# images. Maybe some additional preprocessing, such as normalization would help, but we'll
-# skip it for this example.
+# To make the images work with Ripserer, we convert them to floating gray scale values. We
+# do not have to resize the images. Maybe some additional preprocessing, such as
+# normalization would help, but we'll skip it for this example.
 
-inputs = [Float32.(Gray.(image)) for image in images]
+inputs = [Gray.(image) for image in images]
 nothing # hide
 
 # Now we can compute persistence diagrams. Since we are working with images, we have to use
@@ -48,7 +48,6 @@ nothing # hide
 # seconds.
 
 diagrams = @showprogress [ripserer(Cubical(i)) for i in inputs]
-nothing # hide
 
 # This is what some of the diagrams look like.
 
@@ -61,10 +60,10 @@ plot(plot(images[end], title="Infected"), plot(diagrams[end]))
 # Notice that there is a lot more going on in the middle of the infected diagram, especially
 # in ``H_0``.
 
-# The persistence diagrams are nice, but are hard to use with machine learning algorithms
-# since the number of points in the diagram may be different for every image. We can solve
-# this problem by using a vectorization method, such as converting all diagrams to
-# persistence images.
+# The persistence diagrams might look nice, but are hard to use with machine learning
+# algorithms. The number of points in the diagram may be different for every image, even
+# when images are of the same size. We can solve this problem by using a vectorization
+# method, such as converting all diagrams to persistence images.
 
 # Persistence images work by weighting each point in the diagram with a distribution. The
 # distribution defaults to a Gaussian, but any function of two arguments can be used. Each
@@ -80,15 +79,16 @@ nothing; # hide
 
 # We feed the diagram to the `PersistenceImage` constructor which will choose ranges that
 # will fit all the diagrams. We set the sigma value to 0.1, since all persistence pairs are
-# in the ``[0,1]×[0,1]`` square and the default sigma of 1 would be too wide.
+# in the ``[0,1]×[0,1]`` square and the default sigma of 1 would be too wide. We will use
+# the default image size, which is 5×5.
 
-image_0 = PersistenceImage(dim_0, size=(5, 5), sigma=0.1)
-
-#
-
-image_1 = PersistenceImage(dim_1, size=(5, 5), sigma=0.1)
+image_0 = PersistenceImage(dim_0, sigma=0.1)
 
 #
+
+image_1 = PersistenceImage(dim_1, sigma=0.1)
+
+# Let's see how some of the images look like.
 
 plot(plot(dim_0[end], persistence=true),
      heatmap(image_0(dim_0[end]), aspect_ratio=1))
@@ -98,8 +98,9 @@ plot(plot(dim_0[end], persistence=true),
 plot(plot(dim_1[end], persistence=true),
      heatmap(image_1(dim_1[end]), aspect_ratio=1))
 
-# We convert the diagrams to images and use `vec` to turn them into flat vectors. We then
-# concatenate them. The result is a vector of length 50.
+# Next, we convert all diagrams to images and use `vec` to turn them into flat vectors. We
+# then concatenate the zero and one-dimensional images. The result is a vector of length 50
+# for each diagram.
 
 persims = [[vec(image_0(dim_0[i])); vec(image_1(dim_1[i]))]
            for i in 1:length(diagrams)]
@@ -112,7 +113,7 @@ using GLMNet
 # Convert the image vectors to a matrix that will be understood by `glmnet`.
 
 X = reduce(hcat, persims)'
-y = outputs
+y = classes
 nothing; # hide
 
 # Start by randomly splitting the data into two sets, a training and a testing set.

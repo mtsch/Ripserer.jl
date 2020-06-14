@@ -9,6 +9,7 @@ using Plots
 gr() # hide
 using Random
 Random.seed!(1337)
+nothing # hide
 
 # We will use two data sets in this example. The first will be a curve:
 
@@ -36,16 +37,17 @@ nothing # hide
 
 # ## One-dimensional Case
 
-# Sublevel set persistent homology provides a stable descriptions of the critical points of
-# a function. The zeroth persistent homology group ``H_0`` corresponds to the local minima
-# of a function. To compute this with Ripserer, we use cubical persistent homology as
-# follows. Note that there is not information in ``H_1``, since the function is
-# one-dimensional.
+# Sublevel set persistent homology provides a stable description of the critical points of a
+# function. The zeroth persistent homology group ``H_0`` corresponds to its local minima. To
+# compute this with Ripserer, we use cubical persistent homology. Note that there is not
+# information in ``H_1``, since the function is one-dimensional, so we only grab the first
+# part of the result.
 
 result, _ = ripserer(Cubical(curve))
 plot(curve_plot, plot(result))
 
-# To see which minimum each interval corresponds to, we compute representatives.
+# To see which minimum each interval corresponds to, we compute representatives by setting
+# `reps=true`.
 
 result, _ = ripserer(Cubical(curve), reps=true)
 
@@ -64,10 +66,11 @@ for interval in filter(isfinite, result)
     plot!(plt, interval, curve, seriestype=:path)
 end
 
-# To get the locations of the minima, extract the critical simplices from intervals. As
-# simplices act like collections of vertex indices, we can use `ònly` to get them.
+# To get the locations of the minima, extract the critical simplices from intervals. Since
+# simplices act like collections of vertex indices, and zero-dimensional representatives
+# have a single point each, we can use `ònly` to extract them.
 
-x_min = [first(birth_simplex(int)) for int in result]
+x_min = [only(birth_simplex(int)) for int in result]
 
 scatter!(plt, x_min, curve[x_min], color=1:6, markershape=:star)
 plot(plt, plot(result, markercolor=1:6, markeralpha=1))
@@ -77,6 +80,54 @@ plot(plt, plot(result, markercolor=1:6, markeralpha=1))
 # and its death is equal to the higher of the two adjacient maxima. An intuitive way of
 # thinking about the result is imagining you pour water in the curve. Water is collected in
 # a valley and once it reaches a local maximum, it starts pouring in the adjacient valley.
+
+# ### Dealing With Noise
+
+# Let's add some noise to the curve from earlier and try to repeat the example.
+
+noisy_curve = curve .+ rand(length(curve))
+plot(noisy_curve)
+
+# Compute the persistence diagram and plot it. The `persistence` argument to `plot` plots
+# the diagram in birth, persistence coordinates, which will make the level of noise easier
+# to see.
+
+noisy_result, _ = ripserer(Cubical(noisy_curve), reps=true)
+plot(noisy_result, persistence=true)
+
+# We can see a lot of noise in the diagram, but notice how all of it is below 1, which is
+# exactly the amount we added. We can filter this out by supplying the `cutoff` argument to
+# `ripserer`. This will ignore all intervals below this cutoff.
+
+filtered_result, _ = ripserer(Cubical(noisy_curve), reps=true, cutoff=1)
+plot(filtered_result, persistence=true)
+
+# We could achieve the same result by simply filtering the resulting diagram.
+
+filter(int -> persistence(int) > 1, noisy_result) == filtered_result
+
+# Keep in mind, however, that for very large diagrams, collecting representatives on all of
+# the noise could make `ripserer` much run slower. In that case, it is recommended to use
+# `cutoff`, rather than filtering.
+
+# Now we can repeat what we did earlier.
+
+infinite_interval = only(filter(!isfinite, filtered_result))
+plt = plot(representative(infinite_interval), noisy_curve,
+           legend=false,
+           title="Representatives",
+           seriestype=:path)
+
+for interval in filter(isfinite, filtered_result)
+    plot!(plt, interval, noisy_curve, seriestype=:path)
+end
+
+x_min = [first(birth_simplex(int)) for int in filtered_result]
+
+scatter!(plt, x_min, noisy_curve[x_min], color=eachindex(filtered_result), markershape=:star)
+plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeralpha=1))
+
+# The result we got is very similar even though the data set was very noisy.
 
 # ## Two-dimensional Case
 
@@ -97,25 +148,26 @@ plot(blackhole_plot, plot(result))
 
 # We notice there are quite a lot of intervals along the diagonal. These correspond to local
 # geometry of the image, so we are not interested in them right now. To filter them out, we
-# set a cutoff. All intervals with persistence lower than cutoff will be ignored.
+# set a cutoff.
 
 result = ripserer(Cubical(1 .- blackhole), cutoff=0.1)
 plot(blackhole_plot, plot(result))
 
 # Like earlier, we can show the local extrema in the image. We will show a different way to
-# plot them. We use the `threshold` argument with `plot`, which only keeps parts of the
+# plot them. Let's use the `threshold` argument with `plot`, which only keeps parts of the
 # representative with a diameter equal to or lower than `threshold`. If we needed a strict
 # `<`, we could use `threshold_strict`.
 
-result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true)
+result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true, legend=false)
 plt = plot(blackhole_image, title="Black Hole")
 for interval in result[1]
-    plot!(plt, interval, blackhole, threshold=birth(interval), label=string(interval))
+    plot!(plt, interval, blackhole, threshold=birth(interval))
 end
 plot(plt, plot(result[1], markercolor=2:3, markeralpha=1))
 
 # Some maxima have multiple values because more than one pixel in the image has the same
-# value.
+# value. Using `birth_simplex` instead of plotting the filtered representative would only
+# show one of each.
 
 # Unlike with the previous example, we now also have access to ``H_1``, which corresponds to
 # the cycles in the image. Let's try to plot the representative of ``H_1``.
@@ -127,12 +179,12 @@ plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 # would destroy the cycle if removed. The reason is that Ripserer computes persistent
 # _co_homology by default. The persistence diagrams of persistent homology and persistent
 # cohomology are the same, but persistent cohomology is much more efficient to compute. The
-# representatives it finds, however tend to not be as informative. Keep this in mind when
+# representatives it finds, however, tend to not be as informative. Keep this in mind when
 # trying persistent homology out for larger datasets; it can take a very very long
 # time. This case is quite small and computing persistent homology should pose no problem.
 # We compute persistent homology with the argument `cohomology=false`.
 
-# !!! warning "Homology"
+# !!! warning "Infinite Intervals in Persistent Homology"
 #     Ripserer currently can't compute infinite intervals in dimensions
 #     higher than zero with persistent homology.
 
