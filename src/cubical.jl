@@ -154,9 +154,7 @@ function Base.iterate(
 ) where {A, N, I, C}
     # If not all indices in a given dimension are equal, we can't create a coface by
     # expanding in that direction.
-    diameter = missing
-    new_vertices = cc.vertices
-    while ismissing(diameter)
+    while true
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += one(I)
         end
@@ -170,14 +168,14 @@ function Base.iterate(
 
         dim += I(dir == -1)
         dir *= -one(I)
-    end
 
-    if ismissing(diameter)
-        return nothing
-    else
-        all_vertices = sort(map(v -> I(LinearIndices(cc.filtration)[v]),
-                                vcat(cc.vertices, new_vertices)), rev=true)
-        return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+        if !ismissing(diameter)
+            all_vertices = sort(map(v -> I(LinearIndices(cc.filtration)[v]),
+                                    vcat(cc.vertices, new_vertices)), rev=true)
+            if A || all_vertices[end÷2+1:end] == LinearIndices(cc.filtration)[cc.vertices]
+                return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+            end
+        end
     end
 end
 

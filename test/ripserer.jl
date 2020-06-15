@@ -170,79 +170,90 @@ end
     end
 end
 
-@testset "reps" begin
-    _, d1, d2 = ripserer(projective_plane, dim_max=2, reps=true)
+@testset "Representatives" begin
+    @testset "example from ripser" begin
+        _, d1, d2 = ripserer(projective_plane, dim_max=2, reps=true)
 
-    @test simplex.(representative(only(d1))) == [
-        Simplex{1}((11, 10), 1),
-        Simplex{1}((10, 7), 1),
-        Simplex{1}((10, 6), 1),
-        Simplex{1}((8, 1), 1),
-        Simplex{1}((7, 3), 1),
-        Simplex{1}((7, 1), 1),
-        Simplex{1}((6, 2), 1),
-        Simplex{1}((5, 1), 1),
-        Simplex{1}((2, 1), 1),
-    ]
-    @test coefficient.(representative(only(d1))) == fill(Mod{2}(1), 9)
-    @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
-    @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
-end
+        @test simplex.(representative(only(d1))) == [
+            Simplex{1}((11, 10), 1),
+            Simplex{1}((10, 7), 1),
+            Simplex{1}((10, 6), 1),
+            Simplex{1}((8, 1), 1),
+            Simplex{1}((7, 3), 1),
+            Simplex{1}((7, 1), 1),
+            Simplex{1}((6, 2), 1),
+            Simplex{1}((5, 1), 1),
+            Simplex{1}((2, 1), 1),
+        ]
+        @test coefficient.(representative(only(d1))) == fill(Mod{2}(1), 9)
+        @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
+        @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
+    end
+    @testset "types" begin
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true)
+        @test eltype(d0) <: RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{0, Int, Int},
+            Union{Nothing, Simplex{1, Int, Int}},
+            <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
+        @test eltype(d1) <: RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{1, Int, Int},
+            Union{Nothing, Simplex{2, Int, Int}},
+            <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
+        @test eltype(d2) <: RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{2, Int, Int},
+            Union{Nothing, Simplex{3, Int, Int}},
+            <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
+        @test eltype(d3) <: RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{3, Int, Int},
+            Union{Nothing, Simplex{4, Int, Int}},
+            <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
-@testset "reps - types" begin
-    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true)
-    @test eltype(d0) <: RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{0, Int, Int},
-        Union{Nothing, Simplex{1, Int, Int}},
-        <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
-    @test eltype(d1) <: RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{1, Int, Int},
-        Union{Nothing, Simplex{2, Int, Int}},
-        <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
-    @test eltype(d2) <: RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{2, Int, Int},
-        Union{Nothing, Simplex{3, Int, Int}},
-        <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
-    @test eltype(d3) <: RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{3, Int, Int},
-        Union{Nothing, Simplex{4, Int, Int}},
-        <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
-
-    d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true,
-                              field_type=Rational{Int})
-    @test eltype(d0) ≡ RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{0, Int, Int},
-        Union{Nothing, Simplex{1, Int, Int}},
-        Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
-    @test eltype(d1) ≡ RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{1, Int, Int},
-        Union{Nothing, Simplex{2, Int, Int}},
-        Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
-    @test eltype(d2) ≡ RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{2, Int, Int},
-        Union{Nothing, Simplex{3, Int, Int}},
-        Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
-    @test eltype(d3) ≡ RepresentativeInterval{
-        PersistenceInterval,
-        Simplex{3, Int, Int},
-        Union{Nothing, Simplex{4, Int, Int}},
-        Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
-end
-
-@testset "Representative of infinite interval." begin
-    _, d1 = ripserer(
-        cycle, dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
-    )
-    @test representative(only(d1)) == ChainElement{
-        Simplex{0, Int, Int}, Rational{Int}
-    }[]
+        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true,
+                                  field_type=Rational{Int})
+        @test eltype(d0) ≡ RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{0, Int, Int},
+            Union{Nothing, Simplex{1, Int, Int}},
+            Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
+        @test eltype(d1) ≡ RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{1, Int, Int},
+            Union{Nothing, Simplex{2, Int, Int}},
+            Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
+        @test eltype(d2) ≡ RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{2, Int, Int},
+            Union{Nothing, Simplex{3, Int, Int}},
+            Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
+        @test eltype(d3) ≡ RepresentativeInterval{
+            PersistenceInterval,
+            Simplex{3, Int, Int},
+            Union{Nothing, Simplex{4, Int, Int}},
+            Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
+    end
+    @testset "infinite interval" begin
+        _, d1 = ripserer(
+            cycle, dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
+        )
+        @test representative(only(d1)) == ChainElement{
+            Simplex{0, Int, Int}, Rational{Int}
+        }[]
+    end
+    @testset "critical simplices" begin
+        t = torus(100)
+        result = ripserer(t, reps=true, threshold=0.5)
+        for diag in result
+            @test birth.(diag) == diam.(birth_simplex.(diag))
+            finite = filter(isfinite, diag)
+            @test death.(finite) == diam.(death_simplex.(finite))
+            infinite = filter(!isfinite, diag)
+            @test all(isnothing, death_simplex.(infinite))
+        end
+    end
 end
 
 @testset "Sublevel using SparseRips" begin
@@ -270,35 +281,66 @@ end
     @test sort(maxs) == [1.0, 2.0]
 end
 
-@testset "2D image sublevel using Cubical" begin
-    data = [0 0 0 0 0;
-            0 2 2 2 0;
-            0 2 1 2 0;
-            0 2 2 2 0;
-            0 0 0 0 0]
+@testset "Cubical" begin
+    @testset "2D image" begin
+        data = [0 0 0 0 0;
+                0 2 2 2 0;
+                0 2 1 2 0;
+                0 2 2 2 0;
+                0 0 0 0 0]
 
-    d0, d1, d2 = ripserer(Cubical(data), reps=true, dim_max=2)
+        d0, d1, d2 = ripserer(Cubical(data), reps=true, dim_max=2)
 
-    @test d0 == [(0, Inf), (1, 2)]
-    @test d1 == [(0, 2)]
-    @test isempty(d2)
+        @test d0 == [(0, Inf), (1, 2)]
+        @test d1 == [(0, 2)]
+        @test isempty(d2)
 
-    @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
-    @test vertices(only(representative(d0[2]))) == SVector(13)
+        @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
+        @test vertices(only(representative(d0[2]))) == SVector(13)
+    end
+    @testset "3D image" begin
+        # Cube with hole in the middle.
+        data = zeros(5, 5, 5)
+        data[2, 2:4, 2:4] .= 1
+        data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
+        data[4, 2:4, 2:4] .= 1
+
+        d0, d1, d2 = ripserer(Cubical(data), dim_max=2)
+
+        @test d0 == [(0, 1.0), (0, Inf)]
+        @test isempty(d1)
+        @test d2 == [(0, 1)]
+    end
 end
 
 @testset "Persistent homology." begin
-    res_hom = ripserer(cycle, cohomology=false, dim_max=3)
-    res_coh = ripserer(cycle, cohomology=true, dim_max=3)
+    @testset "same diagrams" begin
+        res_hom = ripserer(cycle, cohomology=false, dim_max=3)
+        res_coh = ripserer(cycle, cohomology=true, dim_max=3)
 
-    @test res_hom == res_coh
+        @test res_hom == res_coh
+    end
+    @testset "same critical simplices" begin
+        # Add some noise because critical simplices might be different if values are exactly
+        # the same.
+        cyc = cycle .+ 0.01 .* rand_dist_matrix(18)
+        res_hom = ripserer(cyc, cohomology=false, dim_max=3, reps=true)
+        res_coh = ripserer(cyc, cohomology=true, dim_max=3, reps=true)
 
-    res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
-    @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
-        [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
-    ))
-
-    @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
+        for i in 1:4
+            @test birth_simplex.(res_hom[i]) == birth_simplex.(res_coh[i])
+            @test death_simplex.(res_hom[i]) == death_simplex.(res_coh[i])
+        end
+    end
+    @testset "representative cycle" begin
+        res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
+        @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
+            [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
+        ))
+    end
+    @testset "infinite intervals" begin
+        @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
+    end
 end
 
 @testset "Only print to stderr and only when progress is enabled." begin
