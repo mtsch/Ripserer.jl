@@ -13,7 +13,7 @@ using Ripserer
 using Plots
 using Images
 gr(); nothing # hide
-blackhole = load(joinpath(@__DIR__, "../assets/blackhole768px.jpg"))
+blackhole = load(joinpath(@__DIR__, "../assets/data/blackhole768px.jpg"))
 
 plot(blackhole, size=(800, 800))
 
@@ -33,7 +33,7 @@ heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))
 #     be careful with computing representatives because collecting them for thousands of
 #     persistence intervals can take a while.
 
-result_min = ripserer(Cubical{128}(blackhole_grayscale))
+result_min = ripserer(Cubical{Int128}(blackhole_grayscale))
 
 # We plot the diagram with the `persistence` argument. This plots persistence vs birth
 # instead of death vs birth.
@@ -44,7 +44,7 @@ plot(result_min, persistence=true)
 # remove the noise by supplying the `cutoff` argument to `ripserer`. This removes all
 # intervals with persistence strictly smaller than cutoff.
 
-result_min = ripserer(Cubical{128}(blackhole_grayscale), cutoff=0.1)
+result_min = ripserer(Cubical{Int128}(blackhole_grayscale), cutoff=0.1)
 
 #
 
@@ -52,7 +52,7 @@ plot(result_min, persistence=true)
 
 # Now that we know we have a smaller number of intervals, we can compute the
 # representatives.
-result_min = ripserer(Cubical{128}(blackhole_grayscale), cutoff=0.1, reps=true)
+result_min = ripserer(Cubical{Int128}(blackhole_grayscale), cutoff=0.1, reps=true)
 
 # We separate the finite and infinite intervals. The finite one corresponds to the local
 # minimum in the middle of the image and the infinite one corresponds to the global minimum.
@@ -113,7 +113,7 @@ scatter!(result_min[2][2], blackhole_grayscale,
 
 # Let's repeat what we just did, but with the image negated.
 
-result_max = ripserer(Cubical{128}(-blackhole_grayscale), cutoff=0.1, reps=true)
+result_max = ripserer(Cubical{Int128}(1 .- blackhole_grayscale), cutoff=0.1, reps=true)
 plot(result_max)
 
 heatmap(blackhole_grayscale, aspect_ratio=1, size=(800, 800))
@@ -134,3 +134,17 @@ plot!(result_max[1][2], blackhole_grayscale,
       markerstrokecolor=3,
       threshold=birth(result_max[1][2]),
       label="local maximum")
+
+
+subsampled = (1 .- blackhole_grayscale)[1:4:end, 1:4:end]
+heatmap([true false; false true])
+
+# We don't need Int128 in this case.
+a =ripserer(Cubical(subsampled), cohomology=false, progress=true, cutoff=0.1, reps=true)
+heatmap(1 .- subsampled)
+plot!(first(a[2]), subsampled)
+
+b =ripserer(Cubical(1 .- subsampled), cohomology=false, progress=true, cutoff=0.1, reps=true)
+heatmap(1 .- subsampled)
+plot!(first(b[2]), subsampled)
+plot!(last(b[2]), subsampled)
