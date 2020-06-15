@@ -59,6 +59,10 @@ function Base.show(io::IO, ce::AbstractChainElement)
     print(io, simplex(ce), " => ", coefficient(ce))
 end
 
+function Base.convert(::Type{C}, simplex::S) where {S, C<:AbstractChainElement{S}}
+    C(simplex)
+end
+
 """
     chain_element_type(simplex, coefficient)
 

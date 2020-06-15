@@ -1,9 +1,3 @@
-# simplex plots ========================================================================== #
-const SxVector{D} = AbstractVector{<:AbstractSimplex{D}}
-const IntervalWithRep{D} = PersistenceInterval{
-    <:AbstractVector{<:Pair{<:AbstractSimplex{D}, <:Any}}
-}
-
 """
     index_data(indices, args...)
 
@@ -35,7 +29,7 @@ end
 
 """
     plottable(sx::AbstractSimplex, args...)
-    plottable(sx::PersistenceInterval, args...)
+    plottable(sx::RepresentativeInterval, args...)
     plottable(sx::Vector{<:AbstractSimplex}, args...)
 
 Turn `sx` into a series that can be plotted. `args...`, should contain the data which tells
@@ -44,23 +38,26 @@ the plot where to place simplex vertices.
 function plottable(sx::AbstractSimplex, args...)
     return plottable([sx], args...)
 end
-function plottable(int::PersistenceInterval, args...)
+function plottable(int::RepresentativeInterval, args...)
     return plottable(simplex.(representative(int)), args...)
 end
-function plottable(int::PersistenceInterval{Nothing}, args...)
-    error("interval has no representative. Run `ripserer` with `representatives=true`")
+function plottable(rep::AbstractVector{<:AbstractChainElement}, args...)
+    return plottable(simplex.(rep), args...)
 end
-function plottable(sxs::SxVector{0}, args...)
+function plottable(element::AbstractChainElement, args...)
+    return plottable(simplex(element), args...)
+end
+function plottable(sxs::AbstractVector{<:AbstractSimplex{0}}, args...)
     indices = only.(vertices.(sxs))
     return index_data(indices, args...), [:seriestype => :scatter], 0
 end
-function plottable(sxs::SxVector{1}, args...)
+function plottable(sxs::AbstractVector{<:AbstractSimplex{1}}, args...)
     indices = mapreduce(vcat, vertices.(sxs)) do (u, v)
         [u, v, 0]
     end
     return index_data(indices, args...), [:seriestype => :path], 1
 end
-function plottable(sxs::SxVector{D}, args...) where D
+function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where D
     indices = mapreduce(vcat, vertices.(sxs)) do vs
         idxs = Int[]
         for (u, v, w) in subsets(vs, Val(3))
@@ -75,16 +72,32 @@ end
 function apply_threshold(sx::AbstractSimplex, thresh, thresh_strict)
     return diam(sx) ≤ thresh && diam(sx) < thresh_strict ? sx : nothing
 end
-function apply_threshold(sxs::SxVector, thresh, thresh_strict)
+function apply_threshold(sxs::AbstractVector{<:AbstractSimplex}, thresh, thresh_strict)
     return filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, sxs)
 end
-function apply_threshold(int::PersistenceInterval, thresh, thresh_strict)
-    reps = filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, representative(int))
-    return PersistenceInterval(birth(int), death(int), reps)
+function apply_threshold(els::AbstractVector{<:AbstractChainElement}, thresh, thresh_strict)
+    return apply_threshold(simplex.(els), thresh, thresh_strict)
+end
+function apply_threshold(int::PersistenceDiagrams.AbstractInterval, thresh, thresh_strict)
+    error("interval has no representative. Run `ripserer` with `representatives=true`")
+end
+function apply_threshold(int::RepresentativeInterval, thresh, thresh_strict)
+    return apply_threshold(representative(int), thresh, thresh_strict)
 end
 
-@recipe function f(sx::Union{AbstractSimplex, SxVector, PersistenceInterval}, args...;
-                   threshold=Inf, threshold_strict=Inf)
+@recipe function f(
+    sx::Union{
+        AbstractSimplex,
+        AbstractChainElement,
+        AbstractVector{<:AbstractSimplex},
+        AbstractVector{<:AbstractChainElement},
+        PersistenceDiagrams.AbstractInterval,
+        RepresentativeInterval,
+    },
+    args...;
+    threshold=Inf,
+    threshold_strict=Inf
+)
     sx = apply_threshold(sx, threshold, threshold_strict)
     isnothing(sx) && return ()
     series, attrs, D = plottable(sx, args...)

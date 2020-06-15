@@ -65,16 +65,31 @@ end
 
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
-"""
-    zeroth_representative(dset, vertex, reps, CE, V)
+function birth_death(dset::DisjointSetsWithBirth, vertex, edge)
+    return birth(dset, vertex), isnothing(edge) ? Inf : diam(edge)
+end
 
-Collect the zero dimensional representative of `vertex`.
-"""
-function zeroth_representative(filtration, dset, vertex, reps, CE, V)
-    if reps
-        return map(find_leaves!(dset, vertex)) do u
-            CE(V((u,), birth(filtration, u)))
+function interval(
+    ::Type{R}, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff
+) where {V, R<:RepresentativeInterval{PersistenceInterval, V}}
+    birth, death = birth_death(dset, vertex, edge)
+    if death - birth > cutoff
+        rep = map(find_leaves!(dset, vertex)) do u
+            V((u,), Ripserer.birth(filtration, u))
         end
+        birth_vertex = findfirst(r -> diam(r) == birth, rep)
+        return R(PersistenceInterval(birth, death), V((birth_vertex,), birth), edge, rep)
+    else
+        return nothing
+    end
+end
+
+function interval(
+    ::Type{PersistenceInterval}, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff
+)
+    birth, death = birth_death(dset, vertex, edge)
+    if death - birth > cutoff
+        return PersistenceInterval(birth, death)
     else
         return nothing
     end
@@ -97,9 +112,14 @@ function zeroth_intervals(
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
     if reps
-        intervals = PersistenceInterval{Vector{CE}}[]
+        intervals = RepresentativeInterval{
+            PersistenceInterval,
+            vertex_type(filtration),
+            Union{edge_type(filtration), Nothing},
+            Vector{CE},
+        }[]
     else
-        intervals = PersistenceInterval{Nothing}[]
+        intervals = PersistenceInterval[]
     end
     to_skip = edge_type(filtration)[]
     to_reduce = edge_type(filtration)[]
@@ -107,30 +127,28 @@ function zeroth_intervals(
     if progress
         progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
     end
-    for sx in simplices
-        u, v = index.(vertices(sx))
+    for edge in simplices
+        u, v = index.(vertices(edge))
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
-            dead = birth(dset, i) > birth(dset, j) ? i : j
-            if diam(sx) - birth(dset, dead) > cutoff
-                representative = zeroth_representative(filtration, dset, dead, reps, CE, V)
-                interval = PersistenceInterval(birth(dset, dead), diam(sx), representative)
-                push!(intervals, interval)
+            v = birth(dset, i) > birth(dset, j) ? i : j
+            int = interval(eltype(intervals), dset, filtration, v, edge, cutoff)
+            if !isnothing(int)
+                push!(intervals, int)
             end
             union!(dset, i, j)
-            push!(to_skip, sx)
+            push!(to_skip, edge)
         else
-            push!(to_reduce, sx)
+            push!(to_reduce, edge)
         end
         progress && next!(progbar)
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
-            representative = zeroth_representative(filtration, dset, v, reps, CE, V)
-            push!(intervals, PersistenceInterval(birth(dset, v), Inf, representative))
+            push!(intervals, interval(eltype(intervals), dset, filtration, v, nothing, 0))
         end
     end
     reverse!(to_reduce)

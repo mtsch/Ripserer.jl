@@ -191,24 +191,48 @@ end
 
 @testset "reps - types" begin
     d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true)
-    @test eltype(d0) <: PersistenceInterval{
+    @test eltype(d0) <: RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{0, Int, Int},
+        Union{Nothing, Simplex{1, Int, Int}},
         <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
-    @test eltype(d1) <: PersistenceInterval{
+    @test eltype(d1) <: RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{1, Int, Int},
+        Union{Nothing, Simplex{2, Int, Int}},
         <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
-    @test eltype(d2) <: PersistenceInterval{
+    @test eltype(d2) <: RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{2, Int, Int},
+        Union{Nothing, Simplex{3, Int, Int}},
         <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
-    @test eltype(d3) <: PersistenceInterval{
+    @test eltype(d3) <: RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{3, Int, Int},
+        Union{Nothing, Simplex{4, Int, Int}},
         <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
     d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true,
                               field_type=Rational{Int})
-    @test eltype(d0) ≡ PersistenceInterval{
+    @test eltype(d0) ≡ RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{0, Int, Int},
+        Union{Nothing, Simplex{1, Int, Int}},
         Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
-    @test eltype(d1) ≡ PersistenceInterval{
+    @test eltype(d1) ≡ RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{1, Int, Int},
+        Union{Nothing, Simplex{2, Int, Int}},
         Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
-    @test eltype(d2) ≡ PersistenceInterval{
+    @test eltype(d2) ≡ RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{2, Int, Int},
+        Union{Nothing, Simplex{3, Int, Int}},
         Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
-    @test eltype(d3) ≡ PersistenceInterval{
+    @test eltype(d3) ≡ RepresentativeInterval{
+        PersistenceInterval,
+        Simplex{3, Int, Int},
+        Union{Nothing, Simplex{4, Int, Int}},
         Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
 end
 

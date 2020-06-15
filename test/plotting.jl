@@ -43,13 +43,14 @@ series(args...; kwargs...) =
         data = collect(1:100)
         for dim in 0:3
             sx = Simplex{dim}(1, 1)
+            fsx = Simplex{dim + 1}(1, 1)
             @test length(series(sx, data)) == 1
             @test length(series([sx], data)) == 1
             @test length(series([sx], data)) == 1
-            @test length(series(PersistenceInterval(
-                1.0, 1.0, [ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)]
+            @test length(series(RepresentativeInterval(
+                1.0, 1.0, sx, fsx, [ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)]
             ), data)) == 1
-            @test_throws ErrorException series(PersistenceInterval(1.0, 1.0, nothing), data)
+            @test_throws ErrorException series(PersistenceInterval(1.0, 1.0), data)
         end
     end
 end
