@@ -1,4 +1,6 @@
 using Ripserer
+
+using Compat
 using StaticArrays
 
 using Ripserer: all_equal_in_dim
@@ -104,7 +106,47 @@ end
         @test isempty(cocob)
     end
 
-    @testset "3d" begin
+    @testset "3d values" begin
+        data = zeros(2, 2, 2)
+        data[:, 1, 1] .= 1
+        data[:, 2, 1] .= 2
+        data[:, 1, 2] .= 3
+        data[:, 2, 2] .= 4
+
+        @testset "Cubelet{1} coboundary" begin
+            cob = Cubelet{2, Float64, Int}[]
+            for cube in edges(Cubical(data))
+                for c in coboundary(Cubical(data), cube)
+                    @test issubset(cube, c)
+                    @test diam(cube) ≤ diam(c)
+                end
+            end
+        end
+        @testset "Cubelet{1} coboundary, all=false" begin
+            cob = Cubelet{2, Float64, Int}[]
+            for cube in edges(Cubical(data))
+                for c in coboundary(Cubical(data), cube, Val(false))
+                    push!(cob, c)
+                end
+            end
+            @test length(cob) == 6
+            @test allunique(cob)
+        end
+        @testset "Cubelet{2} coboundary" begin
+            for cube in [
+                Cubelet{2}((1, 2, 3, 4), 2.0),
+                Cubelet{2}((1, 2, 5, 6), 4.0),
+                Cubelet{2}((1, 3, 5, 7), 3.0),
+                Cubelet{2}((2, 4, 6, 8), 4.0),
+                Cubelet{2}((3, 4, 7, 8), 4.0),
+                Cubelet{2}((5, 6, 7, 8), 4.0),
+            ]
+                coface = only(coboundary(Cubical(data), cube))
+                @test abs(coface) == Cubelet{3}((8, 7, 6, 5, 4, 3, 2, 1), 4.0)
+            end
+        end
+    end
+    @testset "3d counts" begin
         cob = Cubelet{2, Int, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)

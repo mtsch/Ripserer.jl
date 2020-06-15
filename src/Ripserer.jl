@@ -25,17 +25,19 @@ using TupleTools
 
 # reexporting basics these makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold
-export PersistenceDiagram, PersistenceInterval
-export birth, death, persistence, representative, barcode
+export
+    PersistenceDiagram, PersistenceInterval, RepresentativeInterval,
+    birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
-export Mod
-export AbstractSimplex, diam, coface_type, face_type, vertices, coboundary, boundary, dim
-export IndexedSimplex, index, Simplex
-export AbstractFiltration, n_vertices, edges, threshold
-export AbstractFlagFiltration, Rips, SparseRips
-export Cubelet, Cubical
-export simplex, coefficient
-export ripserer
+export
+    Mod,
+    AbstractSimplex, diam, coface_type, face_type, vertices, coboundary, boundary, dim,
+    IndexedSimplex, index, Simplex,
+    AbstractFiltration, n_vertices, edges, threshold,
+    AbstractFlagFiltration, Rips, SparseRips,
+    Cubelet, Cubical,
+    simplex, coefficient,
+    ripserer
 
 include("primefield.jl")
 
