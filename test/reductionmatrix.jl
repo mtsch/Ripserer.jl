@@ -2,7 +2,7 @@ using Ripserer
 
 using Random
 
-using Ripserer: chain_element_type, coefficient
+using Ripserer: chain_element_type, coefficient, coface_type, face_type, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
 using Ripserer: WorkingBoundary, nonheap_push!, get_pivot!, repair!

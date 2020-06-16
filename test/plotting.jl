@@ -1,6 +1,7 @@
 using Ripserer
 using Ripserer: plottable, ChainElement
 
+using PersistenceDiagrams
 using RecipesBase
 using RecipesBase: apply_recipe
 

@@ -1,7 +1,7 @@
 using Ripserer
 using StaticArrays
 
-using Ripserer: small_binomial
+using Ripserer: small_binomial, boundary, coboundary, face_type, coface_type, index
 using ..TestHelpers: test_indexed_simplex_interface
 
 struct FakeFiltration end

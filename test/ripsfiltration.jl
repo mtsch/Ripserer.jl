@@ -1,5 +1,5 @@
 using Ripserer
-using Ripserer: distances, dist_type, vertex_type, edge_type, dist, threshold
+using Ripserer: distances, dist_type, vertex_type, edge_type, dist, edges, n_vertices
 
 using ..TestHelpers: test_filtration_interface
 include("data.jl")
