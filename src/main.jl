@@ -38,20 +38,21 @@ end
 
 """
     ripserer(dists::AbstractMatrix; kwargs...)
-    ripserer(points; metric=Euclidean(), births, kwargs...)
+    ripserer(points; metric=Distances.Euclidean(), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
 Compute the persistent homology of metric space represented by `dists`, `points` and
-`metric` or an `::AbstractFiltration`.
+`metric` or a [`Ripserer.AbstractFiltration`](@ref).
 
-If using points, `points` must be an array of bitstypes, such as `NTuple`s or `SVectors`.
+If using points, `points` must be an array of bitstypes, such as `NTuple`s or `SVector`s.
 
 # Keyoword Arguments
 
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
-* `field_type`: use this type of field of coefficients. Defaults to `Mod{modulus}`.
+* `field_type`: use this type of field of coefficients. Defaults to
+  [`Ripserer.Mod`](@ref)`{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold.
   For non-sparse Rips filtrations, it defaults to radius of input space.
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
@@ -60,9 +61,11 @@ If using points, `points` must be an array of bitstypes, such as `NTuple`s or `S
 * `progress`: If `true`, show a progress bar. Defaults to `false`.
 * `metric`: when calculating persistent homology from points, any metric from
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
-  `Euclidean()`.
-* `births`: when calculating persistent homology from points, births can be used to add
-  birth times to vertices. Defaults to all births equal to `0`.
+  `Distances.Euclidean()`.
+* `cohomology`: if set to `false`, compute persistent homology instead of cohomology. This
+  is much slower and gives the same result, but may give more informative representatives
+  when `reps` is set to `true`. Currently unable to compute infinite intervals in dimensions
+  higher than 0. Defaults to `false`.
 """
 function ripserer(
     dists::AbstractMatrix;
@@ -92,9 +95,8 @@ function ripserer(
     )
 end
 
-function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
-    dists = distances(metric, points, births)
-    return ripserer(dists; kwargs...)
+function ripserer(points::AbstractVector; metric=Euclidean(), threshold=nothing, kwargs...)
+    return ripserer(Rips(points; metric=metric, threshold=threshold); kwargs...)
 end
 
 function ripserer(

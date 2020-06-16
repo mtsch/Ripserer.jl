@@ -1,5 +1,6 @@
 using Ripserer
 using Ripserer: zeroth_intervals, ChainElement, PackedElement
+using PersistenceDiagrams
 
 using Compat
 using StaticArrays

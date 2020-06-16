@@ -3,7 +3,8 @@ using Ripserer
 using Compat
 using StaticArrays
 
-using Ripserer: all_equal_in_dim
+using Ripserer: all_equal_in_dim, boundary, coboundary, face_type, coface_type,
+    edges, n_vertices, index
 
 data1d = cos.(range(0, 4π, length=1000))
 

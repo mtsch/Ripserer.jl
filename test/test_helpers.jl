@@ -2,7 +2,8 @@ module TestHelpers
 using Test
 
 using Ripserer
-using Ripserer: dist_type, vertex_type, edge_type
+using Ripserer: dist_type, vertex_type, edges, edge_type,
+    AbstractSimplex, IndexedSimplex, face_type, coface_type, index
 
 """
     test_indexed_simplex_interface(S, n_vertices)

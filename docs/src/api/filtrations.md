@@ -1,33 +1,41 @@
-# Filtrations
+# Filtration Interface
 
 ```@docs
-AbstractFiltration
+Ripserer.AbstractFiltration
 ```
 
 ```@docs
-n_vertices(::AbstractFiltration)
+Ripserer.n_vertices(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-edges(::AbstractFiltration)
+Ripserer.edges(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-diam(::AbstractFiltration, ::Any)
+Ripserer.diam(::Ripserer.AbstractFiltration, ::Any)
 ```
 
 ```@docs
-diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
+Ripserer.diam(::Ripserer.AbstractFiltration, ::Ripserer.AbstractSimplex, ::Any, ::Any)
 ```
 
 ```@docs
-birth(::AbstractFiltration, ::Any)
+Ripserer.birth(::Ripserer.AbstractFiltration, ::Any)
 ```
 
 ```@docs
-threshold(::AbstractFiltration)
+Ripserer.threshold(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-AbstractFlagFiltration
+Ripserer.simplex_type
+```
+
+```@docs
+Ripserer.AbstractRipsFiltration
+```
+
+```@docs
+Ripserer.dist
 ```

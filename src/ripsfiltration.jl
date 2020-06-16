@@ -39,29 +39,26 @@ end
 Return distance matrix calculated from `points` with `metric`. If given, add birth times
 from `births` to the diagonal.
 """
-function distances(metric, points, births=nothing)
+function distances(metric, points)
+    isempty(points) && throw(ArgumentError("`points` must be nonempty"))
+
     dim = length(first(points))
     T = eltype(first(points))
     dists = pairwise(metric, reshape(reinterpret(T, points), (dim, length(points))), dims=2)
-    if !isnothing(births)
-        for i in 1:length(points)
-            dists[i, i] = births[i]
-        end
-    end
     return dists
 end
 
-# flag filtration ======================================================================== #
+# rips filtrations ======================================================================= #
 """
-    AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S}
+    AbstractRipsFiltration{T, S} <: AbstractFiltration{T, S}
 
-An abstract flag filtration is a filtration of flag complexes. Its subtypes can overload
-`dist(::AbstractFlagFiltration{T}, u, v)::Union{T, Missing}` instead of `diam`.
-`diam(::AbstractFlagFiltration, ...)` defaults to maximum `dist` among vertices.
+An abstract Vietoris-Rips filtration. Its subtypes can overload
+`dist(::AbstractRipsFiltration{T}, u, v)::Union{T, Missing}` instead of `diam`.
+`diam(::AbstractRipsFiltration, ...)` defaults to maximum `dist` among vertices.
 """
-abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
+abstract type AbstractRipsFiltration{T, S} <: AbstractFiltration{T, S} end
 
-@propagate_inbounds function diam(flt::AbstractFlagFiltration, vertices)
+@propagate_inbounds function diam(flt::AbstractRipsFiltration, vertices)
     n = length(vertices)
     res = typemin(dist_type(flt))
     for i in 1:n, j in i+1:n
@@ -72,7 +69,7 @@ abstract type AbstractFlagFiltration{T, S} <: AbstractFiltration{T, S} end
     return ifelse(res > threshold(flt), missing, res)
 end
 
-@propagate_inbounds function diam(flt::AbstractFlagFiltration, sx::AbstractSimplex, us, v)
+@propagate_inbounds function diam(flt::AbstractRipsFiltration, sx::AbstractSimplex, us, v)
     res = diam(sx)
     for u in us
         # Even though this looks like a tight loop, v changes way more often than us, so
@@ -87,15 +84,15 @@ end
     return res
 end
 
-edges(flt::AbstractFlagFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
+edges(flt::AbstractRipsFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
 
 """
-    dist(::AbstractFlagFiltration, u, v)
+    dist(::AbstractRipsFiltration, u, v)
 
 Return the distance between vertices `u` and `v`. If the distance is higher than the
 threshold, return `missing` instead.
 """
-dist(::AbstractFlagFiltration, ::Any, ::Any)
+dist(::AbstractRipsFiltration, ::Any, ::Any)
 
 # rips filtration ======================================================================== #
 """
@@ -110,35 +107,37 @@ function default_rips_threshold(dists::AbstractMatrix{T}) where T
 end
 
 """
-    Rips{I, T} <: AbstractFlagFiltration{T, Simplex}
+    Rips{I, T} <: AbstractRipsFiltration{T, Simplex}
 
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
-# Constructor
+# Constructors
 
-    Rips(
-        distance_matrix;
-        threshold=default_rips_threshold(dist),
-        vertex_type=Simplex{0, T, Int64},
-    )
+* `Rips(distance_matrix; threshold=default_rips_threshold(dist))`
+* `Rips(points; metric=Euclidean(), threshold=default_rips_threshold(dist))`
+* `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
 """
-struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractFlagFiltration{T, Simplex}
+struct Rips{I<:Integer, T, A<:AbstractMatrix{T}} <: AbstractRipsFiltration{T, Simplex}
     dist::A
     threshold::T
 end
 
 function Rips{I}(
-    dist::AbstractMatrix{T}; threshold=default_rips_threshold(dist)
+    dist::AbstractMatrix{T}; threshold=nothing
 ) where {I, T}
     issymmetric(dist) ||
         throw(ArgumentError("`dist` must be a distance matrix"))
     !issparse(dist) ||
         throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
-    return Rips{I, T, typeof(dist)}(dist, T(threshold))
+    thresh = isnothing(threshold) ? default_rips_threshold(dist) : T(threshold)
+    return Rips{I, T, typeof(dist)}(dist, thresh)
 end
-function Rips(dist; threshold=default_rips_threshold(dist))
-    return Rips{Int}(dist; threshold=threshold)
+function Rips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
+    return Rips(distances(metric, points); kwargs...)
+end
+function Rips(dist; kwargs...)
+    return Rips{Int}(dist; kwargs...)
 end
 
 @propagate_inbounds function dist(rips::Rips{<:Any, T}, i, j) where T
@@ -152,7 +151,7 @@ simplex_type(rips::Rips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 # sparse rips filtration ================================================================= #
 """
-    SparseRips{I, T} <: AbstractFlagFiltration{T, Simplex}
+    SparseRips{I, T} <: AbstractRipsFiltration{T, Simplex}
 
 This type represents a filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
@@ -161,12 +160,11 @@ are treated as vertex birth times.
 
 # Constructor
 
-    SparseRips{I}(
-        distance_matrix;
-        threshold=nothing,
-    )
+* `SparseRips{I}(distance_matrix; threshold=nothing)`
+* `SparseRips(distance_matrix; threshold=nothing)`: `I` sets the integer size used to
+  represent simplices.
 """
-struct SparseRips{I, T, A<:AbstractSparseMatrix{T}} <: AbstractFlagFiltration{T, Simplex}
+struct SparseRips{I, T, A<:AbstractSparseMatrix{T}} <: AbstractRipsFiltration{T, Simplex}
     dist::A
     threshold::T
 end
@@ -177,7 +175,7 @@ function SparseRips{I}(
     issymmetric(dist) || throw(ArgumentError("`dist` must be a distance matrix"))
     if isnothing(threshold)
         thresh = maximum(dist)
-        dists = dist
+        dists = sparse(dist)
     else
         thresh = threshold
         dists = SparseArrays.fkeep!(copy(dist), (_, _, v) -> v ≤ threshold)
@@ -196,7 +194,6 @@ end
     return ifelse(i == j, zero(T), ifelse(iszero(res), missing, res))
 end
 
-# Threshold was handled by deleting entries in the matrix.
 n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
 birth(rips::SparseRips, i) = rips.dist[i, i]
