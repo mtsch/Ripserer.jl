@@ -25,11 +25,19 @@ coface_type(::AbstractSimplex)
 ```
 
 ```@docs
+face_type(::AbstractSimplex)
+```
+
+```@docs
 vertices(::AbstractSimplex)
 ```
 
 ```@docs
 coboundary(::Any, ::AbstractSimplex)
+```
+
+```@docs
+boundary(::Any, ::AbstractSimplex)
 ```
 
 ```@docs

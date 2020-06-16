@@ -20,7 +20,6 @@ actually needed for the main algorithm.
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
 * [`face_type(::AbstractSimplex)`](@ref) - only required for homology.
 * [`boundary(::Any, ::AbstractSimplex)`](@ref) - only required for homology.
-* [`check_overflow(::Type{<:AbstractSimplex}, ::Any)`](@ref) - optional.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
 
