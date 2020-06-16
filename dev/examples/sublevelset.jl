@@ -39,7 +39,7 @@ nothing # hide
 
 # Sublevel set persistent homology provides a stable description of the critical points of a
 # function. The zeroth persistent homology group ``H_0`` corresponds to its local minima. To
-# compute this with Ripserer, we use cubical persistent homology. Note that there is not
+# compute this with Ripserer, we use cubical persistent homology. Note that there is no
 # information in ``H_1``, since the function is one-dimensional, so we only grab the first
 # part of the result.
 
@@ -158,7 +158,7 @@ plot(blackhole_plot, plot(result))
 # representative with a diameter equal to or lower than `threshold`. If we needed a strict
 # `<`, we could use `threshold_strict`.
 
-result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true, legend=false)
+result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true)
 plt = plot(blackhole_image, title="Black Hole")
 for interval in result[1]
     plot!(plt, interval, blackhole, threshold=birth(interval))
