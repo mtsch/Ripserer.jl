@@ -1,57 +1,49 @@
-# Simplices
+# Simplex Interface
 
 ```@docs
-AbstractSimplex
+Ripserer.AbstractSimplex
 ```
 
 ```@docs
-dim(::AbstractSimplex)
+dim(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-diam(::AbstractSimplex)
+diam(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-Base.sign(::AbstractSimplex)
+Base.sign(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-Base.:-(::AbstractSimplex)
+Base.:-(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-coface_type(::AbstractSimplex)
+Ripserer.coface_type(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-face_type(::AbstractSimplex)
+Ripserer.face_type(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-vertices(::AbstractSimplex)
+vertices(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-coboundary(::Any, ::AbstractSimplex)
+Ripserer.coboundary(::Any, ::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-boundary(::Any, ::AbstractSimplex)
+Ripserer.boundary(::Any, ::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-IndexedSimplex
+Ripserer.IndexedSimplex
 ```
 
 ```@docs
-index(::AbstractSimplex)
-```
-
-```@docs
-Simplex
-```
-
-```@docs
-Cubelet
+Ripserer.index(::Ripserer.AbstractSimplex)
 ```

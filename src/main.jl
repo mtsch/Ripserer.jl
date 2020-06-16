@@ -92,9 +92,8 @@ function ripserer(
     )
 end
 
-function ripserer(points; metric=Euclidean(), births=nothing, kwargs...)
-    dists = distances(metric, points, births)
-    return ripserer(dists; kwargs...)
+function ripserer(points::AbstractVector; metric=Euclidean(), threshold=nothing, kwargs...)
+    return ripserer(Rips(points; metric=metric, threshold=threshold); kwargs...)
 end
 
 function ripserer(

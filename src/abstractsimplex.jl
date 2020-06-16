@@ -10,7 +10,7 @@ actually needed for the main algorithm.
 
 # Interface
 
-* `AbstractSimplex{D}(::NTuple{D+1, <:Integer}, ::T)`
+* `AbstractSimplex{D}(::SVector{<:Any, <:Integer}, ::T)`
 * [`diam(::AbstractSimplex)`](@ref)
 * [`Base.sign(::AbstractSimplex)`](@ref)
 * [`Base.:-(::AbstractSimplex)`](@ref)
@@ -64,7 +64,7 @@ Reverse the simplex orientation.
 # output
 
 2-dim Simplex(1, 1):
-  -(3, 2, 1)
+  -[3, 2, 1]
 ```
 """
 Base.:-(::AbstractSimplex)
@@ -132,7 +132,6 @@ dim(sx::AbstractSimplex) = dim(typeof(sx))
 
 Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 
-
 """
     vertices(simplex::AbstractSimplex{dim})
 
@@ -144,22 +143,25 @@ vertices(Simplex{2}((3, 2, 1), 3.2))
 
 # output
 
-(3, 2, 1)
+3-element StaticArrays.SArray{Tuple{3},Int64,1,3} with indices SOneTo(3):
+ 3
+ 2
+ 1
+
 ```
 """
 vertices(::AbstractSimplex)
-
 
 """
     coboundary(filtration, simplex[, Val{all_cofaces}])
 
 Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type `coface_type(simplex)`. If
+and validity of cofaces. Iterates values of the type [`coface_type`](@ref)`(simplex)`. If
 `all_cofaces` is `false`, only return cofaces with vertices added to the beginning of vertex
 list.
 
 ```jldoctest coboundary
-filtration = RipsFiltration([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
+filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
 
 for c in coboundary(filtration, Simplex{1}(2, 1))
     println(c)
@@ -167,8 +169,8 @@ end
 
 # output
 
-Simplex{2}(+(4, 3, 1), 1)
-Simplex{2}(-(3, 2, 1), 1)
+Simplex{2}(+[4, 3, 1], 1)
+Simplex{2}(-[3, 2, 1], 1)
 ```
 
 ```jldoctest coboundary
@@ -178,7 +180,30 @@ end
 
 # output
 
-Simplex{2}(+(4, 3, 1), 1)
+2-dim Simplex(1, 1):
+  +[4, 3, 1]
 ```
 """
 coboundary(::Any, ::AbstractSimplex)
+
+"""
+    boundary(filtration, simplex[, Val{all_cofaces}])
+
+Iterate over the boundary of `simplex`. Use the `filtration` to determine the diameters
+and validity of cofaces. Iterates values of the type [`face_type`](@ref)`(simplex)`.
+
+```jldoctest boundary
+filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
+
+for f in boundary(filtration, Simplex{2}(2, 1))
+    println(f)
+end
+
+# output
+
+Simplex{2}(+[2, 1], 1)
+Simplex{2}(-[4, 1], 1)
+Simplex{2}(+[4, 2], 1)
+```
+"""
+boundary(::Any, ::AbstractSimplex)

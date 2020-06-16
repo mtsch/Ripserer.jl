@@ -66,11 +66,10 @@ benchmarking on my computer or a CI system to be too unreliable.
 
 ## Extending
 
-Ripserer is designed to be easily extended with new simplex or filtration types. The
-interfaces are specified in the docstrings for `AbstractSimplex` and
-`AbstractFiltration`. Also see the [Filtrations](@ref) and [Simplices](@ref) API sections
-for more info. To see an example of an extension, check out the implementation of cubical
-simplices and filtrations in
+Ripserer is designed to be easily extended with new simplex or filtration types. See the
+[Filtration Interface](@ref) and [Simplex Interface](@ref) API sections for more info. To
+see an example of an extension, check out the implementation of cubical simplices and
+filtrations in
 [`src/cubical.jl`](https://github.com/mtsch/Ripserer.jl/blob/master/src/cubical.j).
 
 If you have written an extension or have trouble implementing one, please open a pull
