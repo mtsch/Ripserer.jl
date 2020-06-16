@@ -68,7 +68,7 @@ end
 
 # To get the locations of the minima, extract the critical simplices from intervals. Since
 # simplices act like collections of vertex indices, and zero-dimensional representatives
-# have a single point each, we can use `ònly` to extract them.
+# have a single point each, we can use `only` to extract them.
 
 x_min = [only(birth_simplex(int)) for int in result]
 
@@ -77,9 +77,9 @@ plot(plt, plot(result, markercolor=1:6, markeralpha=1))
 
 
 # Note that each interval's birth is equal to the value of the corresponding local minimum
-# and its death is equal to the higher of the two adjacient maxima. An intuitive way of
+# and its death is equal to the higher of the two adjacent maxima. An intuitive way of
 # thinking about the result is imagining you pour water in the curve. Water is collected in
-# a valley and once it reaches a local maximum, it starts pouring in the adjacient valley.
+# a valley and once it reaches a local maximum, it starts pouring in the adjacent valley.
 
 # ### Dealing With Noise
 
@@ -191,4 +191,4 @@ plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true, cohomology=false)
 plot!(plt, only(result[2]), blackhole, label="H₁ cycle", color=3)
 
-# We have successfuly found the hole in a black hole.
+# We have successfully found the hole in a black hole.
