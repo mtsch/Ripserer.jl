@@ -140,7 +140,7 @@ function simplex(pe::PackedElement{S, <:Any, M, U}) where {S, M, U}
     return S(pe.index_coef & mask, pe.diam)
 end
 function coefficient(elem::PackedElement{<:Any, F, M, U}) where {F, U, M}
-    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
+    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(M)), false)
 end
 
 function chain_element_type(
