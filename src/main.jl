@@ -1,22 +1,22 @@
 """
-    check_overflow(filtration::AbstractFiltration, dim_max)
+    overflows(filtration::AbstractFiltration, dim_max)
 
 Check if `dim`-dimensional simplex with largest index on `n_vertices(filtration)` can safely
 be constructed. Throw `OverflowError` error if it can't.
 """
-function check_overflow(flt::AbstractFiltration, dim_max, field)
-    return check_overflow(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
+function overflows(flt::AbstractFiltration, dim_max, field)
+    return overflows(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
 end
 
 """
-    check_overflow(::Type{AbstractSimplex}, n_vertices, field)
+    overflows(::Type{AbstractSimplex}, n_vertices, field)
 
 Check if simplex with largest index on `n_vertices` can safely be constructed with
 overflow. Throw `OverflowError` error if it would overflow.
 """
-check_overflow(::Type{<:AbstractSimplex}, ::Any, ::Any) = nothing
+overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
 
-function check_overflow(S::Type{<:IndexedSimplex{D, T, I}}, n_vertices, field) where {D, T, I}
+function overflows(S::Type{<:IndexedSimplex{<:Any, T, I}}, n_vertices, field) where {T, I}
     len = length(S(1, oneunit(T)))
     len > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
     acc_int = zero(I)
@@ -25,15 +25,17 @@ function check_overflow(S::Type{<:IndexedSimplex{D, T, I}}, n_vertices, field) w
     for k in len:-1:1
         acc_int += small_binomial(I(i), Val(k))
         acc_big += binomial(big(i), big(k))
-        acc_int ≠ acc_big && throw(OverflowError(
-            "$S on $(n_vertices) vertices overflows. Try using a bigger index type"
-        ))
+        acc_int ≠ acc_big && return true
         i -= 1
     end
-    CE = chain_element_type(S, field)
-    index(simplex(CE(S(acc_int, oneunit(T))))) ≠ acc_int && throw(OverflowError(
-        "$S on $(n_vertices) vertices overflows. Try using a bigger index type"
-    ))
+
+    # This checks if packing is safe.
+    Element = chain_element_type(S, field)
+    if index(simplex(Element(S(acc_int, oneunit(T))))) ≠ acc_int
+        return true
+    else
+        return false
+    end
 end
 
 """
@@ -44,7 +46,8 @@ end
 Compute the persistent homology of metric space represented by `dists`, `points` and
 `metric` or a [`Ripserer.AbstractFiltration`](@ref).
 
-If using points, `points` must be an array of bitstypes, such as `NTuple`s or `SVector`s.
+If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
+`SVector`s.
 
 # Keyoword Arguments
 
@@ -69,30 +72,15 @@ If using points, `points` must be an array of bitstypes, such as `NTuple`s or `S
 """
 function ripserer(
     dists::AbstractMatrix;
-    dim_max=1,
-    sparse=false,
-    cutoff=0,
-    reps=false,
-    modulus=2,
-    field_type=Mod{modulus},
-    progress=false,
-    cohomology=true,
-    kwargs..., # kwargs for filtration
+    threshold=nothing,
+    kwargs...,
 )
     if issparse(dists)
-        filtration = SparseRips(dists; kwargs...)
+        filtration = SparseRips(dists; threshold=threshold)
     else
-        filtration = Rips(dists; kwargs...)
+        filtration = Rips(dists; threshold=threshold)
     end
-    return ripserer(
-        filtration;
-        dim_max=dim_max,
-        reps=reps,
-        cutoff=cutoff,
-        field_type=field_type,
-        progress=progress,
-        cohomology=cohomology,
-    )
+    return ripserer(filtration; kwargs...)
 end
 
 function ripserer(points::AbstractVector; metric=Euclidean(), threshold=nothing, kwargs...)
@@ -101,9 +89,20 @@ end
 
 function ripserer(
     filtration::AbstractFiltration;
-    dim_max=1, reps=false, cutoff=0, field_type=Mod{2}, progress=false, cohomology=true
+    dim_max=1,
+    cutoff=0,
+    reps=false,
+    modulus=2,
+    field_type=Mod{modulus},
+    progress=false,
+    cohomology=true,
 )
-    check_overflow(filtration, dim_max, field_type)
+    if overflows(filtration, dim_max, field_type)
+        throw(OverflowError(
+            "Constructing some of the $dim_max-simplices in this filtration would overflow. " *
+            "Try using a larger index type or a smaller `dim_max`."
+        ))
+    end
     if cohomology
         return _cohomology(
             filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)

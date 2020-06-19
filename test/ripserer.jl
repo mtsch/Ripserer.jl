@@ -3,177 +3,109 @@ using Ripserer: zeroth_intervals, ChainElement, PackedElement
 using PersistenceDiagrams
 
 using Compat
+using Distances
 using StaticArrays
 using Suppressor
 
 include("data.jl")
 
-@testset "full matrix, no threshold" begin
-    @testset "icosahedron" begin
-        res = ripserer(icosahedron, dim_max=2)
-        @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                         PersistenceInterval(0.0, Inf)]
-        @test isempty(res[2])
-        @test res[3] == [PersistenceInterval(1.0, 2.0)]
+@testset "Rips" begin
+    @testset "No threshold" begin
+        @testset "Icosahedron" begin
+            d0, d1, d2 = ripserer(icosahedron; dim_max=2)
+            @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
+            @test d1 == []
+            @test d2 == [(1.0, 2.0)]
+        end
+        @testset "Cycle with various fields" begin
+            d0_2, d1_2, d2_2, d3_2 = ripserer(Rips{Int32}(cycle); dim_max=3)
+            d0_7, d1_7, d2_7, d3_7 = ripserer(Rips(cycle); dim_max=3, modulus=7)
+            d0_r, d1_r, d2_r, d3_r = ripserer(cycle; dim_max=3, field_type=Rational{Int})
+
+            @test d0_2 == d0_7 == d0_r == [fill((0, 1), size(cycle, 1) - 1); (0, Inf)]
+            @test d1_2 == d1_7 == d1_r == [(1, 6)]
+            @test d2_2 == d2_7 == d2_r == fill((6, 7), 5)
+            @test d3_2 == d3_7 == d3_r == [(7, 8)]
+        end
+        @testset "RP2 with various fields" begin
+            _, d1_2, d2_2 = ripserer(projective_plane; dim_max=2)
+            _, d1_3, d2_3 = ripserer(projective_plane; dim_max=2, modulus=3)
+            _, d1_331, d2_331 = ripserer(projective_plane; dim_max=2, field_type=Mod{5})
+            _, d1_r, d2_r = ripserer(projective_plane; dim_max=2, field_type=Rational{Int})
+            @test d1_2 == [(1, 2)]
+            @test d2_2 == [(1, 2)]
+            @test d1_3 == d1_331 == d1_r == []
+            @test d2_3 == d2_331 == d1_r == []
+        end
     end
-    @testset "torus 16" begin
-        d0, d1, d2 = ripserer(torus(16), dim_max=2)
-
-        @test length(d0) == 16
-
-        @test all(x -> birth(x) ≈ 0.5, d1)
-        @test count(x -> death(x) ≈ 1, d1) == 2
-        @test count(x -> isapprox(death(x), 0.71, atol=0.1), d1) == 15
-
-        @test death(only(d2)) == 1
+    @testset "Threshold" begin
+        @testset "Icosahedron, threshold=1" begin
+            d0, d1, d2 = ripserer(Rips(icosahedron; threshold=1); dim_max=2)
+            @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
+            @test d1 == []
+            @test d2 == [(1.0, Inf)]
+        end
+        @testset "Icosahedron, threshold=0.5" begin
+            d0, d1, d2 = ripserer(icosahedron; dim_max=2, threshold=0.5)
+            @test d0 == fill((0.0, Inf), 12)
+            @test d1 == []
+            @test d2 == []
+        end
+        @testset "RP2 with various fields, threshold=1" begin
+            _, d1_2, d2_2 = ripserer(projective_plane;
+                                     dim_max=2, threshold=1)
+            _, d1_3, d2_3 = ripserer(projective_plane;
+                                     dim_max=2, modulus=3, threshold=1)
+            _, d1_331, d2_331 = ripserer(projective_plane;
+                                         dim_max=2, field_type=Mod{5}, threshold=1)
+            _, d1_r, d2_r = ripserer(projective_plane;
+                                     dim_max=2, field_type=Rational{Int}, threshold=1)
+            @test d1_2 == [(1, Inf)]
+            @test d2_2 == [(1, Inf)]
+            @test d1_3 == d1_331 == d1_r == []
+            @test d2_3 == d2_331 == d1_r == []
+        end
     end
-    @testset "torus 100" begin
-        d0, d1 = ripserer(torus(100), dim_max=1)
-
-        @test length(d0) == 100
-
-        deaths = sort(death.(d1))
-        @test deaths[end] ≈ 0.8
-        @test deaths[end-1] ≈ 0.8
-        @test deaths[end-2] < 0.5
+    @testset "Points as input" begin
+        for metric in (Euclidean(), Cityblock())
+            pts = torus_points(9)
+            @test ripserer(pts; metric=metric) == ripserer(Rips(pts; metric=metric))
+        end
     end
-    @testset "cycle" begin
-        d0, d1, d2, d3, d4 = ripserer(cycle, dim_max=4)
-        @test d0 == [fill(PersistenceInterval(0, 1), size(cycle, 1) - 1);
-                     PersistenceInterval(0, Inf)]
-        @test d1 == [PersistenceInterval(1, 6)]
-        @test d2 == fill(PersistenceInterval(6, 7), 5)
-        @test d3 == [PersistenceInterval(7, 8)]
-        @test d4 == []
-
-        d0_7, d1_7, d2_7, d3_7, d4_7 = ripserer(cycle, dim_max=4, modulus=7)
-        @test all(d0 .== d0_7)
-        @test all(d1 .== d1_7)
-        @test all(d2 .== d2_7)
-        @test all(d3 .== d3_7)
-        @test all(d4 .== d4_7)
-
-        d0r, d1r, d2r, d3r, d4r = ripserer(cycle, dim_max=4, field_type=Rational{Int})
-        @test all(d0 .== d0r)
-        @test all(d1 .== d1r)
-        @test all(d2 .== d2r)
-        @test all(d3 .== d3r)
-        @test all(d4 .== d4r)
-    end
-    @testset "projective plane (modulus)" begin
-        _, d1_2, d2_2 = ripserer(projective_plane, dim_max=2)
-        _, d1_3, d2_3 = ripserer(projective_plane, dim_max=2, modulus=3)
-        @test d1_2 == [PersistenceInterval(1, 2)]
-        @test d2_2 == [PersistenceInterval(1, 2)]
-        @test isempty(d1_3)
-        @test isempty(d2_3)
+    @testset "Cutoff" begin
+        d0, d1 = ripserer(rand_dist_matrix(20), cutoff=0.5)
+        @test all(persistence.(d0) .> 0.5)
+        @test all(persistence.(d1) .> 0.5)
     end
 end
 
-@testset "full matrix, with threshold" begin
-    @testset "icosahedron, high threshold" begin
-        res = ripserer(icosahedron, threshold=2, dim_max=2)
-        @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                         PersistenceInterval(0.0, Inf)]
-        @test isempty(res[2])
-        @test res[3] == [PersistenceInterval(1.0, 2.0)]
+@testset "SparseRips" begin
+    @testset "Icosahedron" begin
+        d0, d1, d2 = ripserer(sparse(icosahedron); dim_max=2)
+        @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
+        @test d1 == []
+        @test d2 == [(1.0, 2.0)]
     end
-    @testset "icosahedron, med threshold" begin
-        res = ripserer(icosahedron, dim_max=2, threshold=1)
-        @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                         PersistenceInterval(0.0, Inf)]
-        @test isempty(res[2])
-        @test res[3] == [PersistenceInterval(1.0, Inf)]
-    end
-    @testset "icosahedron, low threshold" begin
-        res = ripserer(icosahedron, dim_max=2, threshold=0.5)
-        @test res[1] == fill(PersistenceInterval(0.0, Inf), 12)
-        @test isempty(res[2])
-        @test isempty(res[3])
-    end
-    @testset "torus 16, high threshold" begin
-        d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=2)
-
-        @test length(d0) == 16
-
-        @test all(x -> birth(x) ≈ 0.5, d1)
-        @test count(x -> death(x) ≈ 1, d1) == 2
-        @test count(x -> isapprox(death(x), 0.71, atol=0.1), d1) == 15
-
-        @test death(only(d2)) == 1
-    end
-    @testset "torus 16, med threshold" begin
-        d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.9)
-
-        @test length(d0) == 16
-
-        @test all(x -> birth(x) ≈ 0.5, d1)
-        @test count(x -> death(x) == Inf, d1) == 2
-        @test count(x -> isapprox(death(x), 0.71, atol=0.1), d1) == 15
-
-        @test last(only(d2)) == Inf
-    end
-    @testset "torus 16, low threshold" begin
-        d0, d1, d2 = ripserer(torus(16), dim_max=2, threshold=0.5)
-
-        @test length(d0) == 16
-
-        @test all(x -> birth(x) ≈ 0.5, d1)
-        @test all(x -> death(x) == Inf, d1)
-
-        @test isempty(d2)
-    end
-    @testset "projective plane (modulus), med threshold" begin
-        _, d1_2, d2_2 = ripserer(projective_plane,
+    @testset "RP2 with various fields, threshold=1" begin
+        _, d1_2, d2_2 = ripserer(sparse(projective_plane);
                                  dim_max=2, threshold=1)
-        _, d1_3, d2_3 = ripserer(projective_plane,
-                                 dim_max=2, modulus=3, threshold=1)
-        @test d1_2 == [PersistenceInterval(1, Inf)]
-        @test d2_2 == [PersistenceInterval(1, Inf)]
-        @test isempty(d1_3)
-        @test isempty(d2_3)
-    end
-end
-
-@testset "sparse matrix" begin
-    @testset "icosahedron" begin
-        flt = SparseRips(icosahedron, threshold=2)
-        res = ripserer(flt, dim_max=2)
-        @test res[1] == [fill(PersistenceInterval(0.0, 1.0), 11);
-                         PersistenceInterval(0.0, Inf)]
-        @test isempty(res[2])
-        @test res[3] == [PersistenceInterval(1.0, 2.0)]
-    end
-    @testset "torus 16" begin
-        dists = sparse(torus(16))
-        SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 1)
-
-        d0, d1, d2 = ripserer(dists, dim_max=2)
-
-        @test length(d0) == 16
-
-        @test all(x -> birth(x) ≈ 0.5, d1)
-        @test count(x -> death(x) ≈ 1, d1) == 2
-        @test count(x -> isapprox(death(x), 0.71, atol=0.1), d1) == 15
-
-        @test last(only(d2)) == 1
-    end
-    @testset "projective plane (modulus), med threshold" begin
-        dists = sparse(projective_plane)
-        SparseArrays.fkeep!(dists, (_, _, v) -> v ≤ 2)
-
-        _, d1_2, d2_2 = ripserer(dists, dim_max=2, threshold=1)
-        _, d1_3, d2_3 = ripserer(dists, dim_max=2, modulus=3, threshold=1)
-        @test d1_2 == [PersistenceInterval(1, Inf)]
-        @test d2_2 == [PersistenceInterval(1, Inf)]
-        @test isempty(d1_3)
-        @test isempty(d2_3)
+        _, d1_3, d2_3 = ripserer(SparseRips(projective_plane; threshold=1);
+                                 dim_max=2, modulus=3)
+        _, d1_331, d2_331 = ripserer(sparse(projective_plane);
+                                     dim_max=2, field_type=Mod{5}, threshold=1)
+        _, d1_r, d2_r = ripserer(sparse(projective_plane);
+                                 dim_max=2, field_type=Rational{Int}, threshold=1)
+        @test d1_2 == [(1, Inf)]
+        @test d2_2 == [(1, Inf)]
+        @test d1_3 == d1_331 == d1_r == []
+        @test d2_3 == d2_331 == d1_r == []
     end
 end
 
 @testset "Representatives" begin
-    @testset "example from ripser" begin
-        _, d1, d2 = ripserer(projective_plane, dim_max=2, reps=true)
+    @testset "Known example" begin
+        # This example was generated by getting representatives from ripser.
+        _, d1, d2 = ripserer(projective_plane; dim_max=2, reps=true)
 
         @test simplex.(representative(only(d1))) == [
             Simplex{1}((11, 10), 1),
@@ -190,8 +122,8 @@ end
         @test simplex.(representative(only(d2))) == [Simplex{2}((6, 2, 1), 1)]
         @test coefficient.(representative(only(d2))) == [Mod{2}(1)]
     end
-    @testset "types" begin
-        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true)
+    @testset "Types" begin
+        d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true)
         @test eltype(d0) <: RepresentativeInterval{
             PersistenceInterval,
             Simplex{0, Int, Int},
@@ -213,7 +145,7 @@ end
             Union{Nothing, Simplex{4, Int, Int}},
             <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
 
-        d0, d1, d2, d3 = ripserer(cycle, dim_max=3, reps=true,
+        d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true,
                                   field_type=Rational{Int})
         @test eltype(d0) ≡ RepresentativeInterval{
             PersistenceInterval,
@@ -236,17 +168,14 @@ end
             Union{Nothing, Simplex{4, Int, Int}},
             Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
     end
-    @testset "infinite interval" begin
-        _, d1 = ripserer(
-            cycle, dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
-        )
-        @test representative(only(d1)) == ChainElement{
-            Simplex{0, Int, Int}, Rational{Int}
-        }[]
+    @testset "Infinite interval" begin
+        _, d1 = ripserer(cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int})
+        rep = representative(only(d1))
+        @test rep == []
+        @test eltype(rep) == ChainElement{Simplex{1, Int, Int}, Rational{Int}}
     end
-    @testset "critical simplices" begin
-        t = torus(100)
-        result = ripserer(t, reps=true, threshold=0.5)
+    @testset "Critical simplices" begin
+        result = ripserer(torus(100); reps=true, threshold=0.5)
         for diag in result
             @test birth.(diag) == diam.(birth_simplex.(diag))
             finite = filter(isfinite, diag)
@@ -257,7 +186,7 @@ end
     end
 end
 
-@testset "Sublevel using SparseRips" begin
+@testset "Zero-dimensional sublevel set persistence using SparseRips" begin
     data = [range(0, 1, length=5);
             range(1, 0.5, length=5)[2:end];
             range(0.5, 2, length=4)[2:end];
@@ -275,7 +204,7 @@ end
         dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
     end
     # 0-dimensional persistence should find values of minima and maxima of our data.
-    res = first(ripserer(dists, dim_max=0))
+    res = first(ripserer(dists; dim_max=0))
     mins = birth.(res)
     maxs = death.(filter(isfinite, res))
     @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
@@ -290,11 +219,11 @@ end
                 0 2 2 2 0;
                 0 0 0 0 0]
 
-        d0, d1, d2 = ripserer(Cubical(data), reps=true, dim_max=2)
+        d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
 
         @test d0 == [(0, Inf), (1, 2)]
         @test d1 == [(0, 2)]
-        @test isempty(d2)
+        @test d2 == []
 
         @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
         @test vertices(only(representative(d0[2]))) == SVector(13)
@@ -306,7 +235,7 @@ end
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data), dim_max=2)
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
 
         @test d0 == [(0, 1.0), (0, Inf)]
         @test isempty(d1)
@@ -314,14 +243,14 @@ end
     end
 end
 
-@testset "Persistent homology." begin
-    @testset "same diagrams" begin
+@testset "Persistent homology" begin
+    @testset "Produces the same diagram as cohomology" begin
         res_hom = ripserer(cycle, cohomology=false, dim_max=3)
         res_coh = ripserer(cycle, cohomology=true, dim_max=3)
 
         @test res_hom == res_coh
     end
-    @testset "same critical simplices" begin
+    @testset "Has the same cirical simplices as cohomology" begin
         # Add some noise because critical simplices might be different if values are exactly
         # the same.
         cyc = cycle .+ 0.01 .* rand_dist_matrix(18)
@@ -333,23 +262,28 @@ end
             @test death_simplex.(res_hom[i]) == death_simplex.(res_coh[i])
         end
     end
-    @testset "representative cycle" begin
+    @testset "Representative cycle" begin
         res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
         @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
             [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
         ))
     end
-    @testset "infinite intervals" begin
+    @testset "Infinite intervals" begin
         @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
     end
 end
 
-@testset "Only print to stderr and only when progress is enabled." begin
+@testset "Only print to stderr and only when progress is enabled" begin
     @suppress begin
-        @test (@capture_out ripserer(torus(100), dim_max=2)) == ""
-        @test (@capture_out ripserer(torus(100), dim_max=2, progress=true)) == ""
+        @test (@capture_out ripserer(torus(100); dim_max=2)) == ""
+        @test (@capture_out ripserer(torus(100); dim_max=2, progress=true)) == ""
 
-        @test (@capture_err ripserer(torus(100), dim_max=2)) == ""
-        @test (@capture_err ripserer(torus(100), dim_max=2, progress=true)) != ""
+        @test (@capture_err ripserer(torus(100); dim_max=2)) == ""
+        @test (@capture_err ripserer(torus(100); dim_max=2, progress=true)) != ""
     end
+end
+
+@testset "Overflow checking" begin
+    @test_throws OverflowError ripserer(Cubical(zeros(1000, 1000)))
+    @test_throws OverflowError ripserer(Rips{Int16}(zeros(1000, 1000)))
 end
