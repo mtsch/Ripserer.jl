@@ -23,22 +23,26 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
 @testset "Cubelet" begin
     test_indexed_simplex_interface(Cubelet, D -> 2^D)
 
-    @testset "vertices, index" begin
-        @test vertices(Cubelet{2}(1, rand())) == SVector{4}(4, 3, 2, 1)
-        @test vertices(Cubelet{2}(Int128(2), rand())) == SVector{4, Int128}(5, 3, 2, 1)
-        @test vertices(Cubelet{1}(3, rand())) == SVector{2}(3, 2)
-        @test vertices(Cubelet{0}(Int32(4), rand())) == SVector{1, Int32}(4)
-        @test vertices(Cubelet{3}(5, rand())) == SVector{8}(9, 8, 7, 6, 4, 3, 2, 1)
+    @testset "Vertices, index." begin
+        @testset "Basics." begin
+            @test vertices(Cubelet{2}(1, rand())) === SVector{4}(4, 3, 2, 1)
+            @test vertices(Cubelet{2}(Int128(2), rand())) === SVector{4, Int128}(5, 3, 2, 1)
+            @test vertices(Cubelet{1}(3, rand())) === SVector{2}(3, 2)
+            @test vertices(Cubelet{0}(Int32(4), rand())) === SVector{1, Int32}(4)
+            @test vertices(Cubelet{3}(5, rand())) === SVector{8}(9, 8, 7, 6, 4, 3, 2, 1)
+        end
 
-        for i in 1:20
-            sx = Cubelet{5}(i, rand())
-            @test index(vertices(sx)) == i
-            @test Cubelet{5}(vertices(sx), diam(sx)) == sx
-            @test_throws ArgumentError Cubelet{4}(vertices(sx), rand())
-            @test_throws ArgumentError Cubelet{6}(vertices(sx), rand())
+        @testset "Index to vertices and back." begin
+            for i in 1:20
+                cube = Cubelet{5}(i, rand())
+                @test index(vertices(cube)) == i
+                @test Cubelet{5}(vertices(cube), diam(cube)) == cube
+                @test_throws ArgumentError Cubelet{4}(vertices(cube), rand())
+                @test_throws ArgumentError Cubelet{6}(vertices(cube), rand())
+            end
         end
     end
-    @testset "show" begin
+    @testset "Printing." begin
         @test sprint(print, Cubelet{1}(1, 1)) == "Cubelet{1}(+[2, 1], 1)"
         @test sprint(print, Cubelet{2}(-1, 1)) == "Cubelet{2}(-[4, 3, 2, 1], 1)"
 
@@ -57,24 +61,24 @@ end
 
     @testset "n_vertices, indices, birth, diam" begin
         for data in (data1d, data2d, data3d)
-            flt = Cubical(data)
+            filtration = Cubical(data)
 
-            @test n_vertices(flt) == length(data)
-            @test CartesianIndices(flt) == CartesianIndices(data)
-            @test LinearIndices(flt) == LinearIndices(data)
-            @test birth(flt, 10) == data[10]
-            @test diam(flt, (10, 9)) == max(data[10], data[9])
+            @test n_vertices(filtration) == length(data)
+            @test CartesianIndices(filtration) == CartesianIndices(data)
+            @test LinearIndices(filtration) == LinearIndices(data)
+            @test birth(filtration, 10) == data[10]
+            @test diam(filtration, (10, 9)) == max(data[10], data[9])
         end
     end
 end
 
-@testset "coboundary" begin
+@testset "Coboundary." begin
     @testset "all_equal_in_dim" begin
         @test all_equal_in_dim(1, [(1, 1), (1, 2), (1, 3), (1, 4)])
         @test !all_equal_in_dim(2, [(1, 1), (1, 1), (1, 2), (1, 2)])
     end
 
-    @testset "1d" begin
+    @testset "Edges have no coboundary in 1d." begin
         cob = Cubelet{2, Float64, Int}[]
         flt = Cubical(data1d)
         cub = Cubelet{1}((3, 2), diam(flt, (3, 2)))
@@ -84,7 +88,7 @@ end
         @test isempty(cob)
     end
 
-    @testset "2d" begin
+    @testset "Coboundary of edges in 2d." begin
         cob = Cubelet{2, Int, Int}[]
         flt = Cubical(data2d)
         cub = Cubelet{1}((10, 9), 1)
@@ -107,14 +111,14 @@ end
         @test isempty(cocob)
     end
 
-    @testset "3d values" begin
+    @testset "Dimaters of 2-cubelet coboundary in 2×2×2 3d data." begin
         data = zeros(2, 2, 2)
         data[:, 1, 1] .= 1
         data[:, 2, 1] .= 2
         data[:, 1, 2] .= 3
         data[:, 2, 2] .= 4
 
-        @testset "Cubelet{1} coboundary" begin
+        @testset "Diameter increasing, cofaces are supersets of original." begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube)
@@ -123,7 +127,7 @@ end
                 end
             end
         end
-        @testset "Cubelet{1} coboundary, all=false" begin
+        @testset "Coboundary with all_cofaces=false." begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube, Val(false))
@@ -133,7 +137,7 @@ end
             @test length(cob) == 6
             @test allunique(cob)
         end
-        @testset "Cubelet{2} coboundary" begin
+        @testset "All 2-cubelets have the same coboundary." begin
             for cube in [
                 Cubelet{2}((1, 2, 3, 4), 2.0),
                 Cubelet{2}((1, 2, 5, 6), 4.0),
@@ -147,7 +151,7 @@ end
             end
         end
     end
-    @testset "3d counts" begin
+    @testset "Counting cofaces in 3d." begin
         cob = Cubelet{2, Int, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)
@@ -164,8 +168,8 @@ end
     end
 end
 
-@testset "boundary" begin
-    @testset "1d" begin
+@testset "Boundary." begin
+    @testset "Boundary of an edge in 1d." begin
         bnd = Cubelet{0, Float64, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{1}((3, 2), 1.0)
@@ -174,8 +178,7 @@ end
         end
         @test bnd == [Cubelet{0}((3,), 1.0), -Cubelet{0}((2,), 1.0)]
     end
-
-    @testset "2d" begin
+    @testset "Boundary of 2-cubelet in 2d." begin
         bnd = Cubelet{1, Int, Int}[]
         flt = Cubical(data2d)
         cub = Cubelet{2}((10, 9, 3, 2), 2)
@@ -185,8 +188,7 @@ end
         @test bnd == [Cubelet{1}((10, 3), 2), -Cubelet{1}((9, 2), 2),
                       Cubelet{1}((10, 9), 1), -Cubelet{1}((3, 2), 2)]
     end
-
-    @testset "3d" begin
+    @testset "Boundary of 3-cubelet in 3d." begin
         bnd = Cubelet{2, Float64, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{3}((112, 111, 102, 101, 12, 11, 2, 1), 1.0)

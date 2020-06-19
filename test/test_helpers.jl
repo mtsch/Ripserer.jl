@@ -2,7 +2,7 @@ module TestHelpers
 using Test
 
 using Ripserer
-using Ripserer: dist_type, vertex_type, edges, edge_type,
+using Ripserer: vertex_type, edges, edge_type,
     AbstractSimplex, IndexedSimplex, face_type, coface_type, index
 
 """
@@ -95,7 +95,7 @@ function test_filtration_interface(Filtration, datasets)
         for data in datasets
             flt = Filtration(data)
 
-            T = dist_type(flt)
+            T = eltype(data)
             V = vertex_type(flt)
             E = edge_type(flt)
 
@@ -109,7 +109,7 @@ function test_filtration_interface(Filtration, datasets)
             sx = first(edges(flt))
             @test sx isa E
             @test diam(sx) isa T
-            @test birth(flt, 1) isa T
+            @test birth(flt, 1) isa Union{T, Bool}
 
             @test diam(flt, (4, 3, 2, 1)) isa Union{T, Missing}
 

@@ -36,40 +36,40 @@ end
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", csx::Cubelet{D, T, I}) where {D, T, I}
-    print(io, D, "-dim Cubelet", (index(csx), diam(csx)))
-    print(io, ":\n  $(sign(csx) == 1 ? '+' : '-')$(vertices(csx))")
+function Base.show(io::IO, ::MIME"text/plain", cube::Cubelet{D, T, I}) where {D, T, I}
+    print(io, D, "-dim Cubelet", (index(cube), diam(cube)))
+    print(io, ":\n  $(sign(cube) == 1 ? '+' : '-')$(vertices(cube))")
 end
 
-function Base.show(io::IO, csx::Cubelet{D, M}) where {D, M}
-    print(io, "Cubelet{$D}($(sign(csx) == 1 ? '+' : '-')$(vertices(csx)), $(diam(csx)))")
+function Base.show(io::IO, cube::Cubelet{D, M}) where {D, M}
+    print(io, "Cubelet{$D}($(sign(cube) == 1 ? '+' : '-')$(vertices(cube)), $(diam(cube)))")
 end
 
-index(csx::Cubelet) = csx.index
-diam(csx::Cubelet) = csx.diam
+index(cube::Cubelet) = cube.index
+diam(cube::Cubelet) = cube.diam
 coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
 face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
 
 # @generated used because inference doesn't work well for 2^D
-@generated function vertices(csx::Cubelet{D, <:Any, I}) where {D, I}
-    return :(vertices(index(csx), Val($(2^D))))
+@generated function vertices(cube::Cubelet{D, <:Any, I}) where {D, I}
+    return :(vertices(index(cube), Val($(2^D))))
 end
 
-Base.lastindex(sx::Cubelet{D}) where D = 2^D
-Base.size(sx::Cubelet{D}) where D = (2^D,)
-
+Base.lastindex(::Cubelet{D}) where D = 2^D
+Base.size(::Cubelet{D}) where D = (2^D,)
 
 """
-    Cubical{T, N} <: AbstractFiltration{T, <:Cubelet{0, T}}
+    Cubical{I<:Signed, T} <: AbstractFiltration
 
-`Cubical` is used to compute sublevel persistent homology on `N`-dimensional
-images, which are of type `AbstractArray{T, N}`.
+`Cubical` is used to compute sublevel persistent homology on `N`-dimensional images, which
+are of type `AbstractArray{T, N}`. `I` is the integer type used to represent cubelet
+indices. Set it to a large value for larger images.
 
 # Constructor
 
-    Cubical(::AbstractArray{T, N})
+* `Cubical{I}(::AbstractArray{T, N})`: `I` defaults to `Int64`.
 """
-struct Cubical{I, T, N, A<:AbstractArray{T, N}} <: AbstractFiltration{T, Cubelet}
+struct Cubical{I<:Signed, T, A<:AbstractArray{T}} <: AbstractFiltration
     data::A
     threshold::T
 end
@@ -77,8 +77,8 @@ end
 function Cubical(data)
     return Cubical{Int}(data)
 end
-function Cubical{I}(data::AbstractArray{T, N}) where {I, T, N}
-    return Cubical{I, T, N, typeof(data)}(data, maximum(data))
+function Cubical{I}(data::AbstractArray{T}) where {I, T}
+    return Cubical{I, T, typeof(data)}(data, maximum(data))
 end
 
 n_vertices(cf::Cubical) = length(cf.data)
@@ -86,6 +86,7 @@ threshold(cf::Cubical) = cf.threshold
 birth(cf::Cubical, i) = cf.data[i]
 simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
 
+dim(cf::Cubical) = length(size(cf.data))
 Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
 Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 
@@ -101,13 +102,13 @@ function diam(cf::Cubical{<:Any, T}, vertices) where {T}
     return res
 end
 
-function edges(cf::Cubical{I, <:Any, N}) where {I, N}
+function edges(cf::Cubical{I, <:Any}) where {I}
     E = edge_type(cf)
     result = E[]
     for u_lin in eachindex(cf.data)
         u_car = CartesianIndices(cf)[u_lin]
-        for dim in 1:N
-            v_car = u_car + CartesianIndex{N}(ntuple(i -> i == dim ? 1 : 0, N))
+        for d in 1:dim(cf)
+            v_car = u_car + CartesianIndex{dim(cf)}(ntuple(i -> i == d ? 1 : 0, dim(cf)))
             if v_car in CartesianIndices(cf)
                 v_lin = LinearIndices(cf)[v_car]
                 push!(result, E(
@@ -120,7 +121,7 @@ function edges(cf::Cubical{I, <:Any, N}) where {I, N}
 end
 
 # coboundary ============================================================================= #
-struct CubeletCoboundary{A, N, I, C<:Cubelet, F<:Cubical{I, <:Any, N}, K}
+struct CubeletCoboundary{A, I, N, C<:Cubelet, F<:Cubical{I}, K}
     filtration::F
     cubelet::C
     vertices::SVector{K, CartesianIndex{N}}
@@ -128,10 +129,11 @@ end
 
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
-) where {A, N, I, D, F<:Cubical{I, <:Any, N}, C<:Cubelet{D, <:Any, I}}
-    K = 2^D
+) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D, <:Any, I}}
+    K = length(cubelet)
+    N = dim(filtration)
     vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    return CubeletCoboundary{A, N, I, C, F, K}(filtration, cubelet, vxs)
+    return CubeletCoboundary{A, I, N, C, F, K}(filtration, cubelet, vxs)
 end
 
 function coboundary(filtration::Cubical, cubelet::Cubelet)
@@ -150,8 +152,8 @@ function all_equal_in_dim(dim, vertices)
 end
 
 function Base.iterate(
-    cc::CubeletCoboundary{A, N, I, C}, (dim, dir)=(one(I), one(I))
-) where {A, N, I, C}
+    cc::CubeletCoboundary{A, I, N, C}, (dim, dir)=(one(I), one(I))
+) where {A, I, N, C}
     # If not all indices in a given dimension are equal, we can't create a coface by
     # expanding in that direction.
     while true
@@ -179,7 +181,7 @@ function Base.iterate(
     end
 end
 
-struct CubeletBoundary{D, I, C<:Cubelet, N, F<:Cubical{I, <:Any, N}, K}
+struct CubeletBoundary{D, I, C<:Cubelet, N, F<:Cubical{I}, K}
     filtration::F
     cubelet::C
     vertices::SVector{K, CartesianIndex{N}}
@@ -187,9 +189,9 @@ end
 
 function CubeletBoundary(
     filtration::F, cubelet::C
-) where {N, D, I, F<:Cubical{I, <:Any, N}, C<:Cubelet{D}}
-
-    K = 2^D
+) where {D, I, F<:Cubical{I}, C<:Cubelet{D}}
+    K = length(cubelet)
+    N = dim(filtration)
     vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
     return CubeletBoundary{D, I, C, N, F, K}(filtration, cubelet, vxs)
 end

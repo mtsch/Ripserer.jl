@@ -85,7 +85,7 @@ function interval(
 end
 
 function interval(
-    ::Type{PersistenceInterval}, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff
+    ::Type{PersistenceInterval}, dset::DisjointSetsWithBirth, _, vertex, edge, cutoff
 )
     birth, death = birth_death(dset, vertex, edge)
     if death - birth > cutoff
@@ -107,7 +107,6 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 function zeroth_intervals(
     filtration, cutoff, progress, ::Type{F}, ::Val{reps}
 ) where {F, reps}
-    T = dist_type(filtration)
     V = vertex_type(filtration)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])

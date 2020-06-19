@@ -1,10 +1,8 @@
 """
-    AbstractFiltration{T, S<:AbstractSimplex}
+    AbstractFiltration
 
 A filtration is used to find the edges in filtration and to determine diameters of
 simplices.
-
-`T` is the distance type, accessible by `dist_type` and `S` is the simplex type.
 
 # Interface
 
@@ -13,11 +11,13 @@ simplices.
 * [`diam(::AbstractFiltration, vertices)`](@ref)
 * [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref) - only used when
   [`simplex_type`](@ref) is an [`IndexedSimplex`](@ref).
+* [`simplex_type(::AbstractFiltration, dim)`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
 * [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `missing`.
-* [`simplex_type(::AbstractFiltration, dim)`](@ref)
+* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref) - optional
+  postprocessing function that is applied to each interval in resulting persistence diagram.
 """
-abstract type AbstractFiltration{T, S<:AbstractSimplex} end
+abstract type AbstractFiltration end
 
 function Base.show(io::IO, flt::AbstractFiltration)
     print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
@@ -32,7 +32,6 @@ simplex_type(::AbstractFiltration, dim)
 
 vertex_type(flt::AbstractFiltration) = simplex_type(flt, 0)
 edge_type(flt::AbstractFiltration) = simplex_type(flt, 1)
-dist_type(::AbstractFiltration{T}) where T = T
 
 """
     n_vertices(filtration::AbstractFiltration)
@@ -72,12 +71,20 @@ diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
 
 Get the birth time of vertex `v` in filtration. Defaults to 0.
 """
-birth(::AbstractFiltration{T}, _) where T = zero(T)
+birth(::AbstractFiltration, _) = false # false is a strong zero.
 
 """
     threshold(::AbstractFiltration)
 
 Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
-can have. Used only for placing the infinity line in plotting.
+can have. Used only for placing the infinity line in plotting. Defaults to `missing`.
 """
 threshold(::AbstractFiltration) = missing
+
+"""
+    postprocess_diagram(::AbstractFiltration, interval)
+
+This function is called on each persistence interval. The default implementation does
+nothing.
+"""
+postprocess_interval(::AbstractFiltration, interval) = interval
