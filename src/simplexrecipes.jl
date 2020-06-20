@@ -78,7 +78,7 @@ end
 function apply_threshold(els::AbstractVector{<:AbstractChainElement}, thresh, thresh_strict)
     return apply_threshold(simplex.(els), thresh, thresh_strict)
 end
-function apply_threshold(int::PersistenceDiagrams.AbstractInterval, thresh, thresh_strict)
+function apply_threshold(::PersistenceDiagrams.AbstractInterval, _, _)
     error("interval has no representative. Run `ripserer` with `representatives=true`")
 end
 function apply_threshold(int::RepresentativeInterval, thresh, thresh_strict)

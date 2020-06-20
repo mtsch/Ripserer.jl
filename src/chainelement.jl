@@ -7,12 +7,13 @@ more efficient way to store a simplex and coefficient than as two fields.
 An `AbstractChainElement{S, F}` behaves like a `S` when doing comparisons and like a `F`
 when doing arithmetic.
 
-Coefficient values must be in a field and must support `+`, `-`, `*`, `/`, `inv`, `zero`,
+Coefficient values must be in a field - they must support `+`, `-`, `*`, `/`, `inv`, `zero`,
 `one` and `iszero`.
 
 # Interface
 
-* `AbstractChainElement{S, F}(sx::S)` - default to `coefficient` equal to `sign(sx)`.
+* `AbstractChainElement{S, F}(sx::S)` - default to element with `coefficient` equal to
+  `sign(sx)`.
 * `AbstractChainElement{S, F}(::S, coefficient)` - convert `coefficient` to `F` if necessary.
 * `simplex(::ChainElement)`
 * `coefficient(::ChainElement)`
@@ -26,23 +27,23 @@ for op in (:+, :-)
     end
 end
 for op in (:oneunit, :zero, :-, :+)
-    @eval (Base.$op)(ce::C) where C<:AbstractChainElement =
-        C(simplex(ce), $op(coefficient(ce)))
+    @eval (Base.$op)(elem::C) where C<:AbstractChainElement =
+        C(simplex(elem), $op(coefficient(elem)))
 end
-function Base.:*(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
-    return C(simplex(ce), coefficient(ce) * x)
+function Base.:*(elem::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(elem), coefficient(elem) * x)
 end
-function Base.:*(x::F, ce::C) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
-    return C(simplex(ce), x * coefficient(ce))
+function Base.:*(x::F, elem::C) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(elem), x * coefficient(elem))
 end
-function Base.:/(ce::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
-    return C(simplex(ce), coefficient(ce) / x)
+function Base.:/(elem::C, x::F) where {F<:Number, C<:AbstractChainElement{<:Any, F}}
+    return C(simplex(elem), coefficient(elem) / x)
 end
 Base.one(::Type{<:AbstractChainElement{<:Any, F}}) where F = one(F)
 Base.one(::AbstractChainElement{<:Any, F}) where F = one(F)
-Base.iszero(ce::AbstractChainElement) = iszero(coefficient(ce))
+Base.iszero(elem::AbstractChainElement) = iszero(coefficient(elem))
 
-Base.hash(ce::AbstractChainElement, u::UInt64) = hash(simplex(ce), u)
+Base.hash(elem::AbstractChainElement, u::UInt64) = hash(simplex(elem), u)
 function Base.:(==)(ce1::AbstractChainElement, ce2::AbstractChainElement)
     return simplex(ce1) == simplex(ce2)
 end
@@ -51,17 +52,33 @@ function Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement)
 end
 
 # Make chain elements useful when they come out as representatives.
-diam(ce::AbstractChainElement) = diam(simplex(ce))
-Base.sign(ce::AbstractChainElement) = sign(coefficient(ce))
-vertices(ce::AbstractChainElement) = vertices(simplex(ce))
+diam(elem::AbstractChainElement) = diam(simplex(elem))
+index(elem::AbstractChainElement) = index(simplex(elem))
+Base.sign(elem::AbstractChainElement) = sign(coefficient(elem))
+vertices(elem::AbstractChainElement) = vertices(simplex(elem))
 
-function Base.show(io::IO, ce::AbstractChainElement)
-    print(io, simplex(ce), " => ", coefficient(ce))
+# Make chain elements kinda similar to `Pair`s
+function Base.getindex(elem::AbstractChainElement, i)
+    if i == 1
+        return simplex(elem)
+    elseif i == 2
+        return coefficient(elem)
+    else
+        throw(BoundsError(elem, i))
+    end
 end
 
-function Base.convert(::Type{C}, simplex::S) where {S, C<:AbstractChainElement{S}}
-    C(simplex)
+Base.eltype(::Type{<:AbstractChainElement{S, F}}) where {S, F} = Union{S, F}
+Base.iterate(elem::AbstractChainElement, i=1) = i > 2 ? nothing : (elem[i], i + 1)
+Base.firstindex(::AbstractChainElement) = 1
+Base.lastindex(::AbstractChainElement) = 2
+Base.length(::AbstractChainElement) = 2
+
+function Base.show(io::IO, elem::AbstractChainElement)
+    print(io, simplex(elem), " => ", coefficient(elem))
 end
+
+Base.convert(::Type{C}, simplex::S) where {S, C<:AbstractChainElement{S}} = C(simplex)
 
 """
     chain_element_type(simplex, coefficient)
@@ -69,7 +86,7 @@ end
 Get the type of `AbstractChainElement` that is to be used for packing `simplex` and
 `coefficient`.
 """
-chain_element_type(simplex::S, coefficient::F) where {S, F} = chain_element_type(S, F)
+chain_element_type(::S, ::F) where {S, F} = chain_element_type(S, F)
 
 """
     ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
@@ -85,16 +102,19 @@ struct ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
     end
 end
 
-# Interface specification.
-simplex(ce::ChainElement) = ce.simplex
-coefficient(ce::ChainElement) = ce.coefficient
+simplex(elem::ChainElement) = elem.simplex
+coefficient(elem::ChainElement) = elem.coefficient
 chain_element_type(::Type{S}, ::Type{F}) where {S, F} = ChainElement{S, F}
 
-# TODO: assert F is less than say 8 bits?
-# TODO: check that nothing overflows - maybe in `ripserer`.
+"""
+    PackedElement{S<:IndexedSimplex, F<:Mod} <: AbstractChainElement{S, F}
+
+Like `ChainElement` for `Simplex` and `Mod`. Packs the coefficient value into top `M` bits
+of index.
+"""
 struct PackedElement{S<:IndexedSimplex, F<:Mod, M, U, T} <: AbstractChainElement{S, F}
-    index_coef ::U
-    diam       ::T
+    index_coef::U
+    diam::T
 
     function PackedElement{S, F, M, U, T}(
         simplex::S, coefficient=one(F)
@@ -110,22 +130,22 @@ end
 
 """
     n_bits(M)
+
 Get numer of bits needed to represent number mod `M`.
 """
-@pure n_bits(M::Int) = floor(Int, log2(M-1)) + 1
+@pure n_bits(M::Int) = floor(Int, log2(M - 1)) + 1
 
 function simplex(pe::PackedElement{S, <:Any, M, U}) where {S, M, U}
     mask = typemax(U) << n_bits(M) >> n_bits(M)
     return S(pe.index_coef & mask, pe.diam)
 end
-function coefficient(ce::PackedElement{<:Any, F, M, U}) where {F, U, M}
-    return F(ce.index_coef >> (sizeof(U) * 8 - n_bits(M)), check_mod=false)
+function coefficient(elem::PackedElement{<:Any, F, M, U}) where {F, U, M}
+    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(M)), false)
 end
 
 function chain_element_type(
     ::Type{S}, ::Type{F}
 ) where {M, I, T, S<:Simplex{<:Any, T, I}, F<:Mod{M}}
-
     if n_bits(M) ≤ 8
         return PackedElement{S, F, M, unsigned(I), T}
     else

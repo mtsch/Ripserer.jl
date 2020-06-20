@@ -33,6 +33,10 @@ Ripserer.simplex_type
 ```
 
 ```@docs
+Ripserer.postprocess_interval
+```
+
+```@docs
 Ripserer.AbstractRipsFiltration
 ```
 

@@ -203,8 +203,10 @@ function move!(column::WorkingBoundary{E}) where E
 end
 
 # ======================================================================================== #
+# TODO: the following code is pretty messy. There must be a way to handle all this with a
+# bit less type magic.
 struct ReductionMatrix{
-    Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O<:Base.Ordering
+    Cohomology, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O<:Base.Ordering
 }
     filtration::Filtration
     reduced::ReducedMatrix{Face, SimplexElem, O}
@@ -250,19 +252,24 @@ function co_boundary(matrix::ReductionMatrix{false}, simplex::AbstractSimplex)
     return boundary(matrix.filtration, simplex)
 end
 
+is_cohomology(::ReductionMatrix{Co}) where Co = Co
+field_type(::ReductionMatrix{<:Any, F}) where F = F
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
 simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
 face_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
 dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
-function initialize_boundary!(matrix::ReductionMatrix{Co}, column_simplex) where Co
+function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
     # TODO: can emergent pairs be safely be enabled for all kinds of complexes?
     # An argument that disables it could be added.
     empty!(matrix.working_boundary)
     for face in co_boundary(matrix, column_simplex)
         # Checking this on every face helps if more than one face has the same diameter.
-        if Co && diam(face) == diam(column_simplex) && !haskey(matrix.reduced, face)
+        if (is_cohomology(matrix) &&
+            diam(face) == diam(column_simplex) &&
+            !haskey(matrix.reduced, face)
+            )
             empty!(matrix.working_boundary)
             return face_element(matrix)(face)
         end
@@ -309,21 +316,19 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
     return pivot
 end
 
-function birth_death(matrix::ReductionMatrix{true}, column, pivot)
+function birth_death(::ReductionMatrix{true}, column, pivot)
     return diam(column), isnothing(pivot) ? Inf : diam(pivot)
 end
-function birth_death(matrix::ReductionMatrix{false}, column, pivot)
+function birth_death(::ReductionMatrix{false}, column, pivot)
     return isnothing(pivot) ? Inf : diam(pivot), diam(column)
 end
 
-# Interval with no representative, (co)homology.
 function interval(
-    ::Type{PersistenceInterval}, matrix::ReductionMatrix, column, pivot, cutoff
+    ::Type{<:PersistenceInterval}, matrix::ReductionMatrix, column, pivot, cutoff
 )
     birth, death = birth_death(matrix, column, pivot)
     return death - birth > cutoff ? PersistenceInterval(birth, death) : nothing
 end
-# With representative, cohomology.
 function interval(
     ::Type{R}, matrix::ReductionMatrix{true}, column, pivot, cutoff
 ) where R<:RepresentativeInterval
@@ -342,7 +347,6 @@ function interval(
         return nothing
     end
 end
-# With representative, homology.
 function interval(
     ::Type{R}, matrix::ReductionMatrix{false}, column, pivot, cutoff
 ) where R<:RepresentativeInterval
@@ -358,38 +362,43 @@ function interval(
     end
 end
 
+function interval_eltype(matrix::ReductionMatrix, ::Val{true})
+    critical_birth_type = simplex_type(matrix.filtration, dim(matrix))
+    critical_death_type = simplex_type(matrix.filtration, dim(matrix) + 1)
+    representative_type = chain_element_type(critical_birth_type, field_type(matrix))
+    return RepresentativeInterval{
+        PersistenceInterval,
+        critical_birth_type,
+        Union{critical_death_type, Nothing},
+        Vector{representative_type},
+    }
+end
+function interval_eltype(::ReductionMatrix, ::Val{false})
+    return PersistenceInterval
+end
+
 function compute_intervals!(
-    matrix::ReductionMatrix{Co}, cutoff, progress, ::Val{reps}
-) where {Co, reps}
-    if reps
-        representative_type = Co ? simplex_element(matrix) : face_element(matrix)
-        critical_birth_type = simplex_type(matrix.filtration, dim(matrix))
-        critical_death_type = simplex_type(matrix.filtration, dim(matrix) + 1)
-        intervals = RepresentativeInterval{
-            PersistenceInterval,
-            critical_birth_type,
-            Union{critical_death_type, Nothing},
-            Vector{representative_type},
-        }[]
-    else
-        intervals = PersistenceInterval[]
-    end
+    matrix::ReductionMatrix, cutoff, progress, ::Val{reps}
+) where {reps}
     if progress
         progbar = Progress(
             length(matrix.columns_to_reduce), desc="Computing $(dim(matrix))d intervals... "
         )
     end
+    intervals = interval_eltype(matrix, Val(reps))[]
+
     for column in matrix.columns_to_reduce
         pivot = reduce_column!(matrix, column)
         int = interval(eltype(intervals), matrix, column, pivot, cutoff)
-        if !isnothing(int)
-            push!(intervals, int)
-        end
+        !isnothing(int) && push!(intervals, int)
         progress && next!(progbar)
-   end
-    return sort!(
-        PersistenceDiagram(dim(matrix), intervals, threshold(matrix.filtration))
-    )
+    end
+
+    return sort!(PersistenceDiagram(
+        dim(matrix),
+        map(int -> postprocess_interval(matrix.filtration, int), intervals),
+        threshold(matrix.filtration),
+    ))
 end
 
 simplex_name(::Type{<:Simplex{2}}) = "triangles"
