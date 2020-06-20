@@ -84,7 +84,7 @@ threshold(::AbstractFiltration) = Inf
 """
     postprocess_diagram(::AbstractFiltration, interval)
 
-This function is called on each persistence interval. The default implementation does
-nothing.
+This function is called on each resulting persistence interval. The default implementation
+does nothing.
 """
 postprocess_interval(::AbstractFiltration, interval) = interval
