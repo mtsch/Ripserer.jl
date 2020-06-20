@@ -287,3 +287,35 @@ end
     @test_throws OverflowError ripserer(Cubical(zeros(1000, 1000)))
     @test_throws OverflowError ripserer(Rips{Int16}(zeros(1000, 1000)))
 end
+
+# Julia 1.0 does not allow these to be defined inside @testset.
+struct CustomRips <: Ripserer.AbstractRipsFiltration{Int, Float64} end
+Ripserer.dist(::CustomRips) = ones(10, 10)
+Ripserer.dist(::CustomRips, i, j) = 1.0
+Ripserer.n_vertices(::CustomRips) = 10
+
+@testset "Custom rips filtration" begin
+    d0, d1 = ripserer(CustomRips())
+    @test d0 == [fill((0.0, 1.0), 9); (0.0, Inf)]
+    @test d1 == []
+end
+
+struct CustomFiltration <: Ripserer.AbstractFiltration end
+Ripserer.diam(::CustomFiltration, ::Simplex, _, _) = 1
+Ripserer.diam(::CustomFiltration, _) = 1
+Ripserer.n_vertices(::CustomFiltration) = 10
+Ripserer.simplex_type(::CustomFiltration, D) = Simplex{D, Int, Int}
+Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)
+function Ripserer.postprocess_interval(::CustomFiltration, ::RepresentativeInterval)
+    return PersistenceInterval(0, 0)
+end
+
+@testset "Custom filtration" begin
+    d0, d1 = ripserer(CustomFiltration())
+    @test d0 == [fill((0.0, 1.0), 4); fill((0.0, Inf), 6)]
+    @test d1 == []
+
+    d0, d1 = ripserer(CustomFiltration(), reps=true)
+    @test d0 == fill((0.0, 0.0), 10)
+    @test d1 == []
+end

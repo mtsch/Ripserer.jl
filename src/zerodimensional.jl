@@ -153,6 +153,12 @@ function zeroth_intervals(
     reverse!(to_reduce)
     progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)
     return (
-        sort!(PersistenceDiagram(0, intervals, threshold(filtration))), to_reduce, to_skip,
+        sort!(PersistenceDiagram(
+            0,
+            map(int -> postprocess_interval(filtration, int), intervals),
+            threshold(filtration)
+        )),
+        to_reduce,
+        to_skip,
     )
 end

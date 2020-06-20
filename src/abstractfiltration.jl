@@ -13,7 +13,7 @@ simplices.
   [`simplex_type`](@ref) is an [`IndexedSimplex`](@ref).
 * [`simplex_type(::AbstractFiltration, dim)`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
-* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `missing`.
+* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `Inf`.
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref) - optional
   postprocessing function that is applied to each interval in resulting persistence diagram.
 """
@@ -79,7 +79,7 @@ birth(::AbstractFiltration, _) = false # false is a strong zero.
 Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
 can have. Used only for placing the infinity line in plotting. Defaults to `missing`.
 """
-threshold(::AbstractFiltration) = missing
+threshold(::AbstractFiltration) = Inf
 
 """
     postprocess_diagram(::AbstractFiltration, interval)

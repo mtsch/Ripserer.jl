@@ -59,24 +59,24 @@ Comes with default implementations of [`edges`](@ref) and [`simplex_type`](@ref)
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
 
-@propagate_inbounds function diam(flt::AbstractRipsFiltration{<:Any, T}, vertices) where T
+@propagate_inbounds function diam(rips::AbstractRipsFiltration{<:Any, T}, vertices) where T
     n = length(vertices)
     res = typemin(T)
     for i in 1:n, j in i+1:n
-        d = dist(flt, vertices[j], vertices[i])
+        d = dist(rips, vertices[j], vertices[i])
         ismissing(d) && return missing
         res = ifelse(d < res, res, d)
     end
-    return ifelse(res > threshold(flt), missing, res)
+    return ifelse(res > threshold(rips), missing, res)
 end
 
-@propagate_inbounds function diam(flt::AbstractRipsFiltration, sx::AbstractSimplex, us, v)
+@propagate_inbounds function diam(rips::AbstractRipsFiltration, sx::AbstractSimplex, us, v)
     res = diam(sx)
     for u in us
         # Even though this looks like a tight loop, v changes way more often than us, so
         # this is the faster order of indexing by u and v.
-        d = dist(flt, v, u)
-        if ismissing(d) || d > threshold(flt)
+        d = dist(rips, v, u)
+        if ismissing(d) || d > threshold(rips)
             return missing
         else
             res = ifelse(res > d, res, d)
@@ -85,14 +85,16 @@ end
     return res
 end
 
-edges(flt::AbstractRipsFiltration) = edges(flt.dist, threshold(flt), edge_type(flt))
-simplex_type(flt::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
+edges(rips::AbstractRipsFiltration) = edges(dist(rips), threshold(rips), edge_type(rips))
+simplex_type(rips::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 """
     dist(::AbstractRipsFiltration, u, v)
+    dist(::AbstractRipsFiltration)
 
 Return the distance between vertices `u` and `v`. If the distance is higher than the
-threshold, return `missing` instead.
+threshold, return `missing` instead. If `u` and `v` are not given, return the distance
+matrix.
 """
 dist(::AbstractRipsFiltration, ::Any, ::Any)
 
@@ -145,6 +147,7 @@ end
 @propagate_inbounds function dist(rips::Rips{<:Any, T}, i, j) where T
     return ifelse(i == j, zero(T), rips.dist[i, j])
 end
+dist(rips::Rips) = rips.dist
 
 n_vertices(rips::Rips) = size(rips.dist, 1)
 threshold(rips::Rips) = rips.threshold
@@ -194,6 +197,7 @@ end
     res = rips.dist[i, j]
     return ifelse(i == j, zero(T), ifelse(iszero(res), missing, res))
 end
+dist(rips::SparseRips) = rips.dist
 
 n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
