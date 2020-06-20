@@ -240,13 +240,13 @@ end
         columns_2 = (S.([6, 7, 8, 9, 10], [6, 7, 8, 9, 10]))
         data = [0 1 1 1 1; 1 0 1 1 1; 1 1 0 1 1; 1 1 1 0 1; 1 1 1 1 0]
         flt = S <: Simplex ? Rips(data) : Cubical(data)
-        co_str = Co ? "co" : ""
+        co_str = Co ? "Coh" : "H"
 
         SE = chain_element_type(S, T)
         F = Co ? coface_type(S) : face_type(S)
         FE = chain_element_type(F, T)
 
-        @testset "$(co_str)homology, $S, $T" begin
+        @testset "$(co_str)omology, $S, $T" begin
             @testset "construction inferrence, parameters" begin
                 @test begin
                     @inferred ReductionMatrix{Co, T}(flt, columns_1, columns_2)
