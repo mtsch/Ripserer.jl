@@ -301,8 +301,12 @@ Ripserer.n_vertices(::CustomRips) = 10
 end
 
 struct CustomFiltration <: Ripserer.AbstractFiltration end
-Ripserer.diam(::CustomFiltration, ::Simplex, _, _) = 1
-Ripserer.diam(::CustomFiltration, _) = 1
+function Ripserer.simplex(::CustomFiltration, ::Val{0}, (v,), sign=1) where D
+    return Simplex{0}(sign * v, 1)
+end
+function Ripserer.simplex(::CustomFiltration, ::Val{D}, vertices, sign=1) where D
+    return Simplex{D}(sign * Ripserer.index(vertices), 1)
+end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::CustomFiltration, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)

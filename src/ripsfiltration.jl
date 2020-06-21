@@ -59,34 +59,31 @@ Comes with default implementations of [`edges`](@ref) and [`simplex_type`](@ref)
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
 
-@propagate_inbounds function diam(rips::AbstractRipsFiltration{<:Any, T}, vertices) where T
-    n = length(vertices)
-    res = typemin(T)
-    for i in 1:n, j in i+1:n
-        d = dist(rips, vertices[j], vertices[i])
-        ismissing(d) && return missing
-        res = ifelse(d < res, res, d)
-    end
-    return ifelse(res > threshold(rips), missing, res)
+edges(rips::AbstractRipsFiltration) = edges(dist(rips), threshold(rips), edge_type(rips))
+simplex_type(::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
+
+function simplex(
+    rips::AbstractRipsFiltration{I}, ::Val{0}, vertex::NTuple{1}, sign=one(I)
+) where I
+    v = only(vertex)
+    return simplex_type(rips, 0)(sign * v, birth(rips, v))
 end
 
-@propagate_inbounds function diam(rips::AbstractRipsFiltration, sx::AbstractSimplex, us, v)
-    res = diam(sx)
-    for u in us
-        # Even though this looks like a tight loop, v changes way more often than us, so
-        # this is the faster order of indexing by u and v.
-        d = dist(rips, v, u)
-        if ismissing(d) || d > threshold(rips)
-            return missing
+@propagate_inbounds function simplex(
+    rips::AbstractRipsFiltration{I, T}, ::Val{D}, vertices::NTuple{N}, sign=one(I)
+) where {I, T, D, N}
+    diam = typemin(T)
+    for i in 1:N, j in i+1:N
+        d = dist(rips, vertices[j], vertices[i])
+        if isless(threshold(rips), d)
+            return nothing
         else
-            res = ifelse(res > d, res, d)
+            _d::T = d
+            diam = ifelse(diam > _d, diam, _d)
         end
     end
-    return res
+    return simplex_type(rips, D)(sign * index(vertices), diam)
 end
-
-edges(rips::AbstractRipsFiltration) = edges(dist(rips), threshold(rips), edge_type(rips))
-simplex_type(rips::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 """
     dist(::AbstractRipsFiltration, u, v)
@@ -202,4 +199,4 @@ dist(rips::SparseRips) = rips.dist
 n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
 birth(rips::SparseRips, i) = rips.dist[i, i]
-simplex_type(rips::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
+simplex_type(::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}

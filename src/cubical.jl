@@ -90,16 +90,20 @@ dim(cf::Cubical) = length(size(cf.data))
 Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
 Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 
-function diam(cf::Cubical{<:Any, T}, vertices) where {T}
-    res = typemin(T)
+function simplex(
+    cf::Cubical{I, T}, ::Val{D}, vertices, sign=one(I)
+) where {I, T, D}
+    diam = typemin(T)
     for v in vertices
-        if isnothing(get(cf.data, v, nothing))
-            return missing
+        d = get(cf.data, v, nothing)
+        if isnothing(d)
+            return nothing
         else
-            res = max(res, cf.data[v])
+            _d::T = d
+            diam = max(diam, _d)
         end
     end
-    return res
+    return simplex_type(cf, D)(sign * index(vertices), diam)
 end
 
 function edges(cf::Cubical{I, <:Any}) where {I}
@@ -154,28 +158,25 @@ end
 function Base.iterate(
     cc::CubeletCoboundary{A, I, N, C}, (dim, dir)=(one(I), one(I))
 ) where {A, I, N, C}
-    # If not all indices in a given dimension are equal, we can't create a coface by
-    # expanding in that direction.
     while true
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += one(I)
         end
-        if dim > N
-            break
-        end
+        dim > N && return nothing
 
         diff = CartesianIndex{N}(ntuple(isequal(dim), N) .* dir)
         new_vertices = cc.vertices .+ Ref(diff)
-        diameter = max(diam(cc.cubelet), diam(cc.filtration, new_vertices))
-
+        #FIXME
+        all_vertices = sort(map(v -> I(get(LinearIndices(cc.filtration), v, 0)),
+                                vcat(cc.vertices, new_vertices)), rev=true)
         dim += I(dir == -1)
         dir *= -one(I)
+        if A || all_vertices[end÷2+1:end] == LinearIndices(cc.filtration)[cc.vertices]
 
-        if !ismissing(diameter)
-            all_vertices = sort(map(v -> I(LinearIndices(cc.filtration)[v]),
-                                    vcat(cc.vertices, new_vertices)), rev=true)
-            if A || all_vertices[end÷2+1:end] == LinearIndices(cc.filtration)[cc.vertices]
-                return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+            sx = simplex(cc.filtration, Val(Ripserer.dim(C) + 1), all_vertices, -dir)
+            if !isnothing(sx)
+                _sx::simplex_type(cc.filtration, Ripserer.dim(C) + 1) = sx
+                return _sx, (dim, dir)
             end
         end
     end
@@ -205,7 +206,7 @@ function second_half(vec::SVector{K, T}) where {K, T}
     SVector{K÷2, T}(Tuple(vec)[K÷2+1:K])
 end
 
-# Idea: split the cube in each dimension, returning two halves depending on dir.
+# Idea: split the cube in each dimension, returning one of two halves depending on dir.
 function Base.iterate(cb::CubeletBoundary{D, I, C}, (dim, dir)=(1, 1)) where {D, I, C}
     if dim > D
         return nothing
@@ -214,12 +215,17 @@ function Base.iterate(cb::CubeletBoundary{D, I, C}, (dim, dir)=(1, 1)) where {D,
                            sort(cb.vertices, by=v -> v[dim], rev=true))
         if dir == 1
             new_vertices = first_half(lin_vertices)
-            diameter = diam(cb.filtration, new_vertices)
-            return face_type(C)(new_vertices, diameter), (dim, -dir)
+            sign = one(I)
+            state = (dim, -dir)
         else
             new_vertices = second_half(lin_vertices)
-            diameter = diam(cb.filtration, new_vertices)
-            return -face_type(C)(new_vertices, diameter), (dim + 1, 1)
+            sign = -one(I)
+            state = (dim + 1, 1)
+        end
+        sx = simplex(cb.filtration, Val(D - 1), sort(new_vertices, rev=true), sign)
+        if !isnothing(sx)
+            _sx::simplex_type(cb.filtration, D - 1) = sx
+            return _sx, state
         end
     end
 end

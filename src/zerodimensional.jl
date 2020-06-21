@@ -71,14 +71,12 @@ end
 
 function interval(
     ::Type{R}, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff
-) where {V, R<:RepresentativeInterval{PersistenceInterval, V}}
+) where R<:RepresentativeInterval
     birth, death = birth_death(dset, vertex, edge)
     if death - birth > cutoff
-        rep = map(find_leaves!(dset, vertex)) do u
-            V((u,), Ripserer.birth(filtration, u))
-        end
-        birth_vertex = findfirst(r -> diam(r) == birth, rep)
-        return R(PersistenceInterval(birth, death), V((birth_vertex,), birth), edge, rep)
+        rep = simplex.(Ref(filtration), Val(0), tuple.(find_leaves!(dset, vertex)))
+        birth_simplex = simplex(filtration, Val(0), (findfirst(r -> diam(r) == birth, rep),))
+        return R(PersistenceInterval(birth, death), birth_simplex, edge, rep)
     else
         return nothing
     end

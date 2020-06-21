@@ -209,12 +209,12 @@ function Base.iterate(
             k -= 1
         end
         v > 0 || return nothing
-        diameter = diam(ci.filtration, ci.simplex, ci.vertices, v)
-        if !ismissing(diameter)
-            sign = ifelse(iseven(k), one(I), -one(I))
-            new_index = index(TupleTools.insertafter(ci.vertices, D - k, (v,))) * sign
-
-            return coface_type(ci.simplex)(new_index, diameter), (v, k)
+        sign = ifelse(iseven(k), one(I), -one(I))
+        vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
+        sx = simplex(ci.filtration, Val(D), vertices, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(ci.filtration, D) = sx
+            return _sx, (v, k)
         end
     end
 end
@@ -238,13 +238,12 @@ end
 function Base.iterate(bi::IndexedBoundary{D, I}, k=1) where {D, I}
     while k ≤ D
         face_vertices = TupleTools.deleteat(bi.vertices, k)
-        diameter = diam(bi.filtration, face_vertices)
         k += 1
-        if !ismissing(diameter)
-            sign = ifelse(iseven(k), one(I), -one(I))
-            new_index = index(face_vertices) * sign
-
-            return face_type(bi.simplex)(new_index, diameter), k
+        sign = ifelse(iseven(k), one(I), -one(I))
+        sx = simplex(bi.filtration, Val(D - 2), face_vertices, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(bi.filtration, D - 2) = sx
+            return _sx, k
         end
     end
     return nothing

@@ -111,7 +111,7 @@ function test_filtration_interface(Filtration, datasets)
             @test diam(sx) isa T
             @test birth(flt, 1) isa Union{T, Bool}
 
-            @test diam(flt, (4, 3, 2, 1)) isa Union{T, Missing}
+            #@test diam(flt, (4, 3, 2, 1)) isa Union{T, Missing}
 
             @test begin @inferred edges(flt); true end
         end

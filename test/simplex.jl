@@ -5,16 +5,22 @@ using Ripserer: small_binomial, boundary, coboundary, face_type, coface_type, in
 using ..TestHelpers: test_indexed_simplex_interface
 
 struct FakeFiltration end
-Ripserer.diam(::FakeFiltration, args...) =
-    1
-Ripserer.n_vertices(::FakeFiltration) =
-    20
+function Ripserer.simplex(::FakeFiltration, ::Val{D}, vertices, sign=1) where D
+    return Simplex{D, Int, Int}(sign * index(vertices), 1)
+end
+Ripserer.n_vertices(::FakeFiltration) = 20
+Ripserer.simplex_type(::FakeFiltration, D) = Simplex{D, Int, Int}
 
 struct FakeFiltrationWithThreshold end
-Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
-    v ≤ 10 ? 1 : missing
-Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
-    20
+function Ripserer.simplex(::FakeFiltrationWithThreshold, ::Val{D}, vertices, sign=1) where D
+    if maximum(vertices) > 10
+        return nothing
+    else
+        return Simplex{D, Int, Int}(sign * index(vertices), 1)
+    end
+end
+Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
+Ripserer.simplex_type(::FakeFiltrationWithThreshold, D) = Simplex{D, Int, Int}
 
 @testset "Binomials" begin
     @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)

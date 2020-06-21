@@ -67,7 +67,7 @@ end
             @test CartesianIndices(filtration) == CartesianIndices(data)
             @test LinearIndices(filtration) == LinearIndices(data)
             @test birth(filtration, 10) == data[10]
-            @test diam(filtration, (10, 9)) == max(data[10], data[9])
+            #@test diam(filtration, (10, 9)) == max(data[10], data[9])
         end
     end
 end
@@ -81,7 +81,7 @@ end
     @testset "Edges have no coboundary in 1d." begin
         cob = Cubelet{2, Float64, Int}[]
         flt = Cubical(data1d)
-        cub = Cubelet{1}((3, 2), diam(flt, (3, 2)))
+        cub = simplex(flt, Val(1), (3, 2))
         for c in coboundary(flt, cub)
             push!(cob, c)
         end
@@ -111,7 +111,7 @@ end
         @test isempty(cocob)
     end
 
-    @testset "Dimaters of 2-cubelet coboundary in 2×2×2 3d data." begin
+    @testset "Diameters of 2-cubelet coboundary in 2×2×2 3d data." begin
         data = zeros(2, 2, 2)
         data[:, 1, 1] .= 1
         data[:, 2, 1] .= 2
@@ -152,7 +152,7 @@ end
         end
     end
     @testset "Counting cofaces in 3d." begin
-        cob = Cubelet{2, Int, Int}[]
+        cob = Cubelet{2, Float64, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)
         for c in coboundary(flt, cub)
