@@ -75,7 +75,7 @@ end
     diam = typemin(T)
     for i in 1:N, j in i+1:N
         d = dist(rips, vertices[j], vertices[i])
-        if isless(threshold(rips), d)
+        if isless(threshold(rips), d) # everything isless than missing.
             return nothing
         else
             _d::T = d

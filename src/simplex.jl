@@ -210,8 +210,8 @@ function Base.iterate(
         end
         v > 0 || return nothing
         sign = ifelse(iseven(k), one(I), -one(I))
-        vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
-        sx = simplex(ci.filtration, Val(D), vertices, sign)
+        new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
+        sx = simplex(ci.filtration, Val(D), new_vertices, sign)
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
             return _sx, (v, k)

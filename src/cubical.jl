@@ -87,8 +87,21 @@ birth(cf::Cubical, i) = cf.data[i]
 simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
 
 dim(cf::Cubical) = length(size(cf.data))
-Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
-Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
+
+function to_linear(cf::Cubical{I}, v::CartesianIndex) where I
+    return I(get(LinearIndices(cf.data), v, 0))
+end
+function to_linear(cf::Cubical{I}, vertices) where I
+    indices = LinearIndices(cf.data)
+    return map(v -> I(get(indices, v, 0)), vertices)
+end
+function to_cartesian(cf::Cubical, v::Integer)
+    return CartesianIndices(cf.data)[v]
+end
+function to_cartesian(cf::Cubical, vertices)
+    indices = CartesianIndices(cf.data)
+    return map(v -> indices[v], vertices)
+end
 
 function simplex(
     cf::Cubical{I, T}, ::Val{D}, vertices, sign=one(I)
@@ -110,11 +123,11 @@ function edges(cf::Cubical{I, <:Any}) where {I}
     E = edge_type(cf)
     result = E[]
     for u_lin in eachindex(cf.data)
-        u_car = CartesianIndices(cf)[u_lin]
+        u_car = to_cartesian(cf, u_lin)
         for d in 1:dim(cf)
             v_car = u_car + CartesianIndex{dim(cf)}(ntuple(i -> i == d ? 1 : 0, dim(cf)))
-            if v_car in CartesianIndices(cf)
-                v_lin = LinearIndices(cf)[v_car]
+            if v_car in CartesianIndices(cf.data)
+                v_lin = to_linear(cf, v_car)
                 push!(result, E(
                     index((I(v_lin), I(u_lin))), max(cf.data[u_lin], cf.data[v_lin])
                 ))
@@ -125,19 +138,19 @@ function edges(cf::Cubical{I, <:Any}) where {I}
 end
 
 # coboundary ============================================================================= #
-struct CubeletCoboundary{A, I, N, C<:Cubelet, F<:Cubical{I}, K}
+struct CubeletCoboundary{A, D, N, I, F<:Cubical{I}, K}
     filtration::F
-    cubelet::C
     vertices::SVector{K, CartesianIndex{N}}
 end
 
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
-) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D, <:Any, I}}
+) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D}}
     K = length(cubelet)
     N = dim(filtration)
-    vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    return CubeletCoboundary{A, I, N, C, F, K}(filtration, cubelet, vxs)
+    return CubeletCoboundary{A, D, N, I, F, K}(
+        filtration, to_cartesian(filtration, vertices(cubelet))
+    )
 end
 
 function coboundary(filtration::Cubical, cubelet::Cubelet)
@@ -156,35 +169,34 @@ function all_equal_in_dim(dim, vertices)
 end
 
 function Base.iterate(
-    cc::CubeletCoboundary{A, I, N, C}, (dim, dir)=(one(I), one(I))
-) where {A, I, N, C}
+    cc::CubeletCoboundary{A, D, N, I}, (dim, dir)=(one(I), one(I))
+) where {A, D, N, I}
     while true
+        # Idea: expand cube by adding vertices that have ±1 added to one of the dimensions
+        # where all old vertices have the same value.
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += one(I)
         end
         dim > N && return nothing
 
-        diff = CartesianIndex{N}(ntuple(isequal(dim), N) .* dir)
-        new_vertices = cc.vertices .+ Ref(diff)
-        #FIXME
-        all_vertices = sort(map(v -> I(get(LinearIndices(cc.filtration), v, 0)),
-                                vcat(cc.vertices, new_vertices)), rev=true)
+        diff = CartesianIndex{N}(ntuple(isequal(dim), Val(N)) .* dir)
+        new_vertices = sort(
+            to_linear(cc.filtration, vcat(cc.vertices, cc.vertices .+ Ref(diff))), rev=true,
+        )
         dim += I(dir == -1)
         dir *= -one(I)
-        if A || all_vertices[end÷2+1:end] == LinearIndices(cc.filtration)[cc.vertices]
-
-            sx = simplex(cc.filtration, Val(Ripserer.dim(C) + 1), all_vertices, -dir)
+        if A || new_vertices[end÷2+1:end] == to_linear(cc.filtration, cc.vertices)
+            sx = simplex(cc.filtration, Val(D + 1), new_vertices, -dir)
             if !isnothing(sx)
-                _sx::simplex_type(cc.filtration, Ripserer.dim(C) + 1) = sx
+                _sx::simplex_type(cc.filtration, D + 1) = sx
                 return _sx, (dim, dir)
             end
         end
     end
 end
 
-struct CubeletBoundary{D, I, C<:Cubelet, N, F<:Cubical{I}, K}
+struct CubeletBoundary{D, I, N, F<:Cubical{I}, K}
     filtration::F
-    cubelet::C
     vertices::SVector{K, CartesianIndex{N}}
 end
 
@@ -193,8 +205,9 @@ function CubeletBoundary(
 ) where {D, I, F<:Cubical{I}, C<:Cubelet{D}}
     K = length(cubelet)
     N = dim(filtration)
-    vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    return CubeletBoundary{D, I, C, N, F, K}(filtration, cubelet, vxs)
+    return CubeletBoundary{D, I, N, F, K}(
+        filtration, to_cartesian(filtration, vertices(cubelet))
+    )
 end
 
 boundary(filtration::Cubical, cubelet::Cubelet) = CubeletBoundary(filtration, cubelet)
@@ -207,12 +220,11 @@ function second_half(vec::SVector{K, T}) where {K, T}
 end
 
 # Idea: split the cube in each dimension, returning one of two halves depending on dir.
-function Base.iterate(cb::CubeletBoundary{D, I, C}, (dim, dir)=(1, 1)) where {D, I, C}
+function Base.iterate(cb::CubeletBoundary{D, I}, (dim, dir)=(1, 1)) where {D, I}
     if dim > D
         return nothing
     else
-        lin_vertices = map(v -> I(LinearIndices(cb.filtration)[v]),
-                           sort(cb.vertices, by=v -> v[dim], rev=true))
+        lin_vertices = to_linear(cb.filtration, sort(cb.vertices, by=v -> v[dim], rev=true))
         if dir == 1
             new_vertices = first_half(lin_vertices)
             sign = one(I)
