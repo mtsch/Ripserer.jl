@@ -69,20 +69,44 @@ function simplex(
     return simplex_type(rips, 0)(sign * v, birth(rips, v))
 end
 
-@propagate_inbounds function simplex(
-    rips::AbstractRipsFiltration{I, T}, ::Val{D}, vertices::NTuple{N}, sign=one(I)
-) where {I, T, D, N}
-    diam = typemin(T)
-    for i in 1:N, j in i+1:N
+@inline @propagate_inbounds function simplex(
+    rips::AbstractRipsFiltration{I, T}, ::Val{D}, vertices, sign=one(I)
+) where {I, T, D}
+    n = length(vertices)
+    diameter = typemin(T)
+    for i in 1:n, j in i+1:n
         d = dist(rips, vertices[j], vertices[i])
         if isless(threshold(rips), d) # everything isless than missing.
             return nothing
         else
             _d::T = d
-            diam = ifelse(diam > _d, diam, _d)
+            diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return simplex_type(rips, D)(sign * index(vertices), diam)
+    return simplex_type(rips, D)(sign * index(vertices), diameter)
+end
+
+@inline @propagate_inbounds function cofacet(
+    rips::AbstractRipsFiltration{I, T},
+    simplex::AbstractSimplex{D},
+    cofacet_vertices,
+    new_vertex,
+    sign=one(I),
+) where {I, T, D}
+    diameter = diam(simplex)
+    for v in cofacet_vertices
+        v == new_vertex && continue
+        # Even though this looks like a tight loop, v changes way more often than us, so
+        # this is the faster order of indexing by new_vertex and v.
+        d = dist(rips, new_vertex, v)
+        if isless(threshold(rips), d) # everything isless than missing.
+            return nothing
+        else
+            _d::T = d
+            diameter = ifelse(_d > diameter, _d, diameter)
+        end
+    end
+    return simplex_type(rips, D + 1)(sign * index(cofacet_vertices), diameter)
 end
 
 """
@@ -142,7 +166,7 @@ function Rips(dist; kwargs...)
 end
 
 @propagate_inbounds function dist(rips::Rips{<:Any, T}, i, j) where T
-    return ifelse(i == j, zero(T), rips.dist[i, j])
+    return rips.dist[i, j]
 end
 dist(rips::Rips) = rips.dist
 
@@ -192,7 +216,7 @@ end
 
 @propagate_inbounds function dist(rips::SparseRips{<:Any, T}, i, j) where T
     res = rips.dist[i, j]
-    return ifelse(i == j, zero(T), ifelse(iszero(res), missing, res))
+    return ifelse(i == j, res, ifelse(iszero(res), missing, res))
 end
 dist(rips::SparseRips) = rips.dist
 

@@ -49,22 +49,24 @@ combinatorial index. Edges should be of type [`simplex_type`](@ref)(filtration, 
 edges(::AbstractFiltration)
 
 """
-    diam(::AbstractFiltration, vertices)
+    simplex(::AbstractFiltration, ::Val{D}, vertices, sign)
 
-Get the diameter of a simplex with the vertex set `vertices`. Should return `missing` if
-`vertices` do not form a valid simplex.
+Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+if simplex is not in filtration.
 """
-diam(::AbstractFiltration, ::Any)
+simplex(::AbstractFiltration, ::Val, vertices, sign)
 
 """
-    diam(::AbstractFiltration, simplex, vertices, new_vertex)
+    cofacet(::AbstractFiltration, simplex, cofacet_vertices, new_vertex, sign)
 
-Get the diameter of coface of a `Simplex` that is formed by adding `new_vertex` to
-`vertices`. Should return `missing` if new simplex is not valid.
+Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
+vertex that was added to construct the cofacet.
 
-This functions is used with the [`coboundary`](@ref) function for [`IndexedSimplex`](@ref)
+Default implementation uses [`simplex`](@ref).
 """
-diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
+function cofacet(flt, ::AbstractSimplex{D}, vertices, _, sign) where D
+    return simplex(flt, Val(D + 1), vertices, sign)
+end
 
 """
     birth(::AbstractFiltration, v)

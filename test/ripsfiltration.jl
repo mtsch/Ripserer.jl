@@ -82,8 +82,6 @@ for Filtration in (Rips, SparseRips)
             @test dist(filtration, 1, 2) == 1.0
             @test dist(filtration, 1, 3) == 2.0
             @test dist(filtration, 3, 2) == 3.0
-            #@test diam(filtration, Simplex{1}(3, 3), [3, 2], 1) == 3.0
-            #@test diam(filtration, (4, 2, 1)) === (filtration isa Rips ? missing : 9.0)
 
             @test threshold(filtration) == (filtration isa Rips ? 4.0 : 9.0)
             @test vertex_type(filtration) === Simplex{0, Float64, Int}
@@ -96,11 +94,10 @@ for Filtration in (Rips, SparseRips)
 
             @test n_vertices(filtration) == 3
             @test threshold(filtration) == 2
-            @test dist(filtration, 3, 3) == 0
+            @test dist(filtration, 3, 3) == 2
             @test dist(filtration, 1, 2) == 1
             @test dist(filtration, 1, 3) == 2
             @test dist(filtration, 3, 2) ≡ (issparse(filtration.dist) ? missing : 3)
-            #@test ismissing(diam(filtration, Simplex{2}(1, 1), [1, 2], 3))
             @test threshold(filtration) == 2
             @test vertex_type(filtration) === Simplex{0, Int, Int128}
             @test edge_type(filtration) === Simplex{1, Int, Int128}
