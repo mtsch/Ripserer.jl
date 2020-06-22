@@ -108,12 +108,12 @@ function simplex(
 ) where {I, T, D}
     diam = typemin(T)
     for v in vertices
-        d = get(cf.data, v, nothing)
-        if isnothing(d)
+        d = get(cf.data, v, missing)
+        if ismissing(d)
             return nothing
         else
             _d::T = d
-            diam = max(diam, _d)
+            diam = ifelse(_d > diam, _d, diam)
         end
     end
     return simplex_type(cf, D)(sign * index(vertices), diam)
@@ -140,7 +140,7 @@ end
 # coboundary ============================================================================= #
 struct CubeletCoboundary{A, D, N, I, F<:Cubical{I}, K}
     filtration::F
-    vertices::SVector{K, CartesianIndex{N}}
+    vertices::NTuple{K, CartesianIndex{N}}
 end
 
 function CubeletCoboundary{A}(
@@ -149,7 +149,7 @@ function CubeletCoboundary{A}(
     K = length(cubelet)
     N = dim(filtration)
     return CubeletCoboundary{A, D, N, I, F, K}(
-        filtration, to_cartesian(filtration, vertices(cubelet))
+        filtration, to_cartesian(filtration, Tuple(vertices(cubelet)))
     )
 end
 
@@ -168,6 +168,21 @@ function all_equal_in_dim(dim, vertices)
     return true
 end
 
+# Type safe way to get half of tuple a-la TupleTools.
+function second_half(tup::NTuple{N}) where N
+    return _half(tup, Val(N÷2), TupleTools.unsafe_tail)
+end
+function first_half(tup::NTuple{N}) where N
+    return _half(tup, Val(N÷2), TupleTools.unsafe_front)
+end
+@inline function _half(tup, ::Val{N}, f) where N
+    if N == 0
+        return tup
+    else
+        return _half(f(tup), Val(N-1), f)
+    end
+end
+
 function Base.iterate(
     cc::CubeletCoboundary{A, D, N, I}, (dim, dir)=(one(I), one(I))
 ) where {A, D, N, I}
@@ -180,12 +195,13 @@ function Base.iterate(
         dim > N && return nothing
 
         diff = CartesianIndex{N}(ntuple(isequal(dim), Val(N)) .* dir)
-        new_vertices = sort(
-            to_linear(cc.filtration, vcat(cc.vertices, cc.vertices .+ Ref(diff))), rev=true,
+        new_vertices = TupleTools.sort(
+            to_linear(cc.filtration, TupleTools.vcat(cc.vertices, cc.vertices .+ Ref(diff))),
+            rev=true,
         )
         dim += I(dir == -1)
         dir *= -one(I)
-        if A || new_vertices[end÷2+1:end] == to_linear(cc.filtration, cc.vertices)
+        if A || second_half(new_vertices) == to_linear(cc.filtration, cc.vertices)
             sx = simplex(cc.filtration, Val(D + 1), new_vertices, -dir)
             if !isnothing(sx)
                 _sx::simplex_type(cc.filtration, D + 1) = sx
@@ -197,7 +213,7 @@ end
 
 struct CubeletBoundary{D, I, N, F<:Cubical{I}, K}
     filtration::F
-    vertices::SVector{K, CartesianIndex{N}}
+    vertices::NTuple{K, CartesianIndex{N}}
 end
 
 function CubeletBoundary(
@@ -206,25 +222,20 @@ function CubeletBoundary(
     K = length(cubelet)
     N = dim(filtration)
     return CubeletBoundary{D, I, N, F, K}(
-        filtration, to_cartesian(filtration, vertices(cubelet))
+        filtration, to_cartesian(filtration, Tuple(vertices(cubelet)))
     )
 end
 
 boundary(filtration::Cubical, cubelet::Cubelet) = CubeletBoundary(filtration, cubelet)
-
-function first_half(vec::SVector{K, T}) where {K, T}
-    SVector{K÷2, T}(Tuple(vec)[1:K÷2])
-end
-function second_half(vec::SVector{K, T}) where {K, T}
-    SVector{K÷2, T}(Tuple(vec)[K÷2+1:K])
-end
 
 # Idea: split the cube in each dimension, returning one of two halves depending on dir.
 function Base.iterate(cb::CubeletBoundary{D, I}, (dim, dir)=(1, 1)) where {D, I}
     if dim > D
         return nothing
     else
-        lin_vertices = to_linear(cb.filtration, sort(cb.vertices, by=v -> v[dim], rev=true))
+        lin_vertices = to_linear(
+            cb.filtration, TupleTools.sort(cb.vertices, by=v -> v[dim], rev=true)
+        )
         if dir == 1
             new_vertices = first_half(lin_vertices)
             sign = one(I)
@@ -234,7 +245,7 @@ function Base.iterate(cb::CubeletBoundary{D, I}, (dim, dir)=(1, 1)) where {D, I}
             sign = -one(I)
             state = (dim + 1, 1)
         end
-        sx = simplex(cb.filtration, Val(D - 1), sort(new_vertices, rev=true), sign)
+        sx = simplex(cb.filtration, Val(D - 1), TupleTools.sort(new_vertices, rev=true), sign)
         if !isnothing(sx)
             _sx::simplex_type(cb.filtration, D - 1) = sx
             return _sx, state

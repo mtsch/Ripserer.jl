@@ -76,7 +76,7 @@ end
     diameter = typemin(T)
     for i in 1:n, j in i+1:n
         d = dist(rips, vertices[j], vertices[i])
-        if isless(threshold(rips), d) # everything isless than missing.
+        if ismissing(d) || d > threshold(rips)
             return nothing
         else
             _d::T = d
@@ -99,7 +99,7 @@ end
         # Even though this looks like a tight loop, v changes way more often than us, so
         # this is the faster order of indexing by new_vertex and v.
         d = dist(rips, new_vertex, v)
-        if isless(threshold(rips), d) # everything isless than missing.
+        if ismissing(d) || d > threshold(rips)
             return nothing
         else
             _d::T = d
