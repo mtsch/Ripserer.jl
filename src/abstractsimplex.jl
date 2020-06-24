@@ -20,8 +20,33 @@ actually needed for the main algorithm.
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
 * [`face_type(::AbstractSimplex)`](@ref) - only required for homology.
 * [`boundary(::Any, ::AbstractSimplex)`](@ref) - only required for homology.
+* `length(::Type{AbstractSimplex})` - only if `D`-simplexs does not have `D + 1` vertices.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
+
+Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
+function Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+function Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))
+
+Base.iterate(sx::AbstractSimplex) = iterate(vertices(sx))
+Base.getindex(sx::AbstractSimplex, i) = vertices(sx)[i]
+Base.firstindex(::AbstractSimplex) = 1
+Base.lastindex(sx::AbstractSimplex) = length(sx)
+Base.size(sx::AbstractSimplex) = (length(sx),)
+
+Base.length(sx::AbstractSimplex) = length(typeof(sx))
+Base.length(::Type{<:AbstractSimplex{D}}) where D = D + 1
+
+function Base.show(io::IO, sx::AbstractSimplex{D}) where D
+    print(io, nameof(typeof(sx)), "{", D, "}(",
+          sign(sx) == 1 ? :+ : :-, vertices(sx), ", ", diam(sx), ")")
+end
+
 
 """
     diam(simplex::AbstractSimplex)
@@ -70,14 +95,6 @@ Reverse the simplex orientation.
 Base.:-(::AbstractSimplex)
 Base.:+(sx::AbstractSimplex) = sx
 
-Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
-function Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex
-    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
-end
-function Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex
-    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
-end
-Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))
 
 """
     coface_type(::AbstractSimplex)

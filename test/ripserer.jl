@@ -301,10 +301,10 @@ Ripserer.n_vertices(::CustomRips) = 10
 end
 
 struct CustomFiltration <: Ripserer.AbstractFiltration end
-function Ripserer.simplex(::CustomFiltration, ::Val{0}, (v,), sign=1)
+function Ripserer.unsafe_simplex(::CustomFiltration, ::Val{0}, (v,), sign=1)
     return Simplex{0}(sign * v, 0)
 end
-function Ripserer.simplex(::CustomFiltration, ::Val{D}, vertices, sign=1) where D
+function Ripserer.unsafe_simplex(::CustomFiltration, ::Val{D}, vertices, sign=1) where D
     return Simplex{D}(sign * Ripserer.index(vertices), 1)
 end
 Ripserer.n_vertices(::CustomFiltration) = 10

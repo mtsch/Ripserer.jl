@@ -19,6 +19,11 @@ By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
 """
 abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I} end
 
+function Base.show(io::IO, ::MIME"text/plain", sx::IndexedSimplex{D}) where {D}
+    print(io, D, "-dim ", nameof(typeof(sx)), (index(sx), diam(sx)))
+    print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
+end
+
 """
     index(simplex::IndexedSimplex)
 
@@ -39,6 +44,8 @@ Base.sign(sx::IndexedSimplex) = sign(index(sx))
 Base.abs(sx::S) where S<:IndexedSimplex = S(abs(index(sx)), diam(sx))
 Base.:-(sx::S) where S<:IndexedSimplex = S(-index(sx), diam(sx))
 
+Base.length(::Type{<:IndexedSimplex{D}}) where D = D + 1
+
 function Base.isless(sx1::S, sx2::S) where S<:IndexedSimplex
     return ifelse(
         diam(sx1) ≠ diam(sx2),
@@ -56,12 +63,6 @@ end
 function Base.hash(sx::IndexedSimplex, h::UInt64)
     return hash(index(sx), hash(diam(sx), h))
 end
-
-Base.eltype(sx::IndexedSimplex{<:Any, <:Any, I}) where I = I
-Base.getindex(sx::IndexedSimplex, i) = vertices(sx)[i]
-Base.firstindex(sx::IndexedSimplex) = 1
-Base.lastindex(sx::IndexedSimplex{D}) where D = D + 1
-Base.size(sx::IndexedSimplex{D}) where D = (D + 1,)
 
 # vertices and indices =================================================================== #
 """
@@ -179,7 +180,6 @@ where ``i_k`` are the simplex vertex indices.
 end
 
 index(vertex::Integer) = vertex
-index(vertex::CartesianIndex) = index(vertex.I)
 
 # (co)boundaries ========================================================================= #
 struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
@@ -211,7 +211,7 @@ function Base.iterate(
         v > 0 || return nothing
         sign = ifelse(iseven(k), one(I), -one(I))
         new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
-        sx = cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
+        sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
             return _sx, (v, k)
@@ -240,7 +240,7 @@ function Base.iterate(bi::IndexedBoundary{D, I}, k=1) where {D, I}
         face_vertices = TupleTools.deleteat(bi.vertices, k)
         k += 1
         sign = ifelse(iseven(k), one(I), -one(I))
-        sx = simplex(bi.filtration, Val(D - 2), face_vertices, sign)
+        sx = unsafe_simplex(bi.filtration, Val(D - 2), face_vertices, sign)
         if !isnothing(sx)
             _sx::simplex_type(bi.filtration, D - 2) = sx
             return _sx, k
@@ -299,15 +299,6 @@ function Simplex{D, T, I}(vertices, diam) where {D, T, I<:Integer}
         throw(ArgumentError("invalid number of vertices $(length(vertices))"))
     vertices_svec = sort(SVector{D + 1}(vertices), rev=true)
     return Simplex{D, T, I}(index(vertices_svec), T(diam))
-end
-
-function Base.show(io::IO, ::MIME"text/plain", sx::Simplex{D, T, I}) where {D, T, I}
-    print(io, D, "-dim Simplex", (index(sx), diam(sx)))
-    print(io, ":\n  $(sign(sx) == 1 ? '+' : '-')$(vertices(sx))")
-end
-
-function Base.show(io::IO, sx::Simplex{D, M}) where {D, M}
-    print(io, "Simplex{$D}($(sign(sx) == 1 ? '+' : '-')$(vertices(sx)), $(diam(sx)))")
 end
 
 # Interface implementation =============================================================== #

@@ -36,15 +36,6 @@ end
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cube::Cubelet{D, T, I}) where {D, T, I}
-    print(io, D, "-dim Cubelet", (index(cube), diam(cube)))
-    print(io, ":\n  $(sign(cube) == 1 ? '+' : '-')$(vertices(cube))")
-end
-
-function Base.show(io::IO, cube::Cubelet{D, M}) where {D, M}
-    print(io, "Cubelet{$D}($(sign(cube) == 1 ? '+' : '-')$(vertices(cube)), $(diam(cube)))")
-end
-
 index(cube::Cubelet) = cube.index
 diam(cube::Cubelet) = cube.diam
 coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
@@ -55,8 +46,7 @@ face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
     return :(vertices(index(cube), Val($(2^D))))
 end
 
-Base.lastindex(::Cubelet{D}) where D = 2^D
-Base.size(::Cubelet{D}) where D = (2^D,)
+Base.length(::Type{<:Cubelet{D}}) where D = 1 << D
 
 """
     Cubical{I<:Signed, T} <: AbstractFiltration
@@ -103,7 +93,7 @@ function to_cartesian(cf::Cubical, vertices)
     return map(v -> indices[v], vertices)
 end
 
-function simplex(
+function unsafe_simplex(
     cf::Cubical{I, T}, ::Val{D}, vertices, sign=one(I)
 ) where {I, T, D}
     diam = typemin(T)
@@ -119,18 +109,33 @@ function simplex(
     return simplex_type(cf, D)(sign * index(vertices), diam)
 end
 
+# Check if linear indices u and v are adjacent in array arr.
+function is_adjacent(arr, u, v)
+    if isassigned(arr, u) && isassigned(arr, v)
+        diff = Tuple(CartesianIndices(arr)[u] - CartesianIndices(arr)[v])
+        ones = abs.(diff) .== 1
+        zeros = diff .== 0
+        return count(ones) == 1 && count(zeros) == length(diff) - 1
+    else
+        return false
+    end
+end
+
 function edges(cf::Cubical{I, <:Any}) where {I}
-    E = edge_type(cf)
-    result = E[]
-    for u_lin in eachindex(cf.data)
-        u_car = to_cartesian(cf, u_lin)
+    result = edge_type(cf)[]
+    for u in eachindex(cf.data)
         for d in 1:dim(cf)
-            v_car = u_car + CartesianIndex{dim(cf)}(ntuple(i -> i == d ? 1 : 0, dim(cf)))
-            if v_car in CartesianIndices(cf.data)
-                v_lin = to_linear(cf, v_car)
-                push!(result, E(
-                    index((I(v_lin), I(u_lin))), max(cf.data[u_lin], cf.data[v_lin])
-                ))
+            if d == 1
+                v = u + 1
+            else
+                v = u + prod(size(cf.data, i) for i in 1:d - 1)
+            end
+            if is_adjacent(cf.data, u, v)
+                sx = unsafe_simplex(cf, Val(1), (v, u), 1)
+                if !isnothing(sx)
+                    _sx::edge_type(cf) = sx
+                    push!(result, _sx)
+                end
             end
         end
     end
@@ -146,7 +151,7 @@ end
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
 ) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D}}
-    K = length(cubelet)
+    K = length(C)
     N = dim(filtration)
     return CubeletCoboundary{A, D, N, I, F, K}(
         filtration, to_cartesian(filtration, Tuple(vertices(cubelet)))
@@ -195,14 +200,13 @@ function Base.iterate(
         dim > N && return nothing
 
         diff = CartesianIndex{N}(ntuple(isequal(dim), Val(N)) .* dir)
-        new_vertices = TupleTools.sort(
-            to_linear(cc.filtration, TupleTools.vcat(cc.vertices, cc.vertices .+ Ref(diff))),
-            rev=true,
-        )
+        new_vertices = TupleTools.sort(to_linear(
+            cc.filtration, TupleTools.vcat(cc.vertices, cc.vertices .+ Ref(diff))
+        ), rev=true)
         dim += I(dir == -1)
         dir *= -one(I)
         if A || second_half(new_vertices) == to_linear(cc.filtration, cc.vertices)
-            sx = simplex(cc.filtration, Val(D + 1), new_vertices, -dir)
+            sx = unsafe_simplex(cc.filtration, Val(D + 1), new_vertices, -dir)
             if !isnothing(sx)
                 _sx::simplex_type(cc.filtration, D + 1) = sx
                 return _sx, (dim, dir)
@@ -245,7 +249,7 @@ function Base.iterate(cb::CubeletBoundary{D, I}, (dim, dir)=(1, 1)) where {D, I}
             sign = -one(I)
             state = (dim + 1, 1)
         end
-        sx = simplex(cb.filtration, Val(D - 1), TupleTools.sort(new_vertices, rev=true), sign)
+        sx = simplex(cb.filtration, Val(D - 1), new_vertices, sign)
         if !isnothing(sx)
             _sx::simplex_type(cb.filtration, D - 1) = sx
             return _sx, state

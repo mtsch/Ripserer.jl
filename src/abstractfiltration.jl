@@ -49,23 +49,48 @@ combinatorial index. Edges should be of type [`simplex_type`](@ref)(filtration, 
 edges(::AbstractFiltration)
 
 """
-    simplex(::AbstractFiltration, ::Val{D}, vertices, sign)
+     simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
 
 Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
-if simplex is not in filtration.
+if simplex is not in filtration. This function is safe to call with vertices that are out of
+order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref).
 """
-simplex(::AbstractFiltration, ::Val, vertices, sign)
+function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where D
+    vxs = TupleTools.sort(Tuple(vertices), rev=true)
+    if allunique(vxs) && all(x -> x > 0, vxs)
+        return unsafe_simplex(flt, Val(D), vxs, sign)
+    else
+        throw(ArgumentError("invalid vertices $(vertices)"))
+    end
+end
 
 """
-    cofacet(::AbstractFiltration, simplex, cofacet_vertices, new_vertex, sign)
+    unsafe_simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
+
+Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
+to ensure vertices are sorted.
+
+# See also
+
+* [`simplex`](@ref)
+* [`unsafe_cofacet`](@ref)
+"""
+unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
+
+"""
+    unsafe_cofacet(::AbstractFiltration, simplex, cofacet_vertices, new_vertex, sign=1)
 
 Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
-vertex that was added to construct the cofacet.
+vertex that was added to construct the cofacet. The unsafe in the name implies that it's up
+to the caller to ensure vertices are sorted.
 
-Default implementation uses [`simplex`](@ref).
+Default implementation uses [`unsafe_simplex`](@ref).
 """
-function cofacet(flt, ::AbstractSimplex{D}, vertices, _, sign) where D
-    return simplex(flt, Val(D + 1), vertices, sign)
+function unsafe_cofacet(
+    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, sign=1
+) where D
+    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
 end
 
 """

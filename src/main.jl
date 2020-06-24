@@ -1,28 +1,23 @@
 """
     overflows(filtration::AbstractFiltration, dim_max)
+    overflows(::Type{AbstractSimplex}, n_vertices, field)
 
 Check if `dim`-dimensional simplex with largest index on `n_vertices(filtration)` can safely
-be constructed. Throw `OverflowError` error if it can't.
+be constructed and if it can be represented as a chain element.
 """
 function overflows(flt::AbstractFiltration, dim_max, field)
     return overflows(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
 end
 
-"""
-    overflows(::Type{AbstractSimplex}, n_vertices, field)
-
-Check if simplex with largest index on `n_vertices` can safely be constructed with
-overflow. Throw `OverflowError` error if it would overflow.
-"""
 overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
 
 function overflows(S::Type{<:IndexedSimplex{<:Any, T, I}}, n_vertices, field) where {T, I}
-    len = length(S(1, oneunit(T)))
-    len > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
+    length(S) > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
+    # Idea: calculate index in I and BigInt and compare if they are always the same.
     acc_int = zero(I)
     acc_big = big(0)
     i = n_vertices
-    for k in len:-1:1
+    for k in length(S):-1:1
         acc_int += small_binomial(I(i), Val(k))
         acc_big += binomial(big(i), big(k))
         acc_int ≠ acc_big && return true
@@ -98,19 +93,16 @@ function ripserer(
     cohomology=true,
 )
     if overflows(filtration, dim_max, field_type)
+        S = simplex_type(filtration, dim_max + 1)
         throw(OverflowError(
-            "Constructing some of the $dim_max-simplices in this filtration would overflow. " *
+            "$S on $(n_vertices(filtration)) vertices overflows." *
             "Try using a larger index type or a smaller `dim_max`."
         ))
     end
-    if cohomology
-        return _cohomology(
-            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
-        )
+    return if cohomology
+        _cohomology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
     else
-        return _homology(
-            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
-        )
+        _homology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
     end
 end
 
@@ -133,7 +125,6 @@ function _cohomology(
                 matrix = next_matrix(matrix, progress)
             end
         end
-
         return result
     end
 end
@@ -165,6 +156,5 @@ function _homology(
             matrix = next_matrix(matrix, progress)
         end
     end
-
     return result
 end
