@@ -139,7 +139,7 @@ function edges(cf::Cubical{I, <:Any}) where {I}
             end
         end
     end
-    return sort!(result)
+    return result
 end
 
 # coboundary ============================================================================= #

@@ -1,61 +1,10 @@
-# distance matrix stuff ================================================================== #
-"""
-    edges(dist::AbstractMatrix, thresh, E)
-
-Return sorted edges of type `E` in distance matrix with length lower than `thresh`.
-"""
-function edges(dist::AbstractMatrix, thresh, ::Type{E}) where E
-    @boundscheck begin
-        size(dist, 1) == size(dist, 2) && size(dist, 1) > 1 ||
-            throw(ArgumentError("invalid input matrix"))
-    end
-
-    n = size(dist, 1)
-    res = E[]
-    @inbounds for j in 1:n, i in j+1:n
-        l = dist[i, j]
-        l ≤ thresh && push!(res, E((i, j), l))
-    end
-    return sort!(res)
-end
-
-function edges(dist::AbstractSparseMatrix, thresh, ::Type{E}) where E
-    res = E[]
-    I, J, V = findnz(dist)
-    for (i, j, l) in zip(I, J, V)
-        i > j || continue
-        l ≤ thresh && push!(res, E((i, j), l))
-    end
-    return sort!(res)
-end
-
-"""
-    distances(metric, points[, births])
-
-Return distance matrix calculated from `points` with `metric`. If given, add birth times
-from `births` to the diagonal.
-"""
-function distances(metric, points)
-    isempty(points) && throw(ArgumentError("`points` must be nonempty"))
-
-    dim = length(first(points))
-    T = eltype(first(points))
-    dists = pairwise(metric, reshape(reinterpret(T, points), (dim, length(points))), dims=2)
-    return dists
-end
-
-# rips filtrations ======================================================================= #
 """
     AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration
 
 An abstract Vietoris-Rips filtration. Its subtypes can overload
-[`dist`](@ref)`(::AbstractRipsFiltration{T}, u, v)::Union{T, Missing}` instead of
-[`diam`](@ref).
+[`dist`](@ref)`(::AbstractRipsFiltration{T}, u, v)::Union{T, Missing}` and get the following
+default implementations.
 
-[`diam`](@ref)`(::AbstractRipsFiltration, ...)` then defaults to maximum [`dist`] among
-vertices.
-
-Comes with default implementations of:
 * [`edges`](@ref)
 * [`simplex_type`](@ref).
 * [`simplex`](@ref).
@@ -64,7 +13,16 @@ Comes with default implementations of:
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
 
-edges(rips::AbstractRipsFiltration) = edges(dist(rips), threshold(rips), edge_type(rips))
+"""
+    dist(::AbstractRipsFiltration, u, v)
+    dist(::AbstractRipsFiltration)
+
+Return the distance between vertices `u` and `v`. If the distance is higher than the
+threshold, return `missing` instead. If `u` and `v` are not given, return the distance
+matrix.
+"""
+dist(::AbstractRipsFiltration, ::Any, ::Any)
+
 simplex_type(::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 function unsafe_simplex(
@@ -114,17 +72,54 @@ end
     return simplex_type(rips, D + 1)(sign * index(cofacet_vertices), diameter)
 end
 
-"""
-    dist(::AbstractRipsFiltration, u, v)
-    dist(::AbstractRipsFiltration)
+function edges(rips::AbstractRipsFiltration)
+    if issparse(dist(rips))
+        _sparse_edges(rips)
+    else
+        _full_edges(rips)
+    end
+end
 
-Return the distance between vertices `u` and `v`. If the distance is higher than the
-threshold, return `missing` instead. If `u` and `v` are not given, return the distance
-matrix.
-"""
-dist(::AbstractRipsFiltration, ::Any, ::Any)
+function _full_edges(rips::AbstractRipsFiltration)
+    result = edge_type(rips)[]
+    @inbounds for u in 1:size(dist(rips), 1), v in u+1:size(dist(rips), 1)
+        sx = unsafe_simplex(rips, Val(1), (v, u), 1)
+        !isnothing(sx) && push!(result, sx)
+    end
+    return result
+end
 
-# rips filtration ======================================================================== #
+function _sparse_edges(rips::AbstractRipsFiltration)
+    result = edge_type(rips)[]
+    rows = rowvals(rips.dist)
+    vals = nonzeros(rips.dist)
+    for u in 1:size(rips.dist, 1)
+        for i in nzrange(dist(rips), u)
+            v = rows[i]
+            if v > u
+                sx = unsafe_simplex(rips, Val(1), (v, u), 1)
+                !isnothing(sx) && push!(result, sx)
+            end
+        end
+    end
+    return result
+end
+
+"""
+    distances(metric, points[, births])
+
+Return distance matrix calculated from `points` with `metric`. If given, add birth times
+from `births` to the diagonal.
+"""
+function distances(metric, points)
+    isempty(points) && throw(ArgumentError("`points` must be nonempty"))
+
+    dim = length(first(points))
+    T = eltype(first(points))
+    dists = pairwise(metric, reshape(reinterpret(T, points), (dim, length(points))), dims=2)
+    return dists
+end
+
 """
     default_rips_threshold(dists)
 

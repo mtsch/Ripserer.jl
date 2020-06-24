@@ -19,7 +19,7 @@ Return `true` if `n` is a prime number.
     end
 end
 # The following causes an error if you try to use anything other than Int as a modulus.
-@pure is_prime(::Any) = false
+is_prime(::Any) = false
 
 """
     mod_prime(i, ::Val{M})

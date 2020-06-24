@@ -43,8 +43,8 @@ n_vertices(::AbstractFiltration)
 """
     edges(filtration::AbstractFiltration)
 
-Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
-combinatorial index. Edges should be of type [`simplex_type`](@ref)(filtration, 1)`.
+Get edges (1-simplices) in `filtration`. Edges should be of type
+[`simplex_type`](@ref)(filtration, 1)`.
 """
 edges(::AbstractFiltration)
 

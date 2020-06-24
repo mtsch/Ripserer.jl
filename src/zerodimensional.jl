@@ -120,7 +120,7 @@ function zeroth_intervals(
     end
     to_skip = edge_type(filtration)[]
     to_reduce = edge_type(filtration)[]
-    simplices = edges(filtration)
+    simplices = sort!(edges(filtration))
     if progress
         progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
     end
