@@ -3,7 +3,7 @@ using Test
 
 using Ripserer
 using Ripserer: vertex_type, edges, edge_type,
-    AbstractSimplex, IndexedSimplex, face_type, coface_type, index
+    AbstractSimplex, IndexedSimplex, index
 
 """
     test_indexed_simplex_interface(S, n_vertices)
@@ -44,11 +44,6 @@ function test_indexed_simplex_interface(S, n_vertices)
                 @test -S{D}(i, d) == S{D}(-i, d)
                 @test sign(+S{D}(i, d)) == sign(i)
                 @test sign(-S{D}(i, d)) == -sign(i)
-
-                @test coface_type(S{D}(i, d)) ≡ S{D + 1, T, I}
-                @test coface_type(typeof(S{D}(i, d))) ≡ S{D + 1, T, I}
-                @test face_type(S{D}(i, d)) ≡ S{D - 1, T, I}
-                @test face_type(typeof(S{D}(i, d))) ≡ S{D - 1, T, I}
 
                 @test dim(S{D}(i, d)) == D
                 @test abs(S{D}(i, d)) == S{D}(abs(i), d)

@@ -21,14 +21,6 @@ Base.:-(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-Ripserer.coface_type(::Ripserer.AbstractSimplex)
-```
-
-```@docs
-Ripserer.face_type(::Ripserer.AbstractSimplex)
-```
-
-```@docs
 vertices(::Ripserer.AbstractSimplex)
 ```
 

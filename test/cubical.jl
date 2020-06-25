@@ -3,8 +3,7 @@ using Ripserer
 using Compat
 using StaticArrays
 
-using Ripserer: all_equal_in_dim, boundary, coboundary, face_type, coface_type,
-    edges, n_vertices, index
+using Ripserer: all_equal_in_dim, boundary, coboundary, edges, n_vertices, index
 
 data1d = cos.(range(0, 4π, length=1000))
 
@@ -86,7 +85,7 @@ end
     end
 
     @testset "Coboundary of edges in 2d" begin
-        cob = Cubelet{2, Int, Int}[]
+        cob = []
         flt = Cubical(data2d)
         cub = Cubelet{1}((10, 9), 1)
         for c in coboundary(flt, cub)
@@ -98,7 +97,7 @@ end
         @test cob[2] == -Cubelet{2}((10, 9, 3, 2), 2)
         @test sign(cob[2]) == -1
 
-        cocob = coface_type(eltype(cob))[]
+        cocob = []
         for c in coboundary(flt, cob[1])
             push!(cocob, c)
         end
@@ -115,7 +114,7 @@ end
         data[:, 1, 2] .= 3
         data[:, 2, 2] .= 4
 
-        @testset "Diameter increasing, cofaces are supersets of original" begin
+        @testset "Diameter increasing, cofacets are supersets of original" begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube)
@@ -124,7 +123,7 @@ end
                 end
             end
         end
-        @testset "Coboundary with all_cofaces=false" begin
+        @testset "Coboundary with all_cofacets=false" begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube, Val(false))
@@ -143,13 +142,13 @@ end
                 Cubelet{2}((3, 4, 7, 8), 4.0),
                 Cubelet{2}((5, 6, 7, 8), 4.0),
             ]
-                coface = only(coboundary(Cubical(data), cube))
-                @test abs(coface) == Cubelet{3}((8, 7, 6, 5, 4, 3, 2, 1), 4.0)
+                cofacet = only(coboundary(Cubical(data), cube))
+                @test abs(cofacet) == Cubelet{3}((8, 7, 6, 5, 4, 3, 2, 1), 4.0)
             end
         end
     end
-    @testset "Counting cofaces in 3d" begin
-        cob = Cubelet{2, Float64, Int}[]
+    @testset "Counting cofacets in 3d" begin
+        cob = []
         flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)
         for c in coboundary(flt, cub)
@@ -157,7 +156,7 @@ end
         end
         @test length(cob) == 3
 
-        cocob = coface_type(eltype(cob))[]
+        cocob = []
         for c in coboundary(flt, cob[1])
             push!(cocob, c)
         end

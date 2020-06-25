@@ -170,12 +170,11 @@ vertices(Simplex{2}((3, 2, 1), 3.2))
 vertices(::AbstractSimplex)
 
 """
-    coboundary(filtration, simplex[, Val{all_cofaces}])
+    coboundary(filtration, simplex[, Val{all_cofacets}])
 
 Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type [`coface_type`](@ref)`(simplex)`. If
-`all_cofaces` is `false`, only return cofaces with vertices added to the beginning of vertex
-list.
+and validity of cofacets. If `all_cofacets` is `false`, only return cofaces with vertices
+added to the beginning of vertex list.
 
 ```jldoctest coboundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
@@ -206,10 +205,10 @@ function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) wh
 end
 
 """
-    boundary(filtration, simplex[, Val{all_cofaces}])
+    boundary(filtration, simplex[, Val{all_cofacets}])
 
 Iterate over the boundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type [`face_type`](@ref)`(simplex)`.
+and validity of cofacets.
 
 ```jldoctest boundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
@@ -277,10 +276,10 @@ end
 
 function Base.iterate(bi::Boundary{D, I}, k=1) where {D, I}
     while k ≤ D
-        face_vertices = TupleTools.deleteat(bi.vertices, k)
+        facet_vertices = TupleTools.deleteat(bi.vertices, k)
         k += 1
         sign = ifelse(iseven(k), one(I), -one(I))
-        sx = unsafe_simplex(bi.filtration, Val(D - 2), face_vertices, sign)
+        sx = unsafe_simplex(bi.filtration, Val(D - 2), facet_vertices, sign)
         if !isnothing(sx)
             _sx::simplex_type(bi.filtration, D - 2) = sx
             return _sx, k

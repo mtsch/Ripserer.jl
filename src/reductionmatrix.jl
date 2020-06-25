@@ -206,31 +206,32 @@ end
 # TODO: the following code is pretty messy. There must be a way to handle all this with a
 # bit less type magic.
 struct ReductionMatrix{
-    Cohomology, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O<:Base.Ordering
+    Cohomology, T, Filtration, Simplex, SimplexElem, Facet, FacetElem, O<:Base.Ordering
 }
     filtration::Filtration
-    reduced::ReducedMatrix{Face, SimplexElem, O}
-    working_boundary::WorkingBoundary{FaceElem, O}
+    reduced::ReducedMatrix{Facet, SimplexElem, O}
+    working_boundary::WorkingBoundary{FacetElem, O}
     columns_to_reduce::Vector{Simplex}
     columns_to_skip::Vector{Simplex}
 end
 
-function ReductionMatrix{Co, Field}(
+function ReductionMatrix{C, T}(
     filtration::Filtration, columns_to_reduce, columns_to_skip
-) where {Co, Field, Filtration}
+) where {C, T, Filtration}
 
     Simplex = eltype(columns_to_reduce)
-    Face = Co ? coface_type(Simplex) : face_type(Simplex)
-    ordering = Co ? Base.Order.Forward : Base.Order.Reverse
+    facet_dim = dim(Simplex) + (C ? 1 : -1)
+    Facet = simplex_type(filtration, facet_dim)
+    ordering = C ? Base.Order.Forward : Base.Order.Reverse
     O = typeof(ordering)
-    SimplexElem = chain_element_type(Simplex, Field)
-    FaceElem = chain_element_type(Face, Field)
+    SimplexElem = chain_element_type(Simplex, T)
+    FacetElem = chain_element_type(Facet, T)
 
-    reduced = ReducedMatrix{Face, SimplexElem}(ordering)
+    reduced = ReducedMatrix{Facet, SimplexElem}(ordering)
     sizehint!(reduced, length(columns_to_reduce))
-    working_boundary = WorkingBoundary{FaceElem}(ordering)
+    working_boundary = WorkingBoundary{FacetElem}(ordering)
 
-    return ReductionMatrix{Co, Field, Filtration, Simplex, SimplexElem, Face, FaceElem, O}(
+    return ReductionMatrix{C, T, Filtration, Simplex, SimplexElem, Facet, FacetElem, O}(
         filtration,
         reduced,
         working_boundary,
@@ -252,11 +253,11 @@ function co_boundary(matrix::ReductionMatrix{false}, simplex::AbstractSimplex)
     return boundary(matrix.filtration, simplex)
 end
 
-is_cohomology(::ReductionMatrix{Co}) where Co = Co
+is_cohomology(::ReductionMatrix{C}) where C = C
 field_type(::ReductionMatrix{<:Any, F}) where F = F
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
 simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
-face_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
+facet_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
 dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
@@ -264,16 +265,16 @@ function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
     # TODO: can emergent pairs be safely be enabled for all kinds of complexes?
     # An argument that disables it could be added.
     empty!(matrix.working_boundary)
-    for face in co_boundary(matrix, column_simplex)
-        # Checking this on every face helps if more than one face has the same diameter.
+    for facet in co_boundary(matrix, column_simplex)
+        # Checking this on every facet helps if more than one facet has the same diameter.
         if (is_cohomology(matrix) &&
-            diam(face) == diam(column_simplex) &&
-            !haskey(matrix.reduced, face)
+            diam(facet) == diam(column_simplex) &&
+            !haskey(matrix.reduced, facet)
             )
             empty!(matrix.working_boundary)
-            return face_element(matrix)(face)
+            return facet_element(matrix)(facet)
         end
-        nonheap_push!(matrix.working_boundary, face)
+        nonheap_push!(matrix.working_boundary, facet)
     end
     if isempty(matrix.working_boundary)
         return nothing
@@ -286,10 +287,10 @@ end
 function add!(matrix::ReductionMatrix, column, factor)
     record!(matrix.reduced, column, factor)
     for element in column
-        for face in co_boundary(matrix, simplex(element))
+        for facet in co_boundary(matrix, simplex(element))
             push!(
                 matrix.working_boundary,
-                face_element(matrix)(face, coefficient(element) * factor)
+                facet_element(matrix)(facet, coefficient(element) * factor)
             )
         end
     end
@@ -405,11 +406,11 @@ simplex_name(::Type{<:Simplex{2}}) = "triangles"
 simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
 simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
 
-function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Field}
-    C = coface_type(simplex_type(matrix))
+function next_matrix(matrix::ReductionMatrix, progress)
+    C = simplex_type(matrix.filtration, dim(simplex_type(matrix)) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
-    Co && sizehint!(new_to_skip, length(matrix.reduced))
+    is_cohomology(matrix) && sizehint!(new_to_skip, length(matrix.reduced))
 
     if progress
         progbar = Progress(
@@ -418,12 +419,12 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
         )
     end
     for simplex in Iterators.flatten((matrix.columns_to_reduce, matrix.columns_to_skip))
-        for coface in coboundary(matrix.filtration, simplex, Val(false))
+        for cofacet in coboundary(matrix.filtration, simplex, Val(false))
             # Clearing optimization only enabled for cohomology.
-            if Co && haskey(matrix.reduced, coface)
-                push!(new_to_skip, abs(coface))
+            if is_cohomology(matrix) && haskey(matrix.reduced, cofacet)
+                push!(new_to_skip, abs(cofacet))
             else
-                push!(new_to_reduce, abs(coface))
+                push!(new_to_reduce, abs(cofacet))
             end
         end
         progress && next!(progbar)
@@ -432,8 +433,10 @@ function next_matrix(matrix::ReductionMatrix{Co, Field}, progress) where {Co, Fi
         stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)). Sorting... ",
         color=:green
     )
-    sort!(new_to_reduce, rev=Co)
+    sort!(new_to_reduce, rev=is_cohomology(matrix))
     progress && printstyled(stderr, "done.\n", color=:green)
 
-    return ReductionMatrix{Co, Field}(matrix.filtration, new_to_reduce, new_to_skip)
+    return ReductionMatrix{is_cohomology(matrix), field_type(matrix)}(
+        matrix.filtration, new_to_reduce, new_to_skip
+    )
 end

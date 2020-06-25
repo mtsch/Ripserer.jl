@@ -38,8 +38,6 @@ end
 
 index(cube::Cubelet) = cube.index
 diam(cube::Cubelet) = cube.diam
-coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
-face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
 
 # @generated used because inference doesn't work well for 2^D
 @generated function vertices(cube::Cubelet{D, <:Any, I}) where {D, I}

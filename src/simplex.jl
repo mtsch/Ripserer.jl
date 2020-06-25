@@ -236,5 +236,3 @@ end
 # Interface implementation =============================================================== #
 index(sx::Simplex) = sx.index
 diam(sx::Simplex) = sx.diam
-coface_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D+1, T, I}
-face_type(::Type{<:Simplex{D, T, I}}) where {D, T, I} = Simplex{D-1, T, I}
