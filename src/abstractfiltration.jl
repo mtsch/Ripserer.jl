@@ -69,7 +69,7 @@ end
 
 Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
 if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
-to ensure vertices are sorted.
+to ensure vertices are sorted and unique.
 
 # See also
 
@@ -79,16 +79,25 @@ to ensure vertices are sorted.
 unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
 
 """
-    unsafe_cofacet(::AbstractFiltration, simplex, cofacet_vertices, new_vertex, sign=1)
+    unsafe_cofacet(filtration, simplex, cofacet_vertices, new_vertex[, edges, sign=1])
 
 Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
-vertex that was added to construct the cofacet. The unsafe in the name implies that it's up
-to the caller to ensure vertices are sorted.
+vertex that was added to construct the cofacet. In the case of sparse rips filtrations, an
+additional argument `edges` is used. `edges` is a vector that contains the weights on edges
+connecting the new vertex to old vertices.
+
+The unsafe in the name implies that it's up to the caller to ensure vertices are sorted and
+unique.
 
 Default implementation uses [`unsafe_simplex`](@ref).
 """
 function unsafe_cofacet(
     flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, sign=1
+) where D
+    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
+end
+function unsafe_cofacet(
+    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, edges::SVector, sign=1
 ) where D
     return unsafe_simplex(flt, Val(D + 1), vertices, sign)
 end

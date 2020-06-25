@@ -201,7 +201,9 @@ end
   +[4, 3, 1]
 ```
 """
-coboundary(::Any, ::AbstractSimplex)
+function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where A
+    return Coboundary{A}(filtration, simplex)
+end
 
 """
     boundary(filtration, simplex[, Val{all_cofaces}])
@@ -223,4 +225,66 @@ Simplex{2}(-[4, 1], 1)
 Simplex{2}(+[4, 2], 1)
 ```
 """
-boundary(::Any, ::AbstractSimplex)
+boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
+
+# (co)boundaries ========================================================================= #
+struct Coboundary{A, D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
+
+    function Coboundary{A}(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {A, D, I, F}
+        S = typeof(simplex)
+        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+    end
+end
+
+function Base.iterate(
+    ci::Coboundary{A, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+) where {A, D, I}
+    @inbounds while true
+        v -= one(I)
+        while k > 0 && v == ci.vertices[end + 1 - k]
+            A || return nothing
+            v -= one(I)
+            k -= 1
+        end
+        v > 0 || return nothing
+        sign = ifelse(iseven(k), one(I), -one(I))
+        new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
+        sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(ci.filtration, D) = sx
+            return _sx, (v, k)
+        end
+    end
+end
+
+struct Boundary{D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
+
+    function Boundary(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {D, I, F}
+        S = typeof(simplex)
+        return new{D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+    end
+end
+
+function Base.iterate(bi::Boundary{D, I}, k=1) where {D, I}
+    while k ≤ D
+        face_vertices = TupleTools.deleteat(bi.vertices, k)
+        k += 1
+        sign = ifelse(iseven(k), one(I), -one(I))
+        sx = unsafe_simplex(bi.filtration, Val(D - 2), face_vertices, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(bi.filtration, D - 2) = sx
+            return _sx, k
+        end
+    end
+    return nothing
+end

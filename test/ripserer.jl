@@ -103,11 +103,19 @@ end
     @testset "Equal to Rips" begin
         for thresh in (nothing, 1, 0.5, 0.126)
             data = rand_torus(100)
-            rres = ripserer(data, threshold=thresh, dim_max=2)
-            sres1 = ripserer(sparse(data), threshold=thresh, dim_max=2)
-            sres2 = ripserer(SparseRips(data, threshold=thresh), dim_max=2)
+            r_res = ripserer(data, threshold=thresh, dim_max=2)
+            s_res_1 = ripserer(SparseRips(data, threshold=thresh), dim_max=2)
 
-            @test rres == sres1 == sres2
+            # Add zeros to diagonal. Adding ones first actually changes the structure of
+            # the matrix.
+            data2 = sparse(data)
+            for i in axes(data2, 1)
+                data2[i, i] = 1
+                data2[i, i] = 0
+            end
+            s_res_2 = ripserer(data2, threshold=thresh, dim_max=2)
+
+            @test r_res == s_res_1 == s_res_2
         end
     end
 end

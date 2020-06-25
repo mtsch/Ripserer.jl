@@ -239,33 +239,33 @@ birth(rips::SparseRips, i) = rips.dist[i, i]
 simplex_type(::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
 # This is the coboundary used when distance matrix in AbstractRipsFiltration is sparse.
+function coboundary(
+    rips::AbstractRipsFiltration, sx::AbstractSimplex, ::Val{A}=Val(true)
+) where A
+    if dist(rips) isa SparseMatrixCSC
+        return SparseCoboundary{A}(rips, sx)
+    else
+        return Coboundary{A}(rips, sx)
+    end
+end
+
 struct SparseCoboundary{A, D, I, F, S}
     filtration::F
     simplex::S
     vertices::SVector{D, I}
     ptrs_begin::SVector{D, I}
     ptrs_end::SVector{D, I}
-end
 
-function SparseCoboundary{A}(
-    filtration::F, simplex::IndexedSimplex{D, <:Any, I}
-) where {A, D, I, F}
-    verts = vertices(simplex)
-    colptr = dist(filtration).colptr
-    ptrs_begin = colptr[verts .+ 1]
-    ptrs_end = colptr[verts]
-    return SparseCoboundary{A, D + 1, I, F, typeof(simplex)}(
-        filtration, simplex, verts, ptrs_begin, ptrs_end
-    )
-end
-
-function coboundary(
-    rips::AbstractRipsFiltration, sx::IndexedSimplex, ::Val{A}=Val(true)
-) where A
-    if dist(rips) isa SparseMatrixCSC
-        return SparseCoboundary{A}(rips, sx)
-    else
-        return IndexedCoboundary{A}(rips, sx)
+    function SparseCoboundary{A}(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {A, D, I, F}
+        verts = vertices(simplex)
+        colptr = dist(filtration).colptr
+        ptrs_begin = colptr[verts .+ 1]
+        ptrs_end = colptr[verts]
+        return new{A, D + 1, I, F, typeof(simplex)}(
+            filtration, simplex, verts, ptrs_begin, ptrs_end
+        )
     end
 end
 
@@ -293,7 +293,6 @@ end
         m = row
     end
 end
-next_common(ptrs::SVector{0}, _::SVector{0}, _) = error()
 
 function Base.iterate(
     it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)

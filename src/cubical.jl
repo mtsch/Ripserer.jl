@@ -78,15 +78,9 @@ simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
 
 dim(cf::Cubical) = length(size(cf.data))
 
-function to_linear(cf::Cubical{I}, v::CartesianIndex) where I
-    return I(get(LinearIndices(cf.data), v, 0))
-end
 function to_linear(cf::Cubical{I}, vertices) where I
     indices = LinearIndices(cf.data)
     return map(v -> I(get(indices, v, 0)), vertices)
-end
-function to_cartesian(cf::Cubical, v::Integer)
-    return CartesianIndices(cf.data)[v]
 end
 function to_cartesian(cf::Cubical, vertices)
     indices = CartesianIndices(cf.data)
