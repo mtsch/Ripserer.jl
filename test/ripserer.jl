@@ -100,6 +100,16 @@ end
         @test d1_3 == d1_331 == d1_r == []
         @test d2_3 == d2_331 == d1_r == []
     end
+    @testset "Equal to Rips" begin
+        for thresh in (nothing, 1, 0.5, 0.126)
+            data = rand_torus(100)
+            rres = ripserer(data, threshold=thresh, dim_max=2)
+            sres1 = ripserer(sparse(data), threshold=thresh, dim_max=2)
+            sres2 = ripserer(SparseRips(data, threshold=thresh), dim_max=2)
+
+            @test rres == sres1 == sres2
+        end
+    end
 end
 
 @testset "Representatives" begin

@@ -30,7 +30,7 @@ for Filtration in (Rips, SparseRips)
             @test dist(filtration, 1, 3) == 2.0
             @test dist(filtration, 3, 2) == 3.0
 
-            @test threshold(filtration) == (filtration isa Rips ? 4.0 : 9.0)
+            @test threshold(filtration) == 4.0
             @test vertex_type(filtration) === Simplex{0, Float64, Int}
             @test edge_type(filtration) === Simplex{1, Float64, Int}
             @test birth(filtration, 1) == 0

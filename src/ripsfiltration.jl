@@ -51,10 +51,10 @@ end
 
 @inline @propagate_inbounds function unsafe_cofacet(
     rips::AbstractRipsFiltration{I, T},
-    simplex::AbstractSimplex{D},
+    simplex::IndexedSimplex{D},
     cofacet_vertices,
     new_vertex,
-    sign=one(I),
+    sign=1,
 ) where {I, T, D}
     diameter = diam(simplex)
     for v in cofacet_vertices
@@ -69,7 +69,25 @@ end
             diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return simplex_type(rips, D + 1)(sign * index(cofacet_vertices), diameter)
+    return simplex_type(rips, D + 1)(I(sign) * index(cofacet_vertices), diameter)
+end
+
+@inline @propagate_inbounds function unsafe_cofacet(
+    rips::AbstractRipsFiltration{I},
+    sx::IndexedSimplex{D},
+    cofacet_vertices,
+    ::Any,
+    new_edges::SVector,
+    sign=1,
+) where {I, D}
+    new_diam = diam(sx)
+    for i in 1:D + 1
+        e = new_edges[i]
+        e > threshold(rips) && return nothing
+        new_diam = ifelse(e > new_diam, e, new_diam)
+    end
+    new_index = index(cofacet_vertices)
+    return simplex_type(rips, D + 1)(I(sign) * new_index, new_diam)
 end
 
 function edges(rips::AbstractRipsFiltration)
@@ -195,23 +213,18 @@ struct SparseRips{I, T, A<:AbstractSparseMatrix{T}} <: AbstractRipsFiltration{I,
 end
 
 function SparseRips{I}(
-    dist::AbstractSparseMatrix{T}; threshold=nothing
+    dist::AbstractMatrix{T}; threshold=nothing
 ) where {I, T}
     issymmetric(dist) || throw(ArgumentError("`dist` must be a distance matrix"))
     if isnothing(threshold)
-        thresh = maximum(dist)
-        dists = sparse(dist)
-    else
-        thresh = threshold
-        dists = SparseArrays.fkeep!(copy(dist), (_, _, v) -> v ≤ threshold)
+        threshold = issparse(dist) ? maximum(dist) : default_rips_threshold(dist)
     end
-    return SparseRips{I, T, typeof(dists)}(dists, thresh)
+    dists = SparseArrays.fkeep!(SparseMatrixCSC(dist), (_, _, v) -> v ≤ threshold)
+
+    return SparseRips{I, T, typeof(dists)}(dists, threshold)
 end
 function SparseRips(dist; threshold=nothing)
     return SparseRips{Int}(dist; threshold=threshold)
-end
-function SparseRips{I}(dist; threshold=nothing) where I
-    return SparseRips{I}(sparse(dist); threshold=threshold)
 end
 
 @propagate_inbounds function dist(rips::SparseRips{<:Any, T}, i, j) where T
@@ -224,3 +237,91 @@ n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
 birth(rips::SparseRips, i) = rips.dist[i, i]
 simplex_type(::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
+
+# This is the coboundary used when distance matrix in AbstractRipsFiltration is sparse.
+struct SparseCoboundary{A, D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::SVector{D, I}
+    ptrs_begin::SVector{D, I}
+    ptrs_end::SVector{D, I}
+end
+
+function SparseCoboundary{A}(
+    filtration::F, simplex::IndexedSimplex{D, <:Any, I}
+) where {A, D, I, F}
+    verts = vertices(simplex)
+    colptr = dist(filtration).colptr
+    ptrs_begin = colptr[verts .+ 1]
+    ptrs_end = colptr[verts]
+    return SparseCoboundary{A, D + 1, I, F, typeof(simplex)}(
+        filtration, simplex, verts, ptrs_begin, ptrs_end
+    )
+end
+
+function coboundary(
+    rips::AbstractRipsFiltration, sx::IndexedSimplex, ::Val{A}=Val(true)
+) where A
+    if dist(rips) isa SparseMatrixCSC
+        return SparseCoboundary{A}(rips, sx)
+    else
+        return IndexedCoboundary{A}(rips, sx)
+    end
+end
+
+@propagate_inbounds @inline function next_common(
+    ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
+) where D
+    # could also indicate when m is equal to one of the points
+    ptrs = ptrs .- 1
+    for i in 1:D
+        ptrs[i] < ptrs_end[i] && return zero(ptrs), 0
+    end
+    m = rowval[ptrs[2]]
+    i = 1
+    while true
+        ptrs_i = ptrs[i]
+        row = rowval[ptrs_i]
+        while row > m
+            ptrs -= SVector(ntuple(isequal(i), Val(D)))
+            ptrs_i -= 1
+            ptrs_i < ptrs_end[i] && return zero(ptrs), zero(eltype(rowval))
+            row = rowval[ptrs_i]
+        end
+        i = ifelse(row == m, i + 1, 1)
+        i > D && return ptrs, m
+        m = row
+    end
+end
+next_common(ptrs::SVector{0}, _::SVector{0}, _) = error()
+
+function Base.iterate(
+    it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)
+) where {A, D, I}
+    rowval = dist(it.filtration).rowval
+    nzval = dist(it.filtration).nzval
+    @inbounds while true
+        ptrs, v = next_common(ptrs, it.ptrs_end, rowval)
+        if iszero(first(ptrs))
+            return nothing
+        elseif k > 0 && v == it.vertices[end + 1 - k]
+            k -= 1
+        else
+            while k > 0 && v < it.vertices[end + 1 - k]
+                k -= 1
+            end
+            !A && k ≠ D && return nothing
+
+            sign = ifelse(iseven(k), 1, -1)
+            new_vertices = insert(it.vertices, D - k + 1, v)
+            new_edges = nzval[ptrs]
+            sx = unsafe_cofacet(
+                it.filtration, it.simplex, new_vertices, v, new_edges, sign
+            )
+            if !isnothing(sx)
+                _sx::simplex_type(it.filtration, D) = sx
+                return _sx, (ptrs, k)
+            end
+        end
+    end
+end

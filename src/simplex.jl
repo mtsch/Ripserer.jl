@@ -182,12 +182,12 @@ end
 index(vertex::Integer) = vertex
 
 # (co)boundaries ========================================================================= #
-struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
+struct IndexedCoboundary{all_cofaces, D, I, F, S<:IndexedSimplex}
     filtration::F
     simplex::S
     vertices::NTuple{D, I}
 
-    function IndexedCobounary{A}(
+    function IndexedCoboundary{A}(
         filtration::F, simplex::S
     ) where {A, D, I, F, S<:IndexedSimplex{D, <:Any, I}}
         return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
@@ -195,11 +195,11 @@ struct IndexedCobounary{all_cofaces, D, I, F, S<:IndexedSimplex}
 end
 
 function coboundary(filtration, simplex::IndexedSimplex, ::Val{A}=Val(true)) where A
-    return IndexedCobounary{A}(filtration, simplex)
+    return IndexedCoboundary{A}(filtration, simplex)
 end
 
 function Base.iterate(
-    ci::IndexedCobounary{all_cofaces, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+    ci::IndexedCoboundary{all_cofaces, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
 ) where {all_cofaces, D, I}
     @inbounds while true
         v -= one(I)

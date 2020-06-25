@@ -21,7 +21,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
         rev = Base.Order.Reverse
 
         @testset "ReducedMatrix with simplex type $S and field type $T" begin
-            @testset "a fresh ReducedMatrix is empty even if you commit nothing." begin
+            @testset "a fresh ReducedMatrix is empty even if you commit nothing" begin
                 matrix = ReducedMatrix{C, SE}(fwd)
                 commit!(matrix, columns[1], T(2))
 
@@ -231,7 +231,7 @@ end
     end
 end
 
-@testset "ReducedMatrix" begin
+@testset "ReductionMatrix" begin
     for Co in (true, false),
         S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}),
         T in (Mod{3}, Rational{Int})

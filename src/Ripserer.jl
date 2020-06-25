@@ -24,7 +24,7 @@ using StaticArrays
 using TupleTools
 
 # reexporting basics these makes Ripserer usable without having to import another package.
-import PersistenceDiagrams: birth, threshold
+import PersistenceDiagrams: birth, threshold, dim
 export
     birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
