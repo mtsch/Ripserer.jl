@@ -109,7 +109,7 @@ can have. Used only for placing the infinity line in plotting. Defaults to `miss
 threshold(::AbstractFiltration) = Inf
 
 """
-    postprocess_diagram(::AbstractFiltration, interval)
+    postprocess_interval(::AbstractFiltration, interval)
 
 This function is called on each resulting persistence interval. The default implementation
 does nothing.
