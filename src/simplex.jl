@@ -14,7 +14,6 @@ By defining the [`index`](@ref), a default implementation of `sign`, `isless`,
 * `IndexedSimplex{D[, T, I]}(index::I, diam::T)` - constructor.
 * `IndexedSimplex{D[, T, I]}(vertices::NTuple{D+1, I}, diam::T)` - constructor.
 * [`diam(::AbstractSimplex)`](@ref)
-* [`coface_type(::AbstractSimplex)`](@ref)
 * [`index(::IndexedSimplex)`](@ref)
 """
 abstract type IndexedSimplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I} end

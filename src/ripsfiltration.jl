@@ -1,9 +1,8 @@
 """
     AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration
 
-An abstract Vietoris-Rips filtration. Its subtypes can overload
-[`dist`](@ref)`(::AbstractRipsFiltration{T}, u, v)::Union{T, Missing}` and get the following
-default implementations.
+An abstract Vietoris-Rips filtration. Its subtypes can overload [`dist`](@ref) and get the
+following default implementations.
 
 * [`edges`](@ref)
 * [`simplex_type`](@ref).
@@ -17,9 +16,8 @@ abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
     dist(::AbstractRipsFiltration, u, v)
     dist(::AbstractRipsFiltration)
 
-Return the distance between vertices `u` and `v`. If the distance is higher than the
-threshold, return `missing` instead. If `u` and `v` are not given, return the distance
-matrix.
+Return the distance between vertices `u` and `v`. If the distance is somehow invalid, it may
+return `missing` instead. If `u` and `v` are not given, return the distance matrix.
 """
 dist(::AbstractRipsFiltration, ::Any, ::Any)
 
@@ -126,8 +124,7 @@ end
 """
     distances(metric, points[, births])
 
-Return distance matrix calculated from `points` with `metric`. If given, add birth times
-from `births` to the diagonal.
+Return distance matrix calculated from `points` with `metric`.
 """
 function distances(metric, points)
     isempty(points) && throw(ArgumentError("`points` must be nonempty"))
@@ -141,9 +138,9 @@ end
 """
     default_rips_threshold(dists)
 
-The default threshold is equal to the radius of the input space. At this threshold, all
-vertices are connected to a vertex `x` and the homology becomes trivial. If any of the
-distances is negative, default threshold defaults to `typemax(eltype(dists))`.
+The default threshold is equal to the radius of the input space. At this threshold, there
+exists a vertex ``v`` such that all vertices are connected to it and the homology becomes
+trivial.
 """
 function default_rips_threshold(dists::AbstractMatrix{T}) where T
     return minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
@@ -155,10 +152,12 @@ end
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
+Threshold defaults to radius of input space.
+
 # Constructors
 
-* `Rips(distance_matrix; threshold=default_rips_threshold(dist))`
-* `Rips(points; metric=Euclidean(), threshold=default_rips_threshold(dist))`
+* `Rips(distance_matrix; threshold=nothing)`
+* `Rips(points; metric=Euclidean(), threshold=nothing)`
 * `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
 """
 struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I, T}
@@ -170,7 +169,7 @@ function Rips{I}(
     dist::AbstractMatrix{T}; threshold=nothing
 ) where {I, T}
     issymmetric(dist) ||
-        throw(ArgumentError("`dist` must be a distance matrix"))
+        throw(ArgumentError("`dist` must be symmetric"))
     !issparse(dist) ||
         throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
     thresh = isnothing(threshold) ? default_rips_threshold(dist) : T(threshold)
@@ -196,7 +195,7 @@ birth(rips::Rips, i) = rips.dist[i, i]
 """
     SparseRips{I, T} <: AbstractRipsFiltration{T, Simplex}
 
-This type represents a filtration of Vietoris-Rips complexes.
+This type represents a sparse filtration of Vietoris-Rips complexes.
 The distance matrix will be converted to a sparse matrix with all values greater than
 threshold deleted. Off-diagonal zeros in the matrix are treated as `missing`. Diagonal items
 are treated as vertex birth times.
@@ -207,21 +206,21 @@ are treated as vertex birth times.
 * `SparseRips(distance_matrix; threshold=nothing)`: `I` sets the integer size used to
   represent simplices.
 """
-struct SparseRips{I, T, A<:AbstractSparseMatrix{T}} <: AbstractRipsFiltration{I, T}
-    dist::A
+struct SparseRips{I, T} <: AbstractRipsFiltration{I, T}
+    dist::SparseMatrixCSC{T, Int}
     threshold::T
 end
 
 function SparseRips{I}(
     dist::AbstractMatrix{T}; threshold=nothing
 ) where {I, T}
-    issymmetric(dist) || throw(ArgumentError("`dist` must be a distance matrix"))
+    issymmetric(dist) || throw(ArgumentError("`dist` must be symmetric"))
     if isnothing(threshold)
         threshold = issparse(dist) ? maximum(dist) : default_rips_threshold(dist)
     end
     dists = SparseArrays.fkeep!(SparseMatrixCSC(dist), (_, _, v) -> v ≤ threshold)
 
-    return SparseRips{I, T, typeof(dists)}(dists, threshold)
+    return SparseRips{I, T}(dists, threshold)
 end
 function SparseRips(dist; threshold=nothing)
     return SparseRips{Int}(dist; threshold=threshold)

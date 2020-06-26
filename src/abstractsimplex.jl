@@ -16,10 +16,8 @@ actually needed for the main algorithm.
 * [`Base.:-(::AbstractSimplex)`](@ref)
 * `Base.isless(::AbstractSimplex, ::AbstractSimplex)`
 * [`vertices(::AbstractSimplex)`](@ref)
-* [`coface_type(::AbstractSimplex)`](@ref)
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
-* [`face_type(::AbstractSimplex)`](@ref) - only required for homology.
-* [`boundary(::Any, ::AbstractSimplex)`](@ref) - only required for homology.
+* [`boundary(::Any, ::AbstractSimplex)`](@ref)
 * `length(::Type{AbstractSimplex})` - only if `D`-simplexs does not have `D + 1` vertices.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
@@ -46,7 +44,6 @@ function Base.show(io::IO, sx::AbstractSimplex{D}) where D
     print(io, nameof(typeof(sx)), "{", D, "}(",
           sign(sx) == 1 ? :+ : :-, vertices(sx), ", ", diam(sx), ")")
 end
-
 
 """
     diam(simplex::AbstractSimplex)
@@ -95,41 +92,6 @@ Reverse the simplex orientation.
 Base.:-(::AbstractSimplex)
 Base.:+(sx::AbstractSimplex) = sx
 
-
-"""
-    coface_type(::AbstractSimplex)
-    coface_type(::Type{<:AbstractSimplex})
-
-Get the type of simplex's coface. For a `D`-dimensional simplex, this is usually its
-`D+1`-dimensional counterpart. Only the method for the type needs to be implemented.
-
-```jldoctest
-coface_type(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
-Simplex{3, Float64, Int}
-```
-"""
-coface_type(sx::AbstractSimplex) = coface_type(typeof(sx))
-
-"""
-    face_type(::AbstractSimplex)
-    face_type(::Type{<:AbstractSimplex})
-
-Get the type of a simplex's face. For a `D`-dimensional simplex, this is usually its
-`D-1`-dimensional counterpart. Only the method for the type needs to be implemented.
-
-```jldoctest
-face_type(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
-Simplex{1, Float64, Int}
-```
-"""
-face_type(sx::AbstractSimplex) = face_type(typeof(sx))
-
 """
     dim(::AbstractSimplex)
     dim(::Type{<:AbstractSimplex})
@@ -152,8 +114,7 @@ Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 """
     vertices(simplex::AbstractSimplex{dim})
 
-Get the vertices of `simplex`. Returns `NTuple{dim+1, Int}`. In the algorithm, only the
-method for 2-simplices is actually used.
+Get the vertices of `simplex`. Returns `SVector{length(simplex), Int}`.
 
 ```jldoctest
 vertices(Simplex{2}((3, 2, 1), 3.2))
@@ -175,6 +136,8 @@ vertices(::AbstractSimplex)
 Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
 and validity of cofacets. If `all_cofacets` is `false`, only return cofaces with vertices
 added to the beginning of vertex list.
+
+Comes with a default implementation.
 
 ```jldoctest coboundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
@@ -209,6 +172,8 @@ end
 
 Iterate over the boundary of `simplex`. Use the `filtration` to determine the diameters
 and validity of cofacets.
+
+Comes with a default implementation.
 
 ```jldoctest boundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])

@@ -29,7 +29,11 @@ Ripserer.simplex
 ```
 
 ```@docs
-Ripserer.cofacet
+Ripserer.unsafe_simplex
+```
+
+```@docs
+Ripserer.unsafe_cofacet
 ```
 
 ```@docs

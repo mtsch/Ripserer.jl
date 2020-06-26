@@ -8,14 +8,13 @@ simplices.
 
 * [`n_vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
-* [`diam(::AbstractFiltration, vertices)`](@ref)
-* [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref) - only used when
-  [`simplex_type`](@ref) is an [`IndexedSimplex`](@ref).
 * [`simplex_type(::AbstractFiltration, dim)`](@ref)
-* [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
-* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `Inf`.
-* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref) - optional
-  postprocessing function that is applied to each interval in resulting persistence diagram.
+* [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
+* [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
+* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges, sign])`
+* [`birth(::AbstractFiltration, v)`](@ref)
+* [`threshold(::AbstractFiltration)`](@ref)
+* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration end
 
@@ -44,7 +43,7 @@ n_vertices(::AbstractFiltration)
     edges(filtration::AbstractFiltration)
 
 Get edges (1-simplices) in `filtration`. Edges should be of type
-[`simplex_type`](@ref)(filtration, 1)`.
+[`simplex_type`](@ref)`(filtration, 1)`.
 """
 edges(::AbstractFiltration)
 
@@ -70,11 +69,6 @@ end
 Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
 if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
 to ensure vertices are sorted and unique.
-
-# See also
-
-* [`simplex`](@ref)
-* [`unsafe_cofacet`](@ref)
 """
 unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
 
@@ -113,7 +107,7 @@ birth(::AbstractFiltration, _) = false # false is a strong zero.
     threshold(::AbstractFiltration)
 
 Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
-can have. Used only for placing the infinity line in plotting. Defaults to `missing`.
+can have. Defaults to `Inf`.
 """
 threshold(::AbstractFiltration) = Inf
 
