@@ -36,27 +36,15 @@ end
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cube::Cubelet{D, T, I}) where {D, T, I}
-    print(io, D, "-dim Cubelet", (index(cube), diam(cube)))
-    print(io, ":\n  $(sign(cube) == 1 ? '+' : '-')$(vertices(cube))")
-end
-
-function Base.show(io::IO, cube::Cubelet{D, M}) where {D, M}
-    print(io, "Cubelet{$D}($(sign(cube) == 1 ? '+' : '-')$(vertices(cube)), $(diam(cube)))")
-end
-
 index(cube::Cubelet) = cube.index
 diam(cube::Cubelet) = cube.diam
-coface_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D + 1, T, I}
-face_type(::Type{Cubelet{D, T, I}}) where {D, T, I} = Cubelet{D - 1, T, I}
 
 # @generated used because inference doesn't work well for 2^D
 @generated function vertices(cube::Cubelet{D, <:Any, I}) where {D, I}
     return :(vertices(index(cube), Val($(2^D))))
 end
 
-Base.lastindex(::Cubelet{D}) where D = 2^D
-Base.size(::Cubelet{D}) where D = (2^D,)
+Base.length(::Type{<:Cubelet{D}}) where D = 1 << D
 
 """
     Cubical{I<:Signed, T} <: AbstractFiltration
@@ -87,53 +75,79 @@ birth(cf::Cubical, i) = cf.data[i]
 simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
 
 dim(cf::Cubical) = length(size(cf.data))
-Base.CartesianIndices(cf::Cubical) = CartesianIndices(cf.data)
-Base.LinearIndices(cf::Cubical) = LinearIndices(cf.data)
 
-function diam(cf::Cubical{<:Any, T}, vertices) where {T}
-    res = typemin(T)
+function to_linear(cf::Cubical{I}, vertices) where I
+    indices = LinearIndices(cf.data)
+    return map(v -> I(get(indices, v, 0)), vertices)
+end
+function to_cartesian(cf::Cubical, vertices)
+    indices = CartesianIndices(cf.data)
+    return map(v -> indices[v], vertices)
+end
+
+function unsafe_simplex(
+    cf::Cubical{I, T}, ::Val{D}, vertices, sign=one(I)
+) where {I, T, D}
+    diam = typemin(T)
     for v in vertices
-        if isnothing(get(cf.data, v, nothing))
-            return missing
+        d = get(cf.data, v, missing)
+        if ismissing(d)
+            return nothing
         else
-            res = max(res, cf.data[v])
+            _d::T = d
+            diam = ifelse(_d > diam, _d, diam)
         end
     end
-    return res
+    return simplex_type(cf, D)(sign * index(vertices), diam)
+end
+
+# Check if linear indices u and v are adjacent in array arr.
+function is_adjacent(arr, u, v)
+    if isassigned(arr, u) && isassigned(arr, v)
+        diff = Tuple(CartesianIndices(arr)[u] - CartesianIndices(arr)[v])
+        ones = abs.(diff) .== 1
+        zeros = diff .== 0
+        return count(ones) == 1 && count(zeros) == length(diff) - 1
+    else
+        return false
+    end
 end
 
 function edges(cf::Cubical{I, <:Any}) where {I}
-    E = edge_type(cf)
-    result = E[]
-    for u_lin in eachindex(cf.data)
-        u_car = CartesianIndices(cf)[u_lin]
+    result = edge_type(cf)[]
+    for u in eachindex(cf.data)
         for d in 1:dim(cf)
-            v_car = u_car + CartesianIndex{dim(cf)}(ntuple(i -> i == d ? 1 : 0, dim(cf)))
-            if v_car in CartesianIndices(cf)
-                v_lin = LinearIndices(cf)[v_car]
-                push!(result, E(
-                    index((I(v_lin), I(u_lin))), max(cf.data[u_lin], cf.data[v_lin])
-                ))
+            if d == 1
+                v = u + 1
+            else
+                v = u + prod(size(cf.data, i) for i in 1:d - 1)
+            end
+            if is_adjacent(cf.data, u, v)
+                sx = unsafe_simplex(cf, Val(1), (v, u), 1)
+                if !isnothing(sx)
+                    _sx::edge_type(cf) = sx
+                    push!(result, _sx)
+                end
             end
         end
     end
-    return sort!(result)
+    return result
 end
 
 # coboundary ============================================================================= #
-struct CubeletCoboundary{A, I, N, C<:Cubelet, F<:Cubical{I}, K}
+struct CubeletCoboundary{A, D, N, I, F<:Cubical{I}, K}
     filtration::F
-    cubelet::C
-    vertices::SVector{K, CartesianIndex{N}}
+    vertices::NTuple{K, CartesianIndex{N}}
 end
 
 function CubeletCoboundary{A}(
     filtration::F, cubelet::C
-) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D, <:Any, I}}
-    K = length(cubelet)
+) where {A, I, D, F<:Cubical{I}, C<:Cubelet{D}}
+    K = length(C)
     N = dim(filtration)
-    vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    return CubeletCoboundary{A, I, N, C, F, K}(filtration, cubelet, vxs)
+    return CubeletCoboundary{A, D, N, I, F, K}(
+        filtration, to_cartesian(filtration, Tuple(vertices(cubelet)))
+    )
 end
 
 function coboundary(filtration::Cubical, cubelet::Cubelet)
@@ -151,40 +165,51 @@ function all_equal_in_dim(dim, vertices)
     return true
 end
 
+# Type safe way to get half of tuple a-la TupleTools.
+function second_half(tup::NTuple{N}) where N
+    return _half(tup, Val(N÷2), TupleTools.unsafe_tail)
+end
+function first_half(tup::NTuple{N}) where N
+    return _half(tup, Val(N÷2), TupleTools.unsafe_front)
+end
+@inline function _half(tup, ::Val{N}, f) where N
+    if N == 0
+        return tup
+    else
+        return _half(f(tup), Val(N-1), f)
+    end
+end
+
 function Base.iterate(
-    cc::CubeletCoboundary{A, I, N, C}, (dim, dir)=(one(I), one(I))
-) where {A, I, N, C}
-    # If not all indices in a given dimension are equal, we can't create a coface by
-    # expanding in that direction.
+    cc::CubeletCoboundary{A, D, N, I}, (dim, dir)=(one(I), one(I))
+) where {A, D, N, I}
     while true
+        # Idea: expand cube by adding vertices that have ±1 added to one of the dimensions
+        # where all old vertices have the same value.
         while dim ≤ N && !all_equal_in_dim(dim, cc.vertices)
             dim += one(I)
         end
-        if dim > N
-            break
-        end
+        dim > N && return nothing
 
-        diff = CartesianIndex{N}(ntuple(isequal(dim), N) .* dir)
-        new_vertices = cc.vertices .+ Ref(diff)
-        diameter = max(diam(cc.cubelet), diam(cc.filtration, new_vertices))
-
+        diff = CartesianIndex{N}(ntuple(isequal(dim), Val(N)) .* dir)
+        new_vertices = TupleTools.sort(to_linear(
+            cc.filtration, TupleTools.vcat(cc.vertices, cc.vertices .+ Ref(diff))
+        ), rev=true)
         dim += I(dir == -1)
         dir *= -one(I)
-
-        if !ismissing(diameter)
-            all_vertices = sort(map(v -> I(LinearIndices(cc.filtration)[v]),
-                                    vcat(cc.vertices, new_vertices)), rev=true)
-            if A || all_vertices[end÷2+1:end] == LinearIndices(cc.filtration)[cc.vertices]
-                return coface_type(C)(-dir * index(all_vertices), diameter), (dim, dir)
+        if A || second_half(new_vertices) == to_linear(cc.filtration, cc.vertices)
+            sx = unsafe_simplex(cc.filtration, Val(D + 1), new_vertices, -dir)
+            if !isnothing(sx)
+                _sx::simplex_type(cc.filtration, D + 1) = sx
+                return _sx, (dim, dir)
             end
         end
     end
 end
 
-struct CubeletBoundary{D, I, C<:Cubelet, N, F<:Cubical{I}, K}
+struct CubeletBoundary{D, I, N, F<:Cubical{I}, K}
     filtration::F
-    cubelet::C
-    vertices::SVector{K, CartesianIndex{N}}
+    vertices::NTuple{K, CartesianIndex{N}}
 end
 
 function CubeletBoundary(
@@ -192,34 +217,34 @@ function CubeletBoundary(
 ) where {D, I, F<:Cubical{I}, C<:Cubelet{D}}
     K = length(cubelet)
     N = dim(filtration)
-    vxs = map(v -> CartesianIndices(filtration)[v], vertices(cubelet))
-    return CubeletBoundary{D, I, C, N, F, K}(filtration, cubelet, vxs)
+    return CubeletBoundary{D, I, N, F, K}(
+        filtration, to_cartesian(filtration, Tuple(vertices(cubelet)))
+    )
 end
 
 boundary(filtration::Cubical, cubelet::Cubelet) = CubeletBoundary(filtration, cubelet)
 
-function first_half(vec::SVector{K, T}) where {K, T}
-    SVector{K÷2, T}(Tuple(vec)[1:K÷2])
-end
-function second_half(vec::SVector{K, T}) where {K, T}
-    SVector{K÷2, T}(Tuple(vec)[K÷2+1:K])
-end
-
-# Idea: split the cube in each dimension, returning two halves depending on dir.
-function Base.iterate(cb::CubeletBoundary{D, I, C}, (dim, dir)=(1, 1)) where {D, I, C}
+# Idea: split the cube in each dimension, returning one of two halves depending on dir.
+function Base.iterate(cb::CubeletBoundary{D, I}, (dim, dir)=(1, 1)) where {D, I}
     if dim > D
         return nothing
     else
-        lin_vertices = map(v -> I(LinearIndices(cb.filtration)[v]),
-                           sort(cb.vertices, by=v -> v[dim], rev=true))
+        lin_vertices = to_linear(
+            cb.filtration, TupleTools.sort(cb.vertices, by=v -> v[dim], rev=true)
+        )
         if dir == 1
             new_vertices = first_half(lin_vertices)
-            diameter = diam(cb.filtration, new_vertices)
-            return face_type(C)(new_vertices, diameter), (dim, -dir)
+            sign = one(I)
+            state = (dim, -dir)
         else
             new_vertices = second_half(lin_vertices)
-            diameter = diam(cb.filtration, new_vertices)
-            return -face_type(C)(new_vertices, diameter), (dim + 1, 1)
+            sign = -one(I)
+            state = (dim + 1, 1)
+        end
+        sx = simplex(cb.filtration, Val(D - 1), new_vertices, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(cb.filtration, D - 1) = sx
+            return _sx, state
         end
     end
 end

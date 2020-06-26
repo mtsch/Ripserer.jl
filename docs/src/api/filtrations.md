@@ -13,14 +13,6 @@ Ripserer.edges(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-Ripserer.diam(::Ripserer.AbstractFiltration, ::Any)
-```
-
-```@docs
-Ripserer.diam(::Ripserer.AbstractFiltration, ::Ripserer.AbstractSimplex, ::Any, ::Any)
-```
-
-```@docs
 Ripserer.birth(::Ripserer.AbstractFiltration, ::Any)
 ```
 
@@ -30,6 +22,18 @@ Ripserer.threshold(::Ripserer.AbstractFiltration)
 
 ```@docs
 Ripserer.simplex_type
+```
+
+```@docs
+Ripserer.simplex
+```
+
+```@docs
+Ripserer.unsafe_simplex
+```
+
+```@docs
+Ripserer.unsafe_cofacet
 ```
 
 ```@docs

@@ -1,20 +1,28 @@
 using Ripserer
 using StaticArrays
 
-using Ripserer: small_binomial, boundary, coboundary, face_type, coface_type, index
+using Ripserer: small_binomial, boundary, coboundary, index
 using ..TestHelpers: test_indexed_simplex_interface
 
-struct FakeFiltration end
-Ripserer.diam(::FakeFiltration, args...) =
-    1
-Ripserer.n_vertices(::FakeFiltration) =
-    20
+struct FakeFiltration<:Ripserer.AbstractFiltration end
+function Ripserer.unsafe_simplex(::FakeFiltration, ::Val{D}, vertices, sign=1) where D
+    return Simplex{D, Int, Int}(sign * index(vertices), 1)
+end
+Ripserer.n_vertices(::FakeFiltration) = 20
+Ripserer.simplex_type(::FakeFiltration, D) = Simplex{D, Int, Int}
 
-struct FakeFiltrationWithThreshold end
-Ripserer.diam(::FakeFiltrationWithThreshold, _, _, v) =
-    v ≤ 10 ? 1 : missing
-Ripserer.n_vertices(::FakeFiltrationWithThreshold) =
-    20
+struct FakeFiltrationWithThreshold<:Ripserer.AbstractFiltration end
+function Ripserer.unsafe_simplex(
+    ::FakeFiltrationWithThreshold, ::Val{D}, vertices, sign=1
+) where D
+    if maximum(vertices) > 10
+        return nothing
+    else
+        return Simplex{D, Int, Int}(sign * index(vertices), 1)
+    end
+end
+Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
+Ripserer.simplex_type(::FakeFiltrationWithThreshold, D) = Simplex{D, Int, Int}
 
 @testset "Binomials" begin
     @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
@@ -54,38 +62,38 @@ end
 
     end
     @testset "coboundary" begin
-        @testset "number of cofaces" begin
+        @testset "number of cofacets" begin
             for dim in 1:10
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
-                cob = coface_type(simplex)[]
-                for coface in coboundary(FakeFiltration(), simplex)
-                    push!(cob, coface)
+                cob = []
+                for cofacet in coboundary(FakeFiltration(), simplex)
+                    push!(cob, cofacet)
                 end
                 @test length(cob) == 20 - dim - 1
                 @test all(isequal(1), diam.(cob))
                 @test all(issubset(simplex_vxs, vertices(c)) for c in cob)
             end
         end
-        @testset "number of cofaces, all_cofaces=false" begin
+        @testset "number of cofacets, all_cofacets=false" begin
             for dim in 1:5
                 cob = Simplex{dim+1, Int, Int}[]
                 for idx in binomial(20, dim+1):-1:1
                     simplex = Simplex{dim}(idx, 1)
-                    for coface in coboundary(FakeFiltration(), simplex, Val(false))
-                        push!(cob, coface)
+                    for cofacet in coboundary(FakeFiltration(), simplex, Val(false))
+                        push!(cob, cofacet)
                     end
                 end
                 @test sort(index.(abs.(cob))) == 1:binomial(20, dim+2)
             end
         end
-        @testset "number of cofaces, thresholding" begin
+        @testset "number of cofacets, thresholding" begin
             for dim in 1:8 # at 9, simplex with index 10 becomes invalid.
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
-                cob = coface_type(simplex)[]
-                for coface in coboundary(FakeFiltrationWithThreshold(), simplex)
-                    push!(cob, coface)
+                cob = []
+                for cofacet in coboundary(FakeFiltrationWithThreshold(), simplex)
+                    push!(cob, cofacet)
                 end
                 @test length(cob) == 10 - dim - 1
                 @test all(isequal(1), diam.(cob))
@@ -100,11 +108,11 @@ end
                 @static if VERSION ≥ v"1.1.0"
                     @test begin @inferred Union{
                         Nothing,
-                        Tuple{coface_type(simplex), Tuple{Int, Int}},
+                        Tuple{Simplex{dim + 1, Int, Int}, Tuple{Int, Int}},
                     } iterate(cobiter); true end
                     @test begin @inferred Union{
                         Nothing,
-                        Tuple{coface_type(simplex), Tuple{Int, Int}},
+                        Tuple{Simplex{dim + 1, Int, Int}, Tuple{Int, Int}},
                     } iterate(cobiter, (13, dim+1)); true end
                 end
             end
@@ -112,13 +120,13 @@ end
     end
 
     @testset "boundary" begin
-        @testset "number of faces" begin
+        @testset "number of facets" begin
             for dim in 1:10
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
-                bnd = face_type(simplex)[]
-                for face in boundary(FakeFiltration(), simplex)
-                    push!(bnd, face)
+                bnd = []
+                for facet in boundary(FakeFiltration(), simplex)
+                    push!(bnd, facet)
                 end
                 @test length(bnd) == dim + 1
                 @test all(isequal(1), diam.(bnd))
@@ -133,11 +141,11 @@ end
                 @static if VERSION ≥ v"1.1.0"
                     @test begin @inferred Union{
                         Nothing,
-                        Tuple{face_type(simplex), Int},
+                        Tuple{Simplex{dim - 1, Int, Int}, Int},
                     } iterate(biter); true end
                     @test begin @inferred Union{
                         Nothing,
-                        Tuple{face_type(simplex), Int},
+                        Tuple{Simplex{dim - 1, Int, Int}, Int},
                     } iterate(biter, 1); true end
                 end
             end

@@ -2,15 +2,24 @@ using Ripserer
 
 using Random
 
-using Ripserer: chain_element_type, coefficient, coface_type, face_type, index
+using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
 using Ripserer: WorkingBoundary, nonheap_push!, get_pivot!, repair!
-using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, next_matrix
+using Ripserer: ReductionMatrix, simplex_type, simplex_element, facet_element, next_matrix
+
+cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
+    Cubelet{D + 1, T, I}
+cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
+    Simplex{D + 1, T, I}
+facet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
+    Cubelet{D - 1, T, I}
+facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
+    Simplex{D - 1, T, I}
 
 @testset "ReducedMatrix" begin
     for S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}), T in (Mod{3}, Rational{Int})
-        C = coface_type(S)
+        C = cofacet_type(S)
         CE = chain_element_type(C, T)
         SE = chain_element_type(S, T)
 
@@ -21,7 +30,7 @@ using Ripserer: ReductionMatrix, simplex_type, simplex_element, face_element, ne
         rev = Base.Order.Reverse
 
         @testset "ReducedMatrix with simplex type $S and field type $T" begin
-            @testset "a fresh ReducedMatrix is empty even if you commit nothing." begin
+            @testset "a fresh ReducedMatrix is empty even if you commit nothing" begin
                 matrix = ReducedMatrix{C, SE}(fwd)
                 commit!(matrix, columns[1], T(2))
 
@@ -231,7 +240,7 @@ end
     end
 end
 
-@testset "ReducedMatrix" begin
+@testset "ReductionMatrix" begin
     for Co in (true, false),
         S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}),
         T in (Mod{3}, Rational{Int})
@@ -243,7 +252,7 @@ end
         co_str = Co ? "Coh" : "H"
 
         SE = chain_element_type(S, T)
-        F = Co ? coface_type(S) : face_type(S)
+        F = Co ? cofacet_type(S) : facet_type(S)
         FE = chain_element_type(F, T)
 
         @testset "$(co_str)omology, $S, $T" begin
@@ -257,7 +266,7 @@ end
 
                 @test simplex_type(matrix) == S
                 @test simplex_element(matrix) == SE
-                @test face_element(matrix) == FE
+                @test facet_element(matrix) == FE
                 @test dim(matrix) == (Co ? dim(S) : dim(S) - 1)
             end
 

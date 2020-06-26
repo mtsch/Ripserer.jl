@@ -100,6 +100,24 @@ end
         @test d1_3 == d1_331 == d1_r == []
         @test d2_3 == d2_331 == d1_r == []
     end
+    @testset "Equal to Rips" begin
+        for thresh in (nothing, 1, 0.5, 0.126)
+            data = rand_torus(100)
+            r_res = ripserer(data, threshold=thresh, dim_max=2)
+            s_res_1 = ripserer(SparseRips(data, threshold=thresh), dim_max=2)
+
+            # Add zeros to diagonal. Adding ones first actually changes the structure of
+            # the matrix.
+            data2 = sparse(data)
+            for i in axes(data2, 1)
+                data2[i, i] = 1
+                data2[i, i] = 0
+            end
+            s_res_2 = ripserer(data2, threshold=thresh, dim_max=2)
+
+            @test r_res == s_res_1 == s_res_2
+        end
+    end
 end
 
 @testset "Representatives" begin
@@ -301,8 +319,12 @@ Ripserer.n_vertices(::CustomRips) = 10
 end
 
 struct CustomFiltration <: Ripserer.AbstractFiltration end
-Ripserer.diam(::CustomFiltration, ::Simplex, _, _) = 1
-Ripserer.diam(::CustomFiltration, _) = 1
+function Ripserer.unsafe_simplex(::CustomFiltration, ::Val{0}, (v,), sign=1)
+    return Simplex{0}(sign * v, 0)
+end
+function Ripserer.unsafe_simplex(::CustomFiltration, ::Val{D}, vertices, sign=1) where D
+    return Simplex{D}(sign * Ripserer.index(vertices), 1)
+end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::CustomFiltration, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)

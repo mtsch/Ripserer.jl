@@ -8,14 +8,13 @@ simplices.
 
 * [`n_vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
-* [`diam(::AbstractFiltration, vertices)`](@ref)
-* [`diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)`](@ref) - only used when
-  [`simplex_type`](@ref) is an [`IndexedSimplex`](@ref).
 * [`simplex_type(::AbstractFiltration, dim)`](@ref)
-* [`birth(::AbstractFiltration, v)`](@ref) - optional, defaults to returning `zero(T)`.
-* [`threshold(::AbstractFiltration)`](@ref) - optional, defaults to returning `Inf`.
-* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref) - optional
-  postprocessing function that is applied to each interval in resulting persistence diagram.
+* [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
+* [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
+* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges, sign])`
+* [`birth(::AbstractFiltration, v)`](@ref)
+* [`threshold(::AbstractFiltration)`](@ref)
+* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration end
 
@@ -43,28 +42,59 @@ n_vertices(::AbstractFiltration)
 """
     edges(filtration::AbstractFiltration)
 
-Get edges in distance matrix in `filtration`, sorted by decresing length and increasing
-combinatorial index. Edges should be of type [`simplex_type`](@ref)(filtration, 1)`.
+Get edges (1-simplices) in `filtration`. Edges should be of type
+[`simplex_type`](@ref)`(filtration, 1)`.
 """
 edges(::AbstractFiltration)
 
 """
-    diam(::AbstractFiltration, vertices)
+     simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
 
-Get the diameter of a simplex with the vertex set `vertices`. Should return `missing` if
-`vertices` do not form a valid simplex.
+Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+if simplex is not in filtration. This function is safe to call with vertices that are out of
+order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref).
 """
-diam(::AbstractFiltration, ::Any)
+function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where D
+    vxs = TupleTools.sort(Tuple(vertices), rev=true)
+    if allunique(vxs) && all(x -> x > 0, vxs)
+        return unsafe_simplex(flt, Val(D), vxs, sign)
+    else
+        throw(ArgumentError("invalid vertices $(vertices)"))
+    end
+end
 
 """
-    diam(::AbstractFiltration, simplex, vertices, new_vertex)
+    unsafe_simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
 
-Get the diameter of coface of a `Simplex` that is formed by adding `new_vertex` to
-`vertices`. Should return `missing` if new simplex is not valid.
-
-This functions is used with the [`coboundary`](@ref) function for [`IndexedSimplex`](@ref)
+Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
+to ensure vertices are sorted and unique.
 """
-diam(::AbstractFiltration, ::AbstractSimplex, ::Any, ::Any)
+unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
+
+"""
+    unsafe_cofacet(filtration, simplex, cofacet_vertices, new_vertex[, edges, sign=1])
+
+Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
+vertex that was added to construct the cofacet. In the case of sparse rips filtrations, an
+additional argument `edges` is used. `edges` is a vector that contains the weights on edges
+connecting the new vertex to old vertices.
+
+The unsafe in the name implies that it's up to the caller to ensure vertices are sorted and
+unique.
+
+Default implementation uses [`unsafe_simplex`](@ref).
+"""
+function unsafe_cofacet(
+    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, sign=1
+) where D
+    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
+end
+function unsafe_cofacet(
+    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, edges::SVector, sign=1
+) where D
+    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
+end
 
 """
     birth(::AbstractFiltration, v)
@@ -77,12 +107,12 @@ birth(::AbstractFiltration, _) = false # false is a strong zero.
     threshold(::AbstractFiltration)
 
 Get the threshold of filtration. This is the maximum diameter a simplex in the filtration
-can have. Used only for placing the infinity line in plotting. Defaults to `missing`.
+can have. Defaults to `Inf`.
 """
 threshold(::AbstractFiltration) = Inf
 
 """
-    postprocess_diagram(::AbstractFiltration, interval)
+    postprocess_interval(::AbstractFiltration, interval)
 
 This function is called on each resulting persistence interval. The default implementation
 does nothing.

@@ -16,12 +16,34 @@ actually needed for the main algorithm.
 * [`Base.:-(::AbstractSimplex)`](@ref)
 * `Base.isless(::AbstractSimplex, ::AbstractSimplex)`
 * [`vertices(::AbstractSimplex)`](@ref)
-* [`coface_type(::AbstractSimplex)`](@ref)
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
-* [`face_type(::AbstractSimplex)`](@ref) - only required for homology.
-* [`boundary(::Any, ::AbstractSimplex)`](@ref) - only required for homology.
+* [`boundary(::Any, ::AbstractSimplex)`](@ref)
+* `length(::Type{AbstractSimplex})` - only if `D`-simplexs does not have `D + 1` vertices.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
+
+Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
+function Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+function Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex
+    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
+end
+Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))
+
+Base.iterate(sx::AbstractSimplex) = iterate(vertices(sx))
+Base.getindex(sx::AbstractSimplex, i) = vertices(sx)[i]
+Base.firstindex(::AbstractSimplex) = 1
+Base.lastindex(sx::AbstractSimplex) = length(sx)
+Base.size(sx::AbstractSimplex) = (length(sx),)
+
+Base.length(sx::AbstractSimplex) = length(typeof(sx))
+Base.length(::Type{<:AbstractSimplex{D}}) where D = D + 1
+
+function Base.show(io::IO, sx::AbstractSimplex{D}) where D
+    print(io, nameof(typeof(sx)), "{", D, "}(",
+          sign(sx) == 1 ? :+ : :-, vertices(sx), ", ", diam(sx), ")")
+end
 
 """
     diam(simplex::AbstractSimplex)
@@ -70,49 +92,6 @@ Reverse the simplex orientation.
 Base.:-(::AbstractSimplex)
 Base.:+(sx::AbstractSimplex) = sx
 
-Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
-function Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex
-    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
-end
-function Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex
-    return diam(sx1) == diam(sx2) && vertices(sx1) == vertices(sx2)
-end
-Base.hash(sx::AbstractSimplex, h::UInt64) = hash(vertices(sx), hash(diam(sx), h))
-
-"""
-    coface_type(::AbstractSimplex)
-    coface_type(::Type{<:AbstractSimplex})
-
-Get the type of simplex's coface. For a `D`-dimensional simplex, this is usually its
-`D+1`-dimensional counterpart. Only the method for the type needs to be implemented.
-
-```jldoctest
-coface_type(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
-Simplex{3, Float64, Int}
-```
-"""
-coface_type(sx::AbstractSimplex) = coface_type(typeof(sx))
-
-"""
-    face_type(::AbstractSimplex)
-    face_type(::Type{<:AbstractSimplex})
-
-Get the type of a simplex's face. For a `D`-dimensional simplex, this is usually its
-`D-1`-dimensional counterpart. Only the method for the type needs to be implemented.
-
-```jldoctest
-face_type(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
-Simplex{1, Float64, Int}
-```
-"""
-face_type(sx::AbstractSimplex) = face_type(typeof(sx))
-
 """
     dim(::AbstractSimplex)
     dim(::Type{<:AbstractSimplex})
@@ -135,8 +114,7 @@ Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 """
     vertices(simplex::AbstractSimplex{dim})
 
-Get the vertices of `simplex`. Returns `NTuple{dim+1, Int}`. In the algorithm, only the
-method for 2-simplices is actually used.
+Get the vertices of `simplex`. Returns `SVector{length(simplex), Int}`.
 
 ```jldoctest
 vertices(Simplex{2}((3, 2, 1), 3.2))
@@ -153,12 +131,13 @@ vertices(Simplex{2}((3, 2, 1), 3.2))
 vertices(::AbstractSimplex)
 
 """
-    coboundary(filtration, simplex[, Val{all_cofaces}])
+    coboundary(filtration, simplex[, Val{all_cofacets}])
 
 Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type [`coface_type`](@ref)`(simplex)`. If
-`all_cofaces` is `false`, only return cofaces with vertices added to the beginning of vertex
-list.
+and validity of cofacets. If `all_cofacets` is `false`, only return cofaces with vertices
+added to the beginning of vertex list.
+
+Comes with a default implementation.
 
 ```jldoctest coboundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
@@ -184,13 +163,17 @@ end
   +[4, 3, 1]
 ```
 """
-coboundary(::Any, ::AbstractSimplex)
+function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where A
+    return Coboundary{A}(filtration, simplex)
+end
 
 """
-    boundary(filtration, simplex[, Val{all_cofaces}])
+    boundary(filtration, simplex[, Val{all_cofacets}])
 
 Iterate over the boundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofaces. Iterates values of the type [`face_type`](@ref)`(simplex)`.
+and validity of cofacets.
+
+Comes with a default implementation.
 
 ```jldoctest boundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
@@ -206,4 +189,66 @@ Simplex{2}(-[4, 1], 1)
 Simplex{2}(+[4, 2], 1)
 ```
 """
-boundary(::Any, ::AbstractSimplex)
+boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
+
+# (co)boundaries ========================================================================= #
+struct Coboundary{A, D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
+
+    function Coboundary{A}(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {A, D, I, F}
+        S = typeof(simplex)
+        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+    end
+end
+
+function Base.iterate(
+    ci::Coboundary{A, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+) where {A, D, I}
+    @inbounds while true
+        v -= one(I)
+        while k > 0 && v == ci.vertices[end + 1 - k]
+            A || return nothing
+            v -= one(I)
+            k -= 1
+        end
+        v > 0 || return nothing
+        sign = ifelse(iseven(k), one(I), -one(I))
+        new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
+        sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(ci.filtration, D) = sx
+            return _sx, (v, k)
+        end
+    end
+end
+
+struct Boundary{D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::NTuple{D, I}
+
+    function Boundary(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {D, I, F}
+        S = typeof(simplex)
+        return new{D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+    end
+end
+
+function Base.iterate(bi::Boundary{D, I}, k=1) where {D, I}
+    while k ≤ D
+        facet_vertices = TupleTools.deleteat(bi.vertices, k)
+        k += 1
+        sign = ifelse(iseven(k), one(I), -one(I))
+        sx = unsafe_simplex(bi.filtration, Val(D - 2), facet_vertices, sign)
+        if !isnothing(sx)
+            _sx::simplex_type(bi.filtration, D - 2) = sx
+            return _sx, k
+        end
+    end
+    return nothing
+end

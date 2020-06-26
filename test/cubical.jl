@@ -3,8 +3,7 @@ using Ripserer
 using Compat
 using StaticArrays
 
-using Ripserer: all_equal_in_dim, boundary, coboundary, face_type, coface_type,
-    edges, n_vertices, index
+using Ripserer: all_equal_in_dim, boundary, coboundary, edges, n_vertices, index
 
 data1d = cos.(range(0, 4π, length=1000))
 
@@ -23,8 +22,8 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
 @testset "Cubelet" begin
     test_indexed_simplex_interface(Cubelet, D -> 2^D)
 
-    @testset "Vertices, index." begin
-        @testset "Basics." begin
+    @testset "Vertices, index" begin
+        @testset "Basics" begin
             @test vertices(Cubelet{2}(1, rand())) === SVector{4}(4, 3, 2, 1)
             @test vertices(Cubelet{2}(Int128(2), rand())) === SVector{4, Int128}(5, 3, 2, 1)
             @test vertices(Cubelet{1}(3, rand())) === SVector{2}(3, 2)
@@ -32,7 +31,7 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
             @test vertices(Cubelet{3}(5, rand())) === SVector{8}(9, 8, 7, 6, 4, 3, 2, 1)
         end
 
-        @testset "Index to vertices and back." begin
+        @testset "Index to vertices and back" begin
             for i in 1:20
                 cube = Cubelet{5}(i, rand())
                 @test index(vertices(cube)) == i
@@ -42,7 +41,7 @@ using ..TestHelpers: test_indexed_simplex_interface, test_filtration_interface
             end
         end
     end
-    @testset "Printing." begin
+    @testset "Printing" begin
         @test sprint(print, Cubelet{1}(1, 1)) == "Cubelet{1}(+[2, 1], 1)"
         @test sprint(print, Cubelet{2}(-1, 1)) == "Cubelet{2}(-[4, 3, 2, 1], 1)"
 
@@ -59,37 +58,34 @@ end
 @testset "Cubical" begin
     test_filtration_interface(Cubical, (data1d, data2d, data3d))
 
-    @testset "n_vertices, indices, birth, diam" begin
+    @testset "n_vertices, birth" begin
         for data in (data1d, data2d, data3d)
             filtration = Cubical(data)
 
             @test n_vertices(filtration) == length(data)
-            @test CartesianIndices(filtration) == CartesianIndices(data)
-            @test LinearIndices(filtration) == LinearIndices(data)
             @test birth(filtration, 10) == data[10]
-            @test diam(filtration, (10, 9)) == max(data[10], data[9])
         end
     end
 end
 
-@testset "Coboundary." begin
+@testset "Coboundary" begin
     @testset "all_equal_in_dim" begin
         @test all_equal_in_dim(1, [(1, 1), (1, 2), (1, 3), (1, 4)])
         @test !all_equal_in_dim(2, [(1, 1), (1, 1), (1, 2), (1, 2)])
     end
 
-    @testset "Edges have no coboundary in 1d." begin
+    @testset "Edges have no coboundary in 1d" begin
         cob = Cubelet{2, Float64, Int}[]
         flt = Cubical(data1d)
-        cub = Cubelet{1}((3, 2), diam(flt, (3, 2)))
+        cub = simplex(flt, Val(1), (3, 2))
         for c in coboundary(flt, cub)
             push!(cob, c)
         end
         @test isempty(cob)
     end
 
-    @testset "Coboundary of edges in 2d." begin
-        cob = Cubelet{2, Int, Int}[]
+    @testset "Coboundary of edges in 2d" begin
+        cob = []
         flt = Cubical(data2d)
         cub = Cubelet{1}((10, 9), 1)
         for c in coboundary(flt, cub)
@@ -101,7 +97,7 @@ end
         @test cob[2] == -Cubelet{2}((10, 9, 3, 2), 2)
         @test sign(cob[2]) == -1
 
-        cocob = coface_type(eltype(cob))[]
+        cocob = []
         for c in coboundary(flt, cob[1])
             push!(cocob, c)
         end
@@ -111,14 +107,14 @@ end
         @test isempty(cocob)
     end
 
-    @testset "Dimaters of 2-cubelet coboundary in 2×2×2 3d data." begin
+    @testset "Diameters of 2-cubelet coboundary in 2×2×2 3d data" begin
         data = zeros(2, 2, 2)
         data[:, 1, 1] .= 1
         data[:, 2, 1] .= 2
         data[:, 1, 2] .= 3
         data[:, 2, 2] .= 4
 
-        @testset "Diameter increasing, cofaces are supersets of original." begin
+        @testset "Diameter increasing, cofacets are supersets of original" begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube)
@@ -127,7 +123,7 @@ end
                 end
             end
         end
-        @testset "Coboundary with all_cofaces=false." begin
+        @testset "Coboundary with all_cofacets=false" begin
             cob = Cubelet{2, Float64, Int}[]
             for cube in edges(Cubical(data))
                 for c in coboundary(Cubical(data), cube, Val(false))
@@ -137,7 +133,7 @@ end
             @test length(cob) == 6
             @test allunique(cob)
         end
-        @testset "All 2-cubelets have the same coboundary." begin
+        @testset "All 2-cubelets have the same coboundary" begin
             for cube in [
                 Cubelet{2}((1, 2, 3, 4), 2.0),
                 Cubelet{2}((1, 2, 5, 6), 4.0),
@@ -146,13 +142,13 @@ end
                 Cubelet{2}((3, 4, 7, 8), 4.0),
                 Cubelet{2}((5, 6, 7, 8), 4.0),
             ]
-                coface = only(coboundary(Cubical(data), cube))
-                @test abs(coface) == Cubelet{3}((8, 7, 6, 5, 4, 3, 2, 1), 4.0)
+                cofacet = only(coboundary(Cubical(data), cube))
+                @test abs(cofacet) == Cubelet{3}((8, 7, 6, 5, 4, 3, 2, 1), 4.0)
             end
         end
     end
-    @testset "Counting cofaces in 3d." begin
-        cob = Cubelet{2, Int, Int}[]
+    @testset "Counting cofacets in 3d" begin
+        cob = []
         flt = Cubical(data3d)
         cub = Cubelet{1}((14, 13), 1)
         for c in coboundary(flt, cub)
@@ -160,7 +156,7 @@ end
         end
         @test length(cob) == 3
 
-        cocob = coface_type(eltype(cob))[]
+        cocob = []
         for c in coboundary(flt, cob[1])
             push!(cocob, c)
         end
@@ -168,8 +164,8 @@ end
     end
 end
 
-@testset "Boundary." begin
-    @testset "Boundary of an edge in 1d." begin
+@testset "Boundary" begin
+    @testset "Boundary of an edge in 1d" begin
         bnd = Cubelet{0, Float64, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{1}((3, 2), 1.0)
@@ -178,7 +174,7 @@ end
         end
         @test bnd == [Cubelet{0}((3,), 1.0), -Cubelet{0}((2,), 1.0)]
     end
-    @testset "Boundary of 2-cubelet in 2d." begin
+    @testset "Boundary of 2-cubelet in 2d" begin
         bnd = Cubelet{1, Int, Int}[]
         flt = Cubical(data2d)
         cub = Cubelet{2}((10, 9, 3, 2), 2)
@@ -188,7 +184,7 @@ end
         @test bnd == [Cubelet{1}((10, 3), 2), -Cubelet{1}((9, 2), 2),
                       Cubelet{1}((10, 9), 1), -Cubelet{1}((3, 2), 2)]
     end
-    @testset "Boundary of 3-cubelet in 3d." begin
+    @testset "Boundary of 3-cubelet in 3d" begin
         bnd = Cubelet{2, Float64, Int}[]
         flt = Cubical(data3d)
         cub = Cubelet{3}((112, 111, 102, 101, 12, 11, 2, 1), 1.0)
