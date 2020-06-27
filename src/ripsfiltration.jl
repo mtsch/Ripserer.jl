@@ -55,7 +55,7 @@ end
     simplex::IndexedSimplex{D},
     cofacet_vertices,
     new_vertex,
-    sign=1,
+    sign,
 ) where {I, T, D}
     diameter = diam(simplex)
     for v in cofacet_vertices
@@ -78,8 +78,8 @@ end
     sx::IndexedSimplex{D},
     cofacet_vertices,
     ::Any,
+    sign,
     new_edges::SVector,
-    sign=1,
 ) where {I, D}
     new_diam = diam(sx)
     for i in 1:D + 1
@@ -315,7 +315,7 @@ function Base.iterate(
             new_vertices = insert(it.vertices, D - k + 1, v)
             new_edges = nzval[ptrs]
             sx = unsafe_cofacet(
-                it.filtration, it.simplex, new_vertices, v, new_edges, sign
+                it.filtration, it.simplex, new_vertices, v, sign, new_edges
             )
             if !isnothing(sx)
                 _sx::simplex_type(it.filtration, D) = sx
