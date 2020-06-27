@@ -11,7 +11,7 @@ simplices.
 * [`simplex_type(::AbstractFiltration, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
-* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges, sign])`
+* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
@@ -73,7 +73,7 @@ to ensure vertices are sorted and unique.
 unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
 
 """
-    unsafe_cofacet(filtration, simplex, cofacet_vertices, new_vertex[, edges, sign=1])
+    unsafe_cofacet(filtration, simplex, cofacet_vertices, new_vertex, sign[, edges])
 
 Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
 vertex that was added to construct the cofacet. In the case of sparse rips filtrations, an
@@ -86,12 +86,12 @@ unique.
 Default implementation uses [`unsafe_simplex`](@ref).
 """
 function unsafe_cofacet(
-    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, sign=1
-) where D
-    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
-end
-function unsafe_cofacet(
-    flt::AbstractFiltration, ::AbstractSimplex{D}, vertices, v, edges::SVector, sign=1
+    flt::AbstractFiltration,
+    ::AbstractSimplex{D},
+    vertices,
+    v,
+    sign,
+    edges=nothing
 ) where D
     return unsafe_simplex(flt, Val(D + 1), vertices, sign)
 end
