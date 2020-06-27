@@ -4,11 +4,12 @@
 An abstract Vietoris-Rips filtration. Its subtypes can overload [`dist`](@ref) and get the
 following default implementations.
 
+* [`n_vertices`](@ref)
 * [`edges`](@ref)
-* [`simplex_type`](@ref).
-* [`simplex`](@ref).
-* [`unsafe_simplex`](@ref).
-* [`unsafe_cofacet`](@ref).
+* [`simplex_type`](@ref)
+* [`simplex`](@ref)
+* [`unsafe_simplex`](@ref)
+* [`unsafe_cofacet`](@ref)
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
 
@@ -20,6 +21,8 @@ Return the distance between vertices `u` and `v`. If the distance is somehow inv
 return `missing` instead. If `u` and `v` are not given, return the distance matrix.
 """
 dist(::AbstractRipsFiltration, ::Any, ::Any)
+
+n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 
 simplex_type(::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
 
@@ -187,7 +190,6 @@ end
 end
 dist(rips::Rips) = rips.dist
 
-n_vertices(rips::Rips) = size(rips.dist, 1)
 threshold(rips::Rips) = rips.threshold
 birth(rips::Rips, i) = rips.dist[i, i]
 
@@ -232,7 +234,6 @@ end
 end
 dist(rips::SparseRips) = rips.dist
 
-n_vertices(rips::SparseRips) = size(rips.dist, 1)
 threshold(rips::SparseRips) = rips.threshold
 birth(rips::SparseRips, i) = rips.dist[i, i]
 simplex_type(::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
