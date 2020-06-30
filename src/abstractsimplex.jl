@@ -18,7 +18,7 @@ actually needed for the main algorithm.
 * [`vertices(::AbstractSimplex)`](@ref)
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
 * [`boundary(::Any, ::AbstractSimplex)`](@ref)
-* `length(::Type{AbstractSimplex})` - only if `D`-simplexs does not have `D + 1` vertices.
+* `length(::Type{AbstractSimplex})` - only if `D`-simplex does not have `D + 1` vertices.
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
 

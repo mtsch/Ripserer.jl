@@ -24,7 +24,7 @@ dist(::AbstractRipsFiltration, ::Any, ::Any)
 
 n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 
-simplex_type(::AbstractRipsFiltration{I, T}, dim) where {I, T} = Simplex{dim, T, I}
+simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
 function unsafe_simplex(
     rips::AbstractRipsFiltration{I}, ::Val{0}, vertex::NTuple{1}, sign=1
@@ -51,12 +51,13 @@ end
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
+    ::Type{S},
     rips::AbstractRipsFiltration{I, T},
-    simplex::IndexedSimplex{D},
+    simplex::AbstractSimplex{D},
     cofacet_vertices,
     new_vertex,
     sign,
-) where {I, T, D}
+) where {I, T, D, S<:IndexedSimplex}
     diameter = diam(simplex)
     for v in cofacet_vertices
         v == new_vertex && continue
@@ -70,17 +71,18 @@ end
             diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return simplex_type(rips, D + 1)(I(sign) * index(cofacet_vertices), diameter)
+    return S(I(sign) * index(cofacet_vertices), diameter)
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
+    ::Type{S},
     rips::AbstractRipsFiltration{I},
-    sx::IndexedSimplex{D},
+    sx::AbstractSimplex{D},
     cofacet_vertices,
     ::Any,
     sign,
     new_edges::SVector,
-) where {I, D}
+) where {I, D, S<:IndexedSimplex}
     new_diam = diam(sx)
     for i in 1:D + 1
         e = new_edges[i]
@@ -88,7 +90,7 @@ end
         new_diam = ifelse(e > new_diam, e, new_diam)
     end
     new_index = index(cofacet_vertices)
-    return simplex_type(rips, D + 1)(I(sign) * new_index, new_diam)
+    return S(I(sign) * new_index, new_diam)
 end
 
 function edges(rips::AbstractRipsFiltration)

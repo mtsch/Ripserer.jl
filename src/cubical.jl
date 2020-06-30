@@ -72,7 +72,7 @@ end
 n_vertices(cf::Cubical) = length(cf.data)
 threshold(cf::Cubical) = cf.threshold
 birth(cf::Cubical, i) = cf.data[i]
-simplex_type(::Cubical{I, T}, dim) where {I, T} = Cubelet{dim, T, I}
+simplex_type(::Type{<:Cubical{I, T}}, D) where {I, T} = Cubelet{D, T, I}
 
 dim(cf::Cubical) = length(size(cf.data))
 
