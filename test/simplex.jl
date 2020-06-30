@@ -9,7 +9,7 @@ function Ripserer.unsafe_simplex(::FakeFiltration, ::Val{D}, vertices, sign=1) w
     return Simplex{D, Int, Int}(sign * index(vertices), 1)
 end
 Ripserer.n_vertices(::FakeFiltration) = 20
-Ripserer.simplex_type(::FakeFiltration, D) = Simplex{D, Int, Int}
+Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D, Int, Int}
 
 struct FakeFiltrationWithThreshold<:Ripserer.AbstractFiltration end
 function Ripserer.unsafe_simplex(
@@ -22,7 +22,7 @@ function Ripserer.unsafe_simplex(
     end
 end
 Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
-Ripserer.simplex_type(::FakeFiltrationWithThreshold, D) = Simplex{D, Int, Int}
+Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D, Int, Int}
 
 @testset "Binomials" begin
     @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)

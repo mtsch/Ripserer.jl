@@ -23,11 +23,13 @@ function Base.show(io::IO, flt::AbstractFiltration)
 end
 
 """
-    simplex_type(::AbstractFiltration, d)
+    simplex_type(::Type{<:AbstractFiltration}, D)
+    simplex_type(::AbstractFiltration, D)
 
-Return the `d`-dimensional simplex type in the filtration.
+Return the `D`-dimensional simplex type in the filtration. Only the method for the type
+needs to be overloaded.
 """
-simplex_type(::AbstractFiltration, dim)
+simplex_type(flt::AbstractFiltration, dim) = simplex_type(typeof(flt), dim)
 
 vertex_type(flt::AbstractFiltration) = simplex_type(flt, 0)
 edge_type(flt::AbstractFiltration) = simplex_type(flt, 1)
@@ -73,27 +75,38 @@ to ensure vertices are sorted and unique.
 unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
 
 """
-    unsafe_cofacet(filtration, simplex, cofacet_vertices, new_vertex, sign[, edges])
+    unsafe_cofacet(::Type{S}, filtration, simplex, cofacet_vertices, v, sign[, edges])
 
-Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `new_vertex` is the
+Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `v` is the
 vertex that was added to construct the cofacet. In the case of sparse rips filtrations, an
 additional argument `edges` is used. `edges` is a vector that contains the weights on edges
-connecting the new vertex to old vertices.
+connecting the new vertex to old vertices. `S` is the simplex type which can be used for
+dispatch.
 
 The unsafe in the name implies that it's up to the caller to ensure vertices are sorted and
 unique.
 
 Default implementation uses [`unsafe_simplex`](@ref).
 """
+@inline @propagate_inbounds function unsafe_cofacet(
+    filtration::F,
+    simplex::AbstractSimplex{D},
+    args...,
+) where {F<:AbstractFiltration, D}
+    return unsafe_cofacet(
+        simplex_type(F, D + 1), filtration, simplex, args...
+    )
+end
 function unsafe_cofacet(
-    flt::AbstractFiltration,
-    ::AbstractSimplex{D},
+    ::Type{S},
+    filtration::AbstractFiltration,
+    _,
     vertices,
-    v,
+    _,
     sign,
-    edges=nothing
-) where D
-    return unsafe_simplex(flt, Val(D + 1), vertices, sign)
+    args...,
+) where S
+    return unsafe_simplex(filtration, Val(dim(S)), vertices, sign)::Union{S, Nothing}
 end
 
 """

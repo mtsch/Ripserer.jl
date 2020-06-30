@@ -326,7 +326,7 @@ function Ripserer.unsafe_simplex(::CustomFiltration, ::Val{D}, vertices, sign=1)
     return Simplex{D}(sign * Ripserer.index(vertices), 1)
 end
 Ripserer.n_vertices(::CustomFiltration) = 10
-Ripserer.simplex_type(::CustomFiltration, D) = Simplex{D, Int, Int}
+Ripserer.simplex_type(::Type{CustomFiltration}, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)
 function Ripserer.postprocess_interval(::CustomFiltration, ::RepresentativeInterval)
     return PersistenceInterval(0, 0)
