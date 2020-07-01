@@ -52,11 +52,11 @@ end
 @inline @propagate_inbounds function unsafe_cofacet(
     ::Type{S},
     rips::AbstractRipsFiltration{I, T},
-    simplex::AbstractSimplex{D},
+    simplex,
     cofacet_vertices,
     new_vertex,
     sign,
-) where {I, T, D, S<:IndexedSimplex}
+) where {I, T, S<:IndexedSimplex}
     diameter = diam(simplex)
     for v in cofacet_vertices
         v == new_vertex && continue
@@ -76,15 +76,14 @@ end
 @inline @propagate_inbounds function unsafe_cofacet(
     ::Type{S},
     rips::AbstractRipsFiltration{I},
-    sx::AbstractSimplex{D},
+    sx,
     cofacet_vertices,
-    ::Any,
+    _,
     sign,
     new_edges::SVector,
-) where {I, D, S<:IndexedSimplex}
+) where {I, S<:IndexedSimplex}
     new_diam = diam(sx)
-    for i in 1:D + 1
-        e = new_edges[i]
+    for e in new_edges
         e > threshold(rips) && return nothing
         new_diam = ifelse(e > new_diam, e, new_diam)
     end
