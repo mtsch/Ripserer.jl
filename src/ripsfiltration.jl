@@ -78,7 +78,7 @@ end
     rips::AbstractRipsFiltration{I},
     sx::AbstractSimplex{D},
     cofacet_vertices,
-    ::Any,
+    _,
     sign,
     new_edges::SVector,
 ) where {I, D, S<:IndexedSimplex}

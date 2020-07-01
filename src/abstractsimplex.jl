@@ -195,13 +195,13 @@ boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
 struct Coboundary{A, D, I, F, S}
     filtration::F
     simplex::S
-    vertices::NTuple{D, I}
+    vertices::SVector{D, I}
 
     function Coboundary{A}(
         filtration::F, simplex::AbstractSimplex{D, <:Any, I}
     ) where {A, D, I, F}
         S = typeof(simplex)
-        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+        return new{A, D + 1, I, F, S}(filtration, simplex, vertices(simplex))
     end
 end
 
@@ -210,14 +210,14 @@ function Base.iterate(
 ) where {A, D, I}
     @inbounds while true
         v -= one(I)
-        while k > 0 && v == ci.vertices[end + 1 - k]
+        while k > 0 && v == ci.vertices[D + 1 - k]
             A || return nothing
             v -= one(I)
             k -= 1
         end
         v > 0 || return nothing
         sign = ifelse(iseven(k), one(I), -one(I))
-        new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
+        new_vertices = insert(ci.vertices, D + 1 - k, v)
         sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
