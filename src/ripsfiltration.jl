@@ -1,5 +1,5 @@
 """
-    AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration
+    AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T}
 
 An abstract Vietoris-Rips filtration. Its subtypes can overload [`dist`](@ref) and get the
 following default implementations.
@@ -11,7 +11,7 @@ following default implementations.
 * [`unsafe_simplex`](@ref)
 * [`unsafe_cofacet`](@ref)
 """
-abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration end
+abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
 
 """
     dist(::AbstractRipsFiltration, u, v)
@@ -27,15 +27,14 @@ n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
 function unsafe_simplex(
-    rips::AbstractRipsFiltration{I}, ::Val{0}, vertex::NTuple{1}, sign=1
-) where I
-    v = only(vertex)
-    return simplex_type(rips, 0)(I(sign) * v, birth(rips, v))
+    ::Type{S}, rips::AbstractRipsFiltration{I}, (vertex,), sign
+) where {I, S<:IndexedSimplex{0}}
+    return S(I(sign) * vertex, birth(rips, vertex))
 end
 
 @inline @propagate_inbounds function unsafe_simplex(
-    rips::AbstractRipsFiltration{I, T}, ::Val{D}, vertices, sign=1
-) where {I, T, D}
+    ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
+) where {I, T, D, S<:IndexedSimplex{D}}
     n = length(vertices)
     diameter = typemin(T)
     for i in 1:n, j in i+1:n
@@ -47,7 +46,7 @@ end
             diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return simplex_type(rips, D)(I(sign) * index(vertices), diameter)
+    return S(I(sign) * index(vertices), diameter)
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
