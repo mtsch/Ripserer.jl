@@ -47,7 +47,7 @@ end
 Base.length(::Type{<:Cubelet{D}}) where D = 1 << D
 
 """
-    Cubical{I<:Signed, T} <: AbstractFiltration
+    Cubical{I<:Signed, T} <: AbstractFiltration{I, T}
 
 `Cubical` is used to compute sublevel persistent homology on `N`-dimensional images, which
 are of type `AbstractArray{T, N}`. `I` is the integer type used to represent cubelet
@@ -57,7 +57,7 @@ indices. Set it to a large value for larger images.
 
 * `Cubical{I}(::AbstractArray{T, N})`: `I` defaults to `Int64`.
 """
-struct Cubical{I<:Signed, T, A<:AbstractArray{T}} <: AbstractFiltration
+struct Cubical{I<:Signed, T, A<:AbstractArray{T}} <: AbstractFiltration{I, T}
     data::A
     threshold::T
 end
@@ -86,8 +86,8 @@ function to_cartesian(cf::Cubical, vertices)
 end
 
 function unsafe_simplex(
-    cf::Cubical{I, T}, ::Val{D}, vertices, sign=one(I)
-) where {I, T, D}
+    ::Type{C}, cf::Cubical{I, T}, vertices, sign
+) where {I, T, D, C<:Cubelet{D, T, I}}
     diam = typemin(T)
     for v in vertices
         d = get(cf.data, v, missing)
@@ -98,7 +98,7 @@ function unsafe_simplex(
             diam = ifelse(_d > diam, _d, diam)
         end
     end
-    return simplex_type(cf, D)(sign * index(vertices), diam)
+    return C(I(sign) * index(vertices), diam)
 end
 
 # Check if linear indices u and v are adjacent in array arr.

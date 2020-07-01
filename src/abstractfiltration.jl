@@ -1,8 +1,9 @@
 """
-    AbstractFiltration
+    AbstractFiltration{I, T}
 
-A filtration is used to find the edges in filtration and to determine diameters of
-simplices.
+A filtration is used to find the edges in filtration and to create simplices. An
+`AbstractFiltration{I, T}`'s simplex type is expected to return simplices of type
+`<:AbstractSimplex{_, T, I}`.
 
 # Interface
 
@@ -16,10 +17,10 @@ simplices.
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
-abstract type AbstractFiltration end
+abstract type AbstractFiltration{I, T} end
 
-function Base.show(io::IO, flt::AbstractFiltration)
-    print(io, typeof(flt), "(n_vertices=$(n_vertices(flt)))")
+function Base.show(io::IO, flt::AbstractFiltration{I, T}) where {I, T}
+    print(io, nameof(typeof(flt)), "{I, T}(n_vertices=$(n_vertices(flt)))")
 end
 
 """
@@ -72,7 +73,9 @@ Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return
 if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
 to ensure vertices are sorted and unique.
 """
-unsafe_simplex(::AbstractFiltration, ::Val, vertices, sign)
+function unsafe_simplex(filtration::F, ::Val{D}, vertices, sign=1) where {F, D}
+    return unsafe_simplex(simplex_type(F, D), filtration, vertices, sign)
+end
 
 """
     unsafe_cofacet(::Type{S}, filtration, simplex, cofacet_vertices, v, sign[, edges])
@@ -90,11 +93,11 @@ Default implementation uses [`unsafe_simplex`](@ref).
 """
 @inline @propagate_inbounds function unsafe_cofacet(
     filtration::F,
-    simplex::AbstractSimplex{D},
+    simplex,
     args...,
-) where {F<:AbstractFiltration, D}
+) where {F<:AbstractFiltration}
     return unsafe_cofacet(
-        simplex_type(F, D + 1), filtration, simplex, args...
+        simplex_type(F, dim(simplex) + 1), filtration, simplex, args...
     )
 end
 function unsafe_cofacet(
@@ -114,7 +117,7 @@ end
 
 Get the birth time of vertex `v` in filtration. Defaults to 0.
 """
-birth(::AbstractFiltration, _) = false # false is a strong zero.
+birth(::AbstractFiltration{<:Any, T}, _) where T = zero(T)
 
 """
     threshold(::AbstractFiltration)

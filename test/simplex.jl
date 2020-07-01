@@ -4,16 +4,21 @@ using StaticArrays
 using Ripserer: small_binomial, boundary, coboundary, index
 using ..TestHelpers: test_indexed_simplex_interface
 
-struct FakeFiltration<:Ripserer.AbstractFiltration end
-function Ripserer.unsafe_simplex(::FakeFiltration, ::Val{D}, vertices, sign=1) where D
+struct FakeFiltration<:Ripserer.AbstractFiltration{Int, Int} end
+function Ripserer.unsafe_simplex(
+    ::Type{Simplex{D, Int, Int}},
+    ::FakeFiltration,
+    vertices,
+    sign,
+) where D
     return Simplex{D, Int, Int}(sign * index(vertices), 1)
 end
 Ripserer.n_vertices(::FakeFiltration) = 20
 Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D, Int, Int}
 
-struct FakeFiltrationWithThreshold<:Ripserer.AbstractFiltration end
+struct FakeFiltrationWithThreshold<:Ripserer.AbstractFiltration{Int, Int} end
 function Ripserer.unsafe_simplex(
-    ::FakeFiltrationWithThreshold, ::Val{D}, vertices, sign=1
+    ::Type{Simplex{D, Int, Int}}, ::FakeFiltrationWithThreshold, vertices, sign
 ) where D
     if maximum(vertices) > 10
         return nothing
