@@ -24,6 +24,9 @@ for Filtration in (Rips, SparseRips)
         @testset "With no threshold" begin
             filtration = Filtration(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0])
 
+            @test sprint(show, filtration) ==
+                "$(nameof(Filtration)){Int64, Float64}(n_vertices=4)"
+
             @test n_vertices(filtration) == 4
             @test dist(filtration, 3, 3) == 0.0
             @test dist(filtration, 1, 2) == 1.0
@@ -45,6 +48,9 @@ for Filtration in (Rips, SparseRips)
         end
         @testset "With threshold and index type" begin
             filtration = Filtration{Int128}([1 1 2; 1 2 3; 2 3 2]; threshold=2)
+
+            @test sprint(show, filtration) ==
+                "$(nameof(Filtration)){Int128, Int64}(n_vertices=3)"
 
             @test n_vertices(filtration) == 3
             @test threshold(filtration) == 2
