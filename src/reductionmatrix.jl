@@ -137,7 +137,7 @@ function Base.sizehint!(col::WorkingBoundary, size)
     return col
 end
 
-function _pop_pivot!(column::WorkingBoundary)
+function Base.pop!(column::WorkingBoundary)
     isempty(column) && return nothing
     heap = column.heap
 
@@ -154,34 +154,11 @@ function _pop_pivot!(column::WorkingBoundary)
     return iszero(pivot) ? nothing : pivot
 end
 
-"""
-    get_pivot!(column)
-
-Return the pivot of the column - the element with the lowest diameter. Duplicates are summed
-together, zero elements are discarded. Return `nothing` if there is no pivot.
-"""
-function get_pivot!(column::WorkingBoundary)
-    pivot = _pop_pivot!(column)
-    if !isnothing(pivot)
-        heappush!(column.heap, pivot, column.ordering)
-    end
-    return pivot
-end
-
 function Base.push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
     push!(column, E(simplex))
 end
 function Base.push!(column::WorkingBoundary{E}, element::E) where E
-    heap = column.heap
-    @inbounds if !isempty(heap) && heap[1] == element
-        heap[1] += element
-        if iszero(heap[1])
-            heappop!(heap, column.ordering)
-        end
-    else
-        heappush!(heap, element, column.ordering)
-    end
-    return column
+    heappush!(column.heap, element, column.ordering)
 end
 
 function nonheap_push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
@@ -196,7 +173,7 @@ Base.first(column::WorkingBoundary) = first(column.heap)
 
 function move!(column::WorkingBoundary{E}) where E
     dst = E[]
-    while (pivot = _pop_pivot!(column)) ≠ nothing
+    while (pivot = pop!(column)) ≠ nothing
         push!(dst, pivot)
     end
     return dst
@@ -280,14 +257,16 @@ function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
         return nothing
     else
         repair!(matrix.working_boundary)
-        return first(matrix.working_boundary)
+        return pop!(matrix.working_boundary)
     end
 end
 
-function add!(matrix::ReductionMatrix, column, factor)
+function add!(matrix::ReductionMatrix, column, pivot)
+    factor = -coefficient(pivot)
     record!(matrix.reduced, column, factor)
     for element in column
         for facet in co_boundary(matrix, simplex(element))
+            abs(simplex(pivot)) == abs(facet) && continue
             push!(
                 matrix.working_boundary,
                 facet_element(matrix)(facet, coefficient(element) * factor)
@@ -304,8 +283,8 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
         column = matrix.reduced[pivot]
         isempty(column) && break
 
-        add!(matrix, column, -coefficient(pivot))
-        pivot = get_pivot!(matrix.working_boundary)
+        add!(matrix, column, pivot)
+        pivot = pop!(matrix.working_boundary)
     end
     if isnothing(pivot)
         discard!(matrix.reduced)
