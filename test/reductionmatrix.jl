@@ -5,7 +5,7 @@ using Random
 using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
-using Ripserer: WorkingBoundary, nonheap_push!, get_pivot!, repair!
+using Ripserer: WorkingBoundary, nonheap_push!, repair!
 using Ripserer: ReductionMatrix, simplex_type, simplex_element, facet_element, next_matrix
 
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
@@ -30,12 +30,19 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
         rev = Base.Order.Reverse
 
         @testset "ReducedMatrix with simplex type $S and field type $T" begin
-            @testset "a fresh ReducedMatrix is empty even if you commit nothing" begin
+            @testset "a fresh ReducedMatrix is empty" begin
+                matrix = ReducedMatrix{C, SE}(fwd)
+                @test length(matrix) == 0
+                for col in Iterators.flatten((columns, colelems))
+                    @test isempty(matrix[col])
+                end
+            end
+
+            @testset "is empty after committing nothing" begin
                 matrix = ReducedMatrix{C, SE}(fwd)
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 0
-
                 for col in Iterators.flatten((columns, colelems))
                     @test isempty(matrix[col])
                 end
@@ -54,7 +61,6 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                 end
 
                 @test length(matrix) == 0
-
                 for col in Iterators.flatten((columns, colelems))
                     @test isempty(matrix[col])
                 end
@@ -187,25 +193,26 @@ end
         SE = chain_element_type(S, T)
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
+        unq_elements = SE.(S.([7, 2, 3, 4, 5, 6], [7, 1, 1, 4, 5, 6]))
 
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "a fresh WorkingBoundary is empty and its pivot is nothing" begin
+        @testset "a fresh WorkingBoundary is empty and pop! yields nothing" begin
             working_boundary = WorkingBoundary{SE}(fwd)
 
             @test isempty(working_boundary)
-            @test get_pivot!(working_boundary) ≡ nothing
+            @test pop!(working_boundary) ≡ nothing
             @test_throws BoundsError first(working_boundary)
         end
 
-        @testset "pushing elements and getting pivot finds the lowest simplex (cohomology)" begin
+        @testset "pushing elements and popping finds the lowest simplex (cohomology)" begin
             working_boundary = WorkingBoundary{SE}(fwd)
             for e in elements
                 push!(working_boundary, e)
             end
 
-            @test get_pivot!(working_boundary) == SE(S(3, 1))
+            @test pop!(working_boundary) == SE(S(3, 1))
         end
 
         @testset "the same happens for nonheap_push! with repair! (homology)" begin
@@ -215,27 +222,23 @@ end
             end
             repair!(working_boundary)
 
-            @test get_pivot!(working_boundary) == SE(S(6, 6))
+            @test pop!(working_boundary) == SE(S(6, 6))
         end
 
-        @testset "getting pivot and adding its inverse to the boundary repeatedly" begin
+        @testset "adding inverses removes elements" begin
             working_boundary = WorkingBoundary{SE}(fwd)
-            for e in elements[1:3]
+            for e in unq_elements
                 nonheap_push!(working_boundary, e)
             end
             repair!(working_boundary)
-            for e in elements[4:end]
-                push!(working_boundary, e)
+            for e in unq_elements[1:2:end]
+                push!(working_boundary, -e)
             end
 
-            result = []
-            while (p = get_pivot!(working_boundary)) ≢ nothing
-                push!(working_boundary, -p)
-                push!(result, p)
+            for e in sort(unq_elements[2:2:end], order=fwd)
+                @test pop!(working_boundary) == e
             end
-            @test length(result) == 5
-            @test allunique(result)
-            @test issorted(result)
+            @test pop!(working_boundary) ≡ nothing
         end
     end
 end
