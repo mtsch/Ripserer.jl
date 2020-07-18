@@ -193,6 +193,7 @@ end
         SE = chain_element_type(S, T)
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
+        unq_elements = SE.(S.([7, 2, 3, 4, 5, 6], [7, 1, 1, 4, 5, 6]))
 
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
@@ -226,19 +227,18 @@ end
 
         @testset "adding inverses removes elements" begin
             working_boundary = WorkingBoundary{SE}(fwd)
-            elements = unique(abs.(elements))
-            for e in elements
+            for e in unq_elements
                 nonheap_push!(working_boundary, e)
             end
             repair!(working_boundary)
-            for e in elements[1:2:end]
+            for e in unq_elements[1:2:end]
                 push!(working_boundary, -e)
             end
 
-            for e in sort(elements[2:2:end], order=fwd)
+            for e in sort(unq_elements[2:2:end], order=fwd)
                 @test pop!(working_boundary) == e
             end
-            @test isempty(working_boudnary)
+            @test pop!(working_boundary) ≡ nothing
         end
     end
 end

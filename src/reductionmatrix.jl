@@ -333,6 +333,7 @@ function interval(
     birth, death = birth_death(matrix, column, pivot)
 
     if death - birth > cutoff
+        push!(matrix.working_boundary, pivot)
         return R(
             PersistenceInterval(birth, death),
             simplex(pivot), column, move!(matrix.working_boundary)
