@@ -100,11 +100,22 @@ function unsafe_cofacet(::Type{S}, flt, _, vertices, _, sign, args...) where S
 end
 
 """
-    birth(::AbstractFiltration, v)
+    vertices(::AbstractFiltration)
 
-Get the birth time of vertex `v` in filtration. Defaults to 0.
+Return the vertices in filtration. Defaults to `1:n`. The `eltype` of the result can be
+anything as long as `result[result[i]] == result[i]` holds.
+"""
+vertices(flt::AbstractFiltration) = Base.OneTo(n_vertices(flt))
+
+"""
+    birth(::AbstractFiltration, v)
+    birth(::AbstractFiltration)
+
+Get the birth time of vertex `v` in filtration. Defaults to 0. When `v` is not given, return
+births in an array of same size as [`vertices(::AbstractFiltration)`](@ref).
 """
 birth(::AbstractFiltration{<:Any, T}, _) where T = zero(T)
+birth(flt::AbstractFiltration{<:Any, T}) where T = zeros(T, size(vertices(flt)))
 
 """
     threshold(::AbstractFiltration)

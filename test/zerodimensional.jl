@@ -3,33 +3,37 @@ using Ripserer
 using DataStructures
 using Ripserer: DisjointSetsWithBirth, find_leaves!
 
-s = DisjointSetsWithBirth(collect(1:10))
+for arr in (1:10, CartesianIndices([1 2 3 4 5; 1 2 3 4 5]))
+    @testset "with $(typeof(collect(arr)))" begin
+        s = DisjointSetsWithBirth(arr, reshape(1:10, size(arr)))
 
-@testset "basic tests" begin
-    @test length(s) == 10
-    for i = 1:10
-        @test find_root!(s, i) == i
-        @test find_leaves!(s, i) == [i]
-        @test birth(s, i) == i
+        @testset "basic tests" begin
+            @test length(s) == 10
+            for i in 1:10
+                @test find_root!(s, arr[i]) == arr[i]
+                @test find_leaves!(s, arr[i]) == [arr[i]]
+                @test birth(s, arr[i]) == i
+            end
+            @test_throws BoundsError find_root!(s, arr[11])
+        end
+
+        @testset "union!, find_root!, find_leaves!" begin
+            union!(s, arr[2], arr[3])
+            @test find_root!(s, arr[3]) == arr[2]
+            @test find_leaves!(s, arr[2]) == [arr[2], arr[3]]
+
+            @test union!(s, arr[8], arr[7]) == arr[8]
+            @test union!(s, arr[5], arr[6]) == arr[5]
+            @test find_leaves!(s, arr[5]) == [arr[5], arr[6]]
+            @test union!(s, arr[8], arr[5]) == arr[8]
+            @test find_root!(s, arr[6]) == arr[8]
+            @test find_leaves!(s, arr[8]) == [arr[5], arr[6], arr[7], arr[8]]
+            union!(s, arr[2], arr[6])
+            @test find_root!(s, arr[2]) == arr[8]
+            root1 = find_root!(s, arr[6])
+            root2 = find_root!(s, arr[2])
+            @test root_union!(s, root1, root2) == arr[8]
+            @test union!(s, arr[5], arr[6]) == arr[8]
+        end
     end
-    @test_throws BoundsError find_root!(s, 11)
-end
-
-@testset "union!, find_root!, find_leaves!" begin
-    union!(s, 2, 3)
-    @test find_root!(s, 3) == 2
-    @test find_leaves!(s, 2) == [2, 3]
-
-    @test union!(s, 8, 7) == 8
-    @test union!(s, 5, 6) == 5
-    @test find_leaves!(s, 5) == [5, 6]
-    @test union!(s, 8, 5) == 8
-    @test find_root!(s, 6) == 8
-    @test find_leaves!(s, 8) == [5, 6, 7, 8]
-    union!(s, 2, 6)
-    @test find_root!(s, 2) == 8
-    root1 = find_root!(s, 6)
-    root2 = find_root!(s, 2)
-    @test root_union!(s, Int(root1), Int(root2)) == 8
-    @test union!(s, 5, 6) == 8
 end

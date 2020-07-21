@@ -178,8 +178,6 @@ where ``i_k`` are the simplex vertex indices.
     return expr
 end
 
-index(vertex::Integer) = vertex
-
 """
     Simplex{D, T, I} <: IndexedSimplex{D, T, I}
 
