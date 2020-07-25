@@ -204,32 +204,51 @@ end
     end
 end
 
-@testset "Zero-dimensional sublevel set persistence using SparseRips" begin
-    data = [range(0, 1, length=5);
-            range(1, 0.5, length=5)[2:end];
-            range(0.5, 2, length=4)[2:end];
-            range(2, -1, length=4)[2:end]]
+@testset "Zero-dimensional sublevel set persistence" begin
+    @testset "with SparseRips" begin
+        data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
 
-    # Create distance matrix from data, where neighboring points are connected by edges
-    # and the edge weights are equal to the max of both vertex births.
-    n = length(data)
-    dists = spzeros(n, n)
-    for i in 1:n
-        dists[i, i] = data[i]
+        # Create distance matrix from data, where neighboring points are connected by edges
+        # and the edge weights are equal to the max of both vertex births.
+        n = length(data)
+        dists = spzeros(n, n)
+        for i in 1:n
+            dists[i, i] = data[i]
+        end
+        for i in 1:n-1
+            j = i + 1
+            dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
+        end
+        # 0-dimensional persistence should find values of minima and maxima of our data.
+        d0 = ripserer(dists; dim_max=0)[1]
+        @test d0 == [(0, Inf), (1, 4), (2, 3)]
     end
-    for i in 1:n-1
-        j = i + 1
-        dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
+
+    @testset "with Rips" begin
+        data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
+
+        n = length(data)
+        dists = zeros(Int, (n, n))
+        for i in 1:n, j in 1:n
+            if abs(i - j) ≤ 1
+                dists[i, j] = max(data[i], data[j])
+            else
+                dists[i, j] = 5
+            end
+        end
+        d0 = ripserer(dists; dim_max=0)[1]
+        @test d0 == [(0, Inf), (1, 4), (2, 3)]
     end
-    # 0-dimensional persistence should find values of minima and maxima of our data.
-    res = first(ripserer(dists; dim_max=0))
-    mins = birth.(res)
-    maxs = death.(filter(isfinite, res))
-    @test sort(mins) == [-1.0, 0.0, 0.0, 0.5]
-    @test sort(maxs) == [1.0, 2.0]
 end
 
 @testset "Cubical" begin
+    @testset "1D curve" begin
+        data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
+        d0, d1 = ripserer(Cubical(data); dim_max=2)
+
+        @test d0 == [(0, Inf), (1, 4), (2, 3)]
+        @test d1 == []
+    end
     @testset "2D image" begin
         data = [0 0 0 0 0;
                 0 2 2 2 0;
@@ -308,9 +327,8 @@ end
 
 # Julia 1.0 does not allow these to be defined inside @testset.
 struct CustomRips <: Ripserer.AbstractRipsFiltration{Int, Float64} end
-Ripserer.dist(::CustomRips) = ones(10, 10)
+Ripserer.dist(::CustomRips) = Float64[i ≠ j for i in 1:10, j in 1:10]
 Ripserer.dist(::CustomRips, i, j) = 1.0
-Ripserer.n_vertices(::CustomRips) = 10
 
 @testset "Custom rips filtration" begin
     d0, d1 = ripserer(CustomRips())

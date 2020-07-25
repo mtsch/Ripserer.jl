@@ -4,14 +4,25 @@
 Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
 Has no `num_groups` method.
 """
-struct DisjointSetsWithBirth{T}
-    parents ::Vector{Int}
-    ranks   ::Vector{Int}
-    births  ::Vector{T}
+struct DisjointSetsWithBirth{
+    I<:AbstractArray,
+    A<:AbstractArray,
+    B<:AbstractArray,
+    C<:AbstractArray,
+}
+    vertices::I
+    parents::A
+    ranks::B
+    births::C
 
-    function DisjointSetsWithBirth(births::AbstractVector{T}) where T
-        n = length(births)
-        return new{T}(collect(1:n), fill(0, n), copy(births))
+    function DisjointSetsWithBirth(vertices, births)
+        parents = collect(vertices)
+        ranks = similar(parents, Int)
+        ranks .= 0
+        births = collect(births)
+        return new{typeof(vertices), typeof(parents), typeof(ranks), typeof(births)}(
+            vertices, parents, ranks, births
+        )
     end
 end
 
@@ -32,8 +43,8 @@ end
 Find all leaves below `x`, i.e. vertices that have `x` as root.
 """
 function find_leaves!(s::DisjointSetsWithBirth, x)
-    leaves = Int[]
-    for i in 1:length(s)
+    leaves = eltype(s.parents)[]
+    for i in s.vertices
         find_root!(s, i) == x && push!(leaves, i)
     end
     return leaves
@@ -48,15 +59,15 @@ end
 
 function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
     parents = s.parents
-    rks = s.ranks
+    ranks = s.ranks
     births = s.births
-    @inbounds xrank = rks[x]
-    @inbounds yrank = rks[y]
+    @inbounds xrank = ranks[x]
+    @inbounds yrank = ranks[y]
 
     if xrank < yrank
         x, y = y, x
     elseif xrank == yrank
-        rks[x] += 1
+        ranks[x] += 1
     end
     @inbounds parents[y] = x
     @inbounds births[x] = min(births[x], births[y])
@@ -107,7 +118,7 @@ function zeroth_intervals(
 ) where {F, reps}
     V = vertex_type(filtration)
     CE = chain_element_type(V, F)
-    dset = DisjointSetsWithBirth([birth(filtration, v) for v in 1:n_vertices(filtration)])
+    dset = DisjointSetsWithBirth(vertices(filtration), birth(filtration))
     if reps
         intervals = RepresentativeInterval{
             PersistenceInterval,
@@ -125,7 +136,7 @@ function zeroth_intervals(
         progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
     end
     for edge in simplices
-        u, v = index.(vertices(edge))
+        u, v = vertices(edge)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j

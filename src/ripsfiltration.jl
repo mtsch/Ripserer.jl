@@ -24,6 +24,8 @@ dist(::AbstractRipsFiltration, ::Any, ::Any)
 
 n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 
+birth(rips::AbstractRipsFiltration) = diag(dist(rips))
+
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
 function unsafe_simplex(
@@ -125,7 +127,7 @@ function _sparse_edges(rips::AbstractRipsFiltration)
 end
 
 """
-    distances(metric, points[, births])
+    distances(metric, points)
 
 Return distance matrix calculated from `points` with `metric`.
 """
