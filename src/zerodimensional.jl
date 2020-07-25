@@ -157,7 +157,7 @@ function zeroth_intervals(
         end
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
-    for v in 1:n_vertices(filtration)
+    for v in vertices(filtration)
         if find_root!(dset, v) == v
             push!(intervals, interval(eltype(intervals), dset, filtration, v, nothing, 0))
         end

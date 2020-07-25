@@ -15,6 +15,8 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
+* [`columns_to_reduce(::AbstractFiltration)`](@ref)
+* [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration{I, T} end
@@ -124,6 +126,26 @@ Get the threshold of filtration. This is the maximum diameter a simplex in the f
 can have. Defaults to `Inf`.
 """
 threshold(::AbstractFiltration) = Inf
+
+"""
+    columns_to_reduce(::AbstractFilration, prev_column_itr)
+
+List all columns to reduce in next dimension, possibly computing it from previous
+columns. Default implementation uses [`coboundary`](@ref) with the all cofacets parameter
+set to `Val(false)`.
+"""
+function columns_to_reduce(flt::AbstractFiltration, prev_column_itr)
+    return Iterators.flatten(
+        imap(σ -> coboundary(flt, σ, Val(false)), prev_column_itr)
+    )
+end
+
+"""
+    emergent_pairs(::AbstractFiltration)
+
+Enable emergent pairs optimization for this filtration type. Defaults to `false`.
+"""
+emergent_pairs(::AbstractFiltration) = false
 
 """
     postprocess_interval(::AbstractFiltration, interval)

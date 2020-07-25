@@ -239,12 +239,11 @@ dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
-    # TODO: can emergent pairs be safely be enabled for all kinds of complexes?
-    # An argument that disables it could be added.
     empty!(matrix.working_boundary)
     for facet in co_boundary(matrix, column_simplex)
         # Checking this on every facet helps if more than one facet has the same diameter.
-        if (is_cohomology(matrix) &&
+        if (emergent_pairs(matrix.filtration) &&
+            is_cohomology(matrix) &&
             diam(facet) == diam(column_simplex) &&
             !haskey(matrix.reduced, facet)
             )
@@ -388,6 +387,7 @@ simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
 simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
 
 function next_matrix(matrix::ReductionMatrix, progress)
+    new_dim = dim(simplex_type(matrix)) + 1
     C = simplex_type(matrix.filtration, dim(simplex_type(matrix)) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
@@ -399,14 +399,14 @@ function next_matrix(matrix::ReductionMatrix, progress)
             desc="Assembling...             "
         )
     end
-    for simplex in Iterators.flatten((matrix.columns_to_reduce, matrix.columns_to_skip))
-        for cofacet in coboundary(matrix.filtration, simplex, Val(false))
-            # Clearing optimization only enabled for cohomology.
-            if is_cohomology(matrix) && haskey(matrix.reduced, cofacet)
-                push!(new_to_skip, abs(cofacet))
-            else
-                push!(new_to_reduce, abs(cofacet))
-            end
+    for simplex in columns_to_reduce(
+        matrix.filtration,
+        Iterators.flatten((matrix.columns_to_reduce, matrix.columns_to_skip)),
+    )
+        if is_cohomology(matrix) && haskey(matrix.reduced, simplex)
+            push!(new_to_skip, abs(simplex))
+        else
+            push!(new_to_reduce, abs(simplex))
         end
         progress && next!(progbar)
     end

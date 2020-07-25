@@ -28,6 +28,8 @@ birth(rips::AbstractRipsFiltration) = diag(dist(rips))
 
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
+emergent_pairs(::AbstractRipsFiltration) = true
+
 function unsafe_simplex(
     ::Type{S}, rips::AbstractRipsFiltration{I}, (vertex,), sign
 ) where {I, S<:IndexedSimplex{0}}

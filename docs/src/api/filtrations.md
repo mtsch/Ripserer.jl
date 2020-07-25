@@ -37,6 +37,14 @@ Ripserer.unsafe_cofacet
 ```
 
 ```@docs
+Ripserer.columns_to_reduce
+```
+
+```@docs
+Ripserer.emergent_pairs
+```
+
+```@docs
 Ripserer.postprocess_interval
 ```
 
