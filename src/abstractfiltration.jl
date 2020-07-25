@@ -150,7 +150,10 @@ emergent_pairs(::AbstractFiltration) = false
 """
     postprocess_interval(::AbstractFiltration, interval)
 
-This function is called on each resulting persistence interval. The default implementation
-does nothing.
+This function is called on each resulting persistence interval. If `postprocess_interval`
+returns nothing, the interval is skipped. The default implementation does nothing.
 """
 postprocess_interval(::AbstractFiltration, interval) = interval
+
+_postprocess_interval(flt, interval) = postprocess_interval(flt, interval)
+_postprocess_interval(flt, ::Nothing) = nothing

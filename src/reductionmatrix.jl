@@ -370,16 +370,15 @@ function compute_intervals!(
 
     for column in matrix.columns_to_reduce
         pivot = reduce_column!(matrix, column)
-        int = interval(eltype(intervals), matrix, column, pivot, cutoff)
+        int = _postprocess_interval(
+            matrix.filtration,
+            interval(eltype(intervals), matrix, column, pivot, cutoff),
+        )
         !isnothing(int) && push!(intervals, int)
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
 
-    return sort!(PersistenceDiagram(
-        dim(matrix),
-        map(int -> postprocess_interval(matrix.filtration, int), intervals),
-        threshold(matrix.filtration),
-    ))
+    return sort!(PersistenceDiagram(dim(matrix), intervals, threshold(matrix.filtration)))
 end
 
 simplex_name(::Type{<:Simplex{2}}) = "triangles"

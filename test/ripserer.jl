@@ -262,7 +262,7 @@ end
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
+        @test sort(vertices.(representative(d0[1]))) == [SVector(i) for i in 1:length(data)]
         @test vertices(only(representative(d0[2]))) == SVector(13)
     end
     @testset "3D image" begin
@@ -357,16 +357,19 @@ end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::Type{CustomFiltration}, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)
+function Ripserer.postprocess_interval(::CustomFiltration, int::PersistenceInterval)
+    return PersistenceInterval(birth(int) + 1, death(int) + 1)
+end
 function Ripserer.postprocess_interval(::CustomFiltration, ::RepresentativeInterval)
-    return PersistenceInterval(0, 0)
+    return nothing
 end
 
 @testset "Custom filtration" begin
     d0, d1 = ripserer(CustomFiltration())
-    @test d0 == [fill((0.0, 1.0), 4); fill((0.0, Inf), 6)]
+    @test d0 == [fill((1.0, 2.0), 4); fill((1.0, Inf), 6)]
     @test d1 == []
 
     d0, d1 = ripserer(CustomFiltration(), reps=true)
-    @test d0 == fill((0.0, 0.0), 10)
+    @test d0 == []
     @test d1 == []
 end

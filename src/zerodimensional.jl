@@ -85,8 +85,8 @@ function interval(
 ) where R<:RepresentativeInterval
     birth, death = birth_death(dset, vertex, edge)
     if death - birth > cutoff
-        rep = simplex.(Ref(filtration), Val(0), tuple.(find_leaves!(dset, vertex)))
-        birth_simplex = simplex(filtration, Val(0), (findfirst(r -> diam(r) == birth, rep),))
+        rep = sort(simplex.(Ref(filtration), Val(0), tuple.(find_leaves!(dset, vertex))))
+        birth_simplex = first(rep)
         return R(PersistenceInterval(birth, death), birth_simplex, edge, rep)
     else
         return nothing
@@ -146,7 +146,10 @@ function zeroth_intervals(
             # According to the elder rule, the vertex with the lower birth will fall
             # into a later interval.
             v = birth(dset, i) > birth(dset, j) ? i : j
-            int = interval(eltype(intervals), dset, filtration, v, edge, cutoff)
+            int = _postprocess_interval(
+                filtration,
+                interval(eltype(intervals), dset, filtration, v, edge, cutoff),
+            )
             if !isnothing(int)
                 push!(intervals, int)
             end
@@ -158,19 +161,21 @@ function zeroth_intervals(
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     for v in vertices(filtration)
-        if find_root!(dset, v) == v
-            push!(intervals, interval(eltype(intervals), dset, filtration, v, nothing, 0))
+        if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,), 1))
+            int = _postprocess_interval(
+                filtration,
+                interval(eltype(intervals), dset, filtration, v, nothing, 0)
+            )
+            if !isnothing(int)
+                push!(intervals, int)
+            end
         end
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     reverse!(to_reduce)
     progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)
     return (
-        sort!(PersistenceDiagram(
-            0,
-            map(int -> postprocess_interval(filtration, int), intervals),
-            threshold(filtration)
-        )),
+        sort!(PersistenceDiagram(0, intervals, threshold(filtration))),
         to_reduce,
         to_skip,
     )
