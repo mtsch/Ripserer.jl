@@ -312,11 +312,11 @@ end
 
 @testset "Only print to stderr and only when progress is enabled" begin
     @suppress begin
-        @test (@capture_out ripserer(torus(100); dim_max=2)) == ""
-        @test (@capture_out ripserer(torus(100); dim_max=2, progress=true)) == ""
+        @test (@capture_out ripserer(torus(16); dim_max=5)) == ""
+        @test (@capture_out ripserer(torus(16); dim_max=5, progress=true)) == ""
 
-        @test (@capture_err ripserer(torus(100); dim_max=2)) == ""
-        @test (@capture_err ripserer(torus(100); dim_max=2, progress=true)) != ""
+        @test (@capture_err ripserer(torus(16); dim_max=5)) == ""
+        @test (@capture_err ripserer(torus(16); dim_max=5, progress=true)) != ""
     end
 end
 
