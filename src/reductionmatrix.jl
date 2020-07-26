@@ -240,13 +240,14 @@ dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
     empty!(matrix.working_boundary)
+    emergent_check = emergent_pairs(matrix.filtration)
     for facet in co_boundary(matrix, column_simplex)
-        # Checking this on every facet helps if more than one facet has the same diameter.
-        if (emergent_pairs(matrix.filtration) &&
+        if (emergent_check &&
             is_cohomology(matrix) &&
             diam(facet) == diam(column_simplex) &&
             !haskey(matrix.reduced, facet)
             )
+            emergent_check = false
             empty!(matrix.working_boundary)
             return facet_element(matrix)(facet)
         end
