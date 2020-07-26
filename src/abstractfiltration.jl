@@ -16,7 +16,6 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration)`](@ref)
-* [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration{I, T} end
@@ -139,13 +138,6 @@ function columns_to_reduce(flt::AbstractFiltration, prev_column_itr)
         imap(σ -> coboundary(flt, σ, Val(false)), prev_column_itr)
     )
 end
-
-"""
-    emergent_pairs(::AbstractFiltration)
-
-Enable emergent pairs optimization for this filtration type. Defaults to `false`.
-"""
-emergent_pairs(::AbstractFiltration) = false
 
 """
     postprocess_interval(::AbstractFiltration, interval)
