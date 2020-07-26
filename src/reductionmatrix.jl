@@ -32,9 +32,8 @@ end
 
 Record the operation that was performed in the buffer.
 """
-function record!(matrix::ReducedMatrix, element::AbstractChainElement)
-    push!(matrix.buffer, element)
-    return element
+function record!(matrix::ReducedMatrix{<:Any, E}, simplex::AbstractSimplex) where E
+    return push!(matrix.buffer, E(simplex))
 end
 
 function record!(matrix::ReducedMatrix, elements, factor)
@@ -240,16 +239,13 @@ dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
 function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
     empty!(matrix.working_boundary)
-    emergent_check = emergent_pairs(matrix.filtration)
+    emergent_check = true
     for facet in co_boundary(matrix, column_simplex)
-        if (emergent_check &&
-            is_cohomology(matrix) &&
-            diam(facet) == diam(column_simplex) &&
-            !haskey(matrix.reduced, facet)
-            )
+        if emergent_check && is_cohomology(matrix) && diam(facet) == diam(column_simplex)
             emergent_check = false
-            empty!(matrix.working_boundary)
-            return facet_element(matrix)(facet)
+            if !haskey(matrix.reduced, facet)
+                return facet_element(matrix)(facet)
+            end
         end
         nonheap_push!(matrix.working_boundary, facet)
     end
@@ -263,10 +259,9 @@ end
 
 function add!(matrix::ReductionMatrix, column, pivot)
     factor = -coefficient(pivot)
-    record!(matrix.reduced, column, factor)
     for element in column
         for facet in co_boundary(matrix, simplex(element))
-            abs(simplex(pivot)) == abs(facet) && continue
+            simplex(pivot) == abs(facet) && continue
             push!(
                 matrix.working_boundary,
                 facet_element(matrix)(facet, coefficient(element) * factor)
@@ -284,12 +279,13 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
         isempty(column) && break
 
         add!(matrix, column, pivot)
+        record!(matrix.reduced, column, -coefficient(pivot))
         pivot = pop!(matrix.working_boundary)
     end
     if isnothing(pivot)
         discard!(matrix.reduced)
     else
-        record!(matrix.reduced, simplex_element(matrix)(column_simplex))
+        record!(matrix.reduced, column_simplex)
         commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
     end
 
@@ -378,7 +374,6 @@ function compute_intervals!(
         !isnothing(int) && push!(intervals, int)
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
-
     return sort!(PersistenceDiagram(dim(matrix), intervals, threshold(matrix.filtration)))
 end
 

@@ -29,7 +29,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "ReducedMatrix with simplex type $S and field type $T" begin
+        @testset "ReducedMatrix with $S and $T" begin
             @testset "a fresh ReducedMatrix is empty" begin
                 matrix = ReducedMatrix{C, SE}(fwd)
                 @test length(matrix) == 0
@@ -56,9 +56,8 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(3, 1)),
                     SE(S(4, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
+                record!(matrix, S(5, 1))
 
                 @test length(matrix) == 0
                 for col in Iterators.flatten((columns, colelems))
@@ -73,12 +72,10 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(2, 1)),
                     SE(S(3, 1)),
                     SE(S(4, 1)),
-                    SE(S(4, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
+                record!(matrix, S(4, 1))
 
                 commit!(matrix, columns[1], T(2))
                 commit!(matrix, columns[2], T(2))
@@ -105,15 +102,11 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(4, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 discard!(matrix)
                 commit!(matrix, columns[2], T(2))
 
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 1
@@ -138,9 +131,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(2, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 0
@@ -152,27 +143,23 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
             @testset "committing multiple times creates multiple columns" begin
                 matrix = ReducedMatrix{C, SE}(rev)
                 vals_1 = [
-                    SE(S(1, 1)),
-                    SE(S(-4, 1)),
-                    SE(S(2, 1)),
-                    SE(S(3, 1)),
+                    SE(S(-1, 1)),
                     SE(S(4, 1)),
+                    SE(S(-2, 1)),
+                    SE(S(-3, 1)),
+                    SE(S(-4, 1)),
                 ]
-                for v in vals_1
-                    record!(matrix, v)
-                end
+                record!(matrix, vals_1, -one(T))
                 commit!(matrix, columns[1], T(2))
 
-                vals_1 = [
+                vals_2 = [
                     SE(S(4, 1)),
                     SE(S(1, 1)),
                     SE(S(5, 1)),
                     SE(S(6, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals_1
-                    record!(matrix, v)
-                end
+                record!(matrix, vals_2, one(T))
                 commit!(matrix, columns[2], T(-1))
 
                 @test length(matrix) == 2
