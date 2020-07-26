@@ -133,7 +133,10 @@ function zeroth_intervals(
     to_reduce = edge_type(filtration)[]
     simplices = sort!(edges(filtration))
     if progress
-        progbar = Progress(length(simplices), desc="Computing 0d intervals... ")
+        progbar = Progress(
+            length(simplices) + n_vertices(filtration);
+            desc="Computing 0d intervals... ",
+        )
     end
     for edge in simplices
         u, v = vertices(edge)
@@ -152,12 +155,13 @@ function zeroth_intervals(
         else
             push!(to_reduce, edge)
         end
-        progress && next!(progbar)
+        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     for v in 1:n_vertices(filtration)
         if find_root!(dset, v) == v
             push!(intervals, interval(eltype(intervals), dset, filtration, v, nothing, 0))
         end
+        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     reverse!(to_reduce)
     progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)

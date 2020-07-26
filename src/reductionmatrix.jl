@@ -363,7 +363,8 @@ function compute_intervals!(
 ) where {reps}
     if progress
         progbar = Progress(
-            length(matrix.columns_to_reduce), desc="Computing $(dim(matrix))d intervals... "
+            length(matrix.columns_to_reduce);
+            desc="Computing $(dim(matrix))d intervals... ",
         )
     end
     intervals = interval_eltype(matrix, Val(reps))[]
@@ -372,7 +373,7 @@ function compute_intervals!(
         pivot = reduce_column!(matrix, column)
         int = interval(eltype(intervals), matrix, column, pivot, cutoff)
         !isnothing(int) && push!(intervals, int)
-        progress && next!(progbar)
+        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
 
     return sort!(PersistenceDiagram(
