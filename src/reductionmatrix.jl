@@ -119,24 +119,24 @@ function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where S
 end
 
 # ======================================================================================== #
-struct WorkingBoundary{E<:AbstractChainElement, O<:Base.Ordering}
+struct WorkingCoboundary{E<:AbstractChainElement, O<:Base.Ordering}
     heap::Vector{E}
     ordering::O
 
-    function WorkingBoundary{E}(ordering::O) where {E, O}
+    function WorkingCoboundary{E}(ordering::O) where {E, O}
         new{E, O}(E[], ordering)
     end
 end
 
-Base.empty!(col::WorkingBoundary) = empty!(col.heap)
-Base.isempty(col::WorkingBoundary) = isempty(col.heap)
+Base.empty!(col::WorkingCoboundary) = empty!(col.heap)
+Base.isempty(col::WorkingCoboundary) = isempty(col.heap)
 
-function Base.sizehint!(col::WorkingBoundary, size)
+function Base.sizehint!(col::WorkingCoboundary, size)
     sizehint!(col.heap, size)
     return col
 end
 
-function Base.pop!(column::WorkingBoundary)
+function Base.pop!(column::WorkingCoboundary)
     isempty(column) && return nothing
     heap = column.heap
 
@@ -153,24 +153,24 @@ function Base.pop!(column::WorkingBoundary)
     return iszero(pivot) ? nothing : pivot
 end
 
-function Base.push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
+function Base.push!(column::WorkingCoboundary{E}, simplex::AbstractSimplex) where E
     push!(column, E(simplex))
 end
-function Base.push!(column::WorkingBoundary{E}, element::E) where E
+function Base.push!(column::WorkingCoboundary{E}, element::E) where E
     heappush!(column.heap, element, column.ordering)
 end
 
-function nonheap_push!(column::WorkingBoundary{E}, simplex::AbstractSimplex) where E
+function nonheap_push!(column::WorkingCoboundary{E}, simplex::AbstractSimplex) where E
     push!(column.heap, E(simplex))
 end
-function nonheap_push!(column::WorkingBoundary{E}, element::E) where E
+function nonheap_push!(column::WorkingCoboundary{E}, element::E) where E
     push!(column.heap, element)
 end
 
-repair!(column::WorkingBoundary) = heapify!(column.heap, column.ordering)
-Base.first(column::WorkingBoundary) = first(column.heap)
+repair!(column::WorkingCoboundary) = heapify!(column.heap, column.ordering)
+Base.first(column::WorkingCoboundary) = first(column.heap)
 
-function move!(column::WorkingBoundary{E}) where E
+function move!(column::WorkingCoboundary{E}) where E
     dst = E[]
     while (pivot = pop!(column)) ≠ nothing
         push!(dst, pivot)
@@ -182,11 +182,11 @@ end
 # TODO: the following code is pretty messy. There must be a way to handle all this with a
 # bit less type magic.
 struct ReductionMatrix{
-    Cohomology, T, Filtration, Simplex, SimplexElem, Facet, FacetElem, O<:Base.Ordering
+    Cohomology, T, Filtration, Simplex, SimplexElem, Cofacet, CofacetElem, O<:Base.Ordering
 }
     filtration::Filtration
-    reduced::ReducedMatrix{Facet, SimplexElem, O}
-    working_boundary::WorkingBoundary{FacetElem, O}
+    reduced::ReducedMatrix{Cofacet, SimplexElem, O}
+    working_coboundary::WorkingCoboundary{CofacetElem, O}
     columns_to_reduce::Vector{Simplex}
     columns_to_skip::Vector{Simplex}
 end
@@ -196,36 +196,36 @@ function ReductionMatrix{C, T}(
 ) where {C, T, Filtration}
 
     Simplex = eltype(columns_to_reduce)
-    facet_dim = dim(Simplex) + (C ? 1 : -1)
-    Facet = simplex_type(filtration, facet_dim)
+    cofacet_dim = dim(Simplex) + (C ? 1 : -1)
+    Cofacet = simplex_type(filtration, cofacet_dim)
     ordering = C ? Base.Order.Forward : Base.Order.Reverse
     O = typeof(ordering)
     SimplexElem = chain_element_type(Simplex, T)
-    FacetElem = chain_element_type(Facet, T)
+    CofacetElem = chain_element_type(Cofacet, T)
 
-    reduced = ReducedMatrix{Facet, SimplexElem}(ordering)
+    reduced = ReducedMatrix{Cofacet, SimplexElem}(ordering)
     sizehint!(reduced, length(columns_to_reduce))
-    working_boundary = WorkingBoundary{FacetElem}(ordering)
+    working_coboundary = WorkingCoboundary{CofacetElem}(ordering)
 
-    return ReductionMatrix{C, T, Filtration, Simplex, SimplexElem, Facet, FacetElem, O}(
+    return ReductionMatrix{C, T, Filtration, Simplex, SimplexElem, Cofacet, CofacetElem, O}(
         filtration,
         reduced,
-        working_boundary,
+        working_coboundary,
         columns_to_reduce,
         columns_to_skip
     )
 end
 
 """
-    co_boundary(matrix, simplex)
+    coboundary(matrix, simplex)
 
 Iterate over the (co)boundary of the `simplex`. Chooses between the boundary and the
 coboundary based on the matrix type.
 """
-function co_boundary(matrix::ReductionMatrix{true}, simplex::AbstractSimplex)
+function coboundary(matrix::ReductionMatrix{true}, simplex::AbstractSimplex)
     return coboundary(matrix.filtration, simplex)
 end
-function co_boundary(matrix::ReductionMatrix{false}, simplex::AbstractSimplex)
+function coboundary(matrix::ReductionMatrix{false}, simplex::AbstractSimplex)
     return boundary(matrix.filtration, simplex)
 end
 
@@ -233,38 +233,41 @@ is_cohomology(::ReductionMatrix{C}) where C = C
 field_type(::ReductionMatrix{<:Any, F}) where F = F
 simplex_type(::ReductionMatrix{<:Any, <:Any, <:Any, S}) where S = S
 simplex_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, E}) where E = E
-facet_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
+cofacet_element(::ReductionMatrix{<:Any, <:Any, <:Any, <:Any, <:Any, <:Any, E}) where E = E
 dim(::ReductionMatrix{true, <:Any, <:Any, S}) where S = dim(S)
 dim(::ReductionMatrix{false, <:Any, <:Any, S}) where S = dim(S) - 1
 
-function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
-    empty!(matrix.working_boundary)
+function initialize_coboundary!(matrix::ReductionMatrix, column_simplex)
+    empty!(matrix.working_coboundary)
+    # Emergent pairs: we are looking for pairs of simplices (σ, τ) where σ is the youngest
+    # facet of τ and τ is the oldest cofacet of σ. These pairs give birth to persistence
+    # intervals with zero length and can be skipped.
     emergent_check = true
-    for facet in co_boundary(matrix, column_simplex)
-        if emergent_check && is_cohomology(matrix) && birth(facet) == birth(column_simplex)
+    for cofacet in coboundary(matrix, column_simplex)
+        if emergent_check && is_cohomology(matrix) && birth(cofacet) == birth(column_simplex)
             emergent_check = false
-            if !haskey(matrix.reduced, facet)
-                return facet_element(matrix)(facet)
+            if !haskey(matrix.reduced, cofacet)
+                return cofacet_element(matrix)(cofacet)
             end
         end
-        nonheap_push!(matrix.working_boundary, facet)
+        nonheap_push!(matrix.working_coboundary, cofacet)
     end
-    if isempty(matrix.working_boundary)
+    if isempty(matrix.working_coboundary)
         return nothing
     else
-        repair!(matrix.working_boundary)
-        return pop!(matrix.working_boundary)
+        repair!(matrix.working_coboundary)
+        return pop!(matrix.working_coboundary)
     end
 end
 
 function add!(matrix::ReductionMatrix, column, pivot)
     factor = -coefficient(pivot)
     for element in column
-        for facet in co_boundary(matrix, simplex(element))
-            simplex(pivot) == facet && continue
+        for cofacet in coboundary(matrix, simplex(element))
+            simplex(pivot) == cofacet && continue
             push!(
-                matrix.working_boundary,
-                facet_element(matrix)(facet, coefficient(element) * factor)
+                matrix.working_coboundary,
+                cofacet_element(matrix)(cofacet, coefficient(element) * factor)
             )
         end
     end
@@ -272,7 +275,7 @@ function add!(matrix::ReductionMatrix, column, pivot)
 end
 
 function reduce_column!(matrix::ReductionMatrix, column_simplex)
-    pivot = initialize_boundary!(matrix, column_simplex)
+    pivot = initialize_coboundary!(matrix, column_simplex)
 
     while !isnothing(pivot)
         column = matrix.reduced[pivot]
@@ -280,7 +283,7 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
 
         add!(matrix, column, pivot)
         record!(matrix.reduced, column, -coefficient(pivot))
-        pivot = pop!(matrix.working_boundary)
+        pivot = pop!(matrix.working_coboundary)
     end
     if isnothing(pivot)
         discard!(matrix.reduced)
@@ -329,10 +332,10 @@ function interval(
     birth, death = birth_death(matrix, column, pivot)
 
     if death - birth > cutoff
-        push!(matrix.working_boundary, pivot)
+        push!(matrix.working_coboundary, pivot)
         return R(
             PersistenceInterval(birth, death),
-            simplex(pivot), column, move!(matrix.working_boundary)
+            simplex(pivot), column, move!(matrix.working_coboundary)
         )
     else
         return nothing

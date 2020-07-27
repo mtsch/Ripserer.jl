@@ -5,15 +5,11 @@ using Test
 using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
-using Ripserer: WorkingBoundary, nonheap_push!, repair!
-using Ripserer: ReductionMatrix, simplex_type, simplex_element, facet_element, next_matrix
+using Ripserer: WorkingCoboundary, nonheap_push!, repair!
+using Ripserer: ReductionMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
 
-#cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-#    Cubelet{D + 1, T, I}
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D + 1, T, I}
-#facet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-#    Cubelet{D - 1, T, I}
 facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D - 1, T, I}
 
@@ -175,7 +171,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     end
 end
 
-@testset "WorkingBoundary" begin
+@testset "WorkingCoboundary" begin
     for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         SE = chain_element_type(S, T)
 
@@ -185,8 +181,8 @@ end
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "a fresh WorkingBoundary is empty and pop! yields nothing" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+        @testset "a fresh WorkingCoboundary is empty and pop! yields nothing" begin
+            working_boundary = WorkingCoboundary{SE}(fwd)
 
             @test isempty(working_boundary)
             @test pop!(working_boundary) ≡ nothing
@@ -194,7 +190,7 @@ end
         end
 
         @testset "pushing elements and popping finds the lowest simplex (cohomology)" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+            working_boundary = WorkingCoboundary{SE}(fwd)
             for e in elements
                 push!(working_boundary, e)
             end
@@ -203,7 +199,7 @@ end
         end
 
         @testset "the same happens for nonheap_push! with repair! (homology)" begin
-            working_boundary = WorkingBoundary{SE}(rev)
+            working_boundary = WorkingCoboundary{SE}(rev)
             for e in elements
                 nonheap_push!(working_boundary, e)
             end
@@ -213,7 +209,7 @@ end
         end
 
         @testset "adding inverses removes elements" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+            working_boundary = WorkingCoboundary{SE}(fwd)
             for e in unq_elements
                 nonheap_push!(working_boundary, e)
             end
@@ -256,7 +252,7 @@ end
 
                 @test simplex_type(matrix) == S
                 @test simplex_element(matrix) == SE
-                @test facet_element(matrix) == FE
+                @test cofacet_element(matrix) == FE
                 @test dim(matrix) == (Co ? dim(S) : dim(S) - 1)
             end
 
