@@ -234,8 +234,6 @@ function columns_to_reduce(filtration::Cubical{K}, itr) where K
 end
 
 function Base.iterate(cols::CubicalColumnsToReduce{D, K}, i=1) where {D, K}
-    D ≥ K && return nothing
-
     last_i = lastindex(cols.filtration.cubemap)
     cart = CartesianIndices(cols.filtration.cubemap)
     while i < last_i
