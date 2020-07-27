@@ -1,4 +1,5 @@
 using Ripserer
+using Test
 
 using DataStructures
 using Ripserer: DisjointSetsWithBirth, find_leaves!

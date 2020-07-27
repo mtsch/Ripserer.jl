@@ -99,13 +99,13 @@ end
 Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
-Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, abs(simplex))
+Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, simplex)
 
 function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where S
     return matrix[simplex(element)]
 end
 function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where S
-    index = get(matrix.column_index, abs(simplex), 0)
+    index = get(matrix.column_index, simplex, 0)
     if index == 0
         from = 0
         to = -1
@@ -241,7 +241,7 @@ function initialize_boundary!(matrix::ReductionMatrix, column_simplex)
     empty!(matrix.working_boundary)
     emergent_check = true
     for facet in co_boundary(matrix, column_simplex)
-        if emergent_check && is_cohomology(matrix) && diam(facet) == diam(column_simplex)
+        if emergent_check && is_cohomology(matrix) && birth(facet) == birth(column_simplex)
             emergent_check = false
             if !haskey(matrix.reduced, facet)
                 return facet_element(matrix)(facet)
@@ -261,7 +261,7 @@ function add!(matrix::ReductionMatrix, column, pivot)
     factor = -coefficient(pivot)
     for element in column
         for facet in co_boundary(matrix, simplex(element))
-            simplex(pivot) == abs(facet) && continue
+            simplex(pivot) == facet && continue
             push!(
                 matrix.working_boundary,
                 facet_element(matrix)(facet, coefficient(element) * factor)
@@ -293,10 +293,10 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
 end
 
 function birth_death(::ReductionMatrix{true}, column, pivot)
-    return diam(column), isnothing(pivot) ? Inf : diam(pivot)
+    return birth(column), isnothing(pivot) ? Inf : birth(pivot)
 end
 function birth_death(::ReductionMatrix{false}, column, pivot)
-    return isnothing(pivot) ? Inf : diam(pivot), diam(column)
+    return isnothing(pivot) ? Inf : birth(pivot), birth(column)
 end
 
 function interval(

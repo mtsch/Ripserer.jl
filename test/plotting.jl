@@ -1,8 +1,10 @@
+using PersistenceDiagrams
 using Ripserer
+using RecipesBase
+using Test
+
 using Ripserer: plottable, ChainElement
 
-using PersistenceDiagrams
-using RecipesBase
 using RecipesBase: apply_recipe
 
 # Hack to avoid having to import Plots.

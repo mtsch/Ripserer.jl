@@ -1,6 +1,6 @@
-using Ripserer
-
 using Random
+using Ripserer
+using Test
 
 using Ripserer: chain_element_type, coefficient, index
 
@@ -8,17 +8,17 @@ using Ripserer: ReducedMatrix, record!, commit!, discard!
 using Ripserer: WorkingBoundary, nonheap_push!, repair!
 using Ripserer: ReductionMatrix, simplex_type, simplex_element, facet_element, next_matrix
 
-cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-    Cubelet{D + 1, T, I}
+#cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
+#    Cubelet{D + 1, T, I}
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D + 1, T, I}
-facet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-    Cubelet{D - 1, T, I}
+#facet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
+#    Cubelet{D - 1, T, I}
 facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D - 1, T, I}
 
 @testset "ReducedMatrix" begin
-    for S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}), T in (Mod{3}, Rational{Int})
+    for S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#), T in (Mod{3}, Rational{Int})
         C = cofacet_type(S)
         CE = chain_element_type(C, T)
         SE = chain_element_type(S, T)
@@ -176,7 +176,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
 end
 
 @testset "WorkingBoundary" begin
-    for S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}), T in (Mod{3}, Rational{Int})
+    for S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#), T in (Mod{3}, Rational{Int})
         SE = chain_element_type(S, T)
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
@@ -232,7 +232,7 @@ end
 
 @testset "ReductionMatrix" begin
     for Co in (true, false),
-        S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}),
+        S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#),
         T in (Mod{3}, Rational{Int})
 
         columns_1 = (S.([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))

@@ -1,5 +1,5 @@
 """
-    Cubelet{D, T, I} <: IndexedSimplex{D, T, I}
+    Cubelet{D, T, I} <: AbstractSimplex{D, T, I}
 
 A `Cubelet` is similar to a `Simplex`, but it has `2^D` vertices instead of `D+1`. Like in
 `Simplex`, the vertices are encoded from an index and dimension. Because a cubelet knows
@@ -7,7 +7,7 @@ nothing about the image it came from, it returns *linear* indices from `vertices
 
 The vertices should be neighboring indices, but this fact is not checked anywhere.
 """
-struct Cubelet{D, T, I} <: IndexedSimplex{D, T, I}
+struct Cubelet{D, T, I} <: AbstractSimplex{D, T, I}
     # This is not the most efficient way to index Cubelets, since most of the indices remain
     # unused. It forces us to use large Int types for decently sized images. It does,
     # however, make comparisons very fast, which is good.

@@ -77,7 +77,7 @@ end
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
 function birth_death(dset::DisjointSetsWithBirth, vertex, edge)
-    return birth(dset, vertex), isnothing(edge) ? Inf : diam(edge)
+    return birth(dset, vertex), isnothing(edge) ? Inf : birth(edge)
 end
 
 function interval(

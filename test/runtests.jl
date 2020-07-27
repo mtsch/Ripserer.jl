@@ -1,10 +1,11 @@
 using SafeTestsets
 using Test
 
-include("testhelpers.jl")
-
 @safetestset "Aqua" begin
     include("aqua.jl")
+end
+@safetestset "primefield" begin
+    include("primefield.jl")
 end
 @safetestset "simplex" begin
     include("simplex.jl")
@@ -12,12 +13,11 @@ end
 @safetestset "ripsfiltration" begin
     include("ripsfiltration.jl")
 end
+#=
 @safetestset "cubical" begin
     include("cubical.jl")
 end
-@safetestset "primefield" begin
-    include("primefield.jl")
-end
+=#
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
@@ -33,3 +33,4 @@ end
 @safetestset "plotting" begin
     include("plotting.jl")
 end
+=#

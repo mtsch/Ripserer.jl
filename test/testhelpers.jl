@@ -88,25 +88,6 @@ return values of types that make sense.
 function test_filtration_interface(Filtration, datasets)
     @testset "AbstractFiltration interface" begin
         for data in datasets
-            flt = Filtration(data)
-
-            T = eltype(data)
-            V = vertex_type(flt)
-            E = edge_type(flt)
-
-            @test V <: AbstractSimplex{0}
-            @test V isa DataType
-            @test E <: AbstractSimplex{1}
-            @test E isa DataType
-
-            @test threshold(flt) isa Union{T, Missing}
-
-            sx = first(edges(flt))
-            @test sx isa E
-            @test diam(sx) isa T
-            @test birth(flt, 1) isa Union{T, Bool}
-
-            @test begin @inferred edges(flt); true end
         end
     end
 end

@@ -29,13 +29,12 @@ export
     birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
 export
-    Mod, Simplex, Cubelet, vertices, diam, dim, threshold, simplex, coefficient,
+    Mod, Simplex, Cubelet, index, vertices, dim, threshold, simplex, coefficient,
     Rips, SparseRips, Cubical, ripserer
 
 
 include("primefield.jl")
 
-include("abstractsimplex.jl")
 include("simplex.jl")
 
 include("abstractfiltration.jl")

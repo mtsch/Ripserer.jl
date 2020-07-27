@@ -1,4 +1,6 @@
 using Ripserer
+using Test
+
 using Ripserer: is_prime
 
 @testset "is_prime" begin

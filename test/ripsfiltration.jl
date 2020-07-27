@@ -1,11 +1,11 @@
-using Ripserer
-using Ripserer: distances, vertex_type, edge_type, dist, edges, n_vertices, unsafe_simplex
-
 using Compat
+using Distances
+using Ripserer
+using SparseArrays
 using StaticArrays
+using Test
 
-using ..TestHelpers: test_filtration_interface
-include("data.jl")
+using Ripserer: distances, vertex_type, edge_type, dist, edges, n_vertices, unsafe_simplex
 
 @testset "distances" begin
     for points in (
@@ -19,8 +19,6 @@ end
 
 for Filtration in (Rips, SparseRips)
     @testset "$(string(Filtration))" begin
-        test_filtration_interface(Filtration, (icosahedron, torus(100)))
-
         @testset "With no threshold" begin
             filtration = Filtration(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0])
 
@@ -77,11 +75,11 @@ for Filtration in (Rips, SparseRips)
 end
 
 @testset "Rips points constructor" begin
-    filtration = Rips(torus_points(9))
+    filtration = Rips([(sin(x), cos(x)) for x in range(0, 2π, length=100)])
     @test all(x -> x > 0, dist(filtration, i, j) for i in 1:10 for j in i+1:9)
     @test eltype(edges(filtration)) === Simplex{1, Float64, Int}
 
-    filtration = Rips{Int32}(torus_points(9))
+    filtration = Rips{Int32}([(sin(x), cos(x)) for x in range(0, 2π, length=100)])
     @test all(x -> x > 0, dist(filtration, i, j) for i in 1:10 for j in i+1:9)
     @test eltype(edges(filtration)) === Simplex{1, Float64, Int32}
 end
