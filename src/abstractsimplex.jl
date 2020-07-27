@@ -133,9 +133,9 @@ vertices(::AbstractSimplex)
 """
     coboundary(filtration, simplex[, Val{all_cofacets}])
 
-Iterate over the coboundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofacets. If `all_cofacets` is `false`, only return cofaces with vertices
-added to the beginning of vertex list.
+Iterate over the coboundary of `simplex` in decreasing combinatorial order. Use the
+`filtration` to determine the diameters and validity of cofacets. If `all_cofacets` is
+`false`, only return cofaces with vertices added to the beginning of vertex list.
 
 Comes with a default implementation.
 
