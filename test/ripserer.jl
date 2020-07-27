@@ -312,6 +312,18 @@ end
     @testset "Infinite intervals" begin
         @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
     end
+    @testset "Cubical" begin
+        data = zeros(5, 5, 5)
+        data[2, 2:4, 2:4] .= 1
+        data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
+        data[4, 2:4, 2:4] .= 1
+
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, cohomology=false)
+
+        @test d0 == [(0, 1.0), (0, Inf)]
+        @test isempty(d1)
+        @test d2 == [(0, 1)]
+    end
 end
 
 @testset "Only print to stderr and only when progress is enabled" begin

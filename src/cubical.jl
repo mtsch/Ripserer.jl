@@ -10,7 +10,7 @@
 #
 # where `⋅` are the vertices, `—` and `|` are 1-cubes and `□` are 2-cubes. Each value in the
 # resulting array is equal to the birth time of a cube, which is equal to the `maximum` of
-# cofaces.
+# the birth times of cofaces.
 #
 # See https://link.springer.com/chapter/10.1007%2F978-3-642-23175-9_7 for more info.
 @generated function cubemap(input::Array{T, N}) where {T, N}
@@ -60,6 +60,12 @@ function to_cubemap(vertices::NTuple{N}) where N
     return CartesianIndex{K}(result)
 end
 
+"""
+    Cubelet{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
+
+A `Cube` is similar to a `Simplex`, but it has `2^D` vertices instead of `D+1`. The vertices
+are encoded as the position in the CubeMap.
+"""
 struct Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
     root::NTuple{K, Int32}
     birth::T
@@ -86,6 +92,24 @@ Base.abs(cube::Cube) = cube
 @generated Base.length(::Type{<:Cube{D}}) where D = :($(2^D))
 vertices(cube::Cube{D}) where D = from_cubemap(index(cube), Val(length(cube)))
 
+"""
+    Cubical{T, K} <: AbstractFiltration{CartesianIndex{K}, T}
+
+`Cubical` is used to compute sublevel persistent homology on `N`-dimensional images, which
+are of type `AbstractArray{T, N}`.
+
+This type uses the CubeMap structure to find birth times of cubes (see reference).
+
+# Constructor
+
+* `Cubical(image::AbstractArray{T, N}, threshold=maximum(image))`
+
+# Reference
+
+Wagner, H., Chen, C., & Vuçini, E. (2012). [Efficient computation of persistent homology for
+cubical data.](https://link.springer.com/chapter/10.1007/978-3-642-23175-9_7) In Topological
+methods in data analysis and visualization II (pp. 91-106). Springer, Berlin, Heidelberg.
+"""
 struct Cubical{K, T, A<:AbstractArray{T, K}} <: AbstractFiltration{CartesianIndex{K}, T}
     data::A
     cubemap::A
@@ -120,12 +144,7 @@ end
 
 function simplex(cf::Cubical{N, T}, ::Val{D}, vertices, sign=1) where {D, T, N}
     root = to_cubemap(vertices)
-    birth = get(cf.cubemap, root, missing)
-    if ismissing(birth) || birth > threshold(cf)
-        return nothing
-    else
-        return Cube{D, T, N}(root, birth)
-    end
+    return unsafe_simplex(cf, Val(D), root, sign)
 end
 
 function unsafe_simplex(cf::Cubical{N, T}, ::Val{D}, new_root, _) where {D, T, N}

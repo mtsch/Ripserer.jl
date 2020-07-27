@@ -137,13 +137,6 @@ plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeral
 # invert the image.
 
 result = ripserer(Cubical(1 .- blackhole))
-
-# !!! tip "Overflow"
-#     Ripserer stores vertices in large integers. In some cases, `Int64` is
-#     not large enough to represent them. This is particularly likely to happen with
-#     `Cubical`. When it does, `ripserer` will throw an `OverflowError`. If that happens,
-#     try constructing the `Cubical` filtration with `Cubical{Int128}(data)`.
-
 plot(blackhole_plot, plot(result))
 
 # We notice there are quite a lot of intervals along the diagonal. These correspond to local

@@ -9,7 +9,11 @@ dim(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-diam(::Ripserer.AbstractSimplex)
+birth(::Ripserer.AbstractSimplex)
+```
+
+```@docs
+index(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
@@ -30,12 +34,4 @@ Ripserer.coboundary(::Any, ::Ripserer.AbstractSimplex)
 
 ```@docs
 Ripserer.boundary(::Any, ::Ripserer.AbstractSimplex)
-```
-
-```@docs
-Ripserer.IndexedSimplex
-```
-
-```@docs
-Ripserer.index(::Ripserer.AbstractSimplex)
 ```
