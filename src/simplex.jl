@@ -271,7 +271,7 @@ Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 """
     coboundary(filtration, simplex[, Val{all_cofacets}])
 
-Iterate over the coboundary of `simplex` in decreasing combinatorial order. Use the
+Iterate over the coboundary of `simplex` by decreasing `index`. Use the
 `filtration` to determine the diameters and validity of cofacets.
 
 If `all_cofacets` is `false`, only return cofaces with vertices added to the beginning of
@@ -282,8 +282,7 @@ Comes with a default implementation.
 
 # Warning
 
-If cofacets are not returned in decreasing combinatorial order, the algorithm will not work
-correctly.
+If cofacets are not returned in decreasing `index`, the algorithm will not work correctly.
 
 # Example
 
@@ -318,8 +317,8 @@ end
 """
     boundary(filtration, simplex[, Val{all_cofacets}])
 
-Iterate over the boundary of `simplex`. Use the `filtration` to determine the diameters
-and validity of cofacets.
+Iterate over the boundary of `simplex` by increasing `index`. Use the `filtration` to
+determine the diameters and validity of cofacets.
 
 Comes with a default implementation.
 

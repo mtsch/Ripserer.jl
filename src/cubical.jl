@@ -202,24 +202,28 @@ function boundary(filtration::Cubical{K}, cube::Cube{D}) where {K, D}
     return CubeBoundary{K, D, typeof(filtration), typeof(cube)}(filtration, cube)
 end
 
-function Base.iterate(bnd::CubeBoundary{K, D}, (i,pos)=(K,true)) where {K, D}
+function Base.iterate(bnd::CubeBoundary{K, D}, (i,sign)=(K,-1)) where {K, D}
     orig_root = index(bnd.cube)
-    while i > 0
-        new_state = (i - !pos, !pos)
+    while i ≤ K
+        next_i = i + sign
+        next_sign = sign
+        if next_i ≤ 0
+            next_sign = 1
+            next_i = 1
+        end
 
         if iseven(orig_root[i])
-            sign = ifelse(pos, 1, -1)
             new_root = orig_root + sign * one_hot(i, Val(K))
             facet = unsafe_simplex(
                 bnd.filtration, Val(D - 1), new_root, sign
             )
             if !isnothing(facet)
                 _facet::simplex_type(bnd.filtration, D - 1) = facet
-                return _facet, new_state
+                return _facet, (next_i, next_sign)
             end
         end
 
-        i, pos = new_state
+        i, sign = next_i, next_sign
     end
     return nothing
 end

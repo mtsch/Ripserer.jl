@@ -244,11 +244,9 @@ function initialize_coboundary!(matrix::ReductionMatrix, column_simplex)
     # intervals with zero length and can be skipped.
     emergent_check = true
     for cofacet in coboundary(matrix, column_simplex)
-        if emergent_check && is_cohomology(matrix) && birth(cofacet) == birth(column_simplex)
+        if emergent_check && birth(cofacet) == birth(column_simplex)
             emergent_check = false
-            if !haskey(matrix.reduced, cofacet)
-                return cofacet_element(matrix)(cofacet)
-            end
+            !haskey(matrix.reduced, cofacet) && return cofacet_element(matrix)(cofacet)
         end
         nonheap_push!(matrix.working_coboundary, cofacet)
     end
