@@ -18,7 +18,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D - 1, T, I}
 
 @testset "ReducedMatrix" begin
-    for S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#), T in (Mod{3}, Rational{Int})
+    for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         C = cofacet_type(S)
         CE = chain_element_type(C, T)
         SE = chain_element_type(S, T)
@@ -176,7 +176,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
 end
 
 @testset "WorkingBoundary" begin
-    for S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#), T in (Mod{3}, Rational{Int})
+    for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         SE = chain_element_type(S, T)
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
@@ -232,13 +232,13 @@ end
 
 @testset "ReductionMatrix" begin
     for Co in (true, false),
-        S in (Simplex{2, Int, Int}, #=Cubelet{1, Int, Int}=#),
         T in (Mod{3}, Rational{Int})
+        S = Simplex{2, Int, Int}
 
         columns_1 = (S.([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
         columns_2 = (S.([6, 7, 8, 9, 10], [6, 7, 8, 9, 10]))
         data = [0 1 1 1 1; 1 0 1 1 1; 1 1 0 1 1; 1 1 1 0 1; 1 1 1 1 0]
-        flt = S <: Simplex ? Rips(data) : Cubical(data)
+        flt = Rips(data)
         co_str = Co ? "Coh" : "H"
 
         SE = chain_element_type(S, T)

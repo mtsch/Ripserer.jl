@@ -3,7 +3,7 @@ using Test
 
 using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, simplex
 
-for S in (Simplex{2, Float64, Int},),
+for S in (Simplex{2, Float64, Int}, Simplex{3, Float64, Int32}),
     F in (Mod{2}, Mod{11}, Rational{Int}, Mod{251}, Mod{257})
 
     @testset "chain element with $S, $F" begin
@@ -101,14 +101,6 @@ end
             @test @inferred(chain_element_type(S, Mod{251})) <: PackedElement{S, Mod{251}}
             @test @inferred(chain_element_type(S, Mod{257})) == ChainElement{S, Mod{257}}
             @test @inferred(chain_element_type(S, Rational{Int})) == ChainElement{S, Rational{Int}}
-        end
-    end
-    @testset "Don't construct a `PackedElement` for Cubelet." begin
-        for C in (Cubelet{2, Float64, Int}, Cubelet{3, Int, Int128})
-            @test @inferred(chain_element_type(C, Mod{2})) == ChainElement{C, Mod{2}}
-            @test @inferred(chain_element_type(C, Mod{251})) == ChainElement{C, Mod{251}}
-            @test @inferred(chain_element_type(C, Mod{257})) == ChainElement{C, Mod{257}}
-            @test @inferred(chain_element_type(C, Rational{Int})) == ChainElement{C, Rational{Int}}
         end
     end
 end

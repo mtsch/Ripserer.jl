@@ -13,11 +13,9 @@ end
 @safetestset "ripsfiltration" begin
     include("ripsfiltration.jl")
 end
-#=
 @safetestset "cubical" begin
     include("cubical.jl")
 end
-=#
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
@@ -33,4 +31,3 @@ end
 @safetestset "plotting" begin
     include("plotting.jl")
 end
-=#

@@ -10,6 +10,7 @@ module Ripserer
 using Compat
 
 using Base: @propagate_inbounds, @pure
+using Base.Cartesian
 using LinearAlgebra
 using SparseArrays
 
@@ -29,7 +30,7 @@ export
     birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
 export
-    Mod, Simplex, Cubelet, index, vertices, dim, threshold, simplex, coefficient,
+    Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
     Rips, SparseRips, Cubical, ripserer
 
 
@@ -39,12 +40,13 @@ include("simplex.jl")
 
 include("abstractfiltration.jl")
 include("ripsfiltration.jl")
-include("cubical.jl")
 
 include("chainelement.jl")
 include("zerodimensional.jl")
 include("reductionmatrix.jl")
 include("main.jl")
+
+include("cubical.jl")
 
 include("simplexrecipes.jl")
 

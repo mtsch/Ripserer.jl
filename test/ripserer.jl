@@ -243,7 +243,6 @@ end
     end
 end
 
-#=
 @testset "Cubical" begin
     @testset "1D curve" begin
         data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
@@ -265,8 +264,10 @@ end
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test sort(vertices.(representative(d0[1]))) == [SVector(i) for i in 1:length(data)]
-        @test vertices(only(representative(d0[2]))) == SVector(13)
+        @test sort(vertices.(representative(d0[1]))) ==
+            sort(SVector.(vec(CartesianIndices(data))))
+        @test vertices(only(representative(d0[2]))) ==
+            SVector(CartesianIndex(3, 3))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
@@ -282,7 +283,6 @@ end
         @test d2 == [(0, 1)]
     end
 end
-=#
 
 @testset "Persistent homology" begin
     @testset "Produces the same diagram as cohomology" begin
@@ -325,7 +325,6 @@ end
 end
 
 @testset "Overflow checking" begin
-    #@test_throws OverflowError ripserer(Cubical(zeros(1000, 1000)))
     @test_throws OverflowError ripserer(Rips{Int16}(zeros(1000, 1000)))
 end
 
