@@ -2,12 +2,16 @@ module BenchImage
 using BenchmarkTools
 using FileIO
 using Ripserer
-hubble = getfield.(load(joinpath(@__DIR__, "hubble1024px.jpg")), :r)
-helix = getfield.(load(joinpath(@__DIR__, "helix_nebula1200px.jpg")), :r)
+hubble1024 = getfield.(load(joinpath(@__DIR__, "hubble1024px.jpg")), :r)
+
+# TODO: add bonsai when supported by new version of Cubical
+# bonsai256 = Array{UInt8}(undef, (256, 256, 256))
+# read!(joinpath(@__DIR__, "bonsai.raw"), bonsai256)
+# bonsai64 = bonsai256[1:4:end, 1:4:end, 1:4:end]
+
 suite = BenchmarkGroup()
 
-suite["helix"] = @benchmarkable ripserer(Cubical{Int128}($helix))
-suite["hubble"] = @benchmarkable ripserer(Cubical{Int128}($hubble))
+suite["hubble"] = @benchmarkable ripserer(Cubical{Int128}($hubble1024))
 
 end
 BenchImage.suite
