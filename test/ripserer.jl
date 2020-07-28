@@ -367,7 +367,7 @@ function Ripserer.unsafe_simplex(
     vertices,
     sign,
 ) where D
-    return Simplex{D}(sign * Ripserer._index(vertices), 1)
+    return Simplex{D}(sign * index(vertices), 1)
 end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::Type{CustomFiltration}, D) = Simplex{D, Int, Int}

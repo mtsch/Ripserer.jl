@@ -48,7 +48,7 @@ end
             diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return S(I(sign) * _index(vertices), diameter)
+    return S(I(sign) * index(vertices), diameter)
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
@@ -72,7 +72,7 @@ end
             diameter = ifelse(_d > diameter, _d, diameter)
         end
     end
-    return S(I(sign) * _index(cofacet_vertices), diameter)
+    return S(I(sign) * index(cofacet_vertices), diameter)
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
@@ -89,7 +89,7 @@ end
         e > threshold(rips) && return nothing
         new_diam = ifelse(e > new_diam, e, new_diam)
     end
-    new_index = _index(cofacet_vertices)
+    new_index = index(cofacet_vertices)
     return S(I(sign) * new_index, new_diam)
 end
 

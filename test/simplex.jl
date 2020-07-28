@@ -2,7 +2,7 @@ using Ripserer
 using StaticArrays
 using Test
 
-using Ripserer: _binomial, _index, _vertices, coboundary, boundary
+using Ripserer: _binomial, _vertices, coboundary, boundary
 
 struct FakeFiltration<:Ripserer.AbstractFiltration{Int, Int} end
 function Ripserer.unsafe_simplex(
@@ -11,7 +11,7 @@ function Ripserer.unsafe_simplex(
     vertices,
     sign,
 ) where D
-    return Simplex{D, Int, Int}(sign * _index(vertices), 1)
+    return Simplex{D, Int, Int}(sign * index(vertices), 1)
 end
 Ripserer.n_vertices(::FakeFiltration) = 20
 Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D, Int, Int}
@@ -23,7 +23,7 @@ function Ripserer.unsafe_simplex(
     if maximum(vertices) > 10
         return nothing
     else
-        return Simplex{D, Int, Int}(sign * _index(vertices), 1)
+        return Simplex{D, Int, Int}(sign * index(vertices), 1)
     end
 end
 Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
@@ -34,10 +34,10 @@ Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D, Int, 
         @test all(_binomial(n, Val(k)) == binomial(n, k) for n in 0:1000 for k in 0:7)
     end
 
-    @testset "_index" begin
-        @test _index((3, 2, 1)) === 1
-        @test _index(Int32.((4, 3, 2, 1))) === Int32(1)
-        @test _index(SVector(101, 100, 20, 15, 3)) ==
+    @testset "index" begin
+        @test index((3, 2, 1)) === 1
+        @test index(Int32.((4, 3, 2, 1))) === Int32(1)
+        @test index(SVector(101, 100, 20, 15, 3)) ==
             1 +
             binomial(101 - 1, 5) +
             binomial(100 - 1, 4) +
@@ -48,7 +48,7 @@ Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D, Int, 
 
     @testset "_vertices" begin
         for i in 1:3:10, N in 1:5
-            @test _index(_vertices(i, Val(N))) == i
+            @test index(_vertices(i, Val(N))) == i
             @test length(_vertices(i, Val(N))) == N
             @test begin @inferred _vertices(i, Val(N)); true end
         end

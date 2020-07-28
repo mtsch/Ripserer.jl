@@ -160,29 +160,29 @@ For regular simplices, `N` should be equal to `dim+1`.
 end
 
 """
-    _index(vertices)
+    index(vertices)
 
-Calculate the index from tuple of vertices. The index is equal to
+Calculate the index from tuple or static vector of vertices. The index is equal to
 
 ```math
-(i_d, i_{d-1}, ..., 1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
+(i_d, i_{d-1}, ..., i_1) \\mapsto \\sum_{k=1}^{d+1} \\binom{i_k - 1}{k},
 ```
 
 where ``i_k`` are the simplex vertex indices.
 """
-@generated function _index(vertices::Union{NTuple{k}, SVector{k}}) where k
+@generated function index(vertices::Union{NTuple{K}, SVector{K}}) where K
     # generate code of the form
-    # 1 + _binomial(vertices[1] - 1, Val(k))
-    #   + _binomial(vertices[2] - 1, Val(k-1))
+    # 1 + _binomial(vertices[1] - 1, Val(K))
+    #   + _binomial(vertices[2] - 1, Val(K-1))
     #   ...
-    #   + _binomial(vertices[k] - 1, Val(1))
+    #   + _binomial(vertices[K] - 1, Val(1))
     I = eltype(vertices)
     expr = quote
-        one($I) + _binomial(vertices[1] - one($I), Val($k))
+        one($I) + _binomial(vertices[1] - one($I), Val($K))
     end
-    for i in 2:k
+    for i in 2:K
         expr = quote
-            $expr + _binomial(vertices[$i] - one($I), Val($(k - i + 1)))
+            $expr + _binomial(vertices[$i] - one($I), Val($(K - i + 1)))
         end
     end
     return expr
@@ -446,7 +446,7 @@ function Simplex{D}(vertices, birth::T) where {D, T}
     length(vertices) == D + 1 ||
         throw(ArgumentError("invalid number of vertices $(length(vertices))"))
     vertices_svec = sort(SVector{D + 1}(vertices), rev=true)
-    return Simplex{D, T, eltype(vertices)}(_index(vertices_svec), T(birth))
+    return Simplex{D, T, eltype(vertices)}(index(vertices_svec), T(birth))
 end
 
 index(sx::Simplex) = abs(sx.index)
