@@ -68,11 +68,14 @@ end
 
 # To get the locations of the minima, extract the critical simplices from intervals. Since
 # simplices act like collections of vertex indices, and zero-dimensional representatives
-# have a single point each, we can use `only` to extract them.
+# have a single point each, we can use `only` to extract them. Cubical simplices store
+# vertices as `CartesianIndex`, so we need to index into the x-values with them in order to
+# plot them.
 
-x_min = [only(birth_simplex(int)) for int in result]
+min_indices = [only(birth_simplex(int)) for int in result]
+min_x = eachindex(curve)[min_indices]
 
-scatter!(plt, x_min, curve[x_min], color=1:6, markershape=:star)
+scatter!(plt, min_x, curve[min_x], color=1:6, markershape=:star)
 plot(plt, plot(result, markercolor=1:6, markeralpha=1))
 
 
@@ -104,6 +107,7 @@ plot(filtered_result, persistence=true)
 
 # We could achieve the same result by simply filtering the resulting diagram.
 
+@assert filter(int -> persistence(int) > 1, noisy_result) == filtered_result # hide
 filter(int -> persistence(int) > 1, noisy_result) == filtered_result
 
 # Keep in mind, however, that for very large diagrams, collecting representatives on all of
@@ -122,9 +126,10 @@ for interval in filter(isfinite, filtered_result)
     plot!(plt, interval, noisy_curve, seriestype=:path)
 end
 
-x_min = [first(birth_simplex(int)) for int in filtered_result]
+min_indices = [first(birth_simplex(int)) for int in filtered_result]
+min_x = eachindex(curve)[min_indices]
 
-scatter!(plt, x_min, noisy_curve[x_min], color=eachindex(filtered_result), markershape=:star)
+scatter!(plt, min_x, noisy_curve[min_x], color=eachindex(filtered_result), markershape=:star)
 plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeralpha=1))
 
 # The result we got is very similar even though the data set was very noisy.
@@ -136,14 +141,14 @@ plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeral
 # Instead of looking for local minima, let's look for local maxima. To do that, we have to
 # invert the image.
 
-result = ripserer(Cubical(1 .- blackhole))
+result = ripserer(Cubical(-blackhole))
 plot(blackhole_plot, plot(result))
 
 # We notice there are quite a lot of intervals along the diagonal. These correspond to local
 # geometry of the image, so we are not interested in them right now. To filter them out, we
 # set a cutoff.
 
-result = ripserer(Cubical(1 .- blackhole), cutoff=0.1)
+result = ripserer(Cubical(-blackhole), cutoff=0.1)
 plot(blackhole_plot, plot(result))
 
 # Like earlier, we can show the local extrema in the image. We will show a different way to
@@ -151,7 +156,7 @@ plot(blackhole_plot, plot(result))
 # representative with a diameter equal to or lower than `threshold`. If we needed a strict
 # `<`, we could use `threshold_strict`.
 
-result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true)
+result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true)
 plt = plot(blackhole_image, title="Black Hole")
 for interval in result[1]
     plot!(plt, interval, blackhole, threshold=birth(interval))
@@ -181,7 +186,7 @@ plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 #     Ripserer currently can't compute infinite intervals in dimensions
 #     higher than zero with persistent homology.
 
-result = ripserer(Cubical(1 .- blackhole), cutoff=0.1, reps=true, cohomology=false)
+result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true, cohomology=false)
 plot!(plt, only(result[2]), blackhole, label="H₁ cycle", color=3)
 
 # We have successfully found the hole in a black hole.

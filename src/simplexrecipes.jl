@@ -48,7 +48,7 @@ function plottable(element::AbstractChainElement, args...)
     return plottable(simplex(element), args...)
 end
 function plottable(sxs::AbstractVector{<:AbstractSimplex{0}}, args...)
-    indices = only.(vertices.(sxs))
+    indices = sort(only.(vertices.(sxs)))
     return index_data(indices, args...), [:seriestype => :scatter], 0
 end
 function plottable(sxs::AbstractVector{<:AbstractSimplex{1}}, args...)
