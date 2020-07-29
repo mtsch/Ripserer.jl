@@ -282,6 +282,14 @@ end
         @test isempty(d1)
         @test d2 == [(0, 1)]
     end
+    @testset "Thresholding" begin
+        data = [1 1 1;
+                1 2 1;
+                1 1 1]
+        d0, d1 = ripserer(Cubical(data, threshold=1))
+        @test d0 == [(1, Inf)]
+        @test d1 == [(1, Inf)]
+    end
 end
 
 @testset "Persistent homology" begin

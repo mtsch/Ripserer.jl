@@ -1,11 +1,78 @@
 using Compat
 using Random
 using Ripserer
+using StaticArrays
 using Test
+using TupleTools
 
-using Ripserer: one_hot, from_cubemap, to_cubemap, n_vertices,
+using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, n_vertices,
     coboundary, boundary, edges,
     chain_element_type, CubicalChainElement
+
+@testset "CubeMap" begin
+    @testset "cubemap" begin
+        @testset "1d" begin
+            data = Float64[9, 1, 8, 2, 1, 3]
+            @test cubemap(data) == [9, 9, 1, 8, 8, 8, 2, 2, 1, 3, 3]
+        end
+        @testset "2d" begin
+            data = [1 2; 3 4]
+            @test cubemap(data) == [1 2 2; 3 4 4; 3 4 4]
+
+            data = [1; 2; 3]
+            @test cubemap(data) == [1; 2; 2; 3; 3]
+        end
+        @testset "nd" begin
+            for D in 3:6
+                data = ones(ntuple(identity, D)...)
+                map = cubemap(data)
+
+                @test map == ones(ntuple(i -> 2i - 1, D)...)
+            end
+        end
+    end
+
+    @testset "from/to_cubemap" begin
+        @test from_cubemap(CartesianIndex(2, 2, 2), Val(8)) == SVector(
+            CartesianIndex(1, 1, 1),
+            CartesianIndex(2, 1, 1),
+            CartesianIndex(1, 2, 1),
+            CartesianIndex(2, 2, 1),
+            CartesianIndex(1, 1, 2),
+            CartesianIndex(2, 1, 2),
+            CartesianIndex(1, 2, 2),
+            CartesianIndex(2, 2, 2),
+        )
+
+        for vertices in (
+            (CartesianIndex(5, 4),),
+            (CartesianIndex(1024, 1072), CartesianIndex(1025, 1072)),
+            (
+                CartesianIndex(1024, 1072, 15), CartesianIndex(1025, 1072, 15),
+                CartesianIndex(1024, 1073, 15), CartesianIndex(1025, 1073, 15),
+                CartesianIndex(1024, 1072, 14), CartesianIndex(1025, 1072, 14),
+                CartesianIndex(1024, 1073, 14), CartesianIndex(1025, 1073, 14),
+            ),
+        )
+            @test from_cubemap(to_cubemap(vertices), Val(length(vertices))) ==
+                sort(SVector(vertices))
+            root = to_cubemap(vertices)
+            @test begin from_cubemap(root, Val(length(vertices))); true end
+        end
+
+
+        @test_throws ArgumentError from_cubemap(CartesianIndex(2, 2, 1), Val(8))
+        @test_throws ArgumentError to_cubemap(
+            (CartesianIndex(2), CartesianIndex(3), CartesianIndex(4))
+        )
+        @test_throws ArgumentError to_cubemap(
+            (CartesianIndex(2), CartesianIndex(2))
+        )
+        @test_throws ArgumentError to_cubemap(
+            (CartesianIndex(1), CartesianIndex(3))
+        )
+    end
+end
 
 @testset "Cube" begin
     @testset "Constructors" begin
@@ -18,7 +85,7 @@ using Ripserer: one_hot, from_cubemap, to_cubemap, n_vertices,
     end
 
     @testset "Randomized tests for AbstractSimplex interface" begin
-        for (D, K) in ((0, 5), (1, 1), (2, 3), (4, 4)), T in (Float64, Float32, Int)
+        for (D, K) in ((0, 5), (1, 1), (2, 3), (4, 4)), T in (Float32, Int)
             @testset "Cube{$D, $T, $K}" begin
                 d = rand(T)
                 root = CartesianIndex{K}(ntuple(_ -> 2rand(1:100) - 1, Val(K)))
@@ -212,6 +279,7 @@ end
         push!(bnd, f)
     end
     @test length(bnd) == 4
+    @test issorted(bnd, by=index)
     @test sort(birth.(bnd)) == [2, 3, 4, 4]
 end
 

@@ -30,7 +30,7 @@ end
 one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
 
 # Convenience functions from converting cubemap index to vertices and back.
-function from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
+@inline function from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
     2^count(iseven, Tuple(root)) == N || throw(ArgumentError("invalid N"))
     result = ntuple(_ -> root, Val(N))
     for (i, j) in enumerate(Tuple(root))
@@ -48,7 +48,8 @@ function from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
 end
 
 function to_cubemap(vertices::NTuple{N}) where N
-    Int(log2(N)) == log2(N) || throw(ArgumentError("number vertices is not 2^d"))
+    floor(log2(N)) == log2(N) || throw(ArgumentError("number vertices is not 2^d"))
+    allunique(vertices) || throw(ArgumentError("duplicate vertices in $vertices"))
     K = length(first(vertices))
     for i in 1:K
         l, h = extrema(getindex.(vertices, i))
