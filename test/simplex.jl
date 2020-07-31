@@ -1,8 +1,8 @@
 using Ripserer
 using StaticArrays
+using Test
 
-using Ripserer: small_binomial, boundary, coboundary, index
-using ..TestHelpers: test_indexed_simplex_interface
+using Ripserer: _binomial, _vertices, coboundary, boundary
 
 struct FakeFiltration<:Ripserer.AbstractFiltration{Int, Int} end
 function Ripserer.unsafe_simplex(
@@ -29,46 +29,122 @@ end
 Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
 Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D, Int, Int}
 
-@testset "Binomials" begin
-    @test all(binomial(n, k) == small_binomial(n, Val(k)) for n in 0:1000 for k in 0:7)
+@testset "Internal functions" begin
+    @testset "_binomial" begin
+        @test all(_binomial(n, Val(k)) == binomial(n, k) for n in 0:1000 for k in 0:7)
+    end
+
+    @testset "index" begin
+        @test index((3, 2, 1)) === 1
+        @test index(Int32.((4, 3, 2, 1))) === Int32(1)
+        @test index(SVector(101, 100, 20, 15, 3)) ==
+            1 +
+            binomial(101 - 1, 5) +
+            binomial(100 - 1, 4) +
+            binomial(20 - 1, 3) +
+            binomial(15 - 1, 2) +
+            binomial(3 - 1, 1)
+    end
+
+    @testset "_vertices" begin
+        for i in 1:3:10, N in 1:5
+            @test index(_vertices(i, Val(N))) == i
+            @test length(_vertices(i, Val(N))) == N
+            @test begin @inferred _vertices(i, Val(N)); true end
+        end
+    end
 end
 
 @testset "Simplex" begin
-    test_indexed_simplex_interface(Simplex, D->D+1)
+    @testset "Constructors" begin
+        @test Simplex{1}([2, 1], 1) == Simplex{1}(1, 1)
+        @test Simplex{1}((1, 3), 1) == Simplex{1}(2, 1)
+        @test Simplex{2}([5, 2, 1], 1) == Simplex{2}(5, 1)
+    end
 
-    @testset "vertices, index" begin
-        @test vertices(Simplex{2}(1, rand())) ≡ SVector{3}(3, 2, 1)
-        @test vertices(Simplex{3}(Int32(2), rand())) ≡ SVector{4, Int32}(5, 3, 2, 1)
-        @test vertices(Simplex{1}(Int128(3), rand())) ≡ SVector{2, Int128}(3, 2)
-        @test vertices(Simplex{4}(4, rand())) ≡ SVector{5}(6, 5, 4, 2, 1)
-        @test vertices(Simplex{2}(5, rand())) ≡ SVector{3}(5, 2, 1)
+    @testset "AbstractSimplex interface" begin
+        for D in (0, 2, 4),
+            T in (Float64, Float32, Int),
+            I in (Int32, Int64, Int128)
+            @testset "Simplex{$D, $T, $I}" begin
+                b = T(9)
+                i = I(100)
+                sx = Simplex{D}(i, b)
 
-        for i in 1:2:20
-            for I in (Int64, Int32, Int128)
-                sx = Simplex{5}(I(i), rand())
-                @test index(vertices(sx)) ≡ I(i)
-                @test Simplex{5}(vertices(sx), diam(sx)) ≡ sx
-                @test_throws ArgumentError Simplex{4}(vertices(sx), rand())
-                @test_throws ArgumentError Simplex{6}(vertices(sx), rand())
+                @testset "Type stuff" begin
+                    @test sx ≡ Simplex{D, T, I}(i, b)
+                    @test typeof(sx) ≡ Simplex{D, T, I}
+                    D > 0 && @test_throws DomainError Simplex{-D}(i, b)
+                    @test eltype(sx) == I
+                end
+
+                @testset "Getters" begin
+                    @test index(sx) == i
+                    @test index(-sx) == i
+                    @test birth(sx) ≡ b
+                end
+
+                @testset "Equality, hashing" begin
+                    @test sx == sx
+                    @test sx != Simplex{D + 1}(i, b)
+                    @test sx == Simplex{D}(i, b + 1)
+                    @test isequal(sx, Simplex{D}(i, b + 1))
+                    @test hash(sx) == hash(Simplex{D}(i, b + 1))
+                    @test hash(sx) == hash(index(sx))
+                end
+
+                @testset "Signs" begin
+                    @test +sx === sx
+                    @test sx == -sx
+                    @test sx ≡ -(-sx)
+                    @test sign(sx) == 1
+                    @test sign(-sx) == -1
+                    @test abs(sx) ≡ sx
+                    @test abs(-sx) ≡ sx
+                    @test dim(sx) == D
+                end
+
+                @testset "Ordering" begin
+                    @test sx < Simplex{D}(I(i + 1), b + 1)
+                    @test sx > Simplex{D}(I(i - 1), b - 1)
+
+                    @test sx < Simplex{D}(I(i - 1), b)
+                    @test sx > Simplex{D}(I(i + 1), b)
+                end
+
+                @testset "Array interface, vertices" begin
+                    verts = vertices(sx)
+
+                    @test eltype(sx) == eltype(verts)
+                    @test length(sx) == length(verts) == D + 1
+                    @test size(sx) == (D + 1,)
+                    @test firstindex(sx) == 1
+                    @test lastindex(sx) == D + 1
+
+                    @test Simplex{D}(verts, birth(sx)) ≡ sx
+
+                    for (i, v) in enumerate(sx)
+                        @test v == verts[i]
+                    end
+
+                    @test begin @inferred vertices(sx); true end
+                end
+
+                @testset "Printing" begin
+                    @test sprint(show, sx) ==
+                        "+Simplex{$D}($(vertices(sx)), $(b))"
+                    @test sprint(show, -sx) ==
+                        "-Simplex{$D}($(vertices(sx)), $(b))"
+                    @test sprint((i, s) -> show(i, MIME"text/plain"(), s), sx) ==
+                        "$D-dimensional Simplex(index=$i, birth=$b):\n  +$(vertices(sx))"
+                end
             end
         end
     end
-    @testset "show" begin
-        @test sprint(print, Simplex{1}(1, 1)) == "Simplex{1}(+[2, 1], 1)"
-        @test sprint(print, Simplex{2}(-1, 1)) == "Simplex{2}(-[3, 2, 1], 1)"
 
-        @test sprint(Simplex{2}(1, 1)) do io, sx
-            show(io, MIME"text/plain"(), sx)
-        end == "2-dim Simplex(1, 1):\n  +[3, 2, 1]"
-
-        @test sprint(Simplex{1}(Int128(1), 1)) do io, sx
-            show(io, MIME"text/plain"(), sx)
-        end == "1-dim Simplex(1, 1):\n  +Int128[2, 1]"
-
-    end
-    @testset "coboundary" begin
+    @testset "Coboundary" begin
         @testset "number of cofacets" begin
-            for dim in 1:10
+            for dim in 1:5
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
                 cob = []
@@ -76,8 +152,9 @@ end
                     push!(cob, cofacet)
                 end
                 @test length(cob) == 20 - dim - 1
-                @test all(isequal(1), diam.(cob))
+                @test all(isequal(1), birth.(cob))
                 @test all(issubset(simplex_vxs, vertices(c)) for c in cob)
+                @test issorted(cob, by=index, rev=true)
             end
         end
         @testset "number of cofacets, all_cofacets=false" begin
@@ -93,7 +170,7 @@ end
             end
         end
         @testset "number of cofacets, thresholding" begin
-            for dim in 1:8 # at 9, simplex with index 10 becomes invalid.
+            for dim in 1:5
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
                 cob = []
@@ -101,8 +178,9 @@ end
                     push!(cob, cofacet)
                 end
                 @test length(cob) == 10 - dim - 1
-                @test all(isequal(1), diam.(cob))
+                @test all(isequal(1), birth.(cob))
                 @test all(issubset(simplex_vxs, vertices(c)) for c in cob)
+                @test issorted(cob, by=index, rev=true)
             end
         end
         @testset "type stability" begin
@@ -124,9 +202,9 @@ end
         end
     end
 
-    @testset "boundary" begin
+    @testset "Boundary" begin
         @testset "number of facets" begin
-            for dim in 1:10
+            for dim in 1:5
                 simplex = Simplex{dim}(10, 1)
                 simplex_vxs = vertices(simplex)
                 bnd = []
@@ -134,7 +212,7 @@ end
                     push!(bnd, facet)
                 end
                 @test length(bnd) == dim + 1
-                @test all(isequal(1), diam.(bnd))
+                @test all(isequal(1), birth.(bnd))
                 @test all(issubset(vertices(f), simplex_vxs) for f in bnd)
             end
         end

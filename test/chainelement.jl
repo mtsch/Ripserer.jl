@@ -1,7 +1,9 @@
 using Ripserer
-using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, simplex, index
+using Test
 
-for S in (Simplex{2, Float64, Int}, Cubelet{1, Int, Int}),
+using Ripserer: ChainElement, PackedElement, chain_element_type, coefficient, simplex
+
+for S in (Simplex{2, Float64, Int}, Simplex{3, Float64, Int32}),
     F in (Mod{2}, Mod{11}, Rational{Int}, Mod{251}, Mod{257})
 
     @testset "chain element with $S, $F" begin
@@ -24,7 +26,7 @@ for S in (Simplex{2, Float64, Int}, Cubelet{1, Int, Int}),
             @test sprint(show, Element(simplex_1)) == "$(simplex_1) => $(one(F))"
             @test sprint(show, Element(simplex_2, coef_1)) == "$(simplex_2) => $(coef_1)"
         end
-        @testset "Simplex, coefficient, diameter and iteration." begin
+        @testset "Simplex, coefficient, birth, index and iteration." begin
             a = Element(-simplex_1, coef_3)
             s, c = a
             @test s === simplex_1 === simplex(a)
@@ -43,7 +45,7 @@ for S in (Simplex{2, Float64, Int}, Cubelet{1, Int, Int}),
             @test_throws BoundsError a[3]
             @test_throws BoundsError a[0]
 
-            @test diam(a) == diam(s)
+            @test birth(a) == birth(s)
             @test index(a) == index(s)
         end
         @testset "Arithmetic." begin
@@ -99,14 +101,6 @@ end
             @test @inferred(chain_element_type(S, Mod{251})) <: PackedElement{S, Mod{251}}
             @test @inferred(chain_element_type(S, Mod{257})) == ChainElement{S, Mod{257}}
             @test @inferred(chain_element_type(S, Rational{Int})) == ChainElement{S, Rational{Int}}
-        end
-    end
-    @testset "Don't construct a `PackedElement` for Cubelet." begin
-        for C in (Cubelet{2, Float64, Int}, Cubelet{3, Int, Int128})
-            @test @inferred(chain_element_type(C, Mod{2})) == ChainElement{C, Mod{2}}
-            @test @inferred(chain_element_type(C, Mod{251})) == ChainElement{C, Mod{251}}
-            @test @inferred(chain_element_type(C, Mod{257})) == ChainElement{C, Mod{257}}
-            @test @inferred(chain_element_type(C, Rational{Int})) == ChainElement{C, Rational{Int}}
         end
     end
 end

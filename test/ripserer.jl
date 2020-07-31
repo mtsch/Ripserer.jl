@@ -1,11 +1,13 @@
-using Ripserer
-using Ripserer: zeroth_intervals, ChainElement, PackedElement
-using PersistenceDiagrams
-
 using Compat
 using Distances
+using PersistenceDiagrams
+using Ripserer
 using StaticArrays
 using Suppressor
+using Test
+
+using Ripserer: zeroth_intervals, ChainElement, PackedElement
+
 
 include("data.jl")
 
@@ -195,9 +197,9 @@ end
     @testset "Critical simplices" begin
         result = ripserer(torus(100); reps=true, threshold=0.5)
         for diag in result
-            @test birth.(diag) == diam.(birth_simplex.(diag))
+            @test birth.(diag) == birth.(birth_simplex.(diag))
             finite = filter(isfinite, diag)
-            @test death.(finite) == diam.(death_simplex.(finite))
+            @test death.(finite) == birth.(death_simplex.(finite))
             infinite = filter(!isfinite, diag)
             @test all(isnothing, death_simplex.(infinite))
         end
@@ -262,8 +264,10 @@ end
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test vertices.(representative(d0[1])) == [SVector(i) for i in 1:length(data)]
-        @test vertices(only(representative(d0[2]))) == SVector(13)
+        @test sort(vertices.(representative(d0[1]))) ==
+            sort(SVector.(vec(CartesianIndices(data))))
+        @test vertices(only(representative(d0[2]))) ==
+            SVector(CartesianIndex(3, 3))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
@@ -277,6 +281,14 @@ end
         @test d0 == [(0, 1.0), (0, Inf)]
         @test isempty(d1)
         @test d2 == [(0, 1)]
+    end
+    @testset "Thresholding" begin
+        data = [1 1 1;
+                1 2 1;
+                1 1 1]
+        d0, d1 = ripserer(Cubical(data, threshold=1))
+        @test d0 == [(1, Inf)]
+        @test d1 == [(1, Inf)]
     end
 end
 
@@ -308,6 +320,18 @@ end
     @testset "Infinite intervals" begin
         @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
     end
+    @testset "Cubical" begin
+        data = zeros(5, 5, 5)
+        data[2, 2:4, 2:4] .= 1
+        data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
+        data[4, 2:4, 2:4] .= 1
+
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, cohomology=false)
+
+        @test d0 == [(0, 1.0), (0, Inf)]
+        @test isempty(d1)
+        @test d2 == [(0, 1)]
+    end
 end
 
 @testset "Only print to stderr and only when progress is enabled" begin
@@ -321,7 +345,6 @@ end
 end
 
 @testset "Overflow checking" begin
-    @test_throws OverflowError ripserer(Cubical(zeros(1000, 1000)))
     @test_throws OverflowError ripserer(Rips{Int16}(zeros(1000, 1000)))
 end
 
@@ -352,21 +375,24 @@ function Ripserer.unsafe_simplex(
     vertices,
     sign,
 ) where D
-    return Simplex{D}(sign * Ripserer.index(vertices), 1)
+    return Simplex{D}(sign * index(vertices), 1)
 end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::Type{CustomFiltration}, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)
+function Ripserer.postprocess_interval(::CustomFiltration, int::PersistenceInterval)
+    return PersistenceInterval(birth(int) + 1, death(int) + 1)
+end
 function Ripserer.postprocess_interval(::CustomFiltration, ::RepresentativeInterval)
-    return PersistenceInterval(0, 0)
+    return nothing
 end
 
 @testset "Custom filtration" begin
     d0, d1 = ripserer(CustomFiltration())
-    @test d0 == [fill((0.0, 1.0), 4); fill((0.0, Inf), 6)]
+    @test d0 == [fill((1.0, 2.0), 4); fill((1.0, Inf), 6)]
     @test d1 == []
 
     d0, d1 = ripserer(CustomFiltration(), reps=true)
-    @test d0 == fill((0.0, 0.0), 10)
+    @test d0 == []
     @test d1 == []
 end

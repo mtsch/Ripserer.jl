@@ -29,7 +29,7 @@ Simplex
 ```
 
 ```@docs
-Cubelet
+Cube
 ```
 
 ```@docs

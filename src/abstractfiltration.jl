@@ -15,6 +15,8 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
+* [`columns_to_reduce(::AbstractFiltration)`](@ref)
+* [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration{I, T} end
@@ -126,9 +128,34 @@ can have. Defaults to `Inf`.
 threshold(::AbstractFiltration) = Inf
 
 """
+    columns_to_reduce(::AbstractFilration, prev_column_itr)
+
+List all columns to reduce in next dimension, possibly computing it from previous
+columns. Default implementation uses [`coboundary`](@ref) with the all cofacets parameter
+set to `Val(false)`.
+"""
+function columns_to_reduce(flt::AbstractFiltration, prev_column_itr)
+    return Iterators.flatten(
+        imap(σ -> coboundary(flt, σ, Val(false)), prev_column_itr)
+    )
+end
+
+"""
+    emergent_pairs(::AbstractFiltration)
+
+Perform the emergent pairs optimization. Default to returning `true`. Should be set to
+`false` for a filtration type that is unable to produce (co)boundary simplices in the
+correct order.
+"""
+emergent_pairs(::AbstractFiltration) = true
+
+"""
     postprocess_interval(::AbstractFiltration, interval)
 
-This function is called on each resulting persistence interval. The default implementation
-does nothing.
+This function is called on each resulting persistence interval. If returns `nothing`, the
+interval is skipped. The default implementation returns the unchanged interval.
 """
 postprocess_interval(::AbstractFiltration, interval) = interval
+
+_postprocess_interval(flt, interval) = postprocess_interval(flt, interval)
+_postprocess_interval(flt, ::Nothing) = nothing

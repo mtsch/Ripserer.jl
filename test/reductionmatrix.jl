@@ -1,24 +1,20 @@
-using Ripserer
-
 using Random
+using Ripserer
+using Test
 
 using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
-using Ripserer: WorkingBoundary, nonheap_push!, repair!
-using Ripserer: ReductionMatrix, simplex_type, simplex_element, facet_element, next_matrix
+using Ripserer: WorkingCoboundary, nonheap_push!, repair!
+using Ripserer: ReductionMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
 
-cofacet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-    Cubelet{D + 1, T, I}
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D + 1, T, I}
-facet_type(::Type{<:A}) where {D, T, I, A<:Cubelet{D, T, I}} =
-    Cubelet{D - 1, T, I}
 facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D - 1, T, I}
 
 @testset "ReducedMatrix" begin
-    for S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}), T in (Mod{3}, Rational{Int})
+    for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         C = cofacet_type(S)
         CE = chain_element_type(C, T)
         SE = chain_element_type(S, T)
@@ -29,7 +25,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "ReducedMatrix with simplex type $S and field type $T" begin
+        @testset "ReducedMatrix with $S and $T" begin
             @testset "a fresh ReducedMatrix is empty" begin
                 matrix = ReducedMatrix{C, SE}(fwd)
                 @test length(matrix) == 0
@@ -56,9 +52,8 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(3, 1)),
                     SE(S(4, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
+                record!(matrix, S(5, 1))
 
                 @test length(matrix) == 0
                 for col in Iterators.flatten((columns, colelems))
@@ -73,12 +68,10 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(2, 1)),
                     SE(S(3, 1)),
                     SE(S(4, 1)),
-                    SE(S(4, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
+                record!(matrix, S(4, 1))
 
                 commit!(matrix, columns[1], T(2))
                 commit!(matrix, columns[2], T(2))
@@ -105,15 +98,11 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(4, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 discard!(matrix)
                 commit!(matrix, columns[2], T(2))
 
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 1
@@ -138,9 +127,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(2, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals
-                    record!(matrix, v)
-                end
+                record!(matrix, vals, one(T))
                 commit!(matrix, columns[1], T(2))
 
                 @test length(matrix) == 0
@@ -152,27 +139,23 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
             @testset "committing multiple times creates multiple columns" begin
                 matrix = ReducedMatrix{C, SE}(rev)
                 vals_1 = [
-                    SE(S(1, 1)),
-                    SE(S(-4, 1)),
-                    SE(S(2, 1)),
-                    SE(S(3, 1)),
+                    SE(S(-1, 1)),
                     SE(S(4, 1)),
+                    SE(S(-2, 1)),
+                    SE(S(-3, 1)),
+                    SE(S(-4, 1)),
                 ]
-                for v in vals_1
-                    record!(matrix, v)
-                end
+                record!(matrix, vals_1, -one(T))
                 commit!(matrix, columns[1], T(2))
 
-                vals_1 = [
+                vals_2 = [
                     SE(S(4, 1)),
                     SE(S(1, 1)),
                     SE(S(5, 1)),
                     SE(S(6, 1)),
                     SE(S(-1, 1)),
                 ]
-                for v in vals_1
-                    record!(matrix, v)
-                end
+                record!(matrix, vals_2, one(T))
                 commit!(matrix, columns[2], T(-1))
 
                 @test length(matrix) == 2
@@ -188,8 +171,8 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     end
 end
 
-@testset "WorkingBoundary" begin
-    for S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}), T in (Mod{3}, Rational{Int})
+@testset "WorkingCoboundary" begin
+    for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         SE = chain_element_type(S, T)
 
         elements = SE.(S.([1, -7, 2, 3, 4, 7, 5, 6, -1], [1, 7, 1, 1, 4, 7, 5, 6, 1]))
@@ -198,8 +181,8 @@ end
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "a fresh WorkingBoundary is empty and pop! yields nothing" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+        @testset "a fresh WorkingCoboundary is empty and pop! yields nothing" begin
+            working_boundary = WorkingCoboundary{SE}(fwd)
 
             @test isempty(working_boundary)
             @test pop!(working_boundary) ≡ nothing
@@ -207,7 +190,7 @@ end
         end
 
         @testset "pushing elements and popping finds the lowest simplex (cohomology)" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+            working_boundary = WorkingCoboundary{SE}(fwd)
             for e in elements
                 push!(working_boundary, e)
             end
@@ -216,7 +199,7 @@ end
         end
 
         @testset "the same happens for nonheap_push! with repair! (homology)" begin
-            working_boundary = WorkingBoundary{SE}(rev)
+            working_boundary = WorkingCoboundary{SE}(rev)
             for e in elements
                 nonheap_push!(working_boundary, e)
             end
@@ -226,7 +209,7 @@ end
         end
 
         @testset "adding inverses removes elements" begin
-            working_boundary = WorkingBoundary{SE}(fwd)
+            working_boundary = WorkingCoboundary{SE}(fwd)
             for e in unq_elements
                 nonheap_push!(working_boundary, e)
             end
@@ -245,13 +228,13 @@ end
 
 @testset "ReductionMatrix" begin
     for Co in (true, false),
-        S in (Simplex{2, Int, Int}, Cubelet{1, Int, Int}),
         T in (Mod{3}, Rational{Int})
+        S = Simplex{2, Int, Int}
 
         columns_1 = (S.([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
         columns_2 = (S.([6, 7, 8, 9, 10], [6, 7, 8, 9, 10]))
         data = [0 1 1 1 1; 1 0 1 1 1; 1 1 0 1 1; 1 1 1 0 1; 1 1 1 1 0]
-        flt = S <: Simplex ? Rips(data) : Cubical(data)
+        flt = Rips(data)
         co_str = Co ? "Coh" : "H"
 
         SE = chain_element_type(S, T)
@@ -269,7 +252,7 @@ end
 
                 @test simplex_type(matrix) == S
                 @test simplex_element(matrix) == SE
-                @test facet_element(matrix) == FE
+                @test cofacet_element(matrix) == FE
                 @test dim(matrix) == (Co ? dim(S) : dim(S) - 1)
             end
 

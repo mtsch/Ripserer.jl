@@ -48,7 +48,7 @@ function plottable(element::AbstractChainElement, args...)
     return plottable(simplex(element), args...)
 end
 function plottable(sxs::AbstractVector{<:AbstractSimplex{0}}, args...)
-    indices = only.(vertices.(sxs))
+    indices = sort(only.(vertices.(sxs)))
     return index_data(indices, args...), [:seriestype => :scatter], 0
 end
 function plottable(sxs::AbstractVector{<:AbstractSimplex{1}}, args...)
@@ -70,10 +70,10 @@ function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where D
 end
 
 function apply_threshold(sx::AbstractSimplex, thresh, thresh_strict)
-    return diam(sx) ≤ thresh && diam(sx) < thresh_strict ? sx : nothing
+    return birth(sx) ≤ thresh && birth(sx) < thresh_strict ? sx : nothing
 end
 function apply_threshold(sxs::AbstractVector{<:AbstractSimplex}, thresh, thresh_strict)
-    return filter(sx -> diam(sx) ≤ thresh && diam(sx) < thresh_strict, sxs)
+    return filter(sx -> birth(sx) ≤ thresh && birth(sx) < thresh_strict, sxs)
 end
 function apply_threshold(els::AbstractVector{<:AbstractChainElement}, thresh, thresh_strict)
     return apply_threshold(simplex.(els), thresh, thresh_strict)

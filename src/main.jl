@@ -11,14 +11,14 @@ end
 
 overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
 
-function overflows(S::Type{<:IndexedSimplex{<:Any, T, I}}, n_vertices, field) where {T, I}
+function overflows(S::Type{<:Simplex{<:Any, T, I}}, n_vertices, field) where {T, I}
     length(S) > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
     # Idea: calculate index in I and BigInt and compare if they are always the same.
     acc_int = zero(I)
     acc_big = big(0)
     i = n_vertices
     for k in length(S):-1:1
-        acc_int += small_binomial(I(i), Val(k))
+        acc_int += _binomial(I(i), Val(k))
         acc_big += binomial(big(i), big(k))
         acc_int ≠ acc_big && return true
         i -= 1

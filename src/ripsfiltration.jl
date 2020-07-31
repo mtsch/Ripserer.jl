@@ -30,13 +30,13 @@ simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D
 
 function unsafe_simplex(
     ::Type{S}, rips::AbstractRipsFiltration{I}, (vertex,), sign
-) where {I, S<:IndexedSimplex{0}}
+) where {I, S<:Simplex{0}}
     return S(I(sign) * vertex, birth(rips, vertex))
 end
 
 @inline @propagate_inbounds function unsafe_simplex(
     ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
-) where {I, T, D, S<:IndexedSimplex{D}}
+) where {I, T, D, S<:Simplex{D}}
     n = length(vertices)
     diameter = typemin(T)
     for i in 1:n, j in i+1:n
@@ -58,8 +58,8 @@ end
     cofacet_vertices,
     new_vertex,
     sign,
-) where {I, T, S<:IndexedSimplex}
-    diameter = diam(simplex)
+) where {I, T, S<:Simplex}
+    diameter = birth(simplex)
     for v in cofacet_vertices
         v == new_vertex && continue
         # Even though this looks like a tight loop, v changes way more often than us, so
@@ -83,8 +83,8 @@ end
     _,
     sign,
     new_edges::SVector,
-) where {I, S<:IndexedSimplex}
-    new_diam = diam(sx)
+) where {I, S<:Simplex}
+    new_diam = birth(sx)
     for e in new_edges
         e > threshold(rips) && return nothing
         new_diam = ifelse(e > new_diam, e, new_diam)
