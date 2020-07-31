@@ -17,7 +17,7 @@ actually needed for the main algorithm.
 * [`coboundary(::Any, ::AbstractSimplex)`](@ref)
 * [`boundary(::Any, ::AbstractSimplex)`](@ref)
 * [`vertices(::AbstractSimplex)`](@ref)
-* Base.:-(::AbstractSimplex)
+* `Base.:-(::AbstractSimplex)`
 
 """
 abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
