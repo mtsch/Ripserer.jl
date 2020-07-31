@@ -51,7 +51,7 @@ index(::AbstractSimplex)
 
 Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
 Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex = index(sx1) == index(sx2)
-Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex = sx1 == sx2
+Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex = index(sx1) == index(sx2)
 Base.hash(sx::AbstractSimplex, h::UInt64) = hash(index(sx), h)
 
 """

@@ -153,9 +153,6 @@ function Base.pop!(column::WorkingCoboundary)
     return iszero(pivot) ? nothing : pivot
 end
 
-function Base.push!(column::WorkingCoboundary{E}, simplex::AbstractSimplex) where E
-    push!(column, E(simplex))
-end
 function Base.push!(column::WorkingCoboundary{E}, element::E) where E
     heappush!(column.heap, element, column.ordering)
 end

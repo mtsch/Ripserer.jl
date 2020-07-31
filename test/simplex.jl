@@ -78,12 +78,23 @@ end
                     @test eltype(sx) == I
                 end
 
-                @testset "Signs, getters and equality" begin
+                @testset "Getters" begin
                     @test index(sx) == i
                     @test index(-sx) == i
                     @test birth(sx) ≡ b
+                end
 
+                @testset "Equality, hashing" begin
                     @test sx == sx
+                    @test sx != Simplex{D + 1}(i, b)
+                    @test sx == Simplex{D}(i, b + 1)
+                    @test isequal(sx, Simplex{D}(i, b + 1))
+                    @test hash(sx) == hash(Simplex{D}(i, b + 1))
+                    @test hash(sx) == hash(index(sx))
+                end
+
+                @testset "Signs" begin
+                    @test +sx === sx
                     @test sx == -sx
                     @test sx ≡ -(-sx)
                     @test sign(sx) == 1
