@@ -16,6 +16,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration)`](@ref)
+* [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration{I, T} end
@@ -140,10 +141,19 @@ function columns_to_reduce(flt::AbstractFiltration, prev_column_itr)
 end
 
 """
+    emergent_pairs(::AbstractFiltration)
+
+Perform the emergent pairs optimization. Default to returning `true`. Should be set to
+`false` for a filtration type that is unable to produce (co)boundary simplices in the
+correct order.
+"""
+emergent_pairs(::AbstractFiltration) = true
+
+"""
     postprocess_interval(::AbstractFiltration, interval)
 
-This function is called on each resulting persistence interval. If `postprocess_interval`
-returns nothing, the interval is skipped. The default implementation does nothing.
+This function is called on each resulting persistence interval. If returns `nothing`, the
+interval is skipped. The default implementation returns the unchanged interval.
 """
 postprocess_interval(::AbstractFiltration, interval) = interval
 
