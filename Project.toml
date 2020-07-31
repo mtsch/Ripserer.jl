@@ -1,7 +1,7 @@
 name = "Ripserer"
 uuid = "aa79e827-bd0b-42a8-9f10-2b302677a641"
 authors = ["mtsch <matijacufar@gmail.com>"]
-version = "0.13.2"
+version = "0.14.0"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
