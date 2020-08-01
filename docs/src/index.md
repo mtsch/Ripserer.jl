@@ -40,8 +40,9 @@ Ripserer supports the following:
   with the default of ``\mathbb{Z}_p`` for a prime ``p``.
 * Sparse distance matrix and thresholding support.
 * Computing representative cocycles of persistent cohomology.
-* Plotting persistence diagrams, barcodes, matchings and representative cocycles.
-* Generic API.
+* Computing persistent homology and representative cycles (experimental).
+* Plotting persistence diagrams, barcodes, matchings, simplices and representative cocycles.
+* Extensible interface.
 
 Ripserer uses [PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl) to
 represent persistence diagrams. It reexports some basic functionality, but please see that
@@ -56,20 +57,18 @@ Much like Ripser, Ripserer uses the following optimizations to achieve its speed
 * Don't store things that can be easily recomputed.
 * Skip apparent and emergent persistence pairs.
 
-For a detailed description of the algorithm, please see the
+For a detailed description of these optimizations, please see
 [Ulrich Bauer's article on Ripser](https://arxiv.org/abs/1908.02518).
 
 In general, the performance of Ripserer is very close to
 [Ripser](https://github.com/Ripser/ripser), within around 30%. Depending on the data set,
-one or the other may be faster. There are no official benchmarks, because I have found
-benchmarking on my computer or a CI system to be too unreliable.
+one or the other may be faster. There are no official benchmarks available at the moment.
 
 ## Extending
 
 Ripserer is designed to be easily extended with new simplex or filtration types. See the
 [Filtration Interface](@ref) and [Simplex Interface](@ref) API sections for more info. To
-see an example of an extension, check out the implementation of cubical simplices and
-filtrations in
+see an example of an extension, check out the implementation of cubical homology in
 [`src/cubical.jl`](https://github.com/mtsch/Ripserer.jl/blob/master/src/cubical.j).
 
 If you have written an extension or have trouble implementing one, please open a pull
