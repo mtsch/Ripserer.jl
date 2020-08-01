@@ -62,7 +62,7 @@ function to_cubemap(vertices::NTuple{N}) where N
 end
 
 """
-    Cubelet{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
+    Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
 
 A `Cube` is similar to a `Simplex`, but it has `2^D` vertices instead of `D+1`. The vertices
 are encoded as the position in the CubeMap.
