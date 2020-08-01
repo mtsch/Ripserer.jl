@@ -43,8 +43,8 @@ dim
 ## Persistence Diagrams
 
 See also: [PersistenceDiagrams.jl
-API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/diagrams/). Ripserer reexports
-the following:
+API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/). For convenience, Ripserer
+reexports the following:
 
 ```
 PersistenceDiagrams.birth
