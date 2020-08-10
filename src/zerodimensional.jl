@@ -1,7 +1,8 @@
 """
     DisjointSetsWithBirth{T}
 
-Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
+Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times
+and birth vertices.
 Has no `num_groups` method.
 """
 struct DisjointSetsWithBirth{
@@ -19,7 +20,7 @@ struct DisjointSetsWithBirth{
         parents = collect(vertices)
         ranks = similar(parents, Int)
         ranks .= 0
-        births = collect(births)
+        births = collect(zip(births, vertices))
         return new{typeof(vertices), typeof(parents), typeof(ranks), typeof(births)}(
             vertices, parents, ranks, births
         )
@@ -76,31 +77,26 @@ end
 
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
-function birth_death(dset::DisjointSetsWithBirth, vertex, edge)
-    return birth(dset, vertex), isnothing(edge) ? Inf : birth(edge)
-end
-
-function interval(
-    ::Type{R}, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff
-) where R<:RepresentativeInterval
-    birth, death = birth_death(dset, vertex, edge)
-    if death - birth > cutoff
-        rep = sort(simplex.(Ref(filtration), Val(0), tuple.(find_leaves!(dset, vertex))))
-        birth_simplex = first(rep)
-        return R(PersistenceInterval(birth, death), birth_simplex, edge, rep)
-    else
-        return nothing
-    end
-end
-
-function interval(
-    ::Type{PersistenceInterval}, dset::DisjointSetsWithBirth, _, vertex, edge, cutoff
+function add_interval!(
+    intervals, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, reps
 )
-    birth, death = birth_death(dset, vertex, edge)
-    if death - birth > cutoff
-        return PersistenceInterval(birth, death)
-    else
-        return nothing
+    birth_time, birth_vertex = birth(dset, vertex)
+    death_time = isnothing(edge) ? Inf : birth(edge)
+    if death_time - birth_time > cutoff
+        birth_simplex = simplex(filtration, Val(0), (birth_vertex,))
+        if reps
+            rep = (;representative=sort!(
+                [simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)]
+            ))
+        else
+            rep = NamedTuple()
+        end
+        push!(intervals, PersistenceInterval(
+            birth_time, death_time;
+            birth_simplex=birth_simplex,
+            death_simplex=edge,
+            rep...,
+        ))
     end
 end
 
@@ -119,16 +115,9 @@ function zeroth_intervals(
     V = vertex_type(filtration)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), birth(filtration))
-    if reps
-        intervals = RepresentativeInterval{
-            PersistenceInterval,
-            vertex_type(filtration),
-            Union{edge_type(filtration), Nothing},
-            Vector{CE},
-        }[]
-    else
-        intervals = PersistenceInterval[]
-    end
+
+    intervals = PersistenceInterval{interval_meta_type(filtration, 0, reps, F)}[]
+
     to_skip = edge_type(filtration)[]
     to_reduce = edge_type(filtration)[]
     simplices = sort!(edges(filtration))
@@ -143,16 +132,10 @@ function zeroth_intervals(
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j
-            # According to the elder rule, the vertex with the lower birth will fall
-            # into a later interval.
-            v = birth(dset, i) > birth(dset, j) ? i : j
-            int = _postprocess_interval(
-                filtration,
-                interval(eltype(intervals), dset, filtration, v, edge, cutoff),
-            )
-            if !isnothing(int)
-                push!(intervals, int)
-            end
+            # According to the elder rule, the vertex with the higer birth will die first.
+            last_vertex = birth(dset, i) > birth(dset, j) ? i : j
+            add_interval!(intervals, dset, filtration, last_vertex, edge, cutoff, reps)
+
             union!(dset, i, j)
             push!(to_skip, edge)
         else
@@ -162,20 +145,25 @@ function zeroth_intervals(
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,), 1))
-            int = _postprocess_interval(
-                filtration,
-                interval(eltype(intervals), dset, filtration, v, nothing, 0)
-            )
-            if !isnothing(int)
-                push!(intervals, int)
-            end
+            add_interval!(intervals, dset, filtration, v, nothing, cutoff, reps)
         end
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     reverse!(to_reduce)
     progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)
+
+    thresh = Float64(threshold(filtration))
     return (
-        sort!(PersistenceDiagram(0, intervals, threshold(filtration))),
+        postprocess_diagram(
+            filtration,
+            PersistenceDiagram(
+                intervals;
+                threshold=thresh,
+                dim=0,
+                field_type=F,
+                filtration=filtration,
+            ),
+        ),
         to_reduce,
         to_skip,
     )

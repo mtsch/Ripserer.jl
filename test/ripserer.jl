@@ -6,7 +6,7 @@ using StaticArrays
 using Suppressor
 using Test
 
-using Ripserer: zeroth_intervals, ChainElement, PackedElement
+using Ripserer: ChainElement, PackedElement
 
 
 include("data.jl")
@@ -144,49 +144,19 @@ end
     end
     @testset "Types" begin
         d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true)
-        @test eltype(d0) <: RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{0, Int, Int},
-            Union{Nothing, Simplex{1, Int, Int}},
-            <:Vector{<:PackedElement{Simplex{0, Int, Int}, Mod{2}}}}
-        @test eltype(d1) <: RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{1, Int, Int},
-            Union{Nothing, Simplex{2, Int, Int}},
-            <:Vector{<:PackedElement{Simplex{1, Int, Int}, Mod{2}}}}
-        @test eltype(d2) <: RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{2, Int, Int},
-            Union{Nothing, Simplex{3, Int, Int}},
-            <:Vector{<:PackedElement{Simplex{2, Int, Int}, Mod{2}}}}
-        @test eltype(d3) <: RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{3, Int, Int},
-            Union{Nothing, Simplex{4, Int, Int}},
-            <:Vector{<:PackedElement{Simplex{3, Int, Int}, Mod{2}}}}
+        @test eltype(d0) isa DataType
+        @test eltype(d1) isa DataType
+        @test eltype(d2) isa DataType
+        @test eltype(d3) isa DataType
+        @test eltype(d1[1].representative) <: PackedElement
 
         d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true,
                                   field_type=Rational{Int})
-        @test eltype(d0) ≡ RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{0, Int, Int},
-            Union{Nothing, Simplex{1, Int, Int}},
-            Vector{ChainElement{Simplex{0, Int, Int}, Rational{Int}}}}
-        @test eltype(d1) ≡ RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{1, Int, Int},
-            Union{Nothing, Simplex{2, Int, Int}},
-            Vector{ChainElement{Simplex{1, Int, Int}, Rational{Int}}}}
-        @test eltype(d2) ≡ RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{2, Int, Int},
-            Union{Nothing, Simplex{3, Int, Int}},
-            Vector{ChainElement{Simplex{2, Int, Int}, Rational{Int}}}}
-        @test eltype(d3) ≡ RepresentativeInterval{
-            PersistenceInterval,
-            Simplex{3, Int, Int},
-            Union{Nothing, Simplex{4, Int, Int}},
-            Vector{ChainElement{Simplex{3, Int, Int}, Rational{Int}}}}
+        @test eltype(d0) isa DataType
+        @test eltype(d1) isa DataType
+        @test eltype(d2) isa DataType
+        @test eltype(d3) isa DataType
+        @test eltype(d3[1].representative) <: ChainElement
     end
     @testset "Infinite interval" begin
         _, d1 = ripserer(cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int})
@@ -204,6 +174,29 @@ end
             @test all(isnothing, death_simplex.(infinite))
         end
     end
+end
+
+@testset "Diagram metadata" begin
+    filtration = Rips(cycle)
+    d0, d1, d2, d3 = ripserer(filtration; dim_max=3, reps=true, field_type=Rational{Int})
+    @test d0.dim == 0
+    @test d1.dim == 1
+    @test d2.dim == 2
+    @test d3.dim == 3
+    thresh = Float64(threshold(Rips(cycle)))
+    @test d0.threshold ≡ thresh
+    @test d1.threshold ≡ thresh
+    @test d2.threshold ≡ thresh
+    @test d3.threshold ≡ thresh
+    field_type=Rational{Int}
+    @test d0.field_type ≡ field_type
+    @test d1.field_type ≡ field_type
+    @test d2.field_type ≡ field_type
+    @test d3.field_type ≡ field_type
+    @test d0.filtration == filtration
+    @test d1.filtration == filtration
+    @test d2.filtration == filtration
+    @test d3.filtration == filtration
 end
 
 @testset "Zero-dimensional sublevel set persistence" begin
@@ -250,6 +243,19 @@ end
 
         @test d0 == [(0, Inf), (1, 4), (2, 3)]
         @test d1 == []
+    end
+    @testset "1D curve representatives" begin
+        n = 1000
+        x = range(0, 1, length=n)
+        curve = sin.(2π * 5x) .* x
+
+        d0, _ = ripserer(Cubical(curve), reps=true)
+
+        for int in d0
+            birth_sx = birth_simplex(int)
+            @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
+        end
+        @test only.(birth_simplex.(d0)) == CartesianIndex.([951, 752, 552, 354, 157, 1])
     end
     @testset "2D image" begin
         data = [0 0 0 0 0;
@@ -380,11 +386,14 @@ end
 Ripserer.n_vertices(::CustomFiltration) = 10
 Ripserer.simplex_type(::Type{CustomFiltration}, D) = Simplex{D, Int, Int}
 Ripserer.edges(::CustomFiltration) = Simplex{1}.(10:-1:1, 1)
-function Ripserer.postprocess_interval(::CustomFiltration, int::PersistenceInterval)
-    return PersistenceInterval(birth(int) + 1, death(int) + 1)
-end
-function Ripserer.postprocess_interval(::CustomFiltration, ::RepresentativeInterval)
-    return nothing
+function Ripserer.postprocess_diagram(::CustomFiltration, diagram)
+    result = PersistenceInterval[]
+    for int in diagram
+        if !hasproperty(int, :representative)
+            push!(result, PersistenceInterval(birth(int) + 1, death(int) + 1))
+        end
+    end
+    PersistenceDiagram(sort!(result); diagram.meta...)
 end
 
 @testset "Custom filtration" begin

@@ -45,7 +45,7 @@ Ripserer.emergent_pairs
 ```
 
 ```@docs
-Ripserer.postprocess_interval
+Ripserer.postprocess_diagram
 ```
 
 ```@docs

@@ -29,7 +29,7 @@ end
 
 """
     plottable(sx::AbstractSimplex, args...)
-    plottable(sx::RepresentativeInterval, args...)
+    plottable(sx::PersistenceInterval, args...)
     plottable(sx::Vector{<:AbstractSimplex}, args...)
 
 Turn `sx` into a series that can be plotted. `args...`, should contain the data which tells
@@ -38,7 +38,7 @@ the plot where to place simplex vertices.
 function plottable(sx::AbstractSimplex, args...)
     return plottable([sx], args...)
 end
-function plottable(int::RepresentativeInterval, args...)
+function plottable(int::PersistenceInterval, args...)
     return plottable(simplex.(representative(int)), args...)
 end
 function plottable(rep::AbstractVector{<:AbstractChainElement}, args...)
@@ -78,11 +78,12 @@ end
 function apply_threshold(els::AbstractVector{<:AbstractChainElement}, thresh, thresh_strict)
     return apply_threshold(simplex.(els), thresh, thresh_strict)
 end
-function apply_threshold(::PersistenceDiagrams.AbstractInterval, _, _)
-    error("interval has no representative. Run `ripserer` with `representatives=true`")
-end
-function apply_threshold(int::RepresentativeInterval, thresh, thresh_strict)
-    return apply_threshold(representative(int), thresh, thresh_strict)
+function apply_threshold(int::PersistenceInterval, thresh, thresh_strict)
+    if hasproperty(int, :representative)
+        return apply_threshold(representative(int), thresh, thresh_strict)
+    else
+        error("interval has no representative. Run `ripserer` with `representatives=true`")
+    end
 end
 
 @recipe function f(
@@ -91,8 +92,7 @@ end
         AbstractChainElement,
         AbstractVector{<:AbstractSimplex},
         AbstractVector{<:AbstractChainElement},
-        PersistenceDiagrams.AbstractInterval,
-        RepresentativeInterval,
+        PersistenceInterval,
     },
     args...;
     threshold=Inf,

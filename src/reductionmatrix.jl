@@ -292,65 +292,47 @@ function reduce_column!(matrix::ReductionMatrix, column_simplex)
 end
 
 function birth_death(::ReductionMatrix{true}, column, pivot)
-    return birth(column), isnothing(pivot) ? Inf : birth(pivot)
+    return (
+        Float64(birth(column)),
+        column,
+        isnothing(pivot) ? Inf : Float64(birth(pivot)),
+        isnothing(pivot) ? nothing : simplex(pivot),
+    )
 end
 function birth_death(::ReductionMatrix{false}, column, pivot)
-    return isnothing(pivot) ? Inf : birth(pivot), birth(column)
+    return (
+        isnothing(pivot) ? Inf : Float64(birth(pivot)),
+        isnothing(pivot) ? nothing : simplex(pivot),
+        Float64(birth(column)),
+        column,
+    )
 end
 
-function interval(
-    ::Type{<:PersistenceInterval}, matrix::ReductionMatrix, column, pivot, cutoff
+function add_interval!(
+    intervals, matrix::ReductionMatrix, column, pivot, cutoff, reps
 )
-    birth, death = birth_death(matrix, column, pivot)
-    return death - birth > cutoff ? PersistenceInterval(birth, death) : nothing
-end
-function interval(
-    ::Type{R}, matrix::ReductionMatrix{true}, column, pivot, cutoff
-) where R<:RepresentativeInterval
-    birth, death = birth_death(matrix, column, pivot)
-
-    if !isfinite(death)
-        return R(
-            PersistenceInterval(birth, death), column, nothing, eltype(matrix.reduced)[]
+    birth_time, birth_sx, death_time, death_sx = birth_death(matrix, column, pivot)
+    if death_time - birth_time > cutoff
+        if reps && is_cohomology(matrix)
+            if isfinite(death_time)
+                rep = (;representative=collect(matrix.reduced[pivot]))
+            else
+                rep = (;representative=eltype(matrix.reduced)[])
+            end
+        elseif reps
+            push!(matrix.working_coboundary, pivot)
+            rep = (;representative=move!(matrix.working_coboundary))
+        else
+            rep = NamedTuple()
+        end
+        int = PersistenceInterval(
+            birth_time, death_time;
+            birth_simplex=birth_sx,
+            death_simplex=death_sx,
+            rep...,
         )
-    elseif death - birth > cutoff
-        return R(
-            PersistenceInterval(birth, death),
-            column, simplex(pivot), collect(matrix.reduced[pivot])
-        )
-    else
-        return nothing
+        !isnothing(int) && push!(intervals, int)
     end
-end
-function interval(
-    ::Type{R}, matrix::ReductionMatrix{false}, column, pivot, cutoff
-) where R<:RepresentativeInterval
-    birth, death = birth_death(matrix, column, pivot)
-
-    if death - birth > cutoff
-        push!(matrix.working_coboundary, pivot)
-        return R(
-            PersistenceInterval(birth, death),
-            simplex(pivot), column, move!(matrix.working_coboundary)
-        )
-    else
-        return nothing
-    end
-end
-
-function interval_eltype(matrix::ReductionMatrix, ::Val{true})
-    critical_birth_type = simplex_type(matrix.filtration, dim(matrix))
-    critical_death_type = simplex_type(matrix.filtration, dim(matrix) + 1)
-    representative_type = chain_element_type(critical_birth_type, field_type(matrix))
-    return RepresentativeInterval{
-        PersistenceInterval,
-        critical_birth_type,
-        Union{critical_death_type, Nothing},
-        Vector{representative_type},
-    }
-end
-function interval_eltype(::ReductionMatrix, ::Val{false})
-    return PersistenceInterval
 end
 
 function compute_intervals!(
@@ -362,18 +344,25 @@ function compute_intervals!(
             desc="Computing $(dim(matrix))d intervals... ",
         )
     end
-    intervals = interval_eltype(matrix, Val(reps))[]
+    intervals = PersistenceInterval{
+        interval_meta_type(matrix.filtration, dim(matrix), reps, field_type(matrix))
+    }[]
 
     for column in matrix.columns_to_reduce
         pivot = reduce_column!(matrix, column)
-        int = _postprocess_interval(
-            matrix.filtration,
-            interval(eltype(intervals), matrix, column, pivot, cutoff),
-        )
-        !isnothing(int) && push!(intervals, int)
+        add_interval!(intervals, matrix, column, pivot, cutoff, reps)
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
-    return sort!(PersistenceDiagram(dim(matrix), intervals, threshold(matrix.filtration)))
+    thresh=Float64(threshold(matrix.filtration))
+    return postprocess_diagram(
+        matrix.filtration, PersistenceDiagram(
+            intervals;
+            threshold=thresh,
+            dim=dim(matrix),
+            field_type=field_type(matrix),
+            filtration=matrix.filtration,
+        )
+    )
 end
 
 simplex_name(::Type{<:Simplex{2}}) = "triangles"
