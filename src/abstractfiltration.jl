@@ -159,15 +159,15 @@ postprocess_diagram(::AbstractFiltration, diagram) = sort!(diagram)
 
 function interval_meta_type(flt::AbstractFiltration, dim, reps, field)
     if reps
-        return @NamedTuple{
-            birth_simplex::simplex_type(flt, dim),
-            death_simplex::Union{simplex_type(flt, dim + 1), Nothing},
-            representative::Vector{chain_element_type(simplex_type(flt, dim), field)},
-        }
+        return @NamedTuple begin
+            birth_simplex::simplex_type(flt, dim)
+            death_simplex::Union{simplex_type(flt, dim + 1), Nothing}
+            representative::Vector{chain_element_type(simplex_type(flt, dim), field)}
+        end
     else
-        return @NamedTuple{
-            birth_simplex::simplex_type(flt, dim),
-            death_simplex::Union{simplex_type(flt, dim + 1), Nothing},
-        }
+        return @NamedTuple begin
+            birth_simplex::simplex_type(flt, dim)
+            death_simplex::Union{simplex_type(flt, dim + 1), Nothing}
+        end
     end
 end
