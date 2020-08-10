@@ -1,7 +1,8 @@
 """
     DisjointSetsWithBirth{T}
 
-Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times.
+Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex birth times
+and birth vertices.
 Has no `num_groups` method.
 """
 struct DisjointSetsWithBirth{
@@ -19,7 +20,7 @@ struct DisjointSetsWithBirth{
         parents = collect(vertices)
         ranks = similar(parents, Int)
         ranks .= 0
-        births = collect(births)
+        births = collect(zip(births, vertices))
         return new{typeof(vertices), typeof(parents), typeof(ranks), typeof(births)}(
             vertices, parents, ranks, births
         )
@@ -79,10 +80,10 @@ birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 function add_interval!(
     intervals, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, reps
 )
-    birth_time = birth(dset, vertex)
+    birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
     if death_time - birth_time > cutoff
-        birth_vertex = simplex(filtration, Val(0), (vertex,))
+        birth_simplex = simplex(filtration, Val(0), (birth_vertex,))
         if reps
             rep = (;representative=sort!(
                 [simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)]
@@ -92,7 +93,7 @@ function add_interval!(
         end
         push!(intervals, PersistenceInterval(
             birth_time, death_time;
-            birth_simplex=birth_vertex,
+            birth_simplex=birth_simplex,
             death_simplex=edge,
             rep...,
         ))
@@ -132,8 +133,8 @@ function zeroth_intervals(
         j = find_root!(dset, v)
         if i ≠ j
             # According to the elder rule, the vertex with the higer birth will die first.
-            birth_vertex = birth(dset, i) > birth(dset, j) ? i : j
-            add_interval!(intervals, dset, filtration, birth_vertex, edge, cutoff, reps)
+            last_vertex = birth(dset, i) > birth(dset, j) ? i : j
+            add_interval!(intervals, dset, filtration, last_vertex, edge, cutoff, reps)
 
             union!(dset, i, j)
             push!(to_skip, edge)

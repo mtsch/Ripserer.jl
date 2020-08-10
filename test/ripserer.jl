@@ -244,6 +244,19 @@ end
         @test d0 == [(0, Inf), (1, 4), (2, 3)]
         @test d1 == []
     end
+    @testset "1D curve representatives" begin
+        n = 1000
+        x = range(0, 1, length=n)
+        curve = sin.(2π * 5x) .* x
+
+        d0, _ = ripserer(Cubical(curve), reps=true)
+
+        for int in d0
+            birth_sx = birth_simplex(int)
+            @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
+        end
+        @test only.(birth_simplex.(d0)) == CartesianIndex.([951, 752, 552, 354, 157, 1])
+    end
     @testset "2D image" begin
         data = [0 0 0 0 0;
                 0 2 2 2 0;

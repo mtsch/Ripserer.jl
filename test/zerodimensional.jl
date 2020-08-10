@@ -13,7 +13,7 @@ for arr in (1:10, CartesianIndices([1 2 3 4 5; 1 2 3 4 5]))
             for i in 1:10
                 @test find_root!(s, arr[i]) == arr[i]
                 @test find_leaves!(s, arr[i]) == [arr[i]]
-                @test birth(s, arr[i]) == i
+                @test birth(s, arr[i]) == (i, arr[i])
             end
             @test_throws BoundsError find_root!(s, arr[11])
         end
