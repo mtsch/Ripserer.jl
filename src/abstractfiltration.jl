@@ -17,7 +17,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration)`](@ref)
 * [`emergent_pairs(::AbstractFiltration)`](@ref)
-* [`postprocess_interval(::AbstractFiltration, ::Any)`](@ref)
+* [`postprocess_diagram(::AbstractFiltration, ::Any)`](@ref)
 """
 abstract type AbstractFiltration{I, T} end
 
@@ -150,12 +150,24 @@ correct order.
 emergent_pairs(::AbstractFiltration) = true
 
 """
-    postprocess_interval(::AbstractFiltration, interval)
+    postprocess_diagram(::AbstractFiltration, diagram)
 
-This function is called on each resulting persistence interval. If returns `nothing`, the
-interval is skipped. The default implementation returns the unchanged interval.
+This function is called on each resulting persistence diagram after all intervals have been
+computed. Defaults to sorting the diagram.
 """
-postprocess_interval(::AbstractFiltration, interval) = interval
+postprocess_diagram(::AbstractFiltration, diagram) = sort!(diagram)
 
-_postprocess_interval(flt, interval) = postprocess_interval(flt, interval)
-_postprocess_interval(flt, ::Nothing) = nothing
+function interval_meta_type(flt::AbstractFiltration, dim, reps, field)
+    if reps
+        return @NamedTuple{
+            birth_simplex::simplex_type(flt, dim),
+            death_simplex::Union{simplex_type(flt, dim + 1), Nothing},
+            representative::Vector{chain_element_type(simplex_type(flt, dim), field)},
+        }
+    else
+        return @NamedTuple{
+            birth_simplex::simplex_type(flt, dim),
+            death_simplex::Union{simplex_type(flt, dim + 1), Nothing},
+        }
+    end
+end
