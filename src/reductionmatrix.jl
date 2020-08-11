@@ -309,8 +309,8 @@ function birth_death(::ReductionMatrix{false}, column, pivot)
 end
 
 function add_interval!(
-    intervals, matrix::ReductionMatrix, column, pivot, cutoff, reps
-)
+    intervals, matrix::ReductionMatrix, column, pivot, cutoff, ::Val{reps}
+) where reps
     birth_time, birth_sx, death_time, death_sx = birth_death(matrix, column, pivot)
     if death_time - birth_time > cutoff
         if reps && is_cohomology(matrix)
@@ -325,13 +325,14 @@ function add_interval!(
         else
             rep = NamedTuple()
         end
-        int = PersistenceInterval(
-            birth_time, death_time;
+        meta = (;
             birth_simplex=birth_sx,
             death_simplex=death_sx,
             rep...,
         )
-        !isnothing(int) && push!(intervals, int)
+        push!(intervals, PersistenceInterval(
+            birth_time, death_time, meta
+        ))
     end
 end
 
@@ -344,13 +345,13 @@ function compute_intervals!(
             desc="Computing $(dim(matrix))d intervals... ",
         )
     end
-    intervals = PersistenceInterval{
-        interval_meta_type(matrix.filtration, dim(matrix), reps, field_type(matrix))
-    }[]
+    intervals = interval_type(
+        matrix.filtration, Val(dim(matrix)), Val(reps), field_type(matrix)
+    )[]
 
     for column in matrix.columns_to_reduce
         pivot = reduce_column!(matrix, column)
-        add_interval!(intervals, matrix, column, pivot, cutoff, reps)
+        add_interval!(intervals, matrix, column, pivot, cutoff, Val(reps))
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     thresh=Float64(threshold(matrix.filtration))
