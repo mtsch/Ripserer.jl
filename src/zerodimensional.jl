@@ -78,8 +78,8 @@ end
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
 function add_interval!(
-    intervals, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, reps
-)
+    intervals, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, ::Val{reps}
+) where reps
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
     if death_time - birth_time > cutoff
@@ -116,7 +116,7 @@ function zeroth_intervals(
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), birth(filtration))
 
-    intervals = PersistenceInterval{interval_meta_type(filtration, 0, reps, F)}[]
+    intervals = interval_type(filtration, Val(0), Val(reps), F)[]
 
     to_skip = edge_type(filtration)[]
     to_reduce = edge_type(filtration)[]
@@ -134,7 +134,7 @@ function zeroth_intervals(
         if i ≠ j
             # According to the elder rule, the vertex with the higer birth will die first.
             last_vertex = birth(dset, i) > birth(dset, j) ? i : j
-            add_interval!(intervals, dset, filtration, last_vertex, edge, cutoff, reps)
+            add_interval!(intervals, dset, filtration, last_vertex, edge, cutoff, Val(reps))
 
             union!(dset, i, j)
             push!(to_skip, edge)
@@ -145,7 +145,7 @@ function zeroth_intervals(
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,), 1))
-            add_interval!(intervals, dset, filtration, v, nothing, cutoff, reps)
+            add_interval!(intervals, dset, filtration, v, nothing, cutoff, Val(reps))
         end
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
