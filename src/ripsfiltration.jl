@@ -229,6 +229,9 @@ end
 function SparseRips(dist; threshold=nothing)
     return SparseRips{Int}(dist; threshold=threshold)
 end
+function SparseRips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
+    return SparseRips{I}(distances(metric, points); kwargs...)
+end
 
 @propagate_inbounds function dist(rips::SparseRips{<:Any, T}, i, j) where T
     res = rips.dist[i, j]
