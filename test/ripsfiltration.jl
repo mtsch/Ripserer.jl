@@ -75,13 +75,24 @@ for Filtration in (Rips, SparseRips)
 end
 
 @testset "Rips points constructor" begin
-    filtration = Rips([(sin(x), cos(x)) for x in range(0, 2π, length=100)])
-    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:10 for j in i+1:9)
+    filtration = Rips(
+        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]]
+    )
+    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:100 for j in i+1:100)
     @test eltype(edges(filtration)) === Simplex{1, Float64, Int}
 
-    filtration = Rips{Int32}([(sin(x), cos(x)) for x in range(0, 2π, length=100)])
-    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:10 for j in i+1:9)
-    @test eltype(edges(filtration)) === Simplex{1, Float64, Int32}
+    filtration = Rips{Int32}(
+        [(sin(x), cos(x)) for x in range(0f0, 2f0π, length=101)[1:end-1]]
+    )
+    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:100 for j in i+1:100)
+    @test eltype(edges(filtration)) === Simplex{1, Float32, Int32}
+end
+
+@testset "Rips points constructor" begin
+    filtration = SparseRips(
+        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]], threshold=0.1
+    )
+    @test maximum(dist(filtration)) ≤ 0.1
 end
 
 @testset "Errors" begin
