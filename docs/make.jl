@@ -29,11 +29,12 @@ makedocs(sitename="Ripserer.jl",
                  "generated/sublevelset.md",
                  "generated/malaria.md",
              ],
+             "Benchmarks" => "benchmarks.md",
              "API" => [
-                 "api/ripserer.md",
-                 "api/filtrations.md",
-                 "api/simplices.md",
+                 "Public" => "api/ripserer.md",
+                 "Extensions" => "api/extensions.md",
              ],
+             "Acknowledgements and References" => "references.md",
          ])
 
 deploydocs(
