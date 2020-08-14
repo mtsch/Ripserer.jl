@@ -1,4 +1,4 @@
-# Acknowledgements
+# Acknowledgments
 
 I would like to thank:
 

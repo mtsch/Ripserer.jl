@@ -33,7 +33,7 @@ julia> import Pkg
 julia> Pkg.add("Ripserer")
 ```
 
-All versions of Julia from 1.0 onwards are supported, but I recommend using the latest
+All versions of Julia from 1.0 onward are supported, but I recommend using the latest
 version of Julia for optimal performance.
 
 ## Features

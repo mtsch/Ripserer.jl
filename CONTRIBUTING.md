@@ -15,7 +15,7 @@ Please include version numbers of all relevant libraries and Julia itself.
 
 ## Documentation Fixes and Improvements
 
-If you find typos, weird wording or missing information in the docs, don't hesistate to open
+If you find typos, weird wording or missing information in the docs, don't hesitate to open
 a pull request or issue. When editing docs, I recommend clicking "Edit on GitHub" and using
 GitHub's online editor.
 
@@ -27,7 +27,7 @@ This project attempts to follow the [BlueStyle](https://github.com/invenia/BlueS
 addition to that, I would like to highlight the following:
 
 * Use descriptive variable names. Exceptions can be made for variables with a short scope.
-* Avoid long lines. Line length should be at most 92 charactes.
+* Avoid long lines. Line length should be at most 92 characters.
 * Avoid introducing new dependencies if you can.
 * Don't over-optimize non-critical code, but avoid doing unnecessary work if you can.
-* Open an issue before opening complex PR so we can discuss the changes.
+* Open an issue before opening starting work on a complex PR so we can discuss the changes.

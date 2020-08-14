@@ -5,7 +5,7 @@ The following tables show benchmarks that compare Ripserer's performance with
 Ripser](https://github.com/CubicalRipser/). The benchmarking code and more info about the
 datasets is available [here](https://github.com/mtsch/RipsererBenchmarks.jl).
 
-All benchmarks were performend on a laptop with an Intel(R) Core(TM) i5-4200U CPU @ 1.60GHz
+All benchmarks were performed on a laptop with an Intel(R) Core(TM) i5-4200U CPU @ 1.60GHz
 with 8GB of RAM.
 
 We used [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl/) to perform the
@@ -23,7 +23,7 @@ hash `286d369`) and Cubical Ripser (commit hashes `6edb9c5` for 2D and `a063dac`
 
 ## Vietoris-Rips Persistent Homology
 
-In this experiment, we perfomed benchmarks with the datasets presented in the [Ripser
+In this experiment, we performed benchmarks with the datasets presented in the [Ripser
 article](https://arxiv.org/abs/1908.02518). We only used the datasets that we were able to
 run with less than 8GB memory. `ripserer_s` denotes `ripserer` run with
 [`SparseRips`](@ref). All datasets were parsed as `Float32` as that is what Ripser supports.
@@ -52,7 +52,7 @@ The next table shows peak heap sizes as reported by `valgrind`.
 
 ## Alpha-Rips Persistent Homology
 
-Here, we used the 1-skeleton of the delaunay triangulation of a point cloud as a sparse
+Here, we used the 1-skeleton of the Delaunay triangulation of a point cloud as a sparse
 distance matrix. This benchmark is intended to benchmark performance in very sparse cases,
 as triangulations only have ``\mathcal{O}(n)`` ``d``-simplices. All datasets were parsed as
 `Float32` as that is what Ripser supports.
