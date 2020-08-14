@@ -51,8 +51,11 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   mod `modulus`. Defaults to `2`.
 * `field_type`: use this type of field of coefficients. Defaults to
   [`Ripserer.Mod`](@ref)`{modulus}`.
-* `threshold`: compute persistent homology up to diameter smaller than threshold.
-  For non-sparse Rips filtrations, it defaults to radius of input space.
+* `threshold`: compute persistent homology up to diameter smaller than threshold. This
+  parameter is only applicable when using distance matrices or points as input. When using
+  filtrations, threshold must be passed to the filtration constructor. Defaults to radius of
+  input space. When using low thresholds with points or distance matrices, consider using
+  [`SparseRips`](@ref).
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.
@@ -62,7 +65,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   `Distances.Euclidean()`.
 * `cohomology`: if set to `false`, compute persistent homology instead of cohomology. This
   is much slower and gives the same result, but may give more informative representatives
-  when `reps` is set to `true`. Currently unable to compute infinite intervals in dimensions
+  when `reps` is enabled. Currently unable to compute infinite intervals in dimensions
   higher than 0. Defaults to `false`.
 """
 function ripserer(
