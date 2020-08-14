@@ -2,14 +2,17 @@
 
 _Flexible and efficient persistent homology computation._
 
+Author: Matija Čufar ([@mtsch](https://github.com/mtsch/))
+
 ![](assets/title_plot.svg)
 
 ## Introduction
 
 Ripserer is a pure Julia library for computing persistent homology based on the
 [Ripser](https://github.com/Ripser/ripser) algorithm. Roughly speaking, persistent homology
-detects topological holes in data in a noise-resistant, stable way. If you are unfamiliar
-with persistent homology, I recommend reading this [excellent
+detects the global topological and local geometric structure of data in a noise-resistant,
+stable way. If you are unfamiliar with persistent homology, I recommend reading this
+[excellent
 introduction](https://towardsdatascience.com/persistent-homology-with-examples-1974d4b9c3d0).
 See the Examples for further info and usage.
 
@@ -20,18 +23,18 @@ While this package is fully functional, it is still in development and should no
 considered stable. I try to disrupt the public interface as little as possible, but breaking
 changes might still occur from time to time.
 
-Ripserer was created by Matija Čufar. If you used this software in a cool project, or if you
-have any comments, questions or suggestions, feel free to contact me at
-[matijacufar@gmail.com](mailto:matijacufar@gmail.com).
-
 ## Installation
 
-This package is registered. To install it, simply run the following.
+This package is registered. To install it, simply run the following and everything should
+just work.
 
 ```julia
 julia> import Pkg
 julia> Pkg.add("Ripserer")
 ```
+
+All versions of Julia from 1.0 onwards are supported, but I recommend using the latest
+version of Julia for optimal performance.
 
 ## Features
 
@@ -42,15 +45,15 @@ the following:
 * Fast Vietoris-Rips and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
 * Convenient persistence diagram and representative cocycle visualization via
-  Plots.jl. [Experimental Makie.jl support](https://github.com/mtsch/MakieRipserer.jl) is
-  also available.
+  [Plots.jl](https://github.com/JuliaPlots/Plots.jl). [Experimental Makie.jl
+  support](https://github.com/mtsch/MakieRipserer.jl) is also available.
 * Bottleneck and Wasserstein matching and distance computation.
 * Various persistence diagram vectorization functions implemented with persistence images
   and persistence curves.
 * Easy extensibility through a documented API.
 * Computing persistent homology and representative cycles (experimental).
 
-To access some of the features, you need to use `PersistenceDiagrams`.
+To access some of the features, you need to use PersistenceDiagrams.
 
 ## Performance
 
@@ -61,10 +64,11 @@ Bauer's article on Ripser](https://arxiv.org/abs/1908.02518).
 
 In general, the performance of Ripserer is very close to
 [Ripser](https://github.com/Ripser/ripser), usually within around 30%. Cubical homology is
-significantly slower than that of e.g. [Cubical Ripser](https://github.com/CubicalRipser/),
-which uses a more specialized algorithm. Ripserer is still a good choice for small 3d images
-and large 2d images. Ripserer's strength performance-wise are very sparse inputs. See the
-[Benchmarks](@ref) section for detailed benchmarks.
+up to 3× slower than that of [Cubical Ripser](https://github.com/CubicalRipser/), which uses
+a more specialized algorithm. Ripserer is still a good choice for small 3d images and large
+2d images. Ripserer's strength performance-wise are very sparse inputs. It also computes
+some thing Ripser skips, like the critical simplices. See the [Benchmarks](@ref) section for
+detailed benchmarks.
 
 ## Extensibility
 
@@ -77,3 +81,13 @@ can usually be much simpler.
 
 If you have written an extension or are having trouble implementing one, please feel free to
 open a pull request or an issue, or contact me directly.
+
+## Contributing
+
+All contributions are welcome, even small things like typo fixes and ideas! See the
+[contribution guidelines](https://github.com/mtsch/Ripserer.jl/blob/master/CONTRIBUTING.md)
+for more information.
+
+If you used this software in a cool project, or if you have any comments, questions or
+suggestions, feel free to contact me at
+[matijacufar@gmail.com](mailto:matijacufar@gmail.com).
