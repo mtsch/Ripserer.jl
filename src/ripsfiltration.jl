@@ -1,15 +1,8 @@
 """
     AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T}
 
-An abstract Vietoris-Rips filtration. Its subtypes can overload [`dist`](@ref) and get the
-following default implementations.
-
-* [`n_vertices`](@ref)
-* [`edges`](@ref)
-* [`simplex_type`](@ref)
-* [`simplex`](@ref)
-* [`unsafe_simplex`](@ref)
-* [`unsafe_cofacet`](@ref)
+An abstract Vietoris-Rips filtration. Its subtypes can only overload [`dist`](@ref) and get
+default implementations for the rest of the filtration interface.
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
 
@@ -28,27 +21,25 @@ birth(rips::AbstractRipsFiltration) = diag(dist(rips))
 
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
-function unsafe_simplex(
-    ::Type{S}, rips::AbstractRipsFiltration{I}, (vertex,), sign
-) where {I, S<:Simplex{0}}
-    return S(I(sign) * vertex, birth(rips, vertex))
-end
-
 @inline @propagate_inbounds function unsafe_simplex(
     ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
-) where {I, T, D, S<:Simplex{D}}
-    n = length(vertices)
-    diameter = typemin(T)
-    for i in 1:n, j in i+1:n
-        d = dist(rips, vertices[j], vertices[i])
-        if ismissing(d) || d > threshold(rips)
-            return nothing
-        else
-            _d::T = d
-            diameter = ifelse(_d > diameter, _d, diameter)
+) where {I, T, S<:Simplex}
+    if dim(S) == 0
+        return S(I(sign) * vertices[1], birth(rips, vertices[1]))
+    else
+        n = length(vertices)
+        diameter = typemin(T)
+        for i in 1:n, j in i+1:n
+            d = dist(rips, vertices[j], vertices[i])
+            if ismissing(d) || d > threshold(rips)
+                return nothing
+            else
+                _d::T = d
+                diameter = ifelse(_d > diameter, _d, diameter)
+            end
         end
+        return S(I(sign) * index(vertices), diameter)
     end
-    return S(I(sign) * index(vertices), diameter)
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
@@ -82,7 +73,7 @@ end
     cofacet_vertices,
     _,
     sign,
-    new_edges::SVector,
+    new_edges,
 ) where {I, S<:Simplex}
     new_diam = birth(sx)
     for e in new_edges
@@ -127,16 +118,32 @@ function _sparse_edges(rips::AbstractRipsFiltration)
 end
 
 """
+    to_matrix(points)
+
+Convert collection of d-dimensional points to d×n matrix
+"""
+function to_matrix(points)
+    dim = length(points[1])
+    T = eltype(points[1])
+    n = length(points)
+    result = zeros(T, (dim, n))
+
+    for (i, p) in enumerate(points)
+        length(p) == dim || throw(ArgumentError("points must have the same length"))
+        result[:, i] .= p
+    end
+
+    return result
+end
+
+"""
     distances(metric, points)
 
 Return distance matrix calculated from `points` with `metric`.
 """
 function distances(metric, points)
-    isempty(points) && throw(ArgumentError("`points` must be nonempty"))
-
-    dim = length(first(points))
-    T = eltype(first(points))
-    dists = pairwise(metric, reshape(reinterpret(T, points), (dim, length(points))), dims=2)
+    points_mat = to_matrix(points)
+    dists = pairwise(metric, points_mat, dims=2)
     return dists
 end
 

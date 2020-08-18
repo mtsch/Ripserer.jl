@@ -16,6 +16,9 @@ end
 @safetestset "cubical" begin
     include("cubical.jl")
 end
+@safetestset "custom" begin
+    include("custom.jl")
+end
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end

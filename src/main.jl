@@ -98,7 +98,7 @@ function ripserer(
     if overflows(filtration, dim_max, field_type)
         S = simplex_type(filtration, dim_max + 1)
         throw(OverflowError(
-            "$S on $(n_vertices(filtration)) vertices overflows." *
+            "$S on $(n_vertices(filtration)) vertices overflows. " *
             "Try using a larger index type or a smaller `dim_max`."
         ))
     end
