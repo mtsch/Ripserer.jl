@@ -19,6 +19,10 @@ Cubical
 ```
 
 ```@docs
+Custom
+```
+
+```@docs
 Mod
 ```
 

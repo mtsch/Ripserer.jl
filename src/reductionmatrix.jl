@@ -244,7 +244,9 @@ function initialize_coboundary!(matrix::ReductionMatrix, column_simplex)
     for cofacet in coboundary(matrix, column_simplex)
         if emergent_check && birth(cofacet) == birth(column_simplex)
             emergent_check = false
-            !haskey(matrix.reduced, cofacet) && return cofacet_element(matrix)(cofacet)
+            if !haskey(matrix.reduced, cofacet)
+                return cofacet_element(matrix)(cofacet)
+            end
         end
         nonheap_push!(matrix.working_coboundary, cofacet)
     end
