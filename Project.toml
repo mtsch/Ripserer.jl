@@ -20,7 +20,7 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
 Compat = "3.10.0"
-DataStructures = "0.17"
+DataStructures = "0.17, 0.18"
 Distances = "0.8, 0.9"
 Hungarian = "0.6"
 IterTools = "1"
