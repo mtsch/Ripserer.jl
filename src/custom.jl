@@ -1,5 +1,5 @@
 """
-    Custom{T} <: AbstractFiltration{Int, T}
+    Custom{I, T} <: AbstractFiltration{I, T}
 
 Build a custom filtration by specifying simplices and their birth times.
 
@@ -51,18 +51,30 @@ julia> ripserer(flt)[2]
  [6.0, ∞)
 
 """
-struct Custom{T} <: AbstractFiltration{Int, T}
-    dicts::Vector{Dict{Int, T}}
+struct Custom{I, T} <: AbstractFiltration{I, T}
+    adj::SparseMatrixCSC{Bool, Int}
+    dicts::Vector{Dict{I, T}}
     n_vertices::Int
     threshold::T
 end
 
-function Custom{T}(simplices, dim; threshold=nothing) where {T}
-    dicts = [Dict{Int, T}() for _ in 0:dim]
+function Custom{I, T}(simplices, dim; threshold=nothing) where {I, T}
+    dicts = [Dict{I, T}() for _ in 0:dim]
     thresh = typemin(T)
-    for (vertices, birth) in simplices
-        vertices = TupleTools.sort(vertices, rev=true)
+
+    for (_vertices, birth) in simplices
+        vertices = I.(TupleTools.sort(_vertices, rev=true))
+        # Check for overflow.
         idx = index(vertices)
+        big_idx = index(BigInt.(vertices))
+        if idx ≠ big_idx
+            throw(OverflowError(
+                "simplex $vertices overflowed. " *
+                "Try constructing `Custom` with a bigger integer type"
+            ))
+        end
+
+        # Insert simplex.
         dim = length(vertices) - 1
         d_dict = dicts[dim + 1]
         d_dict[idx] = min(T(birth), get(d_dict, idx, typemax(T)))
@@ -77,20 +89,36 @@ function Custom{T}(simplices, dim; threshold=nothing) where {T}
             end
         end
     end
-    Custom{T}(
-        dicts, maximum(keys(dicts[1])), !isnothing(threshold) ? T(threshold) : thresh
+
+    # Build adjacency matrix.
+    n_vertices = maximum(keys(dicts[1]))
+    adj_is = Int[]
+    adj_js = Int[]
+    adj_vs = Bool[]
+    for (index, _) in dicts[2]
+        u, v = _vertices(index, Val(2))
+        append!(adj_is, (u, v))
+        append!(adj_js, (v, u))
+        append!(adj_vs, (true, true))
+    end
+    adj = sparse(adj_is, adj_js, adj_vs, n_vertices, n_vertices)
+
+    Custom{I, T}(
+        adj, dicts, maximum(keys(dicts[1])), !isnothing(threshold) ? T(threshold) : thresh
     )
 end
 
-function Custom(simplices; kwargs...)
+function Custom{I}(simplices; kwargs...) where I
     T = Union{}
     dim = 0
     for (vertices, birth) in simplices
         dim = max(dim, length(vertices) - 1)
         T = promote_type(T, typeof(birth))
     end
-    return Custom{T}(simplices, dim; kwargs...)
+    return Custom{I, T}(simplices, dim; kwargs...)
 end
+
+Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)
 
 Base.getindex(cf::Custom, d) = cf[Val(d)]
 # Val for type stability with edges and column assembly.
@@ -119,10 +147,15 @@ function unsafe_simplex(cf::Custom, ::Val{D}, vertices, sign) where D
 end
 
 dim(cf::Custom) = length(cf.dicts) - 1
-simplex_type(::Type{Custom{T}}, D) where T = Simplex{D, T, Int}
+simplex_type(::Type{Custom{I, T}}, D) where {I, T} = Simplex{D, T, I}
 n_vertices(cf::Custom) = cf.n_vertices
 birth(cf::Custom, v) = cf.dicts[1][v]
 birth(cf::Custom) = [cf.dicts[1][i] for i in 1:n_vertices(cf)]
 edges(cf::Custom) = cf[Val(1)]
 columns_to_reduce(cf::Custom, prev) = cf[Val(dim(eltype(prev)) + 1)]
 threshold(cf::Custom) = cf.threshold
+
+# dist(cf, i, j) deliberately missing.
+dist(cf::Custom) = cf.adj
+coboundary(cf::Custom, sx::Simplex) = SparseCoboundary{true}(cf, sx)
+coboundary(cf::Custom, sx::Simplex, ::Val) = error()

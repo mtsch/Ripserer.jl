@@ -108,6 +108,7 @@ function _find_max_vertex(index::I, ::Val{K}) where {I, K}
     while _binomial(hi, Val(K)) ≤ index
         lo = hi
         hi <<= 0x01
+        hi + one(I) < lo && throw(OverflowError("simplex overflowed! This is a bug"))
     end
     return _find_max_vertex(index, Val(K), hi + one(I), lo)
 end
