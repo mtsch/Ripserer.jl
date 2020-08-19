@@ -190,6 +190,23 @@ where ``i_k`` are the simplex vertex indices.
 end
 
 """
+    index_overflow_check(vertices[, message])
+
+Check if index overflows for a particular collection of vertices. Throw an error if it does.
+"""
+function index_overflow_check(
+    vertices::NTuple{<:Any, I},
+    message="simplex $vertices overflows in $(I)! " *
+    "Try using a bigger index type in your filtration."
+) where I
+    idx = index(vertices)
+    idx_big = index(BigInt.(vertices))
+    if idx ≠ idx_big
+        throw(OverflowError(message))
+    end
+end
+
+"""
     vertices(simplex::AbstractSimplex{dim, T, I})
 
 Get the vertices of `simplex`. Returns `SVector{length(simplex), I}`. When `index(simplex)`
