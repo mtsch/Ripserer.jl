@@ -1,4 +1,5 @@
 using Ripserer
+using SparseArrays
 using Test
 using TupleTools
 
@@ -64,6 +65,36 @@ end
     @test all(birth(cf, i) == 0 for i in 1:4)
 
     @test ripserer(dist) == ripserer(cf)
+end
+
+@testset "Custom filtration vs SparseRips" begin
+    spdist = sparse([
+        0 1 0 0 0 1
+        1 0 1 0 0 0
+        0 1 0 1 0 0
+        0 0 1 0 1 0
+        0 0 0 1 0 1
+        1 0 0 0 1 0
+    ])
+    cf = Custom([
+        (1,) => 0,
+        (2,) => 0,
+        (3,) => 0,
+        (4,) => 0,
+        (5,) => 0,
+        (6,) => 0,
+        (1, 2) => 1,
+        (2, 3) => 1,
+        (3, 4) => 1,
+        (4, 5) => 1,
+        (5, 6) => 1,
+        (6, 1) => 1,
+    ])
+    sprips = SparseRips(spdist)
+
+    @test dist(cf) == Bool.(spdist)
+    @test threshold(cf) == 1
+    @test ripserer(cf) == ripserer(sprips)
 end
 
 @testset "Overflow" begin

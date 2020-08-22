@@ -12,7 +12,7 @@ function Base.getindex(cf::AbstractCustomFiltration, ::Val{D}) where D
     if D ≤ dim(cf)
         return [
             simplex_type(cf, D)(i, b) for (i, b) in simplex_dicts(cf)[D + 1]
-            if b < threshold(cf)
+            if b ≤ threshold(cf)
         ]
     else
         return simplex_type(cf, D)[]
@@ -130,7 +130,7 @@ function adjacency_matrix(dicts)
         append!(adj_js, (v, u))
         append!(adj_vs, (true, true))
     end
-    adj = sparse(adj_is, adj_js, adj_vs, n_vertices, n_vertices)
+    return sparse(adj_is, adj_js, adj_vs, n_vertices, n_vertices)
 end
 
 function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
@@ -145,9 +145,7 @@ function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
     end
     adj = adjacency_matrix(dicts)
 
-    Custom{I, T}(
-        adj, dicts, maximum(keys(dicts[1])), !isnothing(threshold) ? T(threshold) : thresh
-    )
+    return Custom{I, T}(adj, dicts, threshold)
 end
 
 # TODO: hot mess. Simplex sorting and index conversion could be done here.
@@ -164,15 +162,14 @@ function Custom{I}(simplices; threshold=nothing) where I
             thresh = max(thresh, birth)
         end
         if length(vertices) ≥ length(largest_simplex)
-            largest_simplex = max(TupleTools.sort(vertices), largest_simplex)
+            largest_simplex = max(TupleTools.sort(vertices, rev=true), largest_simplex)
         end
     end
     if isnothing(threshold)
         threshold = thresh
     end
-    index_overflow_check(largest_simplex)
-
-    return Custom{I, T}(simplices, dim, threshold)
+    index_overflow_check(I.(largest_simplex))
+    return Custom{I, T}(simplices, dim, T(threshold))
 end
 
 Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)

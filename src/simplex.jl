@@ -195,10 +195,10 @@ end
 Check if index overflows for a particular collection of vertices. Throw an error if it does.
 """
 function index_overflow_check(
-    vertices::NTuple{<:Any, I},
+    vertices,
     message="simplex $vertices overflows in $(I)! " *
     "Try using a bigger index type in your filtration."
-) where I
+)
     idx = index(vertices)
     idx_big = index(BigInt.(vertices))
     if idx ≠ idx_big

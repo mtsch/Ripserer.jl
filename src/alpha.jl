@@ -37,7 +37,7 @@ function circumcenter_radius2(pts)
     end
 end
 
-# TODO: could be faster
+# TODO: could be faster, takes a long time to compile
 function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where D
     if progress
         progbar = Progress(size(triangulation, 2), desc="Collecting $D-simplcies... ")
@@ -85,12 +85,7 @@ function _fix_dim!(dicts, threshold, ::Val{D}, progress) where D
             end
         end
         corrected_birth = 2 * √dicts[D + 1][σ_idx]
-        if corrected_birth > threshold
-            #delete!(dicts[D + 1], σ_idx)
-            dicts[D + 1][σ_idx] = corrected_birth
-        else
-            dicts[D + 1][σ_idx] = corrected_birth
-        end
+        dicts[D + 1][σ_idx] = corrected_birth
     end
 end
 
@@ -102,9 +97,9 @@ Collect all simplices and their birth times in alpha filtration.
 Based on https://github.com/scikit-tda/cechmate/blob/master/cechmate/filtrations/alpha.py
 """
 function alpha_simplices(points, threshold, progress, ::Type{I}) where I
-    progress && printstyled("Building triangulation... ", color=:green)
+    progress && printstyled(stderr, "Building triangulation... ", color=:green)
     triangulation = sort!(I.(delaunay(to_matrix(points))), dims=1, rev=true)
-    progress && printstyled("done.\n", color=:green)
+    progress && printstyled(stderr, "done.\n", color=:green)
 
     largest_face = tuple(maximum(eachcol(triangulation))...)
     index_overflow_check(largest_face)
@@ -112,6 +107,7 @@ function alpha_simplices(points, threshold, progress, ::Type{I}) where I
     dim = length(points[1])
     dicts = [Dict{I, Float64}() for _ in 0:dim]
 
+    # Build the filtration
     for d in dim:-1:1
         _build_dims!(dicts, triangulation, points, Val(d), progress)
     end
@@ -121,6 +117,7 @@ function alpha_simplices(points, threshold, progress, ::Type{I}) where I
     if progress
         progbar = Progress(dim, desc="Fixing birth times...     ")
     end
+    # Make sure all simplices are born after their facets and sqrt the birth times.
     for d in dim:-1:1
         _fix_dim!(dicts, threshold, Val(d), progress)
         progress && next!(progbar)
@@ -134,10 +131,10 @@ end
 
 `Alpha` filtrations are filtrations of the Delaunay complex.
 
-They have much fewer simplices than `Rips`, so it's a good for large, low-dimensional
-datasets.  What "low-dimensional" means depends on the data, but this is definitely a good
-choice for 3D or lower. For high dimensional data, Delaunay complex construction may take a
-long time.
+They have much fewer simplices than `Rips`, so they are efficient even with large datasets,
+as long as their dimensionality is low.  What "low" means depends on the data, but this is
+definitely a good choice for 3D or lower. For high dimensional data, filtration construction
+may take a long time.
 
 # Note
 
@@ -145,6 +142,8 @@ Unlike most implementations, this one uses circumdiameters instead of circumradi
 makes the scale of the results comparable to `Rips`. If you need radius based values, divide
 your data or the resulting interval endpoints by 2.
 
+This filtration uses [MiniQhull.jl](https://github.com/gridap/MiniQhull.jl). Please see
+the installation instructions if constructions causes an error.
 """
 struct Alpha{I, P<:SVector} <: AbstractCustomFiltration{I, Float64}
     dicts::Vector{Dict{I, Float64}}
@@ -154,7 +153,7 @@ struct Alpha{I, P<:SVector} <: AbstractCustomFiltration{I, Float64}
 end
 function Alpha{I}(points; threshold=nothing, progress=false) where I
     pts = SVector.(points)
-    threshold = isnothing(threshold) ? radius(pts) : threshold
+    threshold = isnothing(threshold) ? 2radius(pts) : threshold
     dicts = alpha_simplices(pts, threshold, progress, I)
     adj = adjacency_matrix(dicts)
     return Alpha{I, eltype(pts)}(dicts, adj, threshold, pts)
@@ -166,50 +165,3 @@ end
 dist(alpha::Alpha) = alpha.adj
 simplex_dicts(alpha::Alpha) = alpha.dicts
 threshold(alpha::Alpha) = alpha.threshold
-
-function alpha_skelly(alpha::Alpha)
-    result = similar(dist(alpha), Float64)
-    for e in edges(alpha)
-        u, v = vertices(e)
-        result[u, v] = result[v, u] = birth(e)
-    end
-    result
-end
-
-function alpha_distmat(points::Vector{SVector{D, Float64}}) where D
-    is = Int[]
-    js = Int[]
-    vs = Float64[]
-    faces = reinterpret(SVector{D + 1, Int32}, delaunay(to_matrix(points)))
-    ncorrected=nnotcorrected=0
-    corr = falses(length(faces))
-    for (kk, face) in enumerate(faces)
-        for i in 1:D+1, j in i+1:D+1
-            others = deleteat(deleteat(face, j), i)
-            p = points[face[i]]
-            q = points[face[j]]
-            @assert face[i] ∉ others
-            @assert face[j] ∉ others
-
-            c, r2 = circumcenter_radius2(SVector(p, q))
-
-            if any(sum.(abs2, Ref(c) .- points[others]) .< r2)
-                # When edge is close to another vertex in a facet, we can't use its radius
-                # as the birth time.
-                selection = sum.(abs2, Ref(c) .- points[others]) .< r2
-                vec = points[others[selection]]
-                append!(vec, (p, q))
-                corr[kk] = true
-
-                _, weight = circumcenter_radius2(vec)
-            else
-                weight = r2
-            end
-
-            append!(is, (face[i], face[j]))
-            append!(js, (face[j], face[i]))
-            append!(vs, (weight, weight))
-        end
-    end
-    return sparse(is, js, sqrt.(vs), length(points), length(points), min)
-end

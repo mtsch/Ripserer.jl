@@ -19,6 +19,9 @@ end
 @safetestset "custom" begin
     include("custom.jl")
 end
+@safetestset "alpha" begin
+    include("alpha.jl")
+end
 @safetestset "chainelement" begin
     include("chainelement.jl")
 end
