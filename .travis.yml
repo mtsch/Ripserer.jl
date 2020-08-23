@@ -7,11 +7,11 @@ jobs:
       julia: 1.0
       addons:
         apt:
-        update: true
-        packages:
-        - gcc
-        - libqhull-r7
-        - libqhull-dev
+          update: true
+          packages:
+          - gcc
+          - libqhull-r7
+          - libqhull-dev
     - os: linux
       julia: 1
     - os: linux

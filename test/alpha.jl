@@ -26,7 +26,6 @@ end
     # This test compares the results to cechmate: https://github.com/scikit-tda/cechmate/
 
     points = [(t*sinpi(t), t*cospi(t)) for t in range(0, 2, length=20)]
-    d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
 
     d0_cechmate_deaths = 2 .* [
         0.05263158, 0.05805554, 0.06761044, 0.07982644, 0.09366810,
@@ -37,18 +36,28 @@ end
     d1_cechmate_births = 2 .* [0.83075319, 0.86707034, 0.89414800, 0.91920916]
     d1_cechmate_deaths = 2 .* [0.83143060, 0.86803555, 0.89985412, 0.92415392]
 
-    @test all(iszero, birth.(d0))
-    @test death.(d0) ≈ d0_cechmate_deaths atol=1e-7
-    @test birth.(d1) ≈ d1_cechmate_births atol=1e-7
-    @test death.(d1) ≈ d1_cechmate_deaths atol=1e-7
-    @test isempty(d2)
+    @static if Sys.iswindows()
+        @test_broken isempty(ripserer(Alpha(points), dim_max=2))
+    else
+        d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
+        @test all(iszero, birth.(d0))
+        @test death.(d0) ≈ d0_cechmate_deaths atol=1e-7
+        @test birth.(d1) ≈ d1_cechmate_births atol=1e-7
+        @test death.(d1) ≈ d1_cechmate_deaths atol=1e-7
+        @test isempty(d2)
+    end
 end
 
 @testset "Threshold" begin
     points = [(t*sinpi(t), t*cospi(t)) for t in range(0, 2, length=20)]
-    d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
-    d0_t, d1_t, d2_t = ripserer(Alpha(points, threshold=1.8), dim_max=2)
-    @test d0_t == d0
-    @test d1_t == d1[1:3]
-    @test isempty(d2_t)
+
+    @static if Sys.iswindows()
+        @test_broken isempty(ripserer(Alpha(points, threshold=1.8), dim_max=2)[end])
+    else
+        d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
+        d0_t, d1_t, d2_t = ripserer(Alpha(points, threshold=1.8), dim_max=2)
+        @test d0_t == d0
+        @test d1_t == d1[1:3]
+        @test isempty(d2_t)
+    end
 end

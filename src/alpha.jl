@@ -98,7 +98,8 @@ Based on https://github.com/scikit-tda/cechmate/blob/master/cechmate/filtrations
 """
 function alpha_simplices(points, threshold, progress, ::Type{I}) where I
     progress && printstyled(stderr, "Building triangulation... ", color=:green)
-    triangulation = sort!(I.(delaunay(to_matrix(points))), dims=1, rev=true)
+    triangulation = I.(delaunay(to_matrix(points)))
+    sort!.(eachcol(triangulation), rev=true, alg=InsertionSort)
     progress && printstyled(stderr, "done.\n", color=:green)
 
     largest_face = tuple(maximum(eachcol(triangulation))...)
