@@ -56,11 +56,15 @@ data science stack. At the time of writing, it offers the following features.
 * Representative cocycle and critical simplex computation.
 * Support for coefficients in any, possibly user-defined, field.
 * Convenient persistence diagram and representative cocycle visualization via
-  [Plots.jl](https://github.com/JuliaPlots/Plots.jl) recipes.
+  Plots.jl[^1] recipes.
 * Bottleneck and Wasserstein matching and distance computation.
 * Various persistence diagram vectorization functions implemented with persistence
   images [@adams2017persistence] and persistence curves [@chung2019persistence].
 * Easy extensibility through a documented API.
+
+![Example visualizations. The plot on the left shows the three main representative cocycles
+in the data. The right plots show the persistence diagram and the first persistence
+barcode.](figure.pdf)
 
 Ripserer.jl provides a way to hook into its persistent homology algorithm through an API at
 various stages in the algorithm. This allows researchers to experiment with different
@@ -72,23 +76,20 @@ Being written in the high-level programming language Julia is also an advantage 
 understanding the codebase does not require knowing C++, which is a notoriously difficult
 language to learn.
 
-Our benchmarks (results available in the documentation) show that Ripserer's performance is
-very close to that of Ripser. It tends to be slightly slower for dense inputs and slightly
-faster for very sparse inputs. In the cubical case, we compared it to Cubical Ripser. There
-the performance was worse, taking up to 3 times as long to compute some results. This is
-expected as Cubical Ripser is much more specialized for its use case and even splits its
-code into different repositories for different dimensions.
+Our benchmarks[^2] show that Ripserer's performance is very close to that of Ripser. It
+tends to be slightly slower for dense inputs and slightly faster for very sparse inputs. In
+the cubical case, we compared it to Cubical Ripser. There the performance was worse, taking
+up to 3 times as long to compute some results. This is expected as Cubical Ripser is much
+more specialized for its use case and even splits its code into different repositories for
+different dimensions.
 
 We have not compared performance with newer, parallel implementations such as Ripser++ or
 lock-free Ripser. Judging from the benchmarks they provide, we expect them to perform much
 better. Their downside, however, is that they require powerful hardware, such as GPUs or
 large numbers of processors.
 
-# Research
-
-We are currently using this package to develop novel approaches to simplicial complex
-sparsification and representative cycle reconstruction. It is also used in theoretical work
-by Žiga Virk.
+[^1]: https://github.com/JuliaPlots/Plots.jl
+[^2]: https://mtsch.github.io/Ripserer.jl/dev/benchmarks/
 
 # Acknowledgments
 

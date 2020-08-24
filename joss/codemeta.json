@@ -9,7 +9,7 @@
   "datePublished": "2020-08-24",
   "dateModified": "2020-08-24",
   "dateCreated": "2020-08-24",
-  "description": "flexible and efficient persistent homology computation in Julia",
+  "description": "Flexible and efficient persistent homology computation in Julia",
   "keywords": "Julia, persistent homology, topological data analysis",
   "license": "MIT",
   "title": "Ripserer.jl",
