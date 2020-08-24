@@ -10,7 +10,7 @@ authors:
 affiliations:
  - name: Independent Researcher
    index: 1
-date: 14 August 2020
+date: 24 August 2020
 bibliography: paper.bib
 ---
 
@@ -64,9 +64,9 @@ data science stack. At the time of writing, it offers the following features.
 
 Ripserer.jl provides a way to hook into its persistent homology algorithm through an API at
 various stages in the algorithm. This allows researchers to experiment with different
-approaches to persistent homology without having to re-implement the algorithm from scratch
+approaches to persistent homology without having to reimplement the algorithm from scratch
 or forking an existing repository. The extensions can range from simple sparsification
-schemes to complicated re-implementations, like the included cubical homology extension.
+schemes to complicated reimplementations, like the included cubical homology extension.
 
 Being written in the high-level programming language Julia is also an advantage as
 understanding the codebase does not require knowing C++, which is a notoriously difficult
@@ -87,8 +87,8 @@ large numbers of processors.
 # Research
 
 We are currently using this package to develop novel approaches to simplicial complex
-sparsification and representative cycle reconstruction. It is also being used to generate
-visualizations for a few upcoming theoretical papers by Žiga Virk.
+sparsification and representative cycle reconstruction. It is also used in theoretical work
+by Žiga Virk.
 
 # Acknowledgments
 
