@@ -33,14 +33,6 @@ spawned a whole cottage industry of extensions and wrappers. Some examples inclu
 Ripser++ [@zhang2020gpu], Lock-free Ripser [@morozov2020towards], Ripser.py [@tralie2018ripser]
 and Cubical Ripser [@kaji2020cubical].
 
-Julia [@bezanson2017julia] is a relatively recent language specifically designed for
-technical computing. Even though the language has only been stable since 2018, it already
-offers packages that are among the best in various areas such as differential
-equations [@rackauckas2017differentialequations], mathematical optimization [@dunning2017jump]
-and network analysis [@bromberger2017lightgraphs]. The main advantages it offers are a high
-degree of composability through multiple dispatch, and performance that can compete with
-statically compiled languages like C, C++ and Fortran.
-
 In this work, we present Ripserer.jl, a pure Julia implementation of persistent homology
 based on the algorithm that powers Ripser. The main goal of this project is to provide a
 highly generic and extensible persistent homology library that is easy to use for
