@@ -1,10 +1,21 @@
 """
-    abstract type AbstractSimplexWiseFiltration{I, T} <: AbstractFiltration{I, T}
+    abstract type AbstractCustomFiltration{I, T} <: AbstractFiltration{I, T}
 
 This abstract type is for filtrations that have all simplices stored in `Dict`s. The dicts
-should be accessible by the function `simplex_dicts` and should be a vector of `Dict{I, T}`.
+should be accessible by the function [`simplex_dicts`](@ref) and should be a vector of
+`Dict{I, T}`. A custom filtration should also have [`dist`](@ref) defined. This `dist` is
+only used as an adjacency matrix. Its values are ignored.
 """
 abstract type AbstractCustomFiltration{I, T} <: AbstractFiltration{I, T} end
+
+"""
+    simplex_dicts(::AbstractCustomFiltration)
+
+Get the dictionaries used to get simplex birth times. Should return a `Vector` of `Dict{I,
+T}` that maps a simplex index to its birth time. The first element of this `Vector`
+corresponds to vertices, second to 1-simplices etc.
+"""
+simplex_dicts
 
 Base.getindex(cf::AbstractCustomFiltration, d) = cf[Val(d)]
 # Val for type stability with edges and column assembly.

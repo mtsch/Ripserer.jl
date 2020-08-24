@@ -6,6 +6,8 @@
 ripserer
 ```
 
+## Filtrations
+
 ```@docs
 Rips
 ```
@@ -23,7 +25,7 @@ Custom
 ```
 
 ```@docs
-Mod
+Alpha
 ```
 
 ## Simplices
@@ -42,6 +44,12 @@ vertices
 
 ```@docs
 dim
+```
+
+## Fields
+
+```@docs
+Mod
 ```
 
 ## Persistence Diagrams

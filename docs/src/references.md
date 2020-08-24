@@ -30,3 +30,6 @@ circular coordinates. Discrete & Computational Geometry, 45(4), 737-759.
 
 Zomorodian, A., & Carlsson, G. (2005). Computing persistent homology. Discrete &
 Computational Geometry, 33(2), 249-274.
+
+Edelsbrunner, H. (1993, July). The union of balls and its dual shape. In Proceedings of the
+ninth annual symposium on Computational geometry (pp. 218-231).

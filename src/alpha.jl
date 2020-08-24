@@ -137,14 +137,29 @@ as long as their dimensionality is low.  What "low" means depends on the data, b
 definitely a good choice for 3D or lower. For high dimensional data, filtration construction
 may take a long time.
 
-# Note
+!!! note
+    Unlike most implementations, this one uses circumdiameters instead of
+    circumradii. This makes the scale of the results comparable to `Rips`. If you need
+    radius based values, divide your data or the resulting interval endpoints by 2.
 
-Unlike most implementations, this one uses circumdiameters instead of circumradii. This
-makes the scale of the results comparable to `Rips`. If you need radius based values, divide
-your data or the resulting interval endpoints by 2.
+!!! warning
+    This filtration uses [MiniQhull.jl](https://github.com/gridap/MiniQhull.jl). Please see
+    the installation instructions if constructions causes an error. MiniQhull currently has
+    problems running on Windows. See [this
+    issue](https://github.com/gridap/MiniQhull.jl/issues/5) for more info.
 
-This filtration uses [MiniQhull.jl](https://github.com/gridap/MiniQhull.jl). Please see
-the installation instructions if constructions causes an error.
+# Constructors
+
+* `Alpha(points; threshold, progress)`: `points` should be a vector of `Tuple`s, `SVector`s
+  or similar.
+* `Alpha{I}(args...)`: `I` sets the size of integer used to represent simplices. Try using
+  `I=Int128` if construction complains about overflow.
+
+# Reference
+
+Edelsbrunner, H. (1993, July). The union of balls and its dual shape. [In Proceedings of the
+ninth annual symposium on Computational geometry
+(pp. 218-231)](https://dl.acm.org/doi/abs/10.1145/160985.161139).
 """
 struct Alpha{I, P<:SVector} <: AbstractCustomFiltration{I, Float64}
     dicts::Vector{Dict{I, Float64}}
