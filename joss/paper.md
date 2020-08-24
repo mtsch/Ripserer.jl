@@ -76,12 +76,12 @@ Being written in the high-level programming language Julia is also an advantage 
 understanding the codebase does not require knowing C++, which is a notoriously difficult
 language to learn.
 
-Out benchmarks (results available in this project's documentation) show that Ripserer's
-performance is very close to that of Ripser. It tends to be slightly slower for dense inputs
-and slightly faster for very sparse inputs. In the cubical case, we compared it to Cubical
-Ripser. There the performance was worse, taking up to 3 times as long to compute some
-results. This is expected as Cubical Ripser is much more specialized for its use case and
-even splits its code into different repositories for different dimensions.
+Our benchmarks (results available in the documentation) show that Ripserer's performance is
+very close to that of Ripser. It tends to be slightly slower for dense inputs and slightly
+faster for very sparse inputs. In the cubical case, we compared it to Cubical Ripser. There
+the performance was worse, taking up to 3 times as long to compute some results. This is
+expected as Cubical Ripser is much more specialized for its use case and even splits its
+code into different repositories for different dimensions.
 
 We have not compared performance with newer, parallel implementations such as Ripser++ or
 lock-free Ripser. Judging from the benchmarks they provide, we expect them to perform much
