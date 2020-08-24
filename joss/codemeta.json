@@ -1,0 +1,17 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/mtsch/Ripserer.jl",
+  "datePublished": "2020-08-24",
+  "dateModified": "2020-08-24",
+  "dateCreated": "2020-08-24",
+  "description": "flexible and efficient persistent homology computation in Julia",
+  "keywords": "Julia, persistent homology, topological data analysis",
+  "license": "MIT",
+  "title": "Ripserer.jl",
+  "version": "v0.14.6"
+}

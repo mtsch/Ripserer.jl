@@ -46,10 +46,6 @@ based on the algorithm that powers Ripser. The main goal of this project is to p
 highly generic and extensible persistent homology library that is easy to use for
 non-experts without sacrificing too much performance.
 
-![Example visualizations. The left plot shows the representative cocycles of the of the
-result. The right top and bottom plots show the persistence diagram and the one-dimensional
-persistence barcode.](figure.svg)
-
 # Package Details
 
 Along with its companion package PersistenceDiagrams.jl, Ripserer.jl provides a featureful
@@ -60,7 +56,7 @@ data science stack. At the time of writing, it offers the following features.
 * Representative cocycle and critical simplex computation.
 * Support for coefficients in any, possibly user-defined, field.
 * Convenient persistence diagram and representative cocycle visualization via
-  Plots.jl. Examples of these visualizations are shown in Figure 1.
+  [Plots.jl](https://github.com/JuliaPlots/Plots.jl) recipes.
 * Bottleneck and Wasserstein matching and distance computation.
 * Various persistence diagram vectorization functions implemented with persistence
   images [@adams2017persistence] and persistence curves [@chung2019persistence].
