@@ -238,8 +238,10 @@ function initialize_coboundary!(matrix::ReductionMatrix, column_simplex)
     empty!(matrix.working_coboundary)
     # Emergent pairs: we are looking for pairs of simplices (σ, τ) where σ is the youngest
     # facet of τ and τ is the oldest cofacet of σ. These pairs give birth to persistence
-    # intervals with zero length and can be skipped. The implementation of this optimization
-    # only works if (co)boundary simplices are returned in the correct order.
+    # intervals with zero length and can be skipped.
+
+    # This implementation of this optimization only works if (co)boundary simplices are
+    # returned in the correct order and if the birth times of σ and τ are the same.
     emergent_check = emergent_pairs(matrix.filtration)
     for cofacet in coboundary(matrix, column_simplex)
         if emergent_check && birth(cofacet) == birth(column_simplex)

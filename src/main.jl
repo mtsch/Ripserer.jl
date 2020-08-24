@@ -12,24 +12,19 @@ end
 overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
 
 function overflows(S::Type{<:Simplex{<:Any, T, I}}, n_vertices, field) where {T, I}
-    length(S) > n_vertices && throw(ArgumentError("$S has more than $(n_vertices) vertices."))
-    # Idea: calculate index in I and BigInt and compare if they are always the same.
-    acc_int = zero(I)
-    acc_big = big(0)
-    i = n_vertices
-    for k in length(S):-1:1
-        acc_int += _binomial(I(i), Val(k))
-        acc_big += binomial(big(i), big(k))
-        acc_int ≠ acc_big && return true
-        i -= 1
-    end
-
-    # This checks if packing is safe.
-    Element = chain_element_type(S, field)
-    if index(simplex(Element(S(acc_int, oneunit(T))))) ≠ acc_int
+    length(S) > n_vertices && throw(
+        ArgumentError("$S has more than $(n_vertices) vertices.")
+    )
+    # Calculate index for last possible simplex in I and BigInt and check if they are equal.
+    vertices = ntuple(i -> I(n_vertices - i + 1), length(S))
+    index_I = index(vertices)
+    index_big = index(BigInt.(vertices))
+    if index_I ≠ index_big
         return true
     else
-        return false
+        # Check that packing is safe.
+        Element = chain_element_type(S, field)
+        return index(simplex(Element(S(index_I, oneunit(T))))) ≠ index_big
     end
 end
 

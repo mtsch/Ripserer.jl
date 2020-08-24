@@ -108,6 +108,7 @@ function _find_max_vertex(index::I, ::Val{K}) where {I, K}
     while _binomial(hi, Val(K)) ≤ index
         lo = hi
         hi <<= 0x01
+        hi + one(I) < lo && throw(OverflowError("simplex overflowed! This is a bug"))
     end
     return _find_max_vertex(index, Val(K), hi + one(I), lo)
 end
@@ -186,6 +187,23 @@ where ``i_k`` are the simplex vertex indices.
         end
     end
     return expr
+end
+
+"""
+    index_overflow_check(vertices[, message])
+
+Check if index overflows for a particular collection of vertices. Throw an error if it does.
+"""
+function index_overflow_check(
+    vertices,
+    message="simplex $vertices overflows in $(I)! " *
+    "Try using a bigger index type in your filtration."
+)
+    idx = index(vertices)
+    idx_big = index(BigInt.(vertices))
+    if idx ≠ idx_big
+        throw(OverflowError(message))
+    end
 end
 
 """

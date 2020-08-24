@@ -17,6 +17,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
+using MiniQhull
 using PersistenceDiagrams
 using ProgressMeter
 using RecipesBase
@@ -30,7 +31,7 @@ export
 
 export
     Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
-    Rips, SparseRips, Cubical, Custom, ripserer
+    Rips, SparseRips, Cubical, Custom, Alpha, ripserer
 
 
 include("primefield.jl")
@@ -47,6 +48,7 @@ include("main.jl")
 
 include("cubical.jl")
 include("custom.jl")
+include("alpha.jl")
 
 include("simplexrecipes.jl")
 

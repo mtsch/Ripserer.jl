@@ -56,6 +56,14 @@ Ripserer.AbstractRipsFiltration
 Ripserer.dist
 ```
 
+```@docs
+Ripserer.AbstractCustomFiltration
+```
+
+```@docs
+Ripserer.simplex_dicts
+```
+
 # Simplex Interface
 
 ```@docs

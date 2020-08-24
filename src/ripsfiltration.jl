@@ -148,15 +148,27 @@ function distances(metric, points)
 end
 
 """
-    default_rips_threshold(dists)
+    radius(dists)
+    radius(points[, metric=Euclidean()])
 
-The default threshold is equal to the radius of the input space. At this threshold, there
-exists a vertex ``v`` such that all vertices are connected to it and the homology becomes
-trivial.
+Calculate the radius of the space. This is used for default `thresholds`.
 """
-function default_rips_threshold(dists::AbstractMatrix{T}) where T
+function radius(dists::AbstractMatrix{T}) where T
     return minimum(maximum(abs, dists[:, i]) for i in 1:size(dists, 1))
 end
+function radius(points, metric=Euclidean())
+    radius = Inf
+    for p in points
+        p_max = 0.0
+        for q in points
+            p == q && continue
+            p_max = max(p_max, metric(SVector(p), SVector(q)))
+        end
+        radius = min(p_max, radius)
+    end
+    return radius
+end
+
 
 """
     Rips{I, T} <: AbstractRipsFiltration{I, T}
@@ -185,7 +197,7 @@ function Rips{I}(
         throw(ArgumentError("`dist` must be symmetric"))
     !issparse(dist) ||
         throw(ArgumentError("`dist` is sparse. Use `SparseRips` instead"))
-    thresh = isnothing(threshold) ? default_rips_threshold(dist) : T(threshold)
+    thresh = isnothing(threshold) ? radius(dist) : T(threshold)
     return Rips{I, T, typeof(dist)}(dist, thresh)
 end
 function Rips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
@@ -228,7 +240,7 @@ function SparseRips{I}(
 ) where {I, T}
     issymmetric(dist) || throw(ArgumentError("`dist` must be symmetric"))
     if isnothing(threshold)
-        threshold = issparse(dist) ? maximum(dist) : default_rips_threshold(dist)
+        threshold = issparse(dist) ? maximum(dist) : radius(dist)
     end
     dists = SparseArrays.fkeep!(SparseMatrixCSC(dist), (_, _, v) -> v ≤ threshold)
 

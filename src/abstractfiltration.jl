@@ -9,7 +9,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 
 * [`n_vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
-* [`simplex_type(::AbstractFiltration, dim)`](@ref)
+* [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`
