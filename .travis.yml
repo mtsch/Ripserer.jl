@@ -1,24 +1,19 @@
 language: julia
 
-os:
-  - linux
-
-julia:
-  - 1.0
-  - 1
-  - nightly
-
-notifications:
-  email: false
-
-after_success:
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())';
-
 jobs:
   include:
+    - os: linux
+      julia: 1.0
+    - os: linux
+      julia: 1
+    - os: linux
+      julia: nightly
+    - os: osx
+      julia: 1
+    - os: windows
+      julia: 1
     - stage: "docs"
-      julia: 1.4
+      julia: 1
       os: linux
       addons:
         apt:
@@ -32,3 +27,10 @@ jobs:
                                                Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
+
+notifications:
+  email: false
+
+after_success:
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())';
