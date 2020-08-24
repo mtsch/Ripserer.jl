@@ -63,8 +63,7 @@ data science stack. At the time of writing, it offers the following features.
 * Easy extensibility through a documented API.
 
 ![Example visualizations. The plot on the left shows the three main representative cocycles
-in the data. The right plots show the persistence diagram and the first persistence
-barcode.](figure.pdf)
+in the data. The right plot show the persistence diagram.](figure.png)
 
 Ripserer.jl provides a way to hook into its persistent homology algorithm through an API at
 various stages in the algorithm. This allows researchers to experiment with different
