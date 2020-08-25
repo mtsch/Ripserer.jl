@@ -130,7 +130,7 @@ end
     end
 end
 
-function adjacency_matrix(dicts)
+function _adjacency_matrix(dicts)
     nv = maximum(keys(dicts[1]))
     adj_is = Int[]
     adj_js = Int[]
@@ -154,7 +154,7 @@ function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
             insert_simplex!(dicts, vertices, birth, threshold)
         end
     end
-    adj = adjacency_matrix(dicts)
+    adj = _adjacency_matrix(dicts)
 
     return Custom{I, T}(adj, dicts, threshold)
 end
@@ -186,5 +186,5 @@ end
 Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)
 
 simplex_dicts(cf::Custom) = cf.dicts
-dist(cf::Custom) = cf.adj
+adjacency_matrix(cf::Custom) = cf.adj
 threshold(cf::Custom) = cf.threshold

@@ -3,6 +3,20 @@
 
 An abstract Vietoris-Rips filtration. Its subtypes can only overload [`dist`](@ref) and get
 default implementations for the rest of the filtration interface.
+
+# Example
+
+```jldoctest
+julia> struct MyRips <: Ripserer.AbstractRipsFiltration{Int, Float16} end
+
+julia> Ripserer.dist(::MyRips) = [0 1 1; 1 0 1; 1 1 0]
+
+julia> ripserer(MyRips())
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 3-element 0-dimensional PersistenceDiagram
+ 0-element 1-dimensional PersistenceDiagram
+
+```
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
 
@@ -12,14 +26,29 @@ abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} e
 
 Return the distance between vertices `u` and `v`. If the distance is somehow invalid, it may
 return `missing` instead. If `u` and `v` are not given, return the distance matrix.
+
+# Examples
+
+```jldoctest
+julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
+
+julia> Ripserer.dist(flt, 1, 3)
+2
+
+julia> Ripserer.dist(flt)
+3×3 Array{Int64,2}:
+ 1  1  2
+ 1  0  1
+ 2  1  0
+
+```
 """
-dist(::AbstractRipsFiltration, ::Any, ::Any)
+dist(rips::AbstractRipsFiltration, i, j) = dist(rips)[i, j]
 
 nv(rips::AbstractRipsFiltration) = size(dist(rips), 1)
-
 birth(rips::AbstractRipsFiltration) = diag(dist(rips))
-
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
+adjacency_matrix(rips::AbstractRipsFiltration) = dist(rips)
 
 function edges(rips::AbstractRipsFiltration)
     if issparse(dist(rips))
@@ -151,6 +180,7 @@ end
     return S(I(sign) * index(cofacet_vertices), diameter)
 end
 
+# This definition is used in SparseCoboundary
 @inline @propagate_inbounds function unsafe_cofacet(
     ::Type{S},
     rips::AbstractRipsFiltration{I},
@@ -169,7 +199,6 @@ end
     return S(I(sign) * new_index, new_diam)
 end
 
-# This is the coboundary used when distance matrix in AbstractRipsFiltration is sparse.
 function coboundary(
     rips::AbstractRipsFiltration, sx::AbstractSimplex, ::Val{A}=Val(true)
 ) where A
@@ -187,13 +216,35 @@ This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
 Threshold defaults to radius of input space. When using low `threshold`s, consider using
-[`SparseRips`](@ref) instead.
+[`SparseRips`](@ref) instead. It will give the same result, but may be much faster.
 
 # Constructors
 
 * `Rips(distance_matrix; threshold=nothing)`
 * `Rips(points; metric=Euclidean(), threshold=nothing)`
 * `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
+
+# Examples
+
+```jldoctest
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=100)];
+
+julia> ripserer(Rips(data))
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 99-element 0-dimensional PersistenceDiagram
+ 1-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(Rips(data, threshold=1.7))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0635, ∞)
+
+julia> using Distances
+julia> ripserer(Rips(data, metric=Cityblock()))[2]
+2-element 1-dimensional PersistenceDiagram:
+ [0.0897, 2.02)
+ [2.0, 2.02)
+
+```
 """
 struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I, T}
     dist::A
@@ -234,11 +285,35 @@ The distance matrix will be converted to a sparse matrix with all values greater
 threshold deleted. Off-diagonal zeros in the matrix are treated as `missing`. Diagonal items
 are treated as vertex birth times.
 
+Use this filtration type with low `threshold`s.
+
 # Constructor
 
 * `SparseRips{I}(distance_matrix; threshold=nothing)`
 * `SparseRips(distance_matrix; threshold=nothing)`: `I` sets the integer size used to
   represent simplices.
+
+# Examples
+
+```jldoctest
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=100)];
+
+julia> ripserer(SparseRips(data))
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 99-element 0-dimensional PersistenceDiagram
+ 1-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(SparseRips(data, threshold=1.7))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0635, ∞)
+
+julia> using Distances
+julia> ripserer(SparseRips(data, metric=Cityblock()))[2]
+2-element 1-dimensional PersistenceDiagram:
+ [0.0897, 2.02)
+ [2.0, 2.02)
+
+```
 """
 struct SparseRips{I, T} <: AbstractRipsFiltration{I, T}
     dist::SparseMatrixCSC{T, Int}
@@ -256,8 +331,8 @@ function SparseRips{I}(
 
     return SparseRips{I, T}(dists, threshold)
 end
-function SparseRips(dist; threshold=nothing)
-    return SparseRips{Int}(dist; threshold=threshold)
+function SparseRips(dist; kwargs...)
+    return SparseRips{Int}(dist; kwargs...)
 end
 function SparseRips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
     return SparseRips{I}(distances(metric, points); kwargs...)

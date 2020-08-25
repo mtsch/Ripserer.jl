@@ -171,13 +171,13 @@ function Alpha{I}(points; threshold=nothing, progress=false) where I
     pts = SVector.(points)
     threshold = isnothing(threshold) ? 2radius(pts) : threshold
     dicts = alpha_simplices(pts, threshold, progress, I)
-    adj = adjacency_matrix(dicts)
+    adj = _adjacency_matrix(dicts)
     return Alpha{I, eltype(pts)}(dicts, adj, threshold, pts)
 end
 function Alpha(points; kwargs...)
     return Alpha{Int}(points; kwargs...)
 end
 
-dist(alpha::Alpha) = alpha.adj
+adjacency_matrix(alpha::Alpha) = alpha.adj
 simplex_dicts(alpha::Alpha) = alpha.dicts
 threshold(alpha::Alpha) = alpha.threshold
