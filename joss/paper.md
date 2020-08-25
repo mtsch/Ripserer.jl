@@ -21,7 +21,7 @@ technique that extracts topological information from various kinds of datasets. 
 topological information gives us a good overview of the global shape of the data as well as
 giving us a description of its local geometry. Since its introduction it has been used in a
 diverse range of applications, including biology [@bernoff2016biological], material
-science [@lee2017quantifying] to signal processing [@tralie2016high] and computer
+science [@lee2017quantifying] to signal processing [@tralie2016high], and computer
 vision [@asaad2017topological]. A problem persistent homology faces is the very large size of
 combinatorial structures it has to work with. Recent algorithmic advances employ various
 computational shortcuts to overcome this problem.
@@ -44,13 +44,13 @@ Along with its companion package PersistenceDiagrams.jl, Ripserer.jl provides a 
 environment for computing persistent homology and integrating it with the rest of Julia's
 data science stack. At the time of writing, it offers the following features.
 
-* Fast Vietoris-Rips, alpha complex and cubical persistent homology computation.
+* Fast Vietoris-Rips, alpha complex, and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
 * Support for coefficients in any, possibly user-defined, field.
 * Convenient persistence diagram and representative cocycle visualization via
   Plots.jl[^1] recipes.
 * Bottleneck and Wasserstein matching and distance computation.
-* Various persistence diagram vectorization functions implemented with persistence
+* Various persistence diagram vectorization functions, implemented with persistence
   images [@adams2017persistence] and persistence curves [@chung2019persistence].
 * Easy extensibility through a documented API.
 
