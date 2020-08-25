@@ -35,20 +35,18 @@ export
 
 
 include("primefield.jl")
-
 include("simplex.jl")
-
 include("abstractfiltration.jl")
-include("ripsfiltration.jl")
 
 include("chainelement.jl")
 include("zerodimensional.jl")
 include("reductionmatrix.jl")
 include("main.jl")
 
-include("cubical.jl")
-include("custom.jl")
-include("alpha.jl")
+include("filtrations/rips.jl")
+include("filtrations/cubical.jl")
+include("filtrations/custom.jl")
+include("filtrations/alpha.jl")
 
 include("simplexrecipes.jl")
 
