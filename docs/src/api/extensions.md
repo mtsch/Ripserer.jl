@@ -5,7 +5,7 @@ Ripserer.AbstractFiltration
 ```
 
 ```@docs
-Ripserer.n_vertices(::Ripserer.AbstractFiltration)
+Ripserer.nv(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
