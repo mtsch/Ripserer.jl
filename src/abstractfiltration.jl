@@ -39,7 +39,7 @@ julia> Ripserer.simplex_type(Rips{Int, Float64}, 1)
 Simplex{1,Float64,Int64}
 
 julia> Ripserer.simplex_type(Cubical{2, Float16}, 2)
-Cube{2, Float16, 2}
+Cube{2,Float16,2}
 
 ```
 """
@@ -212,14 +212,14 @@ julia> Ripserer.adjacency_matrix(Rips([0 2 1; 2 0 1; 1 1 0]))
  1  1  0
 
 julia> Ripserer.adjacency_matrix(SparseRips([0 0 1; 0 0 1; 1 1 0]))
-3×3 SparseMatrixCSC{Int64,Int64} with 4 stored entries:
+3×3 SparseArrays.SparseMatrixCSC{Int64,Int64} with 4 stored entries:
   [3, 1]  =  1
   [3, 2]  =  1
   [1, 3]  =  1
   [2, 3]  =  1
 
 julia> Ripserer.adjacency_matrix(Custom([(2, 1) => 1, (5, 1) => 2, (3, 4) => 3]))
-5×5 SparseMatrixCSC{Bool,Int64} with 6 stored entries:
+5×5 SparseArrays.SparseMatrixCSC{Bool,Int64} with 6 stored entries:
   [2, 1]  =  1
   [5, 1]  =  1
   [1, 2]  =  1
@@ -243,7 +243,7 @@ set to `Val(false)`.
 ```jldoctest
 julia> flt = Rips([0 1 1; 1 0 1; 1 1 0]);
 
-julia> Ripserer.columns_to_reduce(flt, edges(flt)) |> collect
+julia> Ripserer.columns_to_reduce(flt, Ripserer.edges(flt)) |> collect
 1-element Array{Simplex{2,Int64,Int64},1}:
  +Simplex{2}([3, 2, 1], 1)
 

@@ -4,6 +4,9 @@ using Test
 @safetestset "Aqua" begin
     include("aqua.jl")
 end
+@safetestset "doctests" begin
+    include("doctests.jl")
+end
 @safetestset "primefield" begin
     include("primefield.jl")
 end

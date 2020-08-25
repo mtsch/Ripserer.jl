@@ -227,16 +227,16 @@ Threshold defaults to radius of input space. When using low `threshold`s, consid
 # Examples
 
 ```jldoctest
-julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=100)];
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=101)][1:end-1];
 
 julia> ripserer(Rips(data))
 2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
- 99-element 0-dimensional PersistenceDiagram
+ 100-element 0-dimensional PersistenceDiagram
  1-element 1-dimensional PersistenceDiagram
 
 julia> ripserer(Rips(data, threshold=1.7))[2]
 1-element 1-dimensional PersistenceDiagram:
- [0.0635, ∞)
+ [0.0628, ∞)
 
 julia> using Distances
 julia> ripserer(Rips(data, metric=Cityblock()))[2]
@@ -296,16 +296,16 @@ Use this filtration type with low `threshold`s.
 # Examples
 
 ```jldoctest
-julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=100)];
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=101)][1:end-1];
 
 julia> ripserer(SparseRips(data))
 2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
- 99-element 0-dimensional PersistenceDiagram
+ 100-element 0-dimensional PersistenceDiagram
  1-element 1-dimensional PersistenceDiagram
 
 julia> ripserer(SparseRips(data, threshold=1.7))[2]
 1-element 1-dimensional PersistenceDiagram:
- [0.0635, ∞)
+ [0.0628, ∞)
 
 julia> using Distances
 julia> ripserer(SparseRips(data, metric=Cityblock()))[2]

@@ -242,7 +242,7 @@ Get the orientation of `simplex`. Should return -1 or 1.
 
 ```jldoctest
 julia> sign(Simplex{2}((3, 2, 1), 3.2))
-+1
+1
 
 julia> sign(-Simplex{2}((3, 2, 1), 3.2))
 -1
@@ -259,7 +259,7 @@ Reverse the simplex orientation.
 
 ```jldoctest
 julia> -Simplex{2}((3, 2, 1), 3.2)
-2-dim Simplex(1, 1):
+2-dimensional Simplex(index=1, birth=3.2):
   -[3, 2, 1]
 
 ```
@@ -311,25 +311,24 @@ Comes with a default implementation.
 ```jldoctest coboundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
 
-for c in coboundary(filtration, Simplex{1}(2, 1))
+for c in Ripserer.coboundary(filtration, Simplex{1}(2, 1))
     println(c)
 end
 
 # output
 
-Simplex{2}(+[4, 3, 1], 1)
-Simplex{2}(-[3, 2, 1], 1)
++Simplex{2}([4, 3, 1], 1)
+-Simplex{2}([3, 2, 1], 1)
 ```
 
 ```jldoctest coboundary
-for c in coboundary(filtration, Simplex{1}(2, 1), Val(false))
+for c in Ripserer.coboundary(filtration, Simplex{1}(2, 1), Val(false))
     println(c)
 end
 
 # output
 
-2-dim Simplex(1, 1):
-  +[4, 3, 1]
++Simplex{2}([4, 3, 1], 1)
 ```
 """
 function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where A
@@ -354,15 +353,15 @@ Comes with a default implementation.
 ```jldoctest boundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
 
-for f in boundary(filtration, Simplex{2}(2, 1))
+for f in Ripserer.boundary(filtration, Simplex{2}(2, 1))
     println(f)
 end
 
 # output
 
-Simplex{2}(+[2, 1], 1)
-Simplex{2}(-[4, 1], 1)
-Simplex{2}(+[4, 2], 1)
++Simplex{1}([2, 1], 1)
+-Simplex{1}([4, 1], 1)
++Simplex{1}([4, 2], 1)
 ```
 """
 boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
@@ -520,11 +519,11 @@ of type `T`.
 
 ```jldoctest
 julia> Simplex{2}(2, 1)
-2-dim Simplex{2}(2, 1):
+2-dimensional Simplex(index=2, birth=1):
   +[4, 2, 1]
 
 julia> Simplex{10}(Int128(-10), 1.0)
-4-dim Simplex{3}(1.0, 10, 2):
+10-dimensional Simplex(index=10, birth=1.0):
   -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
 
 ```

@@ -64,6 +64,10 @@ Ripserer.AbstractCustomFiltration
 Ripserer.simplex_dicts
 ```
 
+```@docs
+Ripserer.adjacency_matrix
+```
+
 # Simplex Interface
 
 ```@docs
