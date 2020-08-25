@@ -289,3 +289,15 @@ postprocess_diagram(::AbstractFiltration, diagram) = sort!(diagram)
         end}
     end
 end
+
+function index_overflow_check(
+    flt::AbstractFiltration, ::Type{F}, dim_max,
+    message="$flt overflows in $(dim_max)D. " *
+    "Try using a bigger index type or lower `dim_max`"
+) where F
+    S = simplex_type(flt, dim_max + 1)
+    length(S) > nv(flt) && throw(
+        ArgumentError("$S has more than $(nv) vertices.")
+    )
+    index_overflow_check(S, F, nv(flt), message)
+end

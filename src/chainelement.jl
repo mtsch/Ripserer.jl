@@ -154,3 +154,20 @@ function chain_element_type(
         return ChainElement{S, F}
     end
 end
+
+function index_overflow_check(
+    ::Type{S}, ::Type{F}, nv, message=""
+) where {T, I, F, S<:Simplex{<:Any, T, I}}
+    vertices = ntuple(i -> I(nv - i + 1), length(S))
+    element = chain_element_type(S, F)(S(index(I.(vertices)), zero(T)))
+
+    index_I = index(element)
+    index_big = index(BigInt.(vertices))
+
+    if index_I ≠ index_big
+        throw(OverflowError(message))
+    end
+end
+function index_overflow_check(::Type{<:AbstractSimplex}, F, nv, message="")
+    return nothing
+end

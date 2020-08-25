@@ -1,34 +1,4 @@
 """
-    overflows(filtration::AbstractFiltration, dim_max)
-    overflows(::Type{AbstractSimplex}, nv, field)
-
-Check if `dim`-dimensional simplex with largest index on `nv(filtration)` can safely
-be constructed and if it can be represented as a chain element.
-"""
-function overflows(flt::AbstractFiltration, dim_max, field)
-    return overflows(simplex_type(flt, dim_max + 1), nv(flt), field)
-end
-
-overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
-
-function overflows(S::Type{<:Simplex{<:Any, T, I}}, nv, field) where {T, I}
-    length(S) > nv && throw(
-        ArgumentError("$S has more than $(nv) vertices.")
-    )
-    # Calculate index for last possible simplex in I and BigInt and check if they are equal.
-    vertices = ntuple(i -> I(nv - i + 1), length(S))
-    index_I = index(vertices)
-    index_big = index(BigInt.(vertices))
-    if index_I ≠ index_big
-        return true
-    else
-        # Check that packing is safe.
-        Element = chain_element_type(S, field)
-        return index(simplex(Element(S(index_I, oneunit(T))))) ≠ index_big
-    end
-end
-
-"""
     ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Distances.Euclidean(), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
@@ -90,13 +60,7 @@ function ripserer(
     progress=false,
     cohomology=true,
 )
-    if overflows(filtration, dim_max, field_type)
-        S = simplex_type(filtration, dim_max + 1)
-        throw(OverflowError(
-            "$S on $(nv(filtration)) vertices overflows. " *
-            "Try using a larger index type or a smaller `dim_max`."
-        ))
-    end
+    index_overflow_check(filtration, field_type, dim_max)
     return if cohomology
         _cohomology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
     else

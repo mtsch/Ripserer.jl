@@ -3,8 +3,8 @@
 
 This abstract type is for filtrations that have all simplices stored in `Dict`s. The dicts
 should be accessible by the function [`simplex_dicts`](@ref) and should be a vector of
-`Dict{I, T}`. A custom filtration should also have [`dist`](@ref) defined. This `dist` is
-only used as an adjacency matrix. Its values are ignored.
+`Dict{I, T}`. A custom filtration should also have [`adjacency_matrix`](@ref) defined. This
+matrix is only used as an adjacency matrix. Its values are ignored.
 """
 abstract type AbstractCustomFiltration{I, T} <: AbstractFiltration{I, T} end
 
@@ -52,7 +52,7 @@ birth(cf::AbstractCustomFiltration, v) = simplex_dicts(cf)[1][v]
 birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
 edges(cf::AbstractCustomFiltration) = cf[Val(1)]
 columns_to_reduce(cf::AbstractCustomFiltration, prev) = cf[Val(dim(eltype(prev)) + 1)]
-nv(cf::AbstractCustomFiltration) = size(dist(cf), 1)
+nv(cf::AbstractCustomFiltration) = size(adjacency_matrix(cf), 1)
 coboundary(cf::AbstractCustomFiltration, sx::Simplex) = SparseCoboundary{true}(cf, sx)
 
 """

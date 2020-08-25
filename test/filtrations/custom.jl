@@ -3,7 +3,8 @@ using SparseArrays
 using Test
 using TupleTools
 
-using Ripserer: dist
+using Ripserer: adjacency_matrix
+
 
 @testset "Custom filtration 1" begin
     flt = Custom([
@@ -31,13 +32,13 @@ using Ripserer: dist
     @test simplex(flt, Val(2), (1, 2, 4)) === Simplex{2}((4, 2, 1), 8.0)
     @test simplex(flt, Val(2), (4, 3, 1)) === nothing
 
-    @test all(eachindex(dist(flt))) do cart_ind
+    @test all(eachindex(adjacency_matrix(flt))) do cart_ind
         i, j = TupleTools.sort(Tuple(cart_ind), rev=true)
         if i ≠ j
             idx = index((i, j))
-            return dist(flt)[i, j] == haskey(flt.dicts[2], idx)
+            return adjacency_matrix(flt)[i, j] == haskey(flt.dicts[2], idx)
         else
-            return !dist(flt)[i, j]
+            return !adjacency_matrix(flt)[i, j]
         end
     end
 
@@ -92,7 +93,7 @@ end
     ])
     sprips = SparseRips(spdist)
 
-    @test dist(cf) == Bool.(spdist)
+    @test adjacency_matrix(cf) == Bool.(spdist)
     @test threshold(cf) == 1
     @test ripserer(cf) == ripserer(sprips)
 end
