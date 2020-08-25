@@ -49,10 +49,10 @@ end
 dim(cf::AbstractCustomFiltration) = length(simplex_dicts(cf)) - 1
 simplex_type(::Type{<:AbstractCustomFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 birth(cf::AbstractCustomFiltration, v) = simplex_dicts(cf)[1][v]
-birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:n_vertices(cf)]
+birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
 edges(cf::AbstractCustomFiltration) = cf[Val(1)]
 columns_to_reduce(cf::AbstractCustomFiltration, prev) = cf[Val(dim(eltype(prev)) + 1)]
-n_vertices(cf::AbstractCustomFiltration) = size(dist(cf), 1)
+nv(cf::AbstractCustomFiltration) = size(dist(cf), 1)
 coboundary(cf::AbstractCustomFiltration, sx::Simplex) = SparseCoboundary{true}(cf, sx)
 
 """
@@ -85,7 +85,7 @@ julia> flt = Custom([
     (1, 2, 4) => 8,
     (1, 3, 4) => 9,
 ]; threshold=8)
-Custom{Int64, Int64}(n_vertices=4)
+Custom{Int64, Int64}(nv=4)
 
 julia> flt[0] # Can be indexed with dimension to list simplices
 4-element Array{Simplex{0,Int64,Int64},1}:
@@ -131,7 +131,7 @@ end
 end
 
 function adjacency_matrix(dicts)
-    n_vertices = maximum(keys(dicts[1]))
+    nv = maximum(keys(dicts[1]))
     adj_is = Int[]
     adj_js = Int[]
     adj_vs = Bool[]
@@ -141,7 +141,7 @@ function adjacency_matrix(dicts)
         append!(adj_js, (v, u))
         append!(adj_vs, (true, true))
     end
-    return sparse(adj_is, adj_js, adj_vs, n_vertices, n_vertices)
+    return sparse(adj_is, adj_js, adj_vs, nv, nv)
 end
 
 function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}

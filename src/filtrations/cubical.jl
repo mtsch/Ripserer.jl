@@ -121,7 +121,7 @@ function Cubical(data::AbstractArray{T, K}; threshold=maximum(data)) where {T, K
     Cubical{K, T, typeof(data)}(data, cubemap(data), T(threshold))
 end
 
-n_vertices(cf::Cubical) = length(cf.data)
+nv(cf::Cubical) = length(cf.data)
 threshold(cf::Cubical) = cf.threshold
 simplex_type(::Type{<:Cubical{K, T}}, D) where {K, T} = Cube{D, T, K}
 

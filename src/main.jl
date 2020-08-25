@@ -1,22 +1,22 @@
 """
     overflows(filtration::AbstractFiltration, dim_max)
-    overflows(::Type{AbstractSimplex}, n_vertices, field)
+    overflows(::Type{AbstractSimplex}, nv, field)
 
-Check if `dim`-dimensional simplex with largest index on `n_vertices(filtration)` can safely
+Check if `dim`-dimensional simplex with largest index on `nv(filtration)` can safely
 be constructed and if it can be represented as a chain element.
 """
 function overflows(flt::AbstractFiltration, dim_max, field)
-    return overflows(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
+    return overflows(simplex_type(flt, dim_max + 1), nv(flt), field)
 end
 
 overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
 
-function overflows(S::Type{<:Simplex{<:Any, T, I}}, n_vertices, field) where {T, I}
-    length(S) > n_vertices && throw(
-        ArgumentError("$S has more than $(n_vertices) vertices.")
+function overflows(S::Type{<:Simplex{<:Any, T, I}}, nv, field) where {T, I}
+    length(S) > nv && throw(
+        ArgumentError("$S has more than $(nv) vertices.")
     )
     # Calculate index for last possible simplex in I and BigInt and check if they are equal.
-    vertices = ntuple(i -> I(n_vertices - i + 1), length(S))
+    vertices = ntuple(i -> I(nv - i + 1), length(S))
     index_I = index(vertices)
     index_big = index(BigInt.(vertices))
     if index_I ≠ index_big
@@ -93,7 +93,7 @@ function ripserer(
     if overflows(filtration, dim_max, field_type)
         S = simplex_type(filtration, dim_max + 1)
         throw(OverflowError(
-            "$S on $(n_vertices(filtration)) vertices overflows. " *
+            "$S on $(nv(filtration)) vertices overflows. " *
             "Try using a larger index type or a smaller `dim_max`."
         ))
     end

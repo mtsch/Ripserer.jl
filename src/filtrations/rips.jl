@@ -15,7 +15,7 @@ return `missing` instead. If `u` and `v` are not given, return the distance matr
 """
 dist(::AbstractRipsFiltration, ::Any, ::Any)
 
-n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
+nv(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 
 birth(rips::AbstractRipsFiltration) = diag(dist(rips))
 

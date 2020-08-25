@@ -34,7 +34,7 @@ function Ripserer.unsafe_simplex(
 ) where D
     return Simplex{D}(sign * index(vertices), 1)
 end
-Ripserer.n_vertices(::NewFiltration) = 10
+Ripserer.nv(::NewFiltration) = 10
 Ripserer.simplex_type(::Type{NewFiltration}, D) = Simplex{D, Int, Int}
 Ripserer.edges(::NewFiltration) = Simplex{1}.(10:-1:1, 1)
 function Ripserer.postprocess_diagram(::NewFiltration, diagram)

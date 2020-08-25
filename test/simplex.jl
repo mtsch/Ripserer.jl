@@ -13,7 +13,7 @@ function Ripserer.unsafe_simplex(
 ) where D
     return Simplex{D, Int, Int}(sign * index(vertices), 1)
 end
-Ripserer.n_vertices(::FakeFiltration) = 20
+Ripserer.nv(::FakeFiltration) = 20
 Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D, Int, Int}
 
 struct FakeFiltrationWithThreshold<:Ripserer.AbstractFiltration{Int, Int} end
@@ -26,7 +26,7 @@ function Ripserer.unsafe_simplex(
         return Simplex{D, Int, Int}(sign * index(vertices), 1)
     end
 end
-Ripserer.n_vertices(::FakeFiltrationWithThreshold) = 20
+Ripserer.nv(::FakeFiltrationWithThreshold) = 20
 Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D, Int, Int}
 
 @testset "Internal functions" begin

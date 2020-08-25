@@ -7,7 +7,7 @@ using StaticArrays
 using Suppressor
 using Test
 
-using Ripserer: distances, vertex_type, edge_type, dist, edges, n_vertices, unsafe_simplex,
+using Ripserer: distances, vertex_type, edge_type, dist, edges, nv, unsafe_simplex,
     ChainElement, PackedElement
 
 include("test-datasets.jl")
@@ -28,9 +28,9 @@ for Filtration in (Rips, SparseRips)
             filtration = Filtration(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0])
 
             @test sprint(show, filtration) ==
-                "$(nameof(Filtration)){Int64, Float64}(n_vertices=4)"
+                "$(nameof(Filtration)){Int64, Float64}(nv=4)"
 
-            @test n_vertices(filtration) == 4
+            @test nv(filtration) == 4
             @test dist(filtration, 3, 3) == 0.0
             @test dist(filtration, 1, 2) == 1.0
             @test dist(filtration, 1, 3) == 2.0
@@ -53,9 +53,9 @@ for Filtration in (Rips, SparseRips)
             filtration = Filtration{Int128}([1 1 2; 1 2 3; 2 3 2]; threshold=2)
 
             @test sprint(show, filtration) ==
-                "$(nameof(Filtration)){Int128, Int64}(n_vertices=3)"
+                "$(nameof(Filtration)){Int128, Int64}(nv=3)"
 
-            @test n_vertices(filtration) == 3
+            @test nv(filtration) == 3
             @test threshold(filtration) == 2
             @test dist(filtration, 3, 3) == 2
             @test dist(filtration, 1, 2) == 1

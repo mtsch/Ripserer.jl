@@ -370,7 +370,7 @@ struct Coboundary{A, D, I, F, S}
 end
 
 function Base.iterate(
-    ci::Coboundary{A, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+    ci::Coboundary{A, D, I}, (v, k)=(I(nv(ci.filtration) + 1), D),
 ) where {A, D, I}
     @inbounds while true
         v -= one(I)

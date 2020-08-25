@@ -5,7 +5,7 @@ using StaticArrays
 using Test
 using TupleTools
 
-using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, n_vertices,
+using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
     coboundary, boundary, edges,
     chain_element_type, CubicalChainElement
 
@@ -160,7 +160,7 @@ end
         data = rand(Float64, ntuple(x -> 10 + x, Val(K)))
         filtration = Cubical(data)
 
-        @test n_vertices(filtration) == length(data)
+        @test nv(filtration) == length(data)
         @test birth(filtration) == data
         @test size(filtration.cubemap) == size(data) .* 2 .- 1
         @test vertices(filtration) == CartesianIndices(data)

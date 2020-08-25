@@ -7,7 +7,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 
 # Interface
 
-* [`n_vertices(::AbstractFiltration)`](@ref)
+* [`nv(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
@@ -22,7 +22,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 abstract type AbstractFiltration{I, T} end
 
 function Base.show(io::IO, flt::AbstractFiltration{I, T}) where {I, T}
-    print(io, nameof(typeof(flt)), "{$I, $T}(n_vertices=$(n_vertices(flt)))")
+    print(io, nameof(typeof(flt)), "{$I, $T}(nv=$(nv(flt)))")
 end
 
 """
@@ -38,11 +38,13 @@ vertex_type(flt::AbstractFiltration) = simplex_type(flt, 0)
 edge_type(flt::AbstractFiltration) = simplex_type(flt, 1)
 
 """
-    n_vertices(::AbstractFiltration)
+    nv(::AbstractFiltration)
 
 Return the number of vertices in `filtration`.
 """
-n_vertices(::AbstractFiltration)
+nv(::AbstractFiltration)
+
+@deprecate n_vertices nv
 
 """
     edges(::AbstractFiltration)
@@ -107,7 +109,7 @@ end
 Return the vertices in filtration. Defaults to `1:n`. The `eltype` of the result can be
 anything as long as `result[result[i]] == result[i]` holds.
 """
-vertices(flt::AbstractFiltration) = Base.OneTo(n_vertices(flt))
+vertices(flt::AbstractFiltration) = Base.OneTo(nv(flt))
 
 """
     birth(::AbstractFiltration, v)
