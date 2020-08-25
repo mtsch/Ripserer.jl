@@ -39,11 +39,11 @@ Cube
 ```
 
 ```@docs
-vertices(::AbstractSimplex)
+Ripserer.vertices(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-birth(::AbstractSimplex)
+Ripserer.birth(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs

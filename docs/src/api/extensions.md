@@ -79,10 +79,6 @@ dim(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-birth(::Ripserer.AbstractSimplex)
-```
-
-```@docs
 index(::Ripserer.AbstractSimplex)
 ```
 
@@ -92,10 +88,6 @@ Base.sign(::Ripserer.AbstractSimplex)
 
 ```@docs
 Base.:-(::Ripserer.AbstractSimplex)
-```
-
-```@docs
-vertices(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
