@@ -4,7 +4,7 @@ using Ripserer
 using BenchmarkTools
 using Random
 Random.seed!(1337)
-include(joinpath(@__DIR__, "../test/data.jl"))
+include(joinpath(@__DIR__, "../test/filtrations/test-datasets.jl"))
 suite = BenchmarkGroup()
 
 for (npoints, dim_max, threshold, modulus) in ((1024, 1, 1, 2),

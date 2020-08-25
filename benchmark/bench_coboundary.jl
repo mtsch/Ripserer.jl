@@ -5,7 +5,7 @@ using Ripserer
 using Ripserer: coboundary
 using BenchmarkTools
 suite = BenchmarkGroup()
-include(joinpath(@__DIR__, "../test/data.jl"))
+include(joinpath(@__DIR__, "../test/filtrations/test-datasets.jl"))
 Random.seed!(7350)
 
 function count_cofacets(filtration, sx; reps=10000)
