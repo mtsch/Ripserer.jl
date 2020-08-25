@@ -72,19 +72,7 @@ To create your own of custom filtrations, subtype [`AbstractCustomFiltration`](@
 # Example
 
 ```jldoctest
-julia> flt = Custom([
-    (1,) => 0,
-    (4,) => 0,
-    (1, 2) => 1,
-    (1, 3) => 2,
-    (1, 4) => 3,
-    (2, 3) => 4,
-    (2, 4) => 5,
-    (3, 4) => 6,
-    (1, 2, 3) => 7,
-    (1, 2, 4) => 8,
-    (1, 3, 4) => 9,
-]; threshold=8)
+julia> flt = Custom([(1,) => 0, (4,) => 0, (1, 2) => 1, (1, 3) => 2, (1, 4) => 3, (2, 3) => 4, (2, 4) => 5, (3, 4) => 6, (1, 2, 3) => 7, (1, 2, 4) => 8, (1, 3, 4) => 9]; threshold=8)
 Custom{Int64, Int64}(nv=4)
 
 julia> flt[0] # Can be indexed with dimension to list simplices
@@ -95,9 +83,9 @@ julia> flt[0] # Can be indexed with dimension to list simplices
  +Simplex{0}([1], 0)
 
 julia> ripserer(flt)[1]
-4-element 0-dimensional PersistenceDiagram:
+2-element 0-dimensional PersistenceDiagram:
  [0.0, 3.0)
- [1.0, ∞)
+ [0.0, ∞)
 
 julia> ripserer(flt)[2]
 3-element 1-dimensional PersistenceDiagram:
@@ -105,6 +93,7 @@ julia> ripserer(flt)[2]
  [5.0, 8.0)
  [6.0, ∞)
 
+```
 """
 struct Custom{I, T} <: AbstractCustomFiltration{I, T}
     adj::SparseMatrixCSC{Bool, Int} # adjacency matrix for sparse coboundary

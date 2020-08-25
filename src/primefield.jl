@@ -44,18 +44,12 @@ Is not comparable on purpose.
 # Example
 
 ```jldoctest
-Mod{3}(5)
-
-# output
-
+julia> Mod{3}(5)
 2 mod 3
-```
-```jldoctest
-Mod{3}(5) + 1
 
-# output
-
+julia> Mod{3}(5) + 1
 0 mod 3
+
 ```
 """
 struct Mod{M} <: Integer

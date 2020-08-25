@@ -239,10 +239,10 @@ julia> ripserer(Rips(data, threshold=1.7))[2]
  [0.0628, ∞)
 
 julia> using Distances
+
 julia> ripserer(Rips(data, metric=Cityblock()))[2]
-2-element 1-dimensional PersistenceDiagram:
- [0.0897, 2.02)
- [2.0, 2.02)
+1-element 1-dimensional PersistenceDiagram:
+ [0.0888, 2.0)
 
 ```
 """
@@ -308,10 +308,10 @@ julia> ripserer(SparseRips(data, threshold=1.7))[2]
  [0.0628, ∞)
 
 julia> using Distances
+
 julia> ripserer(SparseRips(data, metric=Cityblock()))[2]
-2-element 1-dimensional PersistenceDiagram:
- [0.0897, 2.02)
- [2.0, 2.02)
+1-element 1-dimensional PersistenceDiagram:
+ [0.0888, 2.0)
 
 ```
 """

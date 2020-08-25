@@ -511,9 +511,11 @@ end
 The vanilla simplex type represented by dimension `D` and index of type `I` and a birth time
 of type `T`.
 
-# Constructor
+# Constructors
 
-    Simplex{D[, T, I]}(::I, ::T)
+* `Simplex{D[, T, I]}(index, birth)`
+* `Simplex{D}(vertices, birth)`: vertices must be sorted descending. This constructor mainly
+  exists for debugging purposes. Using [`simplex`](@ref) is usually the better option.
 
 # Examples
 
@@ -525,6 +527,10 @@ julia> Simplex{2}(2, 1)
 julia> Simplex{10}(Int128(-10), 1.0)
 10-dimensional Simplex(index=10, birth=1.0):
   -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
+
+julia> Simplex{2}((5, 2, 1), 1)
+2-dimensional Simplex(index=5, birth=1):
+  +[5, 2, 1]
 
 ```
 """

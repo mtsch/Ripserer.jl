@@ -39,7 +39,11 @@ Cube
 ```
 
 ```@docs
-vertices
+vertices(::AbstractSimplex)
+```
+
+```@docs
+birth(::AbstractSimplex)
 ```
 
 ```@docs
