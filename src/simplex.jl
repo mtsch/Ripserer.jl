@@ -356,7 +356,6 @@ Simplex{2}(+[4, 2], 1)
 """
 boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
 
-# (co)boundaries ========================================================================= #
 struct Coboundary{A, D, I, F, S}
     filtration::F
     simplex::S
@@ -387,6 +386,82 @@ function Base.iterate(
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
             return _sx, (v, k)
+        end
+    end
+end
+
+struct SparseCoboundary{A, D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::SVector{D, I}
+    ptrs_begin::SVector{D, I}
+    ptrs_end::SVector{D, I}
+
+    function SparseCoboundary{A}(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {A, D, I, F}
+        verts = vertices(simplex)
+        colptr = dist(filtration).colptr
+        ptrs_begin = colptr[verts .+ 1]
+        ptrs_end = colptr[verts]
+        return new{A, D + 1, I, F, typeof(simplex)}(
+            filtration, simplex, verts, ptrs_begin, ptrs_end
+        )
+    end
+end
+
+@propagate_inbounds @inline function next_common(
+    ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
+) where D
+    # could also indicate when m is equal to one of the points
+    ptrs = ptrs .- 1
+    for i in 1:D
+        ptrs[i] < ptrs_end[i] && return zero(ptrs), 0
+    end
+    m = rowval[ptrs[2]]
+    i = 1
+    while true
+        ptrs_i = ptrs[i]
+        row = rowval[ptrs_i]
+        while row > m
+            ptrs -= SVector(ntuple(isequal(i), Val(D)))
+            ptrs_i -= 1
+            ptrs_i < ptrs_end[i] && return zero(ptrs), zero(eltype(rowval))
+            row = rowval[ptrs_i]
+        end
+        i = ifelse(row == m, i + 1, 1)
+        i > D && return ptrs, m
+        m = row
+    end
+end
+
+function Base.iterate(
+    it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)
+) where {A, D, I}
+    rowval = dist(it.filtration).rowval
+    nzval = dist(it.filtration).nzval
+    @inbounds while true
+        ptrs, v = next_common(ptrs, it.ptrs_end, rowval)
+        if iszero(first(ptrs))
+            return nothing
+        elseif k > 0 && v == it.vertices[end + 1 - k]
+            k -= 1
+        else
+            while k > 0 && v < it.vertices[end + 1 - k]
+                k -= 1
+            end
+            !A && k ≠ D && return nothing
+
+            sign = ifelse(iseven(k), 1, -1)
+            new_vertices = insert(it.vertices, D - k + 1, v)
+            new_edges = nzval[ptrs]
+            sx = unsafe_cofacet(
+                it.filtration, it.simplex, new_vertices, v, sign, new_edges
+            )
+            if !isnothing(sx)
+                _sx::simplex_type(it.filtration, D) = sx
+                return _sx, (ptrs, k)
+            end
         end
     end
 end
