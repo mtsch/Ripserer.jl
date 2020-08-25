@@ -1,6 +1,6 @@
 # # Basics
 
-# In this example we will present the usage of Ripserer. We start by loading some packages.
+# In this example, we will present the usage of Ripserer. We start by loading some packages.
 
 using Ripserer
 using Plots
@@ -46,7 +46,7 @@ plot(result_circ)
 
 barcode(result_circ)
 
-# ``H_1``, ``H_2`` and ``H_3`` in this plot are hard to see, because we have too many
+# ``H_1``, ``H_2``, and ``H_3`` in this plot are hard to see because we have too many
 # ``H_0`` bars. We can plot only some of the diagrams.
 
 # !!! note "Note"
