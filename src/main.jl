@@ -3,13 +3,13 @@
     ripserer(points; metric=Distances.Euclidean(), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists`, `points` and
+Compute the persistent homology of metric space represented by `dists`, `points`, and
 `metric` or a [`Ripserer.AbstractFiltration`](@ref).
 
 If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
 `SVector`s.
 
-# Keyoword Arguments
+# Keyword Arguments
 
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
@@ -18,9 +18,9 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   [`Ripserer.Mod`](@ref)`{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold. This
   parameter is only applicable when using distance matrices or points as input. When using
-  filtrations, threshold must be passed to the filtration constructor. Defaults to radius of
-  input space. When using low thresholds with points or distance matrices, consider using
-  [`SparseRips`](@ref).
+  filtrations, threshold must be passed to the filtration constructor. Defaults to the
+  radius of the input space. When using low thresholds with points or distance matrices,
+  consider using [`SparseRips`](@ref).
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.

@@ -12,7 +12,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
-* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`
+* [`unsafe_cofacet(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`](@ref)
 * [`birth(::AbstractFiltration, v)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration)`](@ref)
@@ -71,12 +71,15 @@ nv(::AbstractFiltration)
 Get edges (1-simplices) in `filtration`. Edges should be of type
 [`simplex_type`](@ref)`(filtration, 1)`.
 
+# Example
+
 ```
 julia> Ripserer.edges(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2))
 3-element Array{Simplex{1,Int64,Int64},1}:
  +Simplex{1}([2, 1], 2)
  +Simplex{1}([3, 1], 1)
  +Simplex{1}([3, 2], 1)
+
 ```
 """
 edges(::AbstractFiltration)
@@ -88,10 +91,13 @@ Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return
 if simplex is not in filtration. This function is safe to call with vertices that are out of
 order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref).
 
+# Example
+
 ```
 julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
 1-dimensional Simplex(index=1, birth=2):
   -[2, 1]
+
 ```
 """
 function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where D

@@ -47,7 +47,7 @@ Ripserer.birth(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-dim
+Ripserer.dim(::Ripserer.AbstractSimplex)
 ```
 
 ## Fields
@@ -63,29 +63,29 @@ API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/). For convenience, 
 reexports the following:
 
 ```
-PersistenceDiagrams.birth
+Ripserer.birth(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.death
+Ripserer.death(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.persistence
+Ripserer.persistence(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.representative
+Ripserer.representative(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.birth_simplex
+Ripserer.birth_simplex(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.death_simplex
+Ripserer.death_simplex(::PersistenceInterval)
 ```
 
 ```
-PersistenceDiagrams.barcode
+Ripserer.barcode
 ```

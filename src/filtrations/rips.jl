@@ -215,8 +215,8 @@ end
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
-Threshold defaults to radius of input space. When using low `threshold`s, consider using
-[`SparseRips`](@ref) instead. It will give the same result, but may be much faster.
+Threshold defaults to the radius of the input space. When using low `threshold`s, consider
+using [`SparseRips`](@ref) instead. It will give the same result, but may be much faster.
 
 # Constructors
 

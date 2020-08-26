@@ -63,13 +63,13 @@ Build a custom filtration by specifying simplices and their birth times.
 The list of simplices is corrected to form a valid filtration; birth times are corrected
 so a simplex is never born before its faces and missing simplices are added.
 
-See example below for construction. Note how the unlisted 0-simplices were added with birth
-times equal to the lowest between their cofaces. The order in which simplices are given does
-not matter.
+See the examples below for construction. Note how the unlisted 0-simplices were added with
+birth times equal to the lowest between their cofaces. The order in which simplices are
+given does not matter.
 
-To create your own of custom filtrations, subtype [`AbstractCustomFiltration`](@ref).
+To create your own types of custom filtrations, subtype [`AbstractCustomFiltration`](@ref).
 
-# Example
+# Examples
 
 ```jldoctest
 julia> flt = Custom([(1,) => 0, (4,) => 0, (1, 2) => 1, (1, 3) => 2, (1, 4) => 3, (2, 3) => 4, (2, 4) => 5, (3, 4) => 6, (1, 2, 3) => 7, (1, 2, 4) => 8, (1, 3, 4) => 9]; threshold=8)

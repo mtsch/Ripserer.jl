@@ -54,7 +54,9 @@ Base.hash(sx::AbstractSimplex, h::UInt64) = hash(index(sx), h)
 """
     birth(simplex::AbstractSimplex)
 
-Get the birth time of `simplex`, i.e. the time it appears in a filtration.
+Get the birth time of `simplex`, i.e. the time it first appears in the filtration.
+
+# Example
 
 ```jldoctest
 julia> birth(Simplex{2}((3, 2, 1), 3.2))
@@ -271,7 +273,7 @@ Base.:+(sx::AbstractSimplex) = sx
     dim(::AbstractSimplex)
     dim(::Type{<:AbstractSimplex})
 
-Get the dimension of simplex i.e. the value of `D`.
+Get the dimension of a simplex i.e. the value of `D`. Can also be called on the type.
 
 # Examples
 
@@ -284,8 +286,8 @@ julia> dim(Cube{3, Int, 4})
 
 ```
 """
-dim(::Type{<:AbstractSimplex{D}}) where D = D
 dim(sx::AbstractSimplex) = dim(typeof(sx))
+dim(::Type{<:AbstractSimplex{D}}) where D = D
 
 Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 
@@ -508,8 +510,8 @@ end
 """
     Simplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I}
 
-The vanilla simplex type represented by dimension `D` and index of type `I` and a birth time
-of type `T`.
+The vanilla simplex type represented by dimension `D`, an index of type `I`, and a birth
+time of type `T`.
 
 # Constructors
 

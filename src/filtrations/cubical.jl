@@ -65,7 +65,17 @@ end
     Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
 
 A `Cube` is similar to a `Simplex`, but it has `2^D` vertices instead of `D+1`. The vertices
-are encoded as the position in the CubeMap.
+are encoded as the position in the CubeMap (see reference in [`Cubical`](@ref)). A `Cube`'s
+vertices are of type `CartesianIndex{K}`.
+
+# Example
+
+```jldoctest
+julia> Cube{1}(CartesianIndex(1, 2), 1.0)
+1-dimensional Cube(index=CartesianIndex(1, 2), birth=1.0):
+  +CartesianIndex{2}[CartesianIndex(1, 1), CartesianIndex(1, 2)]
+
+```
 """
 struct Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
     root::NTuple{K, Int32}
@@ -110,6 +120,21 @@ This type uses the CubeMap structure to find birth times of cubes (see reference
 Wagner, H., Chen, C., & Vuçini, E. (2012). [Efficient computation of persistent homology for
 cubical data.](https://link.springer.com/chapter/10.1007/978-3-642-23175-9_7) In Topological
 methods in data analysis and visualization II (pp. 91-106). Springer, Berlin, Heidelberg.
+
+# Example
+
+```jldoctest
+julia> image = [1 0 0; 0 2 0; 0 0 0];
+
+julia> ripserer(Cubical(image))[1]
+1-element 0-dimensional PersistenceDiagram:
+ [0.0, ∞)
+
+julia> ripserer(Cubical(image))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [1.0, 2.0)
+
+```
 """
 struct Cubical{K, T, A<:AbstractArray{T, K}} <: AbstractFiltration{CartesianIndex{K}, T}
     data::A
