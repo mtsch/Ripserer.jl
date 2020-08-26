@@ -62,30 +62,30 @@ See also: [PersistenceDiagrams.jl
 API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/). For convenience, Ripserer
 reexports the following:
 
-```
-Ripserer.birth(::PersistenceInterval)
-```
-
-```
-Ripserer.death(::PersistenceInterval)
+```@docs
+birth(::PersistenceDiagrams.PersistenceInterval)
 ```
 
-```
-Ripserer.persistence(::PersistenceInterval)
-```
-
-```
-Ripserer.representative(::PersistenceInterval)
+```@docs
+death(::PersistenceDiagrams.PersistenceInterval)
 ```
 
-```
-Ripserer.birth_simplex(::PersistenceInterval)
-```
-
-```
-Ripserer.death_simplex(::PersistenceInterval)
+```@docs
+persistence(::PersistenceDiagrams.PersistenceInterval)
 ```
 
+```@docs
+representative(::PersistenceDiagrams.PersistenceInterval)
 ```
-Ripserer.barcode
+
+```@docs
+birth_simplex(::PersistenceDiagrams.PersistenceInterval)
+```
+
+```@docs
+death_simplex(::PersistenceDiagrams.PersistenceInterval)
+```
+
+```@docs
+barcode
 ```

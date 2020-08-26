@@ -12,10 +12,11 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
-* [`unsafe_cofacet(::AbstractFiltration, simplex, vertices, vertex[, sign, edges])`](@ref)
+* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex, sign[, edges])`
 * [`birth(::AbstractFiltration, v)`](@ref)
+* [`birth(::AbstractFiltration)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
-* [`columns_to_reduce(::AbstractFiltration)`](@ref)
+* [`columns_to_reduce(::AbstractFiltration, ::Any)`](@ref)
 * [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_diagram(::AbstractFiltration, ::Any)`](@ref)
 """

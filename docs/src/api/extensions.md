@@ -1,4 +1,6 @@
-# Filtration Interface
+# Interfaces
+
+## Filtration Interface
 
 ```@docs
 Ripserer.AbstractFiltration
@@ -68,7 +70,7 @@ Ripserer.simplex_dicts
 Ripserer.adjacency_matrix(::Ripserer.AbstractFiltration)
 ```
 
-# Simplex Interface
+## Simplex Interface
 
 ```@docs
 Ripserer.AbstractSimplex
