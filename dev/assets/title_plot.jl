@@ -19,10 +19,12 @@ data = [noisy_circle(200, noise=0.1, center=(-1, 0));
         noisy_circle(200, noise=0.3, center=(0, √3));]
 
 
-res = ripserer(data, representatives=true)
-plt_dgm = plot(res)
-plt_bcd = barcode(res[2], linewidth=2, title="Persistence Barcode (H₁)", legend=false)
-plt_data = plot(legend=false, aspect_ratio=1, title="Representative Cocycles")
+res = ripserer(data, reps=true)
+plt_dgm = plot(res, markeralpha=1, markersize=3)
+plt_data = plot(legend=false, aspect_ratio=1, title="Representative Cocycles",
+                xlim=(-2.1,2.1),
+                ylim=(-1.1, 3.1),
+                xlabel=:x, ylabel=:y)
 
 for (i, int) in enumerate(sort(res[2], by=death, rev=true))
     if i == 1
@@ -37,9 +39,8 @@ for (i, int) in enumerate(sort(res[2], by=death, rev=true))
 
     plot!(plt_data, int, data, alpha=0.1, color=col)
 end
-scatter!(plt_data, data, markersize=2)
+scatter!(plt_data, data, markersize=1)
 plt_data
 
-l = @layout([a [b; c]])
-plot(plt_data, plt_dgm, plt_bcd, layout=l, size=(800, 400))
+plot(plt_data, plt_dgm, size=(800, 400))
 savefig("title_plot.svg")
