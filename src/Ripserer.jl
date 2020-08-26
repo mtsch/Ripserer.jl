@@ -24,7 +24,11 @@ using RecipesBase
 using StaticArrays
 using TupleTools
 
-# reexporting basics these makes Ripserer usable without having to import another package.
+# This functionality is imported to avoid having to deal with name clashes. There is no
+# piracy involved here.
+import LightGraphs: vertices, edges, nv, adjacency_matrix
+
+# Reexporting basics makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold, dim
 export
     birth, death, persistence, representative, birth_simplex, death_simplex, barcode
@@ -33,22 +37,19 @@ export
     Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
     Rips, SparseRips, Cubical, Custom, Alpha, ripserer
 
-
 include("primefield.jl")
-
 include("simplex.jl")
-
 include("abstractfiltration.jl")
-include("ripsfiltration.jl")
-
 include("chainelement.jl")
+
 include("zerodimensional.jl")
 include("reductionmatrix.jl")
 include("main.jl")
 
-include("cubical.jl")
-include("custom.jl")
-include("alpha.jl")
+include("filtrations/rips.jl")
+include("filtrations/cubical.jl")
+include("filtrations/custom.jl")
+include("filtrations/alpha.jl")
 
 include("simplexrecipes.jl")
 

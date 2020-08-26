@@ -1,11 +1,13 @@
-# Filtration Interface
+# Interfaces
+
+## Filtration Interface
 
 ```@docs
 Ripserer.AbstractFiltration
 ```
 
 ```@docs
-Ripserer.n_vertices(::Ripserer.AbstractFiltration)
+Ripserer.nv(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
@@ -64,18 +66,14 @@ Ripserer.AbstractCustomFiltration
 Ripserer.simplex_dicts
 ```
 
-# Simplex Interface
+```@docs
+Ripserer.adjacency_matrix(::Ripserer.AbstractFiltration)
+```
+
+## Simplex Interface
 
 ```@docs
 Ripserer.AbstractSimplex
-```
-
-```@docs
-dim(::Ripserer.AbstractSimplex)
-```
-
-```@docs
-birth(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
@@ -88,10 +86,6 @@ Base.sign(::Ripserer.AbstractSimplex)
 
 ```@docs
 Base.:-(::Ripserer.AbstractSimplex)
-```
-
-```@docs
-vertices(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs

@@ -3,8 +3,8 @@
 
 This abstract type is for filtrations that have all simplices stored in `Dict`s. The dicts
 should be accessible by the function [`simplex_dicts`](@ref) and should be a vector of
-`Dict{I, T}`. A custom filtration should also have [`dist`](@ref) defined. This `dist` is
-only used as an adjacency matrix. Its values are ignored.
+`Dict{I, T}`. A custom filtration should also have [`adjacency_matrix`](@ref) defined. This
+matrix is only used as an adjacency matrix. Its values are ignored.
 """
 abstract type AbstractCustomFiltration{I, T} <: AbstractFiltration{I, T} end
 
@@ -49,10 +49,10 @@ end
 dim(cf::AbstractCustomFiltration) = length(simplex_dicts(cf)) - 1
 simplex_type(::Type{<:AbstractCustomFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 birth(cf::AbstractCustomFiltration, v) = simplex_dicts(cf)[1][v]
-birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:n_vertices(cf)]
+birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
 edges(cf::AbstractCustomFiltration) = cf[Val(1)]
 columns_to_reduce(cf::AbstractCustomFiltration, prev) = cf[Val(dim(eltype(prev)) + 1)]
-n_vertices(cf::AbstractCustomFiltration) = size(dist(cf), 1)
+nv(cf::AbstractCustomFiltration) = size(adjacency_matrix(cf), 1)
 coboundary(cf::AbstractCustomFiltration, sx::Simplex) = SparseCoboundary{true}(cf, sx)
 
 """
@@ -63,29 +63,17 @@ Build a custom filtration by specifying simplices and their birth times.
 The list of simplices is corrected to form a valid filtration; birth times are corrected
 so a simplex is never born before its faces and missing simplices are added.
 
-See example below for construction. Note how the unlisted 0-simplices were added with birth
-times equal to the lowest between their cofaces. The order in which simplices are given does
-not matter.
+See the examples below for construction. Note how the unlisted 0-simplices were added with
+birth times equal to the lowest between their cofaces. The order in which simplices are
+given does not matter.
 
-To create your own of custom filtrations, subtype [`AbstractCustomFiltration`](@ref).
+To create your own types of custom filtrations, subtype [`AbstractCustomFiltration`](@ref).
 
-# Example
+# Examples
 
 ```jldoctest
-julia> flt = Custom([
-    (1,) => 0,
-    (4,) => 0,
-    (1, 2) => 1,
-    (1, 3) => 2,
-    (1, 4) => 3,
-    (2, 3) => 4,
-    (2, 4) => 5,
-    (3, 4) => 6,
-    (1, 2, 3) => 7,
-    (1, 2, 4) => 8,
-    (1, 3, 4) => 9,
-]; threshold=8)
-Custom{Int64, Int64}(n_vertices=4)
+julia> flt = Custom([(1,) => 0, (4,) => 0, (1, 2) => 1, (1, 3) => 2, (1, 4) => 3, (2, 3) => 4, (2, 4) => 5, (3, 4) => 6, (1, 2, 3) => 7, (1, 2, 4) => 8, (1, 3, 4) => 9]; threshold=8)
+Custom{Int64, Int64}(nv=4)
 
 julia> flt[0] # Can be indexed with dimension to list simplices
 4-element Array{Simplex{0,Int64,Int64},1}:
@@ -95,9 +83,9 @@ julia> flt[0] # Can be indexed with dimension to list simplices
  +Simplex{0}([1], 0)
 
 julia> ripserer(flt)[1]
-4-element 0-dimensional PersistenceDiagram:
+2-element 0-dimensional PersistenceDiagram:
  [0.0, 3.0)
- [1.0, ∞)
+ [0.0, ∞)
 
 julia> ripserer(flt)[2]
 3-element 1-dimensional PersistenceDiagram:
@@ -105,6 +93,7 @@ julia> ripserer(flt)[2]
  [5.0, 8.0)
  [6.0, ∞)
 
+```
 """
 struct Custom{I, T} <: AbstractCustomFiltration{I, T}
     adj::SparseMatrixCSC{Bool, Int} # adjacency matrix for sparse coboundary
@@ -130,8 +119,8 @@ end
     end
 end
 
-function adjacency_matrix(dicts)
-    n_vertices = maximum(keys(dicts[1]))
+function _adjacency_matrix(dicts)
+    nv = maximum(keys(dicts[1]))
     adj_is = Int[]
     adj_js = Int[]
     adj_vs = Bool[]
@@ -141,7 +130,7 @@ function adjacency_matrix(dicts)
         append!(adj_js, (v, u))
         append!(adj_vs, (true, true))
     end
-    return sparse(adj_is, adj_js, adj_vs, n_vertices, n_vertices)
+    return sparse(adj_is, adj_js, adj_vs, nv, nv)
 end
 
 function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
@@ -154,7 +143,7 @@ function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
             insert_simplex!(dicts, vertices, birth, threshold)
         end
     end
-    adj = adjacency_matrix(dicts)
+    adj = _adjacency_matrix(dicts)
 
     return Custom{I, T}(adj, dicts, threshold)
 end
@@ -186,5 +175,5 @@ end
 Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)
 
 simplex_dicts(cf::Custom) = cf.dicts
-dist(cf::Custom) = cf.adj
+adjacency_matrix(cf::Custom) = cf.adj
 threshold(cf::Custom) = cf.threshold

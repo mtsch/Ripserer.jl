@@ -4,23 +4,14 @@ using Test
 @safetestset "Aqua" begin
     include("aqua.jl")
 end
+@safetestset "doctests" begin
+    include("doctests.jl")
+end
 @safetestset "primefield" begin
     include("primefield.jl")
 end
 @safetestset "simplex" begin
     include("simplex.jl")
-end
-@safetestset "ripsfiltration" begin
-    include("ripsfiltration.jl")
-end
-@safetestset "cubical" begin
-    include("cubical.jl")
-end
-@safetestset "custom" begin
-    include("custom.jl")
-end
-@safetestset "alpha" begin
-    include("alpha.jl")
 end
 @safetestset "chainelement" begin
     include("chainelement.jl")
@@ -31,9 +22,23 @@ end
 @safetestset "reductionmatrix" begin
     include("reductionmatrix.jl")
 end
-@safetestset "ripserer" begin
-    include("ripserer.jl")
+
+@safetestset "rips" begin
+    include("filtrations/rips.jl")
 end
+@safetestset "cubical" begin
+    include("filtrations/cubical.jl")
+end
+@safetestset "custom" begin
+    include("filtrations/custom.jl")
+end
+@safetestset "alpha" begin
+    include("filtrations/alpha.jl")
+end
+@safetestset "new filtrations" begin
+    include("filtrations/new-filtrations.jl")
+end
+
 @safetestset "plotting" begin
     include("plotting.jl")
 end

@@ -144,7 +144,7 @@ may take a long time.
 
 !!! warning
     This filtration uses [MiniQhull.jl](https://github.com/gridap/MiniQhull.jl). Please see
-    the installation instructions if constructions causes an error. MiniQhull currently has
+    the installation instructions if constructions cause errors. MiniQhull currently has
     problems running on Windows. See [this
     issue](https://github.com/gridap/MiniQhull.jl/issues/5) for more info.
 
@@ -160,6 +160,34 @@ may take a long time.
 Edelsbrunner, H. (1993, July). The union of balls and its dual shape. [In Proceedings of the
 ninth annual symposium on Computational geometry
 (pp. 218-231)](https://dl.acm.org/doi/abs/10.1145/160985.161139).
+
+# Example
+
+```jldoctest
+julia> data = [(sin(t), cos(t), (t - π)^2) for t in range(0, 2π, length=101)[1:end-1]];
+
+julia> alpha = Alpha(data)
+Alpha{Int64, Float64}(nv=100)
+
+julia> rips = Rips(data)
+Rips{Int64, Float64}(nv=100)
+
+julia> length(Ripserer.edges(alpha))
+197
+
+julia> length(Ripserer.edges(rips))
+3613
+
+julia> sort(ripserer(alpha)[2], by=persistence)[end]
+[0.375, 2.01) with:
+ birth_simplex: 2-element Ripserer.Simplex{1,Float64,Int64}
+ death_simplex: 3-element Ripserer.Simplex{2,Float64,Int64}
+
+julia> sort(ripserer(rips)[2], by=persistence)[end]
+[0.375, 2.01) with:
+ birth_simplex: 2-element Ripserer.Simplex{1,Float64,Int64}
+ death_simplex: 3-element Ripserer.Simplex{2,Float64,Int64}
+```
 """
 struct Alpha{I, P<:SVector} <: AbstractCustomFiltration{I, Float64}
     dicts::Vector{Dict{I, Float64}}
@@ -171,13 +199,13 @@ function Alpha{I}(points; threshold=nothing, progress=false) where I
     pts = SVector.(points)
     threshold = isnothing(threshold) ? 2radius(pts) : threshold
     dicts = alpha_simplices(pts, threshold, progress, I)
-    adj = adjacency_matrix(dicts)
+    adj = _adjacency_matrix(dicts)
     return Alpha{I, eltype(pts)}(dicts, adj, threshold, pts)
 end
 function Alpha(points; kwargs...)
     return Alpha{Int}(points; kwargs...)
 end
 
-dist(alpha::Alpha) = alpha.adj
+adjacency_matrix(alpha::Alpha) = alpha.adj
 simplex_dicts(alpha::Alpha) = alpha.dicts
 threshold(alpha::Alpha) = alpha.threshold

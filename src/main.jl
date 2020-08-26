@@ -1,45 +1,15 @@
 """
-    overflows(filtration::AbstractFiltration, dim_max)
-    overflows(::Type{AbstractSimplex}, n_vertices, field)
-
-Check if `dim`-dimensional simplex with largest index on `n_vertices(filtration)` can safely
-be constructed and if it can be represented as a chain element.
-"""
-function overflows(flt::AbstractFiltration, dim_max, field)
-    return overflows(simplex_type(flt, dim_max + 1), n_vertices(flt), field)
-end
-
-overflows(::Type{<:AbstractSimplex}, ::Any, ::Any) = false
-
-function overflows(S::Type{<:Simplex{<:Any, T, I}}, n_vertices, field) where {T, I}
-    length(S) > n_vertices && throw(
-        ArgumentError("$S has more than $(n_vertices) vertices.")
-    )
-    # Calculate index for last possible simplex in I and BigInt and check if they are equal.
-    vertices = ntuple(i -> I(n_vertices - i + 1), length(S))
-    index_I = index(vertices)
-    index_big = index(BigInt.(vertices))
-    if index_I ≠ index_big
-        return true
-    else
-        # Check that packing is safe.
-        Element = chain_element_type(S, field)
-        return index(simplex(Element(S(index_I, oneunit(T))))) ≠ index_big
-    end
-end
-
-"""
     ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Distances.Euclidean(), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists`, `points` and
+Compute the persistent homology of metric space represented by `dists`, `points`, and
 `metric` or a [`Ripserer.AbstractFiltration`](@ref).
 
 If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
 `SVector`s.
 
-# Keyoword Arguments
+# Keyword Arguments
 
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
@@ -48,9 +18,9 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   [`Ripserer.Mod`](@ref)`{modulus}`.
 * `threshold`: compute persistent homology up to diameter smaller than threshold. This
   parameter is only applicable when using distance matrices or points as input. When using
-  filtrations, threshold must be passed to the filtration constructor. Defaults to radius of
-  input space. When using low thresholds with points or distance matrices, consider using
-  [`SparseRips`](@ref).
+  filtrations, threshold must be passed to the filtration constructor. Defaults to the
+  radius of the input space. When using low thresholds with points or distance matrices,
+  consider using [`SparseRips`](@ref).
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.
@@ -90,13 +60,7 @@ function ripserer(
     progress=false,
     cohomology=true,
 )
-    if overflows(filtration, dim_max, field_type)
-        S = simplex_type(filtration, dim_max + 1)
-        throw(OverflowError(
-            "$S on $(n_vertices(filtration)) vertices overflows. " *
-            "Try using a larger index type or a smaller `dim_max`."
-        ))
-    end
+    index_overflow_check(filtration, field_type, dim_max)
     return if cohomology
         _cohomology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
     else

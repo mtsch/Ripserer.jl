@@ -1,4 +1,4 @@
-# # Sublevel Set Persistent Homology
+# # Cubical Persistent Homology
 
 # In this example, we will demonstrate computing sublevel set persistent homology of time
 # series and image data. We will need the following packages.
@@ -22,15 +22,14 @@ curve_plot = plot(curve, legend=false, title="Curve")
 # The other will be [the Event Horizon Telescope picture of a black
 # hole](https://en.wikipedia.org/wiki/File:Black_hole_-_Messier_87_crop_max_res.jpg). We
 # will use a small, 240×240 pixel version of the image. Ripserer should have no problems
-# with processing larger images, but this will work well enough for the purpose of this
-# tutorial.
+# with processing larger images, but this will work well enough for this tutorial.
 
 blackhole_image = load(
     joinpath(@__DIR__, "../assets/data/240px-Black_hole_-_Messier_87_crop_max_res.jpg")
 )
 blackhole_plot = plot(blackhole_image, title="Black Hole")
 
-# In order to use the image with Ripserer, we have to convert it to grayscale.
+# To use the image with Ripserer, we have to convert it to grayscale.
 
 blackhole = Gray.(blackhole_image)
 nothing # hide
@@ -69,8 +68,8 @@ end
 # To get the locations of the minima, extract the critical simplices from intervals. Since
 # simplices act like collections of vertex indices, and zero-dimensional representatives
 # have a single point each, we can use `only` to extract them. Cubical simplices store
-# vertices as `CartesianIndex`, so we need to index into the x-values with them in order to
-# plot them.
+# vertices as `CartesianIndex`, so we need to index into the x-values with them to plot
+# them.
 
 min_indices = [only(birth_simplex(int)) for int in result]
 min_x = eachindex(curve)[min_indices]
@@ -136,17 +135,17 @@ plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeral
 
 # ## Two-dimensional Case
 
-# Now let's do a similar thing for a 2d example. There is nothing stopping us from going
-# into higher dimensions, but we will skip those. The principles are exactly the same.
+# Now let's do a similar thing for a 2d example. Nothing is stopping us from going
+# into higher dimensions, but we will skip those. The principles are the same.
 # Instead of looking for local minima, let's look for local maxima. To do that, we have to
 # invert the image.
 
 result = ripserer(Cubical(-blackhole))
 plot(blackhole_plot, plot(result))
 
-# We notice there are quite a lot of intervals along the diagonal. These correspond to local
-# geometry of the image, so we are not interested in them right now. To filter them out, we
-# set a cutoff.
+# We notice there are quite a lot of intervals along the diagonal. These correspond to the
+# local geometry of the image, so we are not interested in them right now. To filter them
+# out, we set a cutoff.
 
 result = ripserer(Cubical(-blackhole), cutoff=0.1)
 plot(blackhole_plot, plot(result))
@@ -167,13 +166,13 @@ plot(plt, plot(result[1], markercolor=2:3, markeralpha=1))
 # value. Using `birth_simplex` instead of plotting the filtered representative would only
 # show one of each.
 
-# Unlike with the previous example, we now also have access to ``H_1``, which corresponds to
+# Unlike in the previous example, we now also have access to ``H_1``, which corresponds to
 # the cycles in the image. Let's try to plot the representative of ``H_1``.
 
 plt = plot(blackhole_image, title="Black Hole")
 plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 
-# Notice that the result is not actually a cycle, but rather a collection of pixels that
+# Notice that the result is not a cycle, but rather a collection of pixels that
 # would destroy the cycle if removed. The reason is that Ripserer computes persistent
 # _co_homology by default. The persistence diagrams of persistent homology and persistent
 # cohomology are the same, but persistent cohomology is much more efficient to compute. The

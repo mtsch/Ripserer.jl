@@ -5,7 +5,7 @@ using StaticArrays
 using Test
 using TupleTools
 
-using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, n_vertices,
+using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
     coboundary, boundary, edges,
     chain_element_type, CubicalChainElement
 
@@ -160,7 +160,7 @@ end
         data = rand(Float64, ntuple(x -> 10 + x, Val(K)))
         filtration = Cubical(data)
 
-        @test n_vertices(filtration) == length(data)
+        @test nv(filtration) == length(data)
         @test birth(filtration) == data
         @test size(filtration.cubemap) == size(data) .* 2 .- 1
         @test vertices(filtration) == CartesianIndices(data)
@@ -289,5 +289,79 @@ end
         @test_throws ErrorException chain_element_type(C, Mod{251})
         @test_throws ErrorException chain_element_type(C, Mod{257})
         @test_throws ErrorException chain_element_type(C, Rational{Int})
+    end
+end
+
+@testset "ripserer" begin
+    @testset "1D curve" begin
+        data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
+        d0, d1 = ripserer(Cubical(data); dim_max=2)
+
+        @test d0 == [(0, Inf), (1, 4), (2, 3)]
+        @test d1 == []
+    end
+    @testset "1D curve representatives" begin
+        n = 1000
+        x = range(0, 1, length=n)
+        curve = sin.(2π * 5x) .* x
+
+        d0, _ = ripserer(Cubical(curve), reps=true)
+
+        for int in d0
+            birth_sx = birth_simplex(int)
+            @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
+        end
+        @test only.(birth_simplex.(d0)) == CartesianIndex.([951, 752, 552, 354, 157, 1])
+    end
+    @testset "2D image" begin
+        data = [0 0 0 0 0;
+                0 2 2 2 0;
+                0 2 1 2 0;
+                0 2 2 2 0;
+                0 0 0 0 0]
+
+        d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
+
+        @test d0 == [(0, Inf), (1, 2)]
+        @test d1 == [(0, 2)]
+        @test d2 == []
+
+        @test sort(vertices.(representative(d0[1]))) ==
+            sort(SVector.(vec(CartesianIndices(data))))
+        @test vertices(only(representative(d0[2]))) ==
+            SVector(CartesianIndex(3, 3))
+    end
+    @testset "3D image" begin
+        # Cube with hole in the middle.
+        data = zeros(5, 5, 5)
+        data[2, 2:4, 2:4] .= 1
+        data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
+        data[4, 2:4, 2:4] .= 1
+
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
+
+        @test d0 == [(0, 1.0), (0, Inf)]
+        @test isempty(d1)
+        @test d2 == [(0, 1)]
+    end
+    @testset "Thresholding" begin
+        data = [1 1 1;
+                1 2 1;
+                1 1 1]
+        d0, d1 = ripserer(Cubical(data, threshold=1))
+        @test d0 == [(1, Inf)]
+        @test d1 == [(1, Inf)]
+    end
+    @testset "Homology" begin
+        data = zeros(5, 5, 5)
+        data[2, 2:4, 2:4] .= 1
+        data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
+        data[4, 2:4, 2:4] .= 1
+
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, cohomology=false)
+
+        @test d0 == [(0, 1.0), (0, Inf)]
+        @test isempty(d1)
+        @test d2 == [(0, 1)]
     end
 end

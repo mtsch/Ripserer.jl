@@ -39,11 +39,15 @@ Cube
 ```
 
 ```@docs
-vertices
+Ripserer.vertices(::Ripserer.AbstractSimplex)
 ```
 
 ```@docs
-dim
+Ripserer.birth(::Ripserer.AbstractSimplex)
+```
+
+```@docs
+Ripserer.dim(::Ripserer.AbstractSimplex)
 ```
 
 ## Fields
@@ -58,30 +62,30 @@ See also: [PersistenceDiagrams.jl
 API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/). For convenience, Ripserer
 reexports the following:
 
-```
-PersistenceDiagrams.birth
-```
-
-```
-PersistenceDiagrams.death
+```@docs
+birth(::PersistenceDiagrams.PersistenceInterval)
 ```
 
-```
-PersistenceDiagrams.persistence
-```
-
-```
-PersistenceDiagrams.representative
+```@docs
+death(::PersistenceDiagrams.PersistenceInterval)
 ```
 
-```
-PersistenceDiagrams.birth_simplex
-```
-
-```
-PersistenceDiagrams.death_simplex
+```@docs
+persistence(::PersistenceDiagrams.PersistenceInterval)
 ```
 
+```@docs
+representative(::PersistenceDiagrams.PersistenceInterval)
 ```
-PersistenceDiagrams.barcode
+
+```@docs
+birth_simplex(::PersistenceDiagrams.PersistenceInterval)
+```
+
+```@docs
+death_simplex(::PersistenceDiagrams.PersistenceInterval)
+```
+
+```@docs
+barcode
 ```

@@ -3,6 +3,20 @@
 
 An abstract Vietoris-Rips filtration. Its subtypes can only overload [`dist`](@ref) and get
 default implementations for the rest of the filtration interface.
+
+# Example
+
+```jldoctest
+julia> struct MyRips <: Ripserer.AbstractRipsFiltration{Int, Float16} end
+
+julia> Ripserer.dist(::MyRips) = [0 1 1; 1 0 1; 1 1 0]
+
+julia> ripserer(MyRips())
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 3-element 0-dimensional PersistenceDiagram
+ 0-element 1-dimensional PersistenceDiagram
+
+```
 """
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
 
@@ -12,77 +26,29 @@ abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} e
 
 Return the distance between vertices `u` and `v`. If the distance is somehow invalid, it may
 return `missing` instead. If `u` and `v` are not given, return the distance matrix.
+
+# Examples
+
+```jldoctest
+julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
+
+julia> Ripserer.dist(flt, 1, 3)
+2
+
+julia> Ripserer.dist(flt)
+3×3 Array{Int64,2}:
+ 1  1  2
+ 1  0  1
+ 2  1  0
+
+```
 """
-dist(::AbstractRipsFiltration, ::Any, ::Any)
+dist(rips::AbstractRipsFiltration, i, j) = dist(rips)[i, j]
 
-n_vertices(rips::AbstractRipsFiltration) = size(dist(rips), 1)
-
+nv(rips::AbstractRipsFiltration) = size(dist(rips), 1)
 birth(rips::AbstractRipsFiltration) = diag(dist(rips))
-
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
-
-@inline @propagate_inbounds function unsafe_simplex(
-    ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
-) where {I, T, S<:Simplex}
-    if dim(S) == 0
-        return S(I(sign) * vertices[1], birth(rips, vertices[1]))
-    else
-        n = length(vertices)
-        diameter = typemin(T)
-        for i in 1:n, j in i+1:n
-            d = dist(rips, vertices[j], vertices[i])
-            if ismissing(d) || d > threshold(rips)
-                return nothing
-            else
-                _d::T = d
-                diameter = ifelse(_d > diameter, _d, diameter)
-            end
-        end
-        return S(I(sign) * index(vertices), diameter)
-    end
-end
-
-@inline @propagate_inbounds function unsafe_cofacet(
-    ::Type{S},
-    rips::AbstractRipsFiltration{I, T},
-    simplex,
-    cofacet_vertices,
-    new_vertex,
-    sign,
-) where {I, T, S<:Simplex}
-    diameter = birth(simplex)
-    for v in cofacet_vertices
-        v == new_vertex && continue
-        # Even though this looks like a tight loop, v changes way more often than us, so
-        # this is the faster order of indexing by new_vertex and v.
-        d = dist(rips, new_vertex, v)
-        if ismissing(d) || d > threshold(rips)
-            return nothing
-        else
-            _d::T = d
-            diameter = ifelse(_d > diameter, _d, diameter)
-        end
-    end
-    return S(I(sign) * index(cofacet_vertices), diameter)
-end
-
-@inline @propagate_inbounds function unsafe_cofacet(
-    ::Type{S},
-    rips::AbstractRipsFiltration{I},
-    sx,
-    cofacet_vertices,
-    _,
-    sign,
-    new_edges,
-) where {I, S<:Simplex}
-    new_diam = birth(sx)
-    for e in new_edges
-        e > threshold(rips) && return nothing
-        new_diam = ifelse(e > new_diam, e, new_diam)
-    end
-    new_index = index(cofacet_vertices)
-    return S(I(sign) * new_index, new_diam)
-end
+adjacency_matrix(rips::AbstractRipsFiltration) = dist(rips)
 
 function edges(rips::AbstractRipsFiltration)
     if issparse(dist(rips))
@@ -169,6 +135,79 @@ function radius(points, metric=Euclidean())
     return radius
 end
 
+@inline @propagate_inbounds function unsafe_simplex(
+    ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
+) where {I, T, S<:Simplex}
+    if dim(S) == 0
+        return S(I(sign) * vertices[1], birth(rips, vertices[1]))
+    else
+        n = length(vertices)
+        diameter = typemin(T)
+        for i in 1:n, j in i+1:n
+            d = dist(rips, vertices[j], vertices[i])
+            if ismissing(d) || d > threshold(rips)
+                return nothing
+            else
+                _d::T = d
+                diameter = ifelse(_d > diameter, _d, diameter)
+            end
+        end
+        return S(I(sign) * index(vertices), diameter)
+    end
+end
+
+@inline @propagate_inbounds function unsafe_cofacet(
+    ::Type{S},
+    rips::AbstractRipsFiltration{I, T},
+    simplex,
+    cofacet_vertices,
+    new_vertex,
+    sign,
+) where {I, T, S<:Simplex}
+    diameter = birth(simplex)
+    for v in cofacet_vertices
+        v == new_vertex && continue
+        # Even though this looks like a tight loop, v changes way more often than us, so
+        # this is the faster order of indexing by new_vertex and v.
+        d = dist(rips, new_vertex, v)
+        if ismissing(d) || d > threshold(rips)
+            return nothing
+        else
+            _d::T = d
+            diameter = ifelse(_d > diameter, _d, diameter)
+        end
+    end
+    return S(I(sign) * index(cofacet_vertices), diameter)
+end
+
+# This definition is used in SparseCoboundary
+@inline @propagate_inbounds function unsafe_cofacet(
+    ::Type{S},
+    rips::AbstractRipsFiltration{I},
+    sx,
+    cofacet_vertices,
+    _,
+    sign,
+    new_edges,
+) where {I, S<:Simplex}
+    new_diam = birth(sx)
+    for e in new_edges
+        e > threshold(rips) && return nothing
+        new_diam = ifelse(e > new_diam, e, new_diam)
+    end
+    new_index = index(cofacet_vertices)
+    return S(I(sign) * new_index, new_diam)
+end
+
+function coboundary(
+    rips::AbstractRipsFiltration, sx::AbstractSimplex, ::Val{A}=Val(true)
+) where A
+    if dist(rips) isa SparseMatrixCSC
+        return SparseCoboundary{A}(rips, sx)
+    else
+        return Coboundary{A}(rips, sx)
+    end
+end
 
 """
     Rips{I, T} <: AbstractRipsFiltration{I, T}
@@ -176,14 +215,36 @@ end
 This type represents a filtration of Vietoris-Rips complexes.
 Diagonal items are treated as vertex birth times.
 
-Threshold defaults to radius of input space. When using low `threshold`s, consider using
-[`SparseRips`](@ref) instead.
+Threshold defaults to the radius of the input space. When using low `threshold`s, consider
+using [`SparseRips`](@ref) instead. It will give the same result, but may be much faster.
 
 # Constructors
 
 * `Rips(distance_matrix; threshold=nothing)`
 * `Rips(points; metric=Euclidean(), threshold=nothing)`
 * `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
+
+# Examples
+
+```jldoctest
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=101)][1:end-1];
+
+julia> ripserer(Rips(data))
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 100-element 0-dimensional PersistenceDiagram
+ 1-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(Rips(data, threshold=1.7))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0628, ∞)
+
+julia> using Distances
+
+julia> ripserer(Rips(data, metric=Cityblock()))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0888, 2.0)
+
+```
 """
 struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I, T}
     dist::A
@@ -224,11 +285,35 @@ The distance matrix will be converted to a sparse matrix with all values greater
 threshold deleted. Off-diagonal zeros in the matrix are treated as `missing`. Diagonal items
 are treated as vertex birth times.
 
+Use this filtration type with low `threshold`s.
+
 # Constructor
 
 * `SparseRips{I}(distance_matrix; threshold=nothing)`
 * `SparseRips(distance_matrix; threshold=nothing)`: `I` sets the integer size used to
   represent simplices.
+
+# Examples
+
+```jldoctest
+julia> data = [(sin(t), cos(t)) for t in range(0, 2π, length=101)][1:end-1];
+
+julia> ripserer(SparseRips(data))
+2-element Array{PersistenceDiagrams.PersistenceDiagram,1}:
+ 100-element 0-dimensional PersistenceDiagram
+ 1-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(SparseRips(data, threshold=1.7))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0628, ∞)
+
+julia> using Distances
+
+julia> ripserer(SparseRips(data, metric=Cityblock()))[2]
+1-element 1-dimensional PersistenceDiagram:
+ [0.0888, 2.0)
+
+```
 """
 struct SparseRips{I, T} <: AbstractRipsFiltration{I, T}
     dist::SparseMatrixCSC{T, Int}
@@ -246,8 +331,8 @@ function SparseRips{I}(
 
     return SparseRips{I, T}(dists, threshold)
 end
-function SparseRips(dist; threshold=nothing)
-    return SparseRips{Int}(dist; threshold=threshold)
+function SparseRips(dist; kwargs...)
+    return SparseRips{Int}(dist; kwargs...)
 end
 function SparseRips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
     return SparseRips{I}(distances(metric, points); kwargs...)
@@ -262,90 +347,3 @@ dist(rips::SparseRips) = rips.dist
 threshold(rips::SparseRips) = rips.threshold
 birth(rips::SparseRips, i) = rips.dist[i, i]
 simplex_type(::SparseRips{I, T}, dim) where {I, T} = Simplex{dim, T, I}
-
-# This is the coboundary used when distance matrix in AbstractRipsFiltration is sparse.
-function coboundary(
-    rips::AbstractRipsFiltration, sx::AbstractSimplex, ::Val{A}=Val(true)
-) where A
-    if dist(rips) isa SparseMatrixCSC
-        return SparseCoboundary{A}(rips, sx)
-    else
-        return Coboundary{A}(rips, sx)
-    end
-end
-
-struct SparseCoboundary{A, D, I, F, S}
-    filtration::F
-    simplex::S
-    vertices::SVector{D, I}
-    ptrs_begin::SVector{D, I}
-    ptrs_end::SVector{D, I}
-
-    function SparseCoboundary{A}(
-        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
-    ) where {A, D, I, F}
-        verts = vertices(simplex)
-        colptr = dist(filtration).colptr
-        ptrs_begin = colptr[verts .+ 1]
-        ptrs_end = colptr[verts]
-        return new{A, D + 1, I, F, typeof(simplex)}(
-            filtration, simplex, verts, ptrs_begin, ptrs_end
-        )
-    end
-end
-
-@propagate_inbounds @inline function next_common(
-    ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
-) where D
-    # could also indicate when m is equal to one of the points
-    ptrs = ptrs .- 1
-    for i in 1:D
-        ptrs[i] < ptrs_end[i] && return zero(ptrs), 0
-    end
-    m = rowval[ptrs[2]]
-    i = 1
-    while true
-        ptrs_i = ptrs[i]
-        row = rowval[ptrs_i]
-        while row > m
-            ptrs -= SVector(ntuple(isequal(i), Val(D)))
-            ptrs_i -= 1
-            ptrs_i < ptrs_end[i] && return zero(ptrs), zero(eltype(rowval))
-            row = rowval[ptrs_i]
-        end
-        i = ifelse(row == m, i + 1, 1)
-        i > D && return ptrs, m
-        m = row
-    end
-end
-
-function Base.iterate(
-    it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)
-) where {A, D, I}
-    rowval = dist(it.filtration).rowval
-    nzval = dist(it.filtration).nzval
-    @inbounds while true
-        ptrs, v = next_common(ptrs, it.ptrs_end, rowval)
-        if iszero(first(ptrs))
-            return nothing
-        elseif k > 0 && v == it.vertices[end + 1 - k]
-            k -= 1
-        else
-            while k > 0 && v < it.vertices[end + 1 - k]
-                k -= 1
-            end
-            !A && k ≠ D && return nothing
-
-            sign = ifelse(iseven(k), 1, -1)
-            new_vertices = insert(it.vertices, D - k + 1, v)
-            new_edges = nzval[ptrs]
-            sx = unsafe_cofacet(
-                it.filtration, it.simplex, new_vertices, v, sign, new_edges
-            )
-            if !isnothing(sx)
-                _sx::simplex_type(it.filtration, D) = sx
-                return _sx, (ptrs, k)
-            end
-        end
-    end
-end

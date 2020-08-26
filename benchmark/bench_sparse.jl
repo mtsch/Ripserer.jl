@@ -2,7 +2,7 @@ module BenchSparse
 using Ripserer
 using BenchmarkTools
 using Random
-include(joinpath(@__DIR__, "../test/data.jl"))
+include(joinpath(@__DIR__, "../test/filtrations/test-datasets.jl"))
 Random.seed!(666)
 suite = BenchmarkGroup()
 

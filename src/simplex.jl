@@ -40,10 +40,7 @@ identify a simplex. It is also used to break ties when comparing simplices with 
 birth time.
 
 ```jldoctest
-index(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
+julia> index(Simplex{2}((3, 2, 1), 3.2))
 1
 ```
 """
@@ -57,13 +54,12 @@ Base.hash(sx::AbstractSimplex, h::UInt64) = hash(index(sx), h)
 """
     birth(simplex::AbstractSimplex)
 
-Get the birth time of `simplex`, i.e. the time it appears in a filtration.
+Get the birth time of `simplex`, i.e. the time it first appears in the filtration.
+
+# Example
 
 ```jldoctest
-birth(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
+julia> birth(Simplex{2}((3, 2, 1), 3.2))
 3.2
 ```
 """
@@ -82,7 +78,7 @@ end
     _binomial(n, ::Val{K})
 
 Binomial coefficients for small, statically known values of `K`, where `n` and `K` are
-always positive.
+always positive. Using `Val(K)` allows the compiler to optimize away the loop.
 """
 _binomial(::I, ::Val{0}) where I = one(I)
 _binomial(n, ::Val{1}) = n
@@ -126,7 +122,7 @@ function _find_max_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K-1)) where {I, K}
 end
 
 """
-    vertices(index::I, ::Val{N})
+    _vertices(index::I, ::Val{N})
 
 Get the vertices of simplex represented by index. Returns `SVector{N, I}`.
 For regular simplices, `N` should be equal to `dim+1`.
@@ -170,6 +166,11 @@ Calculate the index from tuple or static vector of vertices. The index is equal 
 ```
 
 where ``i_k`` are the simplex vertex indices.
+
+```jldoctest
+julia> index((6,2,1))
+11
+```
 """
 @generated function index(vertices::Union{NTuple{K}, SVector{K}}) where K
     # generate code of the form
@@ -212,11 +213,10 @@ end
 Get the vertices of `simplex`. Returns `SVector{length(simplex), I}`. When `index(simplex)`
 is an interger, a default implementation is provided.
 
+# Example
+
 ```jldoctest
-vertices(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
+julia> vertices(Simplex{2}((3, 2, 1), 3.2))
 3-element StaticArrays.SArray{Tuple{3},Int64,1,3} with indices SOneTo(3):
  3
  2
@@ -240,12 +240,14 @@ Base.length(::Type{<:AbstractSimplex{D}}) where D = D + 1
 
 Get the orientation of `simplex`. Should return -1 or 1.
 
+# Examples
+
 ```jldoctest
-sign(Simplex{2}((3, 2, 1), 3.2))
+julia> sign(Simplex{2}((3, 2, 1), 3.2))
+1
 
-# output
-
-+1
+julia> sign(-Simplex{2}((3, 2, 1), 3.2))
+-1
 ```
 """
 Base.sign(::AbstractSimplex)
@@ -255,13 +257,13 @@ Base.sign(::AbstractSimplex)
 
 Reverse the simplex orientation.
 
+# Example
+
 ```jldoctest
--Simplex{2}((3, 2, 1), 3.2)
-
-# output
-
-2-dim Simplex(1, 1):
+julia> -Simplex{2}((3, 2, 1), 3.2)
+2-dimensional Simplex(index=1, birth=3.2):
   -[3, 2, 1]
+
 ```
 """
 Base.:-(::AbstractSimplex)
@@ -271,18 +273,21 @@ Base.:+(sx::AbstractSimplex) = sx
     dim(::AbstractSimplex)
     dim(::Type{<:AbstractSimplex})
 
-Get the dimension of simplex i.e. the value of `D`.
+Get the dimension of a simplex i.e. the value of `D`. Can also be called on the type.
+
+# Examples
 
 ```jldoctest
-dim(Simplex{2}((3, 2, 1), 3.2))
-
-# output
-
+julia> dim(Simplex{2}((3, 2, 1), 3.2))
 2
+
+julia> dim(Cube{3, Int, 4})
+3
+
 ```
 """
-dim(::Type{<:AbstractSimplex{D}}) where D = D
 dim(sx::AbstractSimplex) = dim(typeof(sx))
+dim(::Type{<:AbstractSimplex{D}}) where D = D
 
 Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 
@@ -298,34 +303,34 @@ does not overload [`columns_to_reduce`](@ref).
 
 Comes with a default implementation.
 
-# Warning
+!!! warning
+    If cofacets are not returned in decreasing `index` order, the algorithm will not work
+    correctly. If there is no avoiding it, define `emergent_pairs(...) = false` for your
+    filtration.
 
-If cofacets are not returned in decreasing `index`, the algorithm will not work correctly.
-
-# Example
+# Examples
 
 ```jldoctest coboundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
 
-for c in coboundary(filtration, Simplex{1}(2, 1))
+for c in Ripserer.coboundary(filtration, Simplex{1}(2, 1))
     println(c)
 end
 
 # output
 
-Simplex{2}(+[4, 3, 1], 1)
-Simplex{2}(-[3, 2, 1], 1)
++Simplex{2}([4, 3, 1], 1)
+-Simplex{2}([3, 2, 1], 1)
 ```
 
 ```jldoctest coboundary
-for c in coboundary(filtration, Simplex{1}(2, 1), Val(false))
+for c in Ripserer.coboundary(filtration, Simplex{1}(2, 1), Val(false))
     println(c)
 end
 
 # output
 
-2-dim Simplex(1, 1):
-  +[4, 3, 1]
++Simplex{2}([4, 3, 1], 1)
 ```
 """
 function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where A
@@ -340,23 +345,29 @@ determine the diameters and validity of cofacets.
 
 Comes with a default implementation.
 
+!!! warning
+    If facets are not returned in increasing `index` order, the (homology) algorithm will
+    not work correctly. If there is no avoiding it, define `emergent_pairs(...) = false` for
+    your filtration.
+
+# Example
+
 ```jldoctest boundary
 filtration = Rips([0 1 1 1; 1 0 1 1; 1 1 0 1; 1 1 1 0])
 
-for f in boundary(filtration, Simplex{2}(2, 1))
+for f in Ripserer.boundary(filtration, Simplex{2}(2, 1))
     println(f)
 end
 
 # output
 
-Simplex{2}(+[2, 1], 1)
-Simplex{2}(-[4, 1], 1)
-Simplex{2}(+[4, 2], 1)
++Simplex{1}([2, 1], 1)
+-Simplex{1}([4, 1], 1)
++Simplex{1}([4, 2], 1)
 ```
 """
 boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
 
-# (co)boundaries ========================================================================= #
 struct Coboundary{A, D, I, F, S}
     filtration::F
     simplex::S
@@ -371,7 +382,7 @@ struct Coboundary{A, D, I, F, S}
 end
 
 function Base.iterate(
-    ci::Coboundary{A, D, I}, (v, k)=(I(n_vertices(ci.filtration) + 1), D),
+    ci::Coboundary{A, D, I}, (v, k)=(I(nv(ci.filtration) + 1), D),
 ) where {A, D, I}
     @inbounds while true
         v -= one(I)
@@ -387,6 +398,84 @@ function Base.iterate(
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
             return _sx, (v, k)
+        end
+    end
+end
+
+struct SparseCoboundary{A, D, I, F, S}
+    filtration::F
+    simplex::S
+    vertices::SVector{D, I}
+    ptrs_begin::SVector{D, I}
+    ptrs_end::SVector{D, I}
+
+    function SparseCoboundary{A}(
+        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
+    ) where {A, D, I, F}
+        verts = vertices(simplex)
+        adj = adjacency_matrix(filtration)
+        colptr = adj.colptr
+        ptrs_begin = colptr[verts .+ 1]
+        ptrs_end = colptr[verts]
+        return new{A, D + 1, I, F, typeof(simplex)}(
+            filtration, simplex, verts, ptrs_begin, ptrs_end
+        )
+    end
+end
+
+@propagate_inbounds @inline function next_common(
+    ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
+) where D
+    # could also indicate when m is equal to one of the points
+    ptrs = ptrs .- 1
+    for i in 1:D
+        ptrs[i] < ptrs_end[i] && return zero(ptrs), 0
+    end
+    m = rowval[ptrs[2]]
+    i = 1
+    while true
+        ptrs_i = ptrs[i]
+        row = rowval[ptrs_i]
+        while row > m
+            ptrs -= SVector(ntuple(isequal(i), Val(D)))
+            ptrs_i -= 1
+            ptrs_i < ptrs_end[i] && return zero(ptrs), zero(eltype(rowval))
+            row = rowval[ptrs_i]
+        end
+        i = ifelse(row == m, i + 1, 1)
+        i > D && return ptrs, m
+        m = row
+    end
+end
+
+function Base.iterate(
+    it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)
+) where {A, D, I}
+    adj = adjacency_matrix(it.filtration)
+    rowval = adj.rowval
+    nzval = adj.nzval
+    @inbounds while true
+        ptrs, v = next_common(ptrs, it.ptrs_end, rowval)
+        if iszero(first(ptrs))
+            return nothing
+        elseif k > 0 && v == it.vertices[end + 1 - k]
+            k -= 1
+        else
+            while k > 0 && v < it.vertices[end + 1 - k]
+                k -= 1
+            end
+            !A && k ≠ D && return nothing
+
+            sign = ifelse(iseven(k), 1, -1)
+            new_vertices = insert(it.vertices, D - k + 1, v)
+            new_edges = nzval[ptrs]
+            sx = unsafe_cofacet(
+                it.filtration, it.simplex, new_vertices, v, sign, new_edges
+            )
+            if !isnothing(sx)
+                _sx::simplex_type(it.filtration, D) = sx
+                return _sx, (ptrs, k)
+            end
         end
     end
 end
@@ -421,30 +510,30 @@ end
 """
     Simplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I}
 
-The vanilla simplex type represented by dimension `D` and index of type `I` and a birth time
-of type `T`.
+The vanilla simplex type represented by dimension `D`, an index of type `I`, and a birth
+time of type `T`.
 
-# Constructor
+# Constructors
 
-    Simplex{D[, T, I]}(::I, ::T)
+* `Simplex{D[, T, I]}(index, birth)`
+* `Simplex{D}(vertices, birth)`: vertices must be sorted descending. This constructor mainly
+  exists for debugging purposes. Using [`simplex`](@ref) is usually the better option.
 
 # Examples
 
 ```jldoctest
-Simplex{2}(2, 1)
-
-# output
-
-2-dim Simplex{2}(2, 1):
+julia> Simplex{2}(2, 1)
+2-dimensional Simplex(index=2, birth=1):
   +[4, 2, 1]
-```
-```jldoctest
-Simplex{10}(Int128(-10), 1.0)
 
-# output
-
-4-dim Simplex{3}(1.0, 10, 2):
+julia> Simplex{10}(Int128(-10), 1.0)
+10-dimensional Simplex(index=10, birth=1.0):
   -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
+
+julia> Simplex{2}((5, 2, 1), 1)
+2-dimensional Simplex(index=5, birth=1):
+  +[5, 2, 1]
+
 ```
 """
 struct Simplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I}

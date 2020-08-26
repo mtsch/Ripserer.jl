@@ -2,6 +2,7 @@
 using Documenter
 using Literate
 using Ripserer
+using PersistenceDiagrams
 using Plots
 gr()
 ENV["GKSwstype"] = "100"
@@ -26,13 +27,13 @@ makedocs(sitename="Ripserer.jl",
                  "generated/basics.md",
                  "generated/stability.md",
                  "generated/cocycles.md",
-                 "generated/sublevelset.md",
+                 "generated/cubical.md",
                  "generated/malaria.md",
              ],
              "Benchmarks" => "benchmarks.md",
              "API" => [
                  "Public" => "api/ripserer.md",
-                 "Extensions" => "api/extensions.md",
+                 "Interfaces" => "api/extensions.md",
              ],
              "Acknowledgements and References" => "references.md",
          ])

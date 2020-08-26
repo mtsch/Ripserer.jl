@@ -1,9 +1,9 @@
 # # Stability
 
-# In this example we will demonstrate the stability of persistent homology. The stability
-# theorem roughly states, that a small change in the input data will result in a small
+# In this example, we will demonstrate the stability of persistent homology. The stability
+# theorem roughly states that a small change in the input data will result in a small
 # change in the resulting persistence diagram. In other words, persistent homology is very
-# tolerant of noisy data. Also see the
+# tolerant of noisy data. Also, see the
 # [Distances](https://mtsch.github.io/PersistenceDiagrams.jl/dev/generated/distances/)
 # example in [PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl).
 
@@ -46,7 +46,7 @@ gif(anim, "stability_anim_1.gif") # hide
 
 # We notice that an interval in ``H_1`` always stands out and that its death remains
 # constant. The only thing that changes is the birth time. The birth time is equal to the
-# largest distance between adjacent points in the circle. At birth time, the circle is
+# largest distance between adjacent points in the circle. At the birth time, the circle is
 # connected.
 
 # Now, let's add some noise!

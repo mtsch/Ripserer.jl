@@ -36,26 +36,21 @@ mod_prime(i, ::Val{2}) = i & 1
 """
     Mod{M} <: Integer
 
-Representation of finite field ``\\mathbb{Z}_M``, integers modulo small, prime `M`. Supports
-field arithmetic and can be converted to integer with `Int`.
+`Mod{M}` is the default field used by Ripserer. It is a representation of a finite field
+``\\mathbb{Z}_M``, integers modulo small, prime `M`. Supports field arithmetic and can be
+converted to integer with `Int`.
 
-Is not comparable on purpose.
+Its values are not comparable on purpose.
 
 # Example
 
 ```jldoctest
-Mod{3}(5)
-
-# output
-
+julia> Mod{3}(5)
 2 mod 3
-```
-```jldoctest
-Mod{3}(5) + 1
 
-# output
-
+julia> Mod{3}(5) + 1
 0 mod 3
+
 ```
 """
 struct Mod{M} <: Integer

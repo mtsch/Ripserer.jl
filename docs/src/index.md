@@ -40,7 +40,6 @@ version of Julia for optimal performance.
 
 Ripserer and its companion package
 [PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl) currently support
-the following:
 
 * Fast Vietoris-Rips and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
@@ -48,7 +47,7 @@ the following:
   [Plots.jl](https://github.com/JuliaPlots/Plots.jl). [Experimental Makie.jl
   support](https://github.com/mtsch/MakieRipserer.jl) is also available.
 * Bottleneck and Wasserstein matching and distance computation.
-* Various persistence diagram vectorization functions implemented with persistence images
+* Various persistence diagram vectorization functions, implemented with persistence images
   and persistence curves.
 * Easy extensibility through a documented API.
 * Computing persistent homology and representative cycles (experimental).
@@ -66,8 +65,8 @@ In general, the performance of Ripserer is very close to
 [Ripser](https://github.com/Ripser/ripser), usually within around 30%. Cubical homology is
 up to 3× slower than that of [Cubical Ripser](https://github.com/CubicalRipser/), which uses
 a more specialized algorithm. Ripserer is still a good choice for small 3d images and large
-2d images. Ripserer's strength performance-wise are very sparse inputs. It also computes
-some thing Ripser skips, like the critical simplices. See the [Benchmarks](@ref) section for
+2d images. Ripserer's strength performance-wise is very sparse inputs. It also computes
+some things Ripser skips, like the critical simplices. See the [Benchmarks](@ref) section for
 detailed benchmarks.
 
 ## Extensibility
@@ -88,6 +87,6 @@ All contributions are welcome, even small things like typo fixes and ideas! See 
 [contribution guidelines](https://github.com/mtsch/Ripserer.jl/blob/master/CONTRIBUTING.md)
 for more information.
 
-If you used this software in a cool project, or if you have any comments, questions or
+If you used this software in a cool project, or if you have any comments, questions, or
 suggestions, feel free to contact me at
 [matijacufar@gmail.com](mailto:matijacufar@gmail.com).
