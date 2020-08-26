@@ -3,7 +3,11 @@ using Distances
 using Ripserer
 using Test
 
-if v"1.6-DEV" > VERSION ≥ v"1.5-DEV"
+if Sys.iswindows()
+    @warn "Skipping doctests due to problems with `Alpha` on Windows"
+elseif VERSION ≥ v"1.6-DEV" || VERSION < v"1.5-DEV"
+    @warn "Doctests were set up on Julia v1.5. Skipping."
+else
     DocMeta.setdocmeta!(
         Ripserer,
         :DocTestSetup,
@@ -11,6 +15,4 @@ if v"1.6-DEV" > VERSION ≥ v"1.5-DEV"
         recursive=true,
     )
     doctest(Ripserer)
-else
-    @warn "Doctests were set up on Julia v1.5. Skipping."
 end
