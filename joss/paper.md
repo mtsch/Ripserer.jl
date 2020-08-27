@@ -51,6 +51,9 @@ Along with its companion package PersistenceDiagrams.jl[^1], Ripserer.jl provide
 featureful environment for computing persistent homology and integrating it with the rest of
 Julia's data science stack. At the time of writing, it offers the following features.
 
+![Example visualizations. The plot on the left shows the three main representative cocycles
+in the data. The right plot shows the persistence diagram.](figure.png)
+
 * Fast Vietoris-Rips, alpha complex, and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
 * Support for coefficients in any, possibly user-defined, field.
@@ -60,9 +63,6 @@ Julia's data science stack. At the time of writing, it offers the following feat
 * Various persistence diagram vectorization functions, implemented with persistence
   images [@adams2017persistence] and persistence curves [@chung2019persistence].
 * Easy extensibility through a documented API.
-
-![Example visualizations. The plot on the left shows the three main representative cocycles
-in the data. The right plot shows the persistence diagram.](figure.png)
 
 Our benchmarks[^3] show that Ripserer's performance is very close to that of Ripser. It
 tends to be slightly slower for dense inputs and slightly faster for very sparse inputs. In
