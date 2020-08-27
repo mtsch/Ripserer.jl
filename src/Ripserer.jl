@@ -17,6 +17,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
+using LightGraphs
 using MiniQhull
 using PersistenceDiagrams
 using ProgressMeter
@@ -34,8 +35,8 @@ export
     birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
 export
-    Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
-    Rips, SparseRips, Cubical, Custom, Alpha, ripserer
+    Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient, circum,
+    Rips, SparseRips, Cubical, Custom, Alpha, GeodesicRips, ripserer
 
 include("primefield.jl")
 include("simplex.jl")
@@ -53,6 +54,7 @@ include("filtrations/rips.jl")
 include("filtrations/cubical.jl")
 include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
+include("filtrations/geodesicrips.jl")
 
 include("simplexrecipes.jl")
 

@@ -35,6 +35,9 @@ end
 @safetestset "alpha" begin
     include("filtrations/alpha.jl")
 end
+@safetestset "geodesicrips" begin
+    include("filtrations/geodesicrips.jl")
+end
 @safetestset "new filtrations" begin
     include("filtrations/new-filtrations.jl")
 end

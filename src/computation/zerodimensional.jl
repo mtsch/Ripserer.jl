@@ -141,14 +141,14 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
         else
             push!(to_reduce, edge)
         end
-        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
+        progress && next!(progbar; showvalues=((:intervals, length(intervals)),))
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,), 1))
             int = interval(dset, filtration, v, nothing, cutoff, reps)
             push!(intervals, int)
         end
-        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
+        progress && next!(progbar; showvalues=((:intervals, length(intervals)),))
     end
     reverse!(to_reduce)
 

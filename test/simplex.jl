@@ -57,9 +57,9 @@ end
 
 @testset "Simplex" begin
     @testset "Constructors" begin
-        @test Simplex{1}([2, 1], 1) == Simplex{1}(1, 1)
-        @test Simplex{1}((1, 3), 1) == Simplex{1}(2, 1)
-        @test Simplex{2}([5, 2, 1], 1) == Simplex{2}(5, 1)
+        @test Simplex{1}([2, 1], 1) === Simplex{1}(1, 1)
+        @test Simplex{1}((1, 3), 0f0) === Simplex{1}(2, 0f0)
+        @test Simplex{2}([5, 2, 1], 1.0) === Simplex{2}(5, 1.0)
     end
 
     @testset "AbstractSimplex interface" begin
