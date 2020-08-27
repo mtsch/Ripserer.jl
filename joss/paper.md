@@ -33,7 +33,7 @@ spawned a whole cottage industry of extensions and wrappers. Some examples inclu
 [@zhang2020gpu], Lock-free Ripser [@morozov2020towards], Ripser.py [@tralie2018ripser] and
 Cubical Ripser [@kaji2020cubical].
 
-# Statement of need
+# Statement of Need
 
 A significant hurdle in developing new approaches to persistent homology stems from the fact
 that developing an efficient implementation of its matrix reduction algorithm is nontrivial.
