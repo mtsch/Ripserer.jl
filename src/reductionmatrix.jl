@@ -87,6 +87,30 @@ function commit!(matrix::ReducedMatrix, simplex, factor)
 end
 
 """
+    bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
+
+Insert apparent pairs into reduced matrix. Columns are inserted so `matrix[τ] == [σ]`, where
+`pairs` is a collection of tuples `(σ, τ)`.
+"""
+function bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
+    n = length(pairs)
+    n_values = length(matrix.values)
+    resize!(matrix.values, n_values + n)
+    n_indices = length(matrix.indices)
+    last_index = last(matrix.indices)
+    resize!(matrix.indices, n_indices + n)
+    for (i, (σ, τ)) in enumerate(pairs)
+        matrix.indices[n_indices + i] = last_index + i
+        matrix.values[n_values + i] = E(σ, sign(τ))
+        matrix.column_index[abs(τ)] = n_indices + i - 1
+    end
+    matrix
+end
+function bulk_add!(matrix::ReducedMatrix, ::Tuple{})
+    return matrix
+end
+
+"""
     discard!(matrix::ReducedMatrix)
 
 Undo recorded changes.
@@ -343,17 +367,30 @@ end
 function compute_intervals!(
     matrix::ReductionMatrix, cutoff, progress, ::Val{reps}
 ) where {reps}
+    columns, apparent = find_apparent_pairs(
+        matrix.filtration, matrix.columns_to_reduce, is_cohomology(matrix), progress
+    )
+    progress && printstyled(
+        stderr, "$(length(columns)) $(simplex_name(eltype(columns))) to reduce. Sorting... ",
+        color=:green
+    )
+    # One-dimensional columns are already sorted.
+    dim(matrix) > 1 && sort!(columns, rev=is_cohomology(matrix))
+    progress && printstyled(stderr, "done.\n", color=:green)
+
+    bulk_add!(matrix.reduced, apparent)
+    display(columns)
+
     if progress
         progbar = Progress(
-            length(matrix.columns_to_reduce);
+            length(columns);
             desc="Computing $(dim(matrix))d intervals... ",
         )
     end
     intervals = interval_type(
         matrix.filtration, Val(dim(matrix)), Val(reps), field_type(matrix)
     )[]
-
-    for column in matrix.columns_to_reduce
+    for column in columns
         pivot = reduce_column!(matrix, column)
         add_interval!(intervals, matrix, column, pivot, cutoff, Val(reps))
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
@@ -398,12 +435,6 @@ function next_matrix(matrix::ReductionMatrix, progress)
         end
         progress && next!(progbar)
     end
-    progress && printstyled(
-        stderr, "Assembled $(length(new_to_reduce)) $(simplex_name(C)). Sorting... ",
-        color=:green
-    )
-    sort!(new_to_reduce, rev=is_cohomology(matrix))
-    progress && printstyled(stderr, "done.\n", color=:green)
 
     return ReductionMatrix{is_cohomology(matrix), field_type(matrix)}(
         matrix.filtration, new_to_reduce, new_to_skip

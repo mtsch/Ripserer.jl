@@ -279,6 +279,24 @@ computed. Defaults to `sort!`ing the diagram.
 """
 postprocess_diagram(::AbstractFiltration, diagram) = sort!(diagram)
 
+"""
+    find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, progress)
+
+Find apparent pairs in filtration. Columns are the initial columns that are being reduced.
+Should return a tuple of:
+
+* A collection of columns that are left to reduce.
+* A collection of apparent pairs `(σ, τ)`. These will be insered into the reduced matrix so
+  that `matrix[τ] = [σ]`.
+
+!!! note
+    Mutating `columns` and returning it from this function is safe.
+
+!!! warning
+    This is still experimental.
+"""
+find_apparent_pairs(::AbstractFiltration, columns, _, _) = columns, ()
+
 # Vals everywhere so compiler computes this at compile time.
 @inline function interval_type(
     flt::AbstractFiltration, ::Val{dim}, ::Val{reps}, ::Type{F}
