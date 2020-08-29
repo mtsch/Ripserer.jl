@@ -2,6 +2,7 @@ using Compat
 using Distances
 using PersistenceDiagrams
 using Ripserer
+using SparseArrays
 using StaticArrays
 using Test
 
@@ -65,24 +66,20 @@ Ripserer.threshold(rw::ApparentPairsRips) = Ripserer.threshold(rw.rips)
 # `initialize_coboundary!` anyway. Doing this in parallel or on the GPU is an option,
 # however.  See https://arxiv.org/abs/2003.07989
 function Ripserer.find_apparent_pairs(rw::ApparentPairsRips, columns, is_cohomology, _)
-    if is_cohomology
-        S = eltype(columns)
-        C = Ripserer.simplex_type(rw, dim(S)+1)
-        cols_left = S[]
-        apparent = Tuple{S, C}[]
-        for σ in columns
-            τ = minimum(Ripserer.coboundary(rw, σ)) # This is broken if coboundary is empty.
-            σ′ = maximum(Ripserer.boundary(rw, τ))
-            if σ′ == σ
-                push!(apparent, (σ, τ))
-            else
-                push!(cols_left, σ)
-            end
+    S = eltype(columns)
+    C = Ripserer.simplex_type(rw, dim(S)+1)
+    cols_left = S[]
+    apparent = Tuple{S, C}[]
+    for σ in columns
+        τ = minimum(Ripserer.coboundary(rw, σ)) # This is broken if coboundary is empty.
+        σ′ = maximum(Ripserer.boundary(rw, τ))
+        if σ′ == σ
+            push!(apparent, (σ, τ))
+        else
+            push!(cols_left, σ)
         end
-        return cols_left, apparent
-    else
-        return columns, ()
     end
+    return cols_left, apparent
 end
 
 @testset "Rips with `find_apparent_pairs` overloaded." begin
@@ -99,5 +96,42 @@ end
             res_appa = ripserer(ApparentPairsRips(cycle; threshold=t); modulus=m, dim_max=3)
             @test res_rips == res_appa
         end
+    end
+end
+
+# This test checks that apparent pairs can produce correct intervals. On the side, check
+# `AbstractCustomFiltration`s.
+struct ApparentPairsCustom <: Ripserer.AbstractCustomFiltration{Int, Int}
+end
+
+function Ripserer.simplex_dicts(::ApparentPairsCustom)
+    return [
+        Dict(1 => 0, 2 => 0, 3 => 0),
+        Dict(1 => 1, 2 => 1, 3 => 2),
+        Dict(1 => 3)
+    ]
+end
+Ripserer.adjacency_matrix(::ApparentPairsCustom) = sparse(Bool[0 1 1; 1 0 1; 1 1 0])
+function Ripserer.find_apparent_pairs(a::ApparentPairsCustom, columns, _)
+    σ = columns[1]
+    return typeof(σ)[], [(σ, minimum(Ripserer.coboundary(a, σ)))]
+end
+
+@testset "Apparent pairs can produce valid intervals." begin
+    @testset "cohomology" begin
+        d0, d1 = ripserer(ApparentPairsCustom(), reps=true)
+        @test d0 == [(0, 1), (0, 1), (0, Inf)]
+        @test d1 == [(2, 3)]
+        @test d1[1].birth_simplex == Simplex{1}(3, 2)
+        @test d1[1].death_simplex == Simplex{2}(1, 3)
+        @test simplex(only(d1[1].representative)) == Simplex{1}(3, 2)
+    end
+    @testset "homology is unchanged" begin
+        d0, d1 = ripserer(ApparentPairsCustom(), cohomology=false, reps=true)
+        @test d0 == [(0, 1), (0, 1), (0, Inf)]
+        @test d1 == [(2, 3)]
+        @test d1[1].birth_simplex == Simplex{1}(3, 2)
+        @test d1[1].death_simplex == Simplex{2}(1, 3)
+        @test sort!(index.(d1[1].representative)) == [1, 2, 3]
     end
 end

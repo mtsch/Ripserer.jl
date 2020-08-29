@@ -367,19 +367,34 @@ end
 function compute_intervals!(
     matrix::ReductionMatrix, cutoff, progress, ::Val{reps}
 ) where {reps}
-    columns, apparent = find_apparent_pairs(
-        matrix.filtration, matrix.columns_to_reduce, is_cohomology(matrix), progress
-    )
+    # Set up result.
+    intervals = interval_type(
+        matrix.filtration, Val(dim(matrix)), Val(reps), field_type(matrix)
+    )[]
+
+    # Apparent pair stuff.
+    if is_cohomology(matrix)
+        columns, apparent = find_apparent_pairs(
+            matrix.filtration, matrix.columns_to_reduce, progress
+        )
+        bulk_add!(matrix.reduced, apparent)
+        foreach(apparent) do (σ, τ)
+            add_interval!(intervals, matrix, σ, cofacet_element(matrix)(τ), cutoff, Val(reps))
+        end
+    else
+        columns = matrix.columns_to_reduce
+    end
+
+    # Interval computation.
     progress && printstyled(
         stderr, "$(length(columns)) $(simplex_name(eltype(columns))) to reduce. Sorting... ",
         color=:green
     )
     # One-dimensional columns are already sorted.
-    dim(matrix) > 1 && sort!(columns, rev=is_cohomology(matrix))
+    if !is_cohomology(matrix) || dim(matrix) > 1
+        sort!(columns, rev=is_cohomology(matrix))
+    end
     progress && printstyled(stderr, "done.\n", color=:green)
-
-    bulk_add!(matrix.reduced, apparent)
-    display(columns)
 
     if progress
         progbar = Progress(
@@ -387,19 +402,16 @@ function compute_intervals!(
             desc="Computing $(dim(matrix))d intervals... ",
         )
     end
-    intervals = interval_type(
-        matrix.filtration, Val(dim(matrix)), Val(reps), field_type(matrix)
-    )[]
     for column in columns
         pivot = reduce_column!(matrix, column)
         add_interval!(intervals, matrix, column, pivot, cutoff, Val(reps))
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
-    thresh=Float64(threshold(matrix.filtration))
+
     return postprocess_diagram(
         matrix.filtration, PersistenceDiagram(
             intervals;
-            threshold=thresh,
+            threshold=Float64(threshold(matrix.filtration)),
             dim=dim(matrix),
             field_type=field_type(matrix),
             filtration=matrix.filtration,

@@ -292,10 +292,13 @@ Should return a tuple of:
 !!! note
     Mutating `columns` and returning it from this function is safe.
 
+!!! note
+    This can only be applied to cohomology.
+
 !!! warning
     This is still experimental.
 """
-find_apparent_pairs(::AbstractFiltration, columns, _, _) = columns, ()
+find_apparent_pairs(::AbstractFiltration, columns, _) = columns, ()
 
 # Vals everywhere so compiler computes this at compile time.
 @inline function interval_type(
