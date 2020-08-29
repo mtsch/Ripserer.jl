@@ -99,7 +99,7 @@ end
     end
 end
 
-# This test checks that apparent pairs can produce correct intervals. On the side, check
+# This test checks that apparent pairs can produce correct intervals. On the side, it checks
 # `AbstractCustomFiltration`s.
 struct ApparentPairsCustom <: Ripserer.AbstractCustomFiltration{Int, Int}
 end
