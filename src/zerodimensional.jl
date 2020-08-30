@@ -150,7 +150,6 @@ function zeroth_intervals(
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     reverse!(to_reduce)
-    progress && printstyled(stderr, "Assembled $(length(to_reduce)) edges.\n", color=:green)
 
     thresh = Float64(threshold(filtration))
     return (
