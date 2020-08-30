@@ -99,7 +99,7 @@ function bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
     n_indices = length(matrix.indices)
     last_index = last(matrix.indices)
     resize!(matrix.indices, n_indices + n)
-    for (i, (σ, τ)) in enumerate(pairs)
+    @inbounds for (i, (σ, τ)) in enumerate(pairs)
         matrix.indices[n_indices + i] = last_index + i
         matrix.values[n_values + i] = E(σ, sign(τ))
         matrix.column_index[abs(τ)] = n_indices + i - 1
