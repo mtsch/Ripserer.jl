@@ -30,8 +30,14 @@ Among the most successful implementations of persistent homology is Ripser
 [@bauer2019ripser]. With its speed and low memory usage, it makes persistent homology
 practical for larger datasets, even in higher dimensions. The introduction of Ripser has
 spawned a whole cottage industry of extensions and wrappers. Some examples include Ripser++
-[@zhang2020gpu], Lock-free Ripser [@morozov2020towards], Ripser.py [@tralie2018ripser] and
-Cubical Ripser [@kaji2020cubical].
+[@zhang2020gpu], Lock-free Ripser [@morozov2020towards], Ripser.py [@tralie2018ripser],
+Cubical Ripser [@kaji2020cubical], and Flagser [@lutgehetmann2020computing].
+
+In the Julia [@bezanson2017julia] space, there are few persistent homology packages
+available. The ones we were able to find include Eirene.jl[^1] [@henselman2016matroid],
+ComputationalHomology.jl[^2], Sparips.jl[^3] [@brehm2018sparips], and
+PersistentCohomology.jl[^4], of which only Eirene.jl is available through the Julia package
+manager.
 
 # Statement of Need
 
@@ -47,7 +53,7 @@ without having to reimplement the algorithm from scratch or forking an existing 
 
 # Summary
 
-Along with its companion package PersistenceDiagrams.jl[^1], Ripserer.jl provides a
+Along with its companion package, PersistenceDiagrams.jl[^5], Ripserer.jl provides a
 featureful environment for computing persistent homology and integrating it with the rest of
 Julia's data science stack. At the time of writing, it offers the following features.
 
@@ -57,14 +63,14 @@ in the data. The right plot shows the persistence diagram.](figure.png)
 * Fast Vietoris-Rips, alpha complex, and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
 * Support for coefficients in any, possibly user-defined, field.
-* Convenient persistence diagram and representative cocycle visualization via Plots.jl[^2]
+* Convenient persistence diagram and representative cocycle visualization via Plots.jl[^6]
   recipes.
 * Bottleneck and Wasserstein matching and distance computation.
 * Various persistence diagram vectorization functions, implemented with persistence
   images [@adams2017persistence] and persistence curves [@chung2019persistence].
 * Easy extensibility through a documented API.
 
-Our benchmarks[^3] show that Ripserer's performance is very close to that of Ripser. It
+Our benchmarks[^7] show that Ripserer's performance is very close to that of Ripser. It
 tends to be slightly slower for dense inputs and slightly faster for very sparse inputs. In
 the cubical case, we compared it to Cubical Ripser. There the performance was worse, taking
 up to 3 times as long to compute some results. This is expected as Cubical Ripser is much
@@ -76,9 +82,13 @@ lock-free Ripser. Judging from the benchmarks they provide, we expect them to pe
 better. Their downside, however, is that they require powerful hardware, such as GPUs or
 large numbers of processors.
 
-[^1]: https://github.com/mtsch/PersistenceDiagrams.jl
-[^2]: https://github.com/JuliaPlots/Plots.jl
-[^3]: https://mtsch.github.io/Ripserer.jl/dev/benchmarks/
+[^1]: https://github.com/Eetion/Eirene.jl
+[^2]: https://github.com/wildart/ComputationalHomology.jl
+[^3]: https://github.com/bbrehm/Sparips.jl
+[^4]: https://github.com/piever/PersistentCohomology.jl
+[^5]: https://github.com/mtsch/PersistenceDiagrams.jl
+[^6]: https://github.com/JuliaPlots/Plots.jl
+[^7]: https://mtsch.github.io/Ripserer.jl/dev/benchmarks/
 
 # Acknowledgments
 
