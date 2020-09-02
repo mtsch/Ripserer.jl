@@ -51,14 +51,14 @@ main feature Ripserer.jl provides is the ability to hook into its algorithm thro
 API. This allows researchers to experiment with different approaches to persistent homology
 without having to reimplement the algorithm from scratch or forking an existing repository.
 
+![Example visualizations. The plot on the left shows the three main representative cocycles
+in the data. The right plot shows the persistence diagram.](figure.png)
+
 # Summary
 
 Along with its companion package, PersistenceDiagrams.jl[^5], Ripserer.jl provides a
 featureful environment for computing persistent homology and integrating it with the rest of
 Julia's data science stack. At the time of writing, it offers the following features.
-
-![Example visualizations. The plot on the left shows the three main representative cocycles
-in the data. The right plot shows the persistence diagram.](figure.png)
 
 * Fast Vietoris-Rips, alpha complex, and cubical persistent homology computation.
 * Representative cocycle and critical simplex computation.
