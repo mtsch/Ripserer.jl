@@ -17,6 +17,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
+using LightGraphs
 using MiniQhull
 using PersistenceDiagrams
 using ProgressMeter
@@ -54,6 +55,8 @@ include("filtrations/rips.jl")
 include("filtrations/cubical.jl")
 include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
+
+include("cycles.jl")
 
 include("simplexrecipes.jl")
 
