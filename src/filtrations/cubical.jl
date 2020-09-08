@@ -48,17 +48,22 @@ one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
 end
 
 function to_cubemap(vertices::NTuple{N}) where N
-    floor(log2(N)) == log2(N) || throw(ArgumentError("number vertices is not 2^d"))
-    allunique(vertices) || throw(ArgumentError("duplicate vertices in $vertices"))
     K = length(first(vertices))
-    for i in 1:K
-        l, h = extrema(getindex.(vertices, i))
-        h - l ≤ 1 || throw(ArgumentError("vertices not adjacent"))
-    end
     result = ntuple(Val(K)) do i
         sum(2 .* getindex.(vertices, i) .- 1) ÷ N
     end
     return CartesianIndex{K}(result)
+end
+
+function is_valid(vertices::NTuple{N}) where N
+    floor(log2(N)) == log2(N) || return false
+    allunique(vertices) || return false
+    K = length(first(vertices))
+    for i in 1:K
+        l, h = extrema(getindex.(vertices, i))
+        h - l ≤ 1 || return false
+    end
+    return true
 end
 
 """
@@ -90,6 +95,7 @@ function Cube{D}(root::CartesianIndex{K}, birth::T) where {D, T, K}
     return Cube{D, T, K}(root, birth)
 end
 function Cube{D}(vertices, birth) where D
+    is_valid(vertices) || throw(ArgumentError("invalid vertices"))
     root = to_cubemap(tuple(CartesianIndex.(vertices)...))
     return Cube{D}(root, birth)
 end
@@ -168,8 +174,12 @@ function edges(cf::Cubical{K}) where K
 end
 
 function simplex(cf::Cubical{N, T}, ::Val{D}, vertices, sign=1) where {D, T, N}
-    root = to_cubemap(vertices)
-    return unsafe_simplex(cf, Val(D), root, sign)
+    if is_valid(vertices)
+        root = to_cubemap(vertices)
+        return unsafe_simplex(cf, Val(D), root, sign)
+    else
+        return nothing
+    end
 end
 
 function unsafe_simplex(cf::Cubical{N, T}, ::Val{D}, new_root, _) where {D, T, N}
@@ -305,3 +315,16 @@ end
 function chain_element_type(::Type{C}, ::Type{F}) where {C<:Cube, F}
     error("only Mod{2} allowed as field type for cubical homology")
 end
+
+struct CubicalDist{C} <: AbstractMatrix{Int}
+    filtration::C
+end
+
+Base.size(cd::CubicalDist) = (nv(cd.filtration), nv(cd.filtration))
+function Base.getindex(cd::CubicalDist, i::Integer, j::Integer)
+    ci = CartesianIndices(cd.filtration.data)[i]
+    cj = CartesianIndices(cd.filtration.data)[j]
+    return sum(abs, Tuple(ci) .- Tuple(cj))
+end
+
+dist(cf::Cubical) = CubicalDist(cf)

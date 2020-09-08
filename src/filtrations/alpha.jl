@@ -209,3 +209,14 @@ end
 adjacency_matrix(alpha::Alpha) = alpha.adj
 simplex_dicts(alpha::Alpha) = alpha.dicts
 threshold(alpha::Alpha) = alpha.threshold
+
+struct AlphaDist{A} <: AbstractMatrix{Float64}
+    alpha::A
+end
+
+Base.size(ad::AlphaDist) = (nv(ad.alpha), nv(ad.alpha))
+function Base.getindex(ad::AlphaDist, i::Integer, j::Integer)
+    Euclidean()(ad.alpha.points[i], ad.alpha.points[j])
+end
+
+dist(alpha::Alpha) = AlphaDist(alpha)
