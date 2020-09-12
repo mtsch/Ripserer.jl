@@ -61,11 +61,21 @@ function ripserer(
     cohomology=true,
 )
     index_overflow_check(filtration, field_type, dim_max)
-    return if cohomology
-        _cohomology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
+    start_time = time_ns()
+    if cohomology
+        result = _cohomology(
+            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+        )
     else
-        _homology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
+        result = _homology(
+            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+        )
     end
+    if progress
+        elapsed = round((time_ns() - start_time) / 1e9, digits=3)
+        printstyled(stderr, "Done. Took $elapsed seconds.\n"; color=:green)
+    end
+    return result
 end
 
 function _cohomology(
