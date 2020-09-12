@@ -13,7 +13,7 @@
 # the birth times of cofaces.
 #
 # See https://link.springer.com/chapter/10.1007%2F978-3-642-23175-9_7 for more info.
-@generated function cubemap(input::Array{T, N}) where {T, N}
+@generated function _cubemap(input::Array{T, N}) where {T, N}
     quote
         result = similar(input, size(input) .* 2 .- 1)
         result .= typemin(T)
@@ -27,16 +27,16 @@
     end
 end
 
-one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
+_one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
 
 # Convenience functions from converting cubemap index to vertices and back.
-@inline function from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
+@inline function _from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
     2^count(iseven, Tuple(root)) == N || throw(ArgumentError("invalid N"))
     result = ntuple(_ -> root, Val(N))
     for (i, j) in enumerate(Tuple(root))
         if iseven(j)
             result = result .+ ntuple(Val(N)) do k
-                ifelse(isodd(k), 1, -1) * one_hot(i, Val(K))
+                ifelse(isodd(k), 1, -1) * _one_hot(i, Val(K))
             end
         end
         result = TupleTools.sort(result, by=Base.Fix2(getindex, i))
@@ -47,7 +47,7 @@ one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
     end
 end
 
-function to_cubemap(vertices::NTuple{N}) where N
+function _to_cubemap(vertices::NTuple{N}) where N
     K = length(first(vertices))
     result = ntuple(Val(K)) do i
         sum(2 .* getindex.(vertices, i) .- 1) ÷ N
@@ -55,7 +55,7 @@ function to_cubemap(vertices::NTuple{N}) where N
     return CartesianIndex{K}(result)
 end
 
-function is_valid(vertices::NTuple{N}) where N
+function _is_valid(vertices::NTuple{N}) where N
     floor(log2(N)) == log2(N) || return false
     allunique(vertices) || return false
     K = length(first(vertices))
@@ -95,8 +95,9 @@ function Cube{D}(root::CartesianIndex{K}, birth::T) where {D, T, K}
     return Cube{D, T, K}(root, birth)
 end
 function Cube{D}(vertices, birth) where D
-    is_valid(vertices) || throw(ArgumentError("invalid vertices"))
-    root = to_cubemap(tuple(CartesianIndex.(vertices)...))
+    vs = tuple(CartesianIndex.(vertices)...)
+    _is_valid(vs) || throw(ArgumentError("invalid vertices"))
+    root = _to_cubemap(vs)
     return Cube{D}(root, birth)
 end
 
@@ -107,7 +108,7 @@ Base.:-(cube::Cube) = cube
 Base.abs(cube::Cube) = cube
 
 @generated Base.length(::Type{<:Cube{D}}) where D = :($(2^D))
-vertices(cube::Cube{D}) where D = from_cubemap(index(cube), Val(length(cube)))
+vertices(cube::Cube{D}) where D = _from_cubemap(index(cube), Val(length(cube)))
 
 """
     Cubical{T, K} <: AbstractFiltration{CartesianIndex{K}, T}
@@ -149,7 +150,7 @@ struct Cubical{K, T, A<:AbstractArray{T, K}} <: AbstractFiltration{CartesianInde
 end
 
 function Cubical(data::AbstractArray{T, K}; threshold=maximum(data)) where {T, K}
-    Cubical{K, T, typeof(data)}(data, cubemap(data), T(threshold))
+    Cubical{K, T, typeof(data)}(data, _cubemap(data), T(threshold))
 end
 
 nv(cf::Cubical) = length(cf.data)
@@ -174,8 +175,8 @@ function edges(cf::Cubical{K}) where K
 end
 
 function simplex(cf::Cubical{N, T}, ::Val{D}, vertices, sign=1) where {D, T, N}
-    if is_valid(vertices)
-        root = to_cubemap(vertices)
+    if _is_valid(vertices)
+        root = _to_cubemap(vertices)
         return unsafe_simplex(cf, Val(D), root, sign)
     else
         return nothing
@@ -213,7 +214,7 @@ function Base.iterate(cob::CubeCoboundary{K, D}, (i,sign)=(K,1)) where {K, D}
         end
 
         if isodd(orig_root[i])
-            new_root = orig_root + sign * one_hot(i, Val(K))
+            new_root = orig_root + sign * _one_hot(i, Val(K))
             cofacet = unsafe_simplex(
                 cob.filtration, Val(D + 1), new_root, sign
             )
@@ -248,7 +249,7 @@ function Base.iterate(bnd::CubeBoundary{K, D}, (i,sign)=(K,-1)) where {K, D}
         end
 
         if iseven(orig_root[i])
-            new_root = orig_root + sign * one_hot(i, Val(K))
+            new_root = orig_root + sign * _one_hot(i, Val(K))
             facet = unsafe_simplex(
                 bnd.filtration, Val(D - 1), new_root, sign
             )
