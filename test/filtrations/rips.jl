@@ -100,10 +100,22 @@ end
     @test maximum(adj) ≤ threshold(filtration)
 end
 
-struct SparseDummy <: AbstractSparseMatrix{Int, Int} end
-Base.size(::SparseDummy) = (10, 10)
-Base.getindex(::SparseDummy, i, j) = 1
-SparseArrays.issparse(::SparseDummy) = true
+@testset "Construction does not alter input" begin
+    dist = [0 9 1 2
+            9 0 3 4
+            1 3 0 4
+            2 4 4 0]
+    orig_dist = copy(dist)
+    Rips(dist, threshold=1)
+    @test dist == orig_dist
+    Rips(dist, threshold=1, sparse=true)
+    @test dist == orig_dist
+
+    dist = sparse(dist)
+    orig_dist = copy(dist)
+    Rips(dist, threshold=1)
+    @test dist == orig_dist
+end
 
 @testset "Errors" begin
     @testset "Non-square matrices throw an error" begin
@@ -117,9 +129,6 @@ SparseArrays.issparse(::SparseDummy) = true
     @testset "Edge births must be larger than vertex births" begin
         @test_throws ArgumentError Rips([1 1 1; 1 1 1; 1 1 2])
         @test_throws ArgumentError Rips([1 1 1; 1 2 1; 1 1 1]; sparse=true)
-    end
-    @testset "Only SparseMatrixCSC allowed for sparse filtrations" begin
-        @test_throws ArgumentError Rips(SparseDummy())
     end
 end
 

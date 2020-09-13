@@ -281,7 +281,7 @@ function Rips{I}(
     if sparse
         adj = SparseArrays.sparse(dists)
     else
-        adj = dists
+        adj = copy(dists)
     end
     if issparse(adj)
         adj isa SparseMatrixCSC || throw(ArgumentError(
