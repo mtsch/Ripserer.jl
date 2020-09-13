@@ -7,7 +7,7 @@ using StaticArrays
 using Suppressor
 using Test
 
-using Ripserer: distances, vertex_type, edge_type, dist, edges, nv, unsafe_simplex,
+using Ripserer: distances, births, adjacency_matrix, edges, nv, unsafe_simplex,
     ChainElement, PackedElement
 
 include("test-datasets.jl")
@@ -22,93 +22,104 @@ include("test-datasets.jl")
     end
 end
 
-for Filtration in (Rips, SparseRips)
-    @testset "$(string(Filtration))" begin
-        @testset "With no threshold" begin
-            filtration = Filtration(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0])
+for sparse in (true, false)
+    @testset "With no threshold, sparse=$sparse" begin
+        filtration = Rips(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0], sparse=sparse)
 
-            @test sprint(show, filtration) ==
-                "$(nameof(Filtration)){Int64, Float64}(nv=4)"
+        @test sprint(show, filtration) ==
+            "Rips{Int64, Float64}(nv=4, sparse=$sparse)"
 
-            @test nv(filtration) == 4
-            @test dist(filtration, 3, 3) == 0.0
-            @test dist(filtration, 1, 2) == 1.0
-            @test dist(filtration, 1, 3) == 2.0
-            @test dist(filtration, 3, 2) == 3.0
-
-            @test threshold(filtration) == 4.0
-            @test vertex_type(filtration) === Simplex{0, Float64, Int}
-            @test edge_type(filtration) === Simplex{1, Float64, Int}
-            @test birth(filtration, 1) == 0
-            @test birth(filtration, 4) == 0
-
-            @test dist(filtration) == filtration.dist
-
-            @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0}(1, 0.0)
-            @test unsafe_simplex(filtration, Val(1), (2, 1), -1) === -Simplex{1}(1, 1.0)
-            @test simplex(filtration, Val(2), (1, 3, 2)) === Simplex{2}(1, 3.0)
-            @test_throws ArgumentError simplex(filtration, Val(2), (1, 1, 2))
+        @test nv(filtration) == 4
+        if issparse(adjacency_matrix(filtration))
+            @test adjacency_matrix(filtration) == [0 1 2 0; 1 0 3 0; 2 3 0 4; 0 0 4 0]
+        else
+            @test adjacency_matrix(filtration) == [0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0]
         end
-        @testset "With threshold and index type" begin
-            filtration = Filtration{Int128}([1 1 2; 1 2 3; 2 3 2]; threshold=2)
 
-            @test sprint(show, filtration) ==
-                "$(nameof(Filtration)){Int128, Int64}(nv=3)"
+        @test threshold(filtration) == 4.0
+        @test births(filtration) == zeros(4)
 
-            @test nv(filtration) == 3
-            @test threshold(filtration) == 2
-            @test dist(filtration, 3, 3) == 2
-            @test dist(filtration, 1, 2) == 1
-            @test dist(filtration, 1, 3) == 2
-            @test dist(filtration, 3, 2) === (issparse(filtration.dist) ? missing : 3)
-            @test threshold(filtration) == 2
-            @test vertex_type(filtration) === Simplex{0, Int, Int128}
-            @test edge_type(filtration) === Simplex{1, Int, Int128}
+        @test adjacency_matrix(filtration) == filtration.adj
 
-            @test birth(filtration, 1) == 1
-            @test birth(filtration, 2) == 2
-            @test birth(filtration, 3) == 2
+        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0}(1, 0.0)
+        @test unsafe_simplex(filtration, Val(1), (2, 1), -1) === -Simplex{1}(1, 1.0)
+        @test simplex(filtration, Val(2), (1, 3, 2)) === Simplex{2}(1, 3.0)
+        @test_throws ArgumentError simplex(filtration, Val(2), (1, 1, 2))
+    end
+    @testset "With threshold and index type, sparse=$sparse" begin
+        filtration = Rips{Int128}([1 2 2; 2 2 3; 2 3 2]; threshold=2, sparse=sparse)
 
-            @test dist(filtration) == filtration.dist
+        @test sprint(show, filtration) ==
+            "Rips{Int128, Int64}(nv=3, sparse=$sparse)"
 
-            @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0, Int, Int128}(1, 1)
-            @test unsafe_simplex(filtration, Val(2), (3, 2, 1)) === nothing
-            @test simplex(filtration, Val(1), (1, 2), -1) === -Simplex{1, Int, Int128}(1, 1)
-            @test_throws ArgumentError simplex(filtration, Val(2), (0, 1, 2))
+        @test nv(filtration) == 3
+        @test threshold(filtration) == 2
+        if sparse
+            @test adjacency_matrix(filtration) == [1 2 2; 2 2 0; 2 0 2]
+        else
+            @test adjacency_matrix(filtration) == [1 2 2; 2 2 3; 2 3 2]
         end
+        @test threshold(filtration) == 2
+
+        @test births(filtration) == [1, 2, 2]
+
+        @test adjacency_matrix(filtration) == filtration.adj
+
+        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0, Int, Int128}(1, 1)
+        @test unsafe_simplex(filtration, Val(2), (3, 2, 1)) === nothing
+        @test simplex(filtration, Val(1), (1, 2), -1) === -Simplex{1, Int, Int128}(1, 2)
+        @test_throws ArgumentError simplex(filtration, Val(2), (0, 1, 2))
     end
 end
 
-@testset "Rips points constructor" begin
+@testset "Rips points constructor, sparse=false" begin
     filtration = Rips(
         [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]]
     )
-    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:100 for j in i+1:100)
+    adj = adjacency_matrix(filtration)
+    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in i+1:100)
     @test eltype(edges(filtration)) === Simplex{1, Float64, Int}
 
     filtration = Rips{Int32}(
         [(sin(x), cos(x)) for x in range(0f0, 2f0π, length=101)[1:end-1]]
     )
-    @test all(x -> x > 0, dist(filtration, i, j) for i in 1:100 for j in i+1:100)
+    adj = adjacency_matrix(filtration)
+    @test !issparse(adj)
+    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in i+1:100)
     @test eltype(edges(filtration)) === Simplex{1, Float32, Int32}
 end
 
-@testset "Rips points constructor" begin
-    filtration = SparseRips(
-        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]], threshold=0.1
+@testset "Rips points constructor, sparse=true" begin
+    filtration = Rips(
+        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]];
+        threshold=0.1, sparse=true,
     )
-    @test maximum(dist(filtration)) ≤ 0.1
+    adj = adjacency_matrix(filtration)
+    @test issparse(adj)
+    @test maximum(adj) ≤ 0.1
+    @test maximum(adj) ≤ threshold(filtration)
 end
 
+struct SparseDummy <: AbstractSparseMatrix{Int, Int} end
+Base.size(::SparseDummy) = (10, 10)
+Base.getindex(::SparseDummy, i, j) = 1
+SparseArrays.issparse(::SparseDummy) = true
+
 @testset "Errors" begin
-    @testset "Non-distance matrices throw an error" begin
-        @test_throws ArgumentError Rips([1 2 3; 4 5 6; 7 8 9])
-        @test_throws ArgumentError Rips(zeros(3, 2))
-        @test_throws ArgumentError SparseRips([1 2 3; 4 5 6; 7 8 9])
-        @test_throws ArgumentError SparseRips(zeros(3, 2))
+    @testset "Non-square matrices throw an error" begin
+        @test_throws DimensionMismatch Rips(zeros(3, 2))
+        @test_throws DimensionMismatch Rips(zeros(3, 2); sparse=true)
     end
-    @testset "Constructing Rips filtration with sparse matrix not allowed" begin
-        @test_throws ArgumentError Rips(sparse([0 1 1; 1 0 1; 1 1 0]))
+    @testset "Asymmetric matrices throw an error" begin
+        @test_throws ArgumentError Rips([1 1 1; 1 1 1; 1 2 1])
+        @test_throws ArgumentError Rips([1 1 1; 2 1 1; 1 2 1]; sparse=true)
+    end
+    @testset "Edge births must be larger than vertex births" begin
+        @test_throws ArgumentError Rips([1 1 1; 1 1 1; 1 1 2])
+        @test_throws ArgumentError Rips([1 1 1; 1 2 1; 1 1 1]; sparse=true)
+    end
+    @testset "Only SparseMatrixCSC allowed for sparse filtrations" begin
+        @test_throws ArgumentError Rips(SparseDummy())
     end
 end
 
@@ -179,7 +190,7 @@ end
         end
     end
 
-    @testset "SparseRips" begin
+    @testset "sparse" begin
         @testset "Icosahedron" begin
             d0, d1, d2 = ripserer(sparse(icosahedron); dim_max=2)
             @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
@@ -189,7 +200,7 @@ end
         @testset "RP2 with various fields, threshold=1" begin
             _, d1_2, d2_2 = ripserer(sparse(projective_plane);
                                      dim_max=2, threshold=1)
-            _, d1_3, d2_3 = ripserer(SparseRips(projective_plane; threshold=1);
+            _, d1_3, d2_3 = ripserer(Rips(projective_plane; threshold=1, sparse=true);
                                      dim_max=2, modulus=3)
             _, d1_331, d2_331 = ripserer(sparse(projective_plane);
                                          dim_max=2, field_type=Mod{5}, threshold=1)
@@ -203,8 +214,8 @@ end
         @testset "Equal to Rips" begin
             for thresh in (nothing, 1, 0.5, 0.126)
                 data = rand_torus(100)
-                r_res = ripserer(data, threshold=thresh, dim_max=2)
-                s_res_1 = ripserer(SparseRips(data, threshold=thresh), dim_max=2)
+                r_res = ripserer(data; threshold=thresh, dim_max=2)
+                s_res_1 = ripserer(Rips(data; threshold=thresh, sparse=true), dim_max=2)
 
                 # Add zeros to diagonal. Adding ones first actually changes the structure of
                 # the matrix.
@@ -213,7 +224,7 @@ end
                     data2[i, i] = 1
                     data2[i, i] = 0
                 end
-                s_res_2 = ripserer(data2, threshold=thresh, dim_max=2)
+                s_res_2 = ripserer(data2; threshold=thresh, dim_max=2)
 
                 @test r_res == s_res_1 == s_res_2
             end
@@ -298,7 +309,7 @@ end
     end
 
     @testset "Zero-dimensional sublevel set persistence" begin
-        @testset "with SparseRips" begin
+        @testset "with sparse matrix" begin
             data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
 
             # Create distance matrix from data, where neighboring points are connected by edges
@@ -375,6 +386,6 @@ end
     end
 
     @testset "Overflow checking" begin
-        @test_throws OverflowError ripserer(Rips{Int16}(zeros(1000, 1000)))
+        @test_throws OverflowError ripserer(Rips{Int16}(ones(1000, 1000)))
     end
 end

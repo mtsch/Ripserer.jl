@@ -13,8 +13,7 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex, sign[, edges])`
-* [`birth(::AbstractFiltration, v)`](@ref)
-* [`birth(::AbstractFiltration)`](@ref)
+* [`births(::AbstractFiltration)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration, ::Any)`](@ref)
 * [`emergent_pairs(::AbstractFiltration)`](@ref)
@@ -160,21 +159,17 @@ Base.OneTo(3)
 vertices(flt::AbstractFiltration) = Base.OneTo(nv(flt))
 
 """
-    birth(::AbstractFiltration, v)
-    birth(::AbstractFiltration)
+    births(::AbstractFiltration)
 
-Get the birth time of vertex `v` in filtration. Defaults to 0. When `v` is not given, return
-births in an array of same size as [`vertices(::AbstractFiltration)`](@ref).
+Get the birth times of vertices in filtration. Defaults to all births being 0. Must return
+array of the same shape as the filtration's `vertices`.
 
 # Examples
 
 ```jldoctest
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
-julia> birth(flt, 1)
-1
-
-julia> birth(flt)
+julia> Ripserer.births(flt)
 3-element Array{Int64,1}:
  1
  0
@@ -182,8 +177,7 @@ julia> birth(flt)
 
 ```
 """
-birth(::AbstractFiltration{<:Any, T}, _) where T = zero(T)
-birth(flt::AbstractFiltration{<:Any, T}) where T = zeros(T, size(vertices(flt)))
+births(flt::AbstractFiltration{<:Any, T}) where T = zeros(T, size(vertices(flt)))
 
 """
     threshold(::AbstractFiltration)
@@ -218,11 +212,11 @@ julia> Ripserer.adjacency_matrix(Rips([0 2 1; 2 0 1; 1 1 0]))
  2  0  1
  1  1  0
 
-julia> Ripserer.adjacency_matrix(SparseRips([0 0 1; 0 0 1; 1 1 0]))
+julia> Ripserer.adjacency_matrix(Rips([0 10 2; 10 0 1; 2 1 0]; sparse=true))
 3×3 SparseArrays.SparseMatrixCSC{Int64,Int64} with 4 stored entries:
-  [3, 1]  =  1
+  [3, 1]  =  2
   [3, 2]  =  1
-  [1, 3]  =  1
+  [1, 3]  =  2
   [2, 3]  =  1
 
 julia> Ripserer.adjacency_matrix(Custom([(2, 1) => 1, (5, 1) => 2, (3, 4) => 3]))

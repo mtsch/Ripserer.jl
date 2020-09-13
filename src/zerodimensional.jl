@@ -112,14 +112,14 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 function zeroth_intervals(
     filtration, cutoff, progress, ::Type{F}, ::Val{reps}
 ) where {F, reps}
-    V = vertex_type(filtration)
+    V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
-    dset = DisjointSetsWithBirth(vertices(filtration), birth(filtration))
+    dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
 
     intervals = interval_type(filtration, Val(0), Val(reps), F)[]
 
-    to_skip = edge_type(filtration)[]
-    to_reduce = edge_type(filtration)[]
+    to_skip = simplex_type(filtration, 1)[]
+    to_reduce = simplex_type(filtration, 1)[]
     simplices = sort!(edges(filtration))
     if progress
         progbar = Progress(

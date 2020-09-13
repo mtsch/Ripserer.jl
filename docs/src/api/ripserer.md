@@ -13,10 +13,6 @@ Rips
 ```
 
 ```@docs
-SparseRips
-```
-
-```@docs
 Cubical
 ```
 

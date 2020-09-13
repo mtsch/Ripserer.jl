@@ -20,7 +20,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   parameter is only applicable when using distance matrices or points as input. When using
   filtrations, threshold must be passed to the filtration constructor. Defaults to the
   radius of the input space. When using low thresholds with points or distance matrices,
-  consider using [`SparseRips`](@ref).
+  consider using `sparse=true`.
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.
@@ -36,13 +36,10 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 function ripserer(
     dists::AbstractMatrix;
     threshold=nothing,
+    sparse=false,
     kwargs...,
 )
-    if issparse(dists)
-        filtration = SparseRips(dists; threshold=threshold)
-    else
-        filtration = Rips(dists; threshold=threshold)
-    end
+    filtration = Rips(dists; threshold=threshold, sparse=sparse)
     return ripserer(filtration; kwargs...)
 end
 

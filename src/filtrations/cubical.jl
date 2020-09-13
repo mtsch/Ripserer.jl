@@ -151,8 +151,7 @@ threshold(cf::Cubical) = cf.threshold
 simplex_type(::Type{<:Cubical{K, T}}, D) where {K, T} = Cube{D, T, K}
 
 # when working with vertices, we don't cubemap them.
-birth(cf::Cubical, i) = cf.data[i]
-birth(cf::Cubical) = cf.data
+births(cf::Cubical) = cf.data
 vertices(cf::Cubical) = CartesianIndices(cf.data)
 
 function edges(cf::Cubical{K}) where K
