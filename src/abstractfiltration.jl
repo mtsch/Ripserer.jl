@@ -170,7 +170,7 @@ array of the same shape as the filtration's `vertices`.
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
 julia> Ripserer.births(flt)
-3-element Array{Int64,1}:
+3-element view(::Array{Int64,1}, 1:4:9) with eltype Int64:
  1
  0
  0

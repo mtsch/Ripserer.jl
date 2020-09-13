@@ -22,7 +22,12 @@ julia> ripserer(MyRips())
 abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
 
 nv(rips::AbstractRipsFiltration) = size(adjacency_matrix(rips), 1)
-births(rips::AbstractRipsFiltration) = diag(adjacency_matrix(rips))
+
+function births(rips::AbstractRipsFiltration)
+    adj = adjacency_matrix(rips)
+    return view(adj, diagind(adj))
+end
+
 simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
 
 function edges(rips::AbstractRipsFiltration)
