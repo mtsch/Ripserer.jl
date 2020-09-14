@@ -17,8 +17,8 @@ include("test-datasets.jl")
         [(0, 0), (0, 1), (1, 1), (1, 0)],
         [SVector(0, 0), SVector(0, 1), SVector(1, 1), SVector(1, 0)]
     )
-        @test distances(Euclidean(), points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
-        @test distances(Cityblock(), points) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
+        @test distances(points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
+        @test distances(points, Cityblock()) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
     end
 end
 
@@ -228,7 +228,7 @@ end
 
                 # Add zeros to diagonal. Adding ones first actually changes the structure of
                 # the matrix.
-                data2 = sparse(data)
+                data2 = sparse(Ripserer.distances(data))
                 for i in axes(data2, 1)
                     data2[i, i] = 1
                     data2[i, i] = 0

@@ -150,11 +150,11 @@ function to_matrix(points)
 end
 
 """
-    distances(metric, points)
+    distances(points, metric=Euclidean(1e-12))
 
 Return distance matrix calculated from `points` with `metric`.
 """
-function distances(metric, points)
+function distances(points, metric=Euclidean(1e-12))
     points_mat = to_matrix(points)
     dists = pairwise(metric, points_mat, dims=2)
     return dists
@@ -207,7 +207,7 @@ function _check_distance_matrix(dist::SparseMatrixCSC)
     end
 end
 
-function _check_distance_matrix(dist)
+function _check_distance_matrix(dist::AbstractMatrix)
     n = LinearAlgebra.checksquare(dist)
     for i in 1:n
         for j in i+1:n
@@ -292,7 +292,11 @@ function Rips{I}(
     return Rips{I, T, typeof(adj)}(adj, thresh)
 end
 function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where I
-    return Rips{I}(distances(metric, unique(points)); kwargs...)
+    if !allunique(points)
+        @warn "points not unique"
+        points = unique(points)
+    end
+    return Rips{I}(distances(points, metric); kwargs...)
 end
 function Rips(dist_or_points; kwargs...)
     return Rips{Int}(dist_or_points; kwargs...)
