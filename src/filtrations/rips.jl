@@ -150,11 +150,11 @@ function to_matrix(points)
 end
 
 """
-    distances(metric, points)
+    distances(points, metric=Euclidean(1e-12))
 
 Return distance matrix calculated from `points` with `metric`.
 """
-function distances(metric, points)
+function distances(points, metric=Euclidean(1e-12))
     points_mat = to_matrix(points)
     dists = pairwise(metric, points_mat, dims=2)
     return dists
@@ -162,7 +162,7 @@ end
 
 """
     radius(dists)
-    radius(points[, metric=Euclidean()])
+    radius(points[, metric=Euclidean(1e-12)])
 
 Calculate the radius of the space. This is used for default `thresholds`.
 """
@@ -172,7 +172,7 @@ end
 function radius(dists::SparseMatrixCSC)
     return maximum(dists)
 end
-function radius(points, metric=Euclidean())
+function radius(points, metric=Euclidean(1e-12))
     radius = Inf
     for p in points
         p_max = 0.0
@@ -207,7 +207,7 @@ function _check_distance_matrix(dist::SparseMatrixCSC)
     end
 end
 
-function _check_distance_matrix(dist)
+function _check_distance_matrix(dist::AbstractMatrix)
     n = LinearAlgebra.checksquare(dist)
     for i in 1:n
         for j in i+1:n
@@ -243,7 +243,7 @@ faster.
 # Constructors
 
 * `Rips(distance_matrix; threshold=nothing)`
-* `Rips(points; metric=Euclidean(), threshold=nothing)`
+* `Rips(points; metric=Euclidean(1e-12), threshold=nothing)`
 * `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
 
 # Examples
@@ -291,8 +291,12 @@ function Rips{I}(
     end
     return Rips{I, T, typeof(adj)}(adj, thresh)
 end
-function Rips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
-    return Rips{I}(distances(metric, points); kwargs...)
+function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where I
+    if !allunique(points)
+        @warn "points not unique"
+        points = unique(points)
+    end
+    return Rips{I}(distances(points, metric); kwargs...)
 end
 function Rips(dist_or_points; kwargs...)
     return Rips{Int}(dist_or_points; kwargs...)

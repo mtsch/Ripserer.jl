@@ -17,8 +17,8 @@ include("test-datasets.jl")
         [(0, 0), (0, 1), (1, 1), (1, 0)],
         [SVector(0, 0), SVector(0, 1), SVector(1, 1), SVector(1, 0)]
     )
-        @test distances(Euclidean(), points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
-        @test distances(Cityblock(), points) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
+        @test distances(points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
+        @test distances(points, Cityblock()) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
     end
 end
 
@@ -115,6 +115,13 @@ end
     orig_dist = copy(dist)
     Rips(dist, threshold=1)
     @test dist == orig_dist
+end
+
+@testset "warns with duplicate points" begin
+    pts = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0)]
+    @test @capture_err(Rips(pts)) ≠ ""
+    @test @capture_err(Rips(pts[1:4])) == ""
+    @test nv(@suppress Rips(pts)) == 4
 end
 
 @testset "Errors" begin
@@ -222,13 +229,13 @@ end
         end
         @testset "Equal to Rips" begin
             for thresh in (nothing, 1, 0.5, 0.126)
-                data = rand_torus(100)
+                data = torus_points(100)
                 r_res = ripserer(data; threshold=thresh, dim_max=2)
-                s_res_1 = ripserer(Rips(data; threshold=thresh, sparse=true), dim_max=2)
+                s_res_1 = ripserer(data; threshold=thresh, sparse=true, dim_max=2)
 
                 # Add zeros to diagonal. Adding ones first actually changes the structure of
                 # the matrix.
-                data2 = sparse(data)
+                data2 = sparse(Ripserer.distances(data))
                 for i in axes(data2, 1)
                     data2[i, i] = 1
                     data2[i, i] = 0
