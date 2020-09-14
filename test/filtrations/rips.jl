@@ -117,6 +117,13 @@ end
     @test dist == orig_dist
 end
 
+@testset "warns with duplicate points" begin
+    pts = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0)]
+    @test @capture_err(Rips(pts)) ≠ ""
+    @test @capture_err(Rips(pts[1:4])) == ""
+    @test nv(@suppress Rips(pts)) == 4
+end
+
 @testset "Errors" begin
     @testset "Non-square matrices throw an error" begin
         @test_throws DimensionMismatch Rips(zeros(3, 2))
