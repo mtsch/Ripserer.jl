@@ -117,7 +117,7 @@ end
     @test dist == orig_dist
 end
 
-@testset "warns with duplicate points" begin
+@testset "Warns with duplicate points" begin
     pts = [(1, 0), (1, 1), (0, 1), (0, 0), (0, 0)]
     @test @capture_err(Rips(pts)) ≠ ""
     @test @capture_err(Rips(pts[1:4])) == ""
