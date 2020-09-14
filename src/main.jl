@@ -1,10 +1,12 @@
 """
     ripserer(dists::AbstractMatrix; kwargs...)
-    ripserer(points; metric=Distances.Euclidean(), births, kwargs...)
+    ripserer(points; metric=Distances.Euclidean(1e-12), births, kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists`, `points`, and
-`metric` or a [`Ripserer.AbstractFiltration`](@ref).
+Compute the persistent homology of metric space represented by `dists`, `points` and
+`metric`, or a [`Ripserer.AbstractFiltration`](@ref).
+
+If `dists` or `points` are given, the `Rips` filtration is used.
 
 If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
 `SVector`s.
@@ -27,7 +29,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 * `progress`: If `true`, show a progress bar. Defaults to `false`.
 * `metric`: when calculating persistent homology from points, any metric from
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
-  `Distances.Euclidean()`.
+  `Distances.Euclidean(1e-12)`.
 * `cohomology`: if set to `false`, compute persistent homology instead of cohomology. This
   is much slower and gives the same result, but may give more informative representatives
   when `reps` is enabled. Currently unable to compute infinite intervals in dimensions
@@ -35,16 +37,18 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 """
 function ripserer(
     dists::AbstractMatrix;
-    threshold=nothing,
-    sparse=false,
-    kwargs...,
+    threshold=nothing, sparse=false, kwargs...,
 )
     filtration = Rips(dists; threshold=threshold, sparse=sparse)
     return ripserer(filtration; kwargs...)
 end
 
-function ripserer(points::AbstractVector; metric=Euclidean(), threshold=nothing, kwargs...)
-    return ripserer(Rips(points; metric=metric, threshold=threshold); kwargs...)
+function ripserer(
+    points::AbstractVector;
+    metric=Euclidean(1e-12), threshold=nothing, sparse=false, kwargs...
+)
+    filtration = Rips(points; metric=metric, threshold=threshold, sparse=sparse)
+    return ripserer(filtration; kwargs...)
 end
 
 function ripserer(
@@ -57,8 +61,8 @@ function ripserer(
     progress=false,
     cohomology=true,
 )
-    index_overflow_check(filtration, field_type, dim_max)
     start_time = time_ns()
+    index_overflow_check(filtration, field_type, dim_max)
     if cohomology
         result = _cohomology(
             filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)

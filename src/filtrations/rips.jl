@@ -162,7 +162,7 @@ end
 
 """
     radius(dists)
-    radius(points[, metric=Euclidean()])
+    radius(points[, metric=Euclidean(1e-12)])
 
 Calculate the radius of the space. This is used for default `thresholds`.
 """
@@ -172,7 +172,7 @@ end
 function radius(dists::SparseMatrixCSC)
     return maximum(dists)
 end
-function radius(points, metric=Euclidean())
+function radius(points, metric=Euclidean(1e-12))
     radius = Inf
     for p in points
         p_max = 0.0
@@ -243,7 +243,7 @@ faster.
 # Constructors
 
 * `Rips(distance_matrix; threshold=nothing)`
-* `Rips(points; metric=Euclidean(), threshold=nothing)`
+* `Rips(points; metric=Euclidean(1e-12), threshold=nothing)`
 * `Rips{I}(args...)`: `I` sets the size of integer used to represent simplices.
 
 # Examples
@@ -291,8 +291,8 @@ function Rips{I}(
     end
     return Rips{I, T, typeof(adj)}(adj, thresh)
 end
-function Rips{I}(points::AbstractVector; metric=Euclidean(), kwargs...) where I
-    return Rips{I}(distances(metric, points); kwargs...)
+function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where I
+    return Rips{I}(distances(metric, unique(points)); kwargs...)
 end
 function Rips(dist_or_points; kwargs...)
     return Rips{Int}(dist_or_points; kwargs...)

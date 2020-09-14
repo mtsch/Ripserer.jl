@@ -222,9 +222,9 @@ end
         end
         @testset "Equal to Rips" begin
             for thresh in (nothing, 1, 0.5, 0.126)
-                data = rand_torus(100)
+                data = torus_points(100)
                 r_res = ripserer(data; threshold=thresh, dim_max=2)
-                s_res_1 = ripserer(Rips(data; threshold=thresh, sparse=true), dim_max=2)
+                s_res_1 = ripserer(data; threshold=thresh, sparse=true, dim_max=2)
 
                 # Add zeros to diagonal. Adding ones first actually changes the structure of
                 # the matrix.
