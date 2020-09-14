@@ -1,8 +1,6 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
-FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Ripserer = "aa79e827-bd0b-42a8-9f10-2b302677a641"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
