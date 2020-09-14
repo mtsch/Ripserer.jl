@@ -170,7 +170,7 @@ julia> alpha = Alpha(data)
 Alpha{Int64, Float64}(nv=100)
 
 julia> rips = Rips(data)
-Rips{Int64, Float64}(nv=100)
+Rips{Int64, Float64}(nv=100, sparse=false)
 
 julia> length(Ripserer.edges(alpha))
 197

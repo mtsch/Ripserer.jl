@@ -15,7 +15,7 @@ Ripserer.edges(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-Ripserer.birth(::Ripserer.AbstractFiltration, ::Any)
+Ripserer.births(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
@@ -52,10 +52,6 @@ Ripserer.postprocess_diagram
 
 ```@docs
 Ripserer.AbstractRipsFiltration
-```
-
-```@docs
-Ripserer.dist
 ```
 
 ```@docs

@@ -25,8 +25,8 @@ hash `286d369`) and Cubical Ripser (commit hashes `6edb9c5` for 2D and `a063dac`
 
 In this experiment, we performed benchmarks with the datasets presented in the [Ripser
 article](https://arxiv.org/abs/1908.02518). We only used the datasets that we were able to
-run with less than 8GB memory. `ripserer_s` denotes `ripserer` run with
-[`SparseRips`](@ref). All datasets were parsed as `Float32` as that is what Ripser supports.
+run with less than 8GB memory. `ripserer_s` denotes `ripserer` run with `sparse=true`. All
+datasets were parsed as `Float32` as that is what Ripser supports.
 
 The timing results are in the table below. The ratio column shows the better ratio.
 

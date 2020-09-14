@@ -391,10 +391,12 @@ function compute_intervals!(
         color=:green
     )
     # One-dimensional columns are already sorted.
+    sort_t = time_ns()
     if !is_cohomology(matrix) || dim(matrix) > 1
         sort!(columns, rev=is_cohomology(matrix))
     end
-    progress && printstyled(stderr, "done.\n", color=:green)
+    elapsed = round((time_ns() - sort_t) / 1e9, digits=3)
+    progress && printstyled(stderr, "done. ($elapsed seconds)\n", color=:green)
 
     if progress
         progbar = Progress(
@@ -405,7 +407,7 @@ function compute_intervals!(
     for column in columns
         pivot = reduce_column!(matrix, column)
         add_interval!(intervals, matrix, column, pivot, cutoff, Val(reps))
-        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
+        progress && next!(progbar; showvalues=((:intervals, length(intervals)),))
     end
 
     return postprocess_diagram(
@@ -431,10 +433,7 @@ function next_matrix(matrix::ReductionMatrix, progress)
     is_cohomology(matrix) && sizehint!(new_to_skip, length(matrix.reduced))
 
     if progress
-        progbar = Progress(
-            length(matrix.columns_to_reduce) + length(matrix.columns_to_skip),
-            desc="Assembling...             "
-        )
+        progbar = ProgressUnknown("Assembling columns:")
     end
     for simplex in columns_to_reduce(
         matrix.filtration,
@@ -445,8 +444,12 @@ function next_matrix(matrix::ReductionMatrix, progress)
         else
             push!(new_to_reduce, abs(simplex))
         end
-        progress && next!(progbar)
+        progress && next!(progbar; showvalues=(
+            ("cleared", length(new_to_skip)),
+            ("to reduce", length(new_to_reduce)),
+        ))
     end
+    progress && print(stderr, "\r")
 
     return ReductionMatrix{is_cohomology(matrix), field_type(matrix)}(
         matrix.filtration, new_to_reduce, new_to_skip

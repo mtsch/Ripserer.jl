@@ -48,8 +48,7 @@ end
 
 dim(cf::AbstractCustomFiltration) = length(simplex_dicts(cf)) - 1
 simplex_type(::Type{<:AbstractCustomFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
-birth(cf::AbstractCustomFiltration, v) = simplex_dicts(cf)[1][v]
-birth(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
+births(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
 edges(cf::AbstractCustomFiltration) = cf[Val(1)]
 columns_to_reduce(cf::AbstractCustomFiltration, prev) = cf[Val(dim(eltype(prev)) + 1)]
 nv(cf::AbstractCustomFiltration) = size(adjacency_matrix(cf), 1)

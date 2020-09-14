@@ -3,7 +3,7 @@ using SparseArrays
 using Test
 using TupleTools
 
-using Ripserer: adjacency_matrix
+using Ripserer: adjacency_matrix, births
 
 
 @testset "Custom filtration 1" begin
@@ -63,12 +63,12 @@ end
          for i in 1:4 for j in i+1:4 for k in j+1:4];
     ])
     @test simplex(cf, Val(3), (4, 3, 2, 1)) == nothing
-    @test all(birth(cf, i) == 0 for i in 1:4)
+    @test births(cf) == zeros(4)
 
     @test ripserer(dist) == ripserer(cf)
 end
 
-@testset "Custom filtration vs SparseRips" begin
+@testset "Custom filtration vs sparse Rips" begin
     spdist = sparse([
         0 1 0 0 0 1
         1 0 1 0 0 0
@@ -91,7 +91,7 @@ end
         (5, 6) => 1,
         (6, 1) => 1,
     ])
-    sprips = SparseRips(spdist)
+    sprips = Rips(spdist)
 
     @test adjacency_matrix(cf) == Bool.(spdist)
     @test threshold(cf) == 1

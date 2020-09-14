@@ -53,7 +53,7 @@ end
 
 # This test is mostly supposed to test that pre-finding apparent pairs with
 # `find_apparent_pairs` first works correctly. On the side, it also tests that rips
-# filtrations that only overload `dist` and `threshold` work fine.
+# filtrations that only overload `adjacency_matrix` and `threshold` work fine.
 struct ApparentPairsRips{I, T, R<:Rips{I, T}} <: Ripserer.AbstractRipsFiltration{I, T}
     rips::R
     apparent::Ref{Int}
@@ -64,7 +64,7 @@ function ApparentPairsRips(data; kwargs...)
     return ApparentPairsRips(Rips(data; kwargs...), Ref(0), Ref(0))
 end
 
-Ripserer.dist(rw::ApparentPairsRips) = Ripserer.dist(rw.rips)
+Ripserer.adjacency_matrix(rw::ApparentPairsRips) = Ripserer.adjacency_matrix(rw.rips)
 Ripserer.threshold(rw::ApparentPairsRips) = Ripserer.threshold(rw.rips)
 
 # This works fine but is slower than the original algorithm (even if the pair finding code

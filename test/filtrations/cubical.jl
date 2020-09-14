@@ -6,7 +6,7 @@ using Test
 using TupleTools
 
 using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
-    coboundary, boundary, edges,
+    coboundary, boundary, edges, births,
     chain_element_type, CubicalChainElement
 
 @testset "CubeMap" begin
@@ -161,7 +161,7 @@ end
         filtration = Cubical(data)
 
         @test nv(filtration) == length(data)
-        @test birth(filtration) == data
+        @test births(filtration) == data
         @test size(filtration.cubemap) == size(data) .* 2 .- 1
         @test vertices(filtration) == CartesianIndices(data)
     end

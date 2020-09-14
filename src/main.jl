@@ -20,7 +20,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   parameter is only applicable when using distance matrices or points as input. When using
   filtrations, threshold must be passed to the filtration constructor. Defaults to the
   radius of the input space. When using low thresholds with points or distance matrices,
-  consider using [`SparseRips`](@ref).
+  consider using `sparse=true`.
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.
@@ -36,13 +36,10 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 function ripserer(
     dists::AbstractMatrix;
     threshold=nothing,
+    sparse=false,
     kwargs...,
 )
-    if issparse(dists)
-        filtration = SparseRips(dists; threshold=threshold)
-    else
-        filtration = Rips(dists; threshold=threshold)
-    end
+    filtration = Rips(dists; threshold=threshold, sparse=sparse)
     return ripserer(filtration; kwargs...)
 end
 
@@ -61,11 +58,21 @@ function ripserer(
     cohomology=true,
 )
     index_overflow_check(filtration, field_type, dim_max)
-    return if cohomology
-        _cohomology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
+    start_time = time_ns()
+    if cohomology
+        result = _cohomology(
+            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+        )
     else
-        _homology(filtration, cutoff, progress, field_type, Val(dim_max), Val(reps))
+        result = _homology(
+            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+        )
     end
+    if progress
+        elapsed = round((time_ns() - start_time) / 1e9, digits=3)
+        printstyled(stderr, "Done. Took $elapsed seconds.\n"; color=:green)
+    end
+    return result
 end
 
 function _cohomology(
