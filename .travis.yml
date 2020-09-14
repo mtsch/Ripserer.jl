@@ -3,6 +3,12 @@ language: julia
 jobs:
   include:
     - os: linux
+      julia: 1
+      after_success:
+      - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+      - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())';
+
+    - os: linux
       dist: bionic
       julia: 1.0
       addons:
@@ -12,17 +18,24 @@ jobs:
           - gcc
           - libqhull-r7
           - libqhull-dev
-    - os: linux
-      julia: 1
+      after_success: skip
+
     - os: linux
       julia: nightly
+      after_success: skip
+
     - os: osx
       julia: 1
+      after_success: skip
+
     - os: windows
       julia: 1
+      after_success: skip
+
     - stage: "docs"
-      julia: 1
+      if: branch = master
       os: linux
+      julia: 1
       addons:
         apt:
           - libxt6
@@ -38,7 +51,3 @@ jobs:
 
 notifications:
   email: false
-
-after_success:
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())';
