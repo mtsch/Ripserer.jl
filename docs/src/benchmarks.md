@@ -21,6 +21,8 @@ around 100MiB memory.
 The benchmarks were performed with Ripserer v0.14.3 and `master` versions of Ripser (commit
 hash `286d369`) and Cubical Ripser (commit hashes `6edb9c5` for 2D and `a063dac` for 3D).
 
+The timings show the minimum time taken for five repetitions of the benchmark.
+
 ## Vietoris-Rips Persistent Homology
 
 In this experiment, we performed benchmarks with the datasets presented in the [Ripser
@@ -32,12 +34,12 @@ The timing results are in the table below. The ratio column shows the better rat
 
 | dataset    | size  | `dim_max` | `threshold` | `ripserer` | `ripserer_s` | `ripser`  | ratio |
 | :--------- | :---- | :-------- | :---------- | :--------- | :----------- | :-------- | :---- |
-| `random16` | 50    | 2         |             | 8.1ms      | 9.3ms        | 10.2 ms   | 0.80  |
-| `o3_1024`  | 1024  | 3         | 1.8         | 4.3s       | 3.1s         | 3.1 s     | 1.01  |
-| `o3_4096`  | 4096  | 3         | 1.4         | 143.2s     | 76.3s        | 75.6 s    | 1.01  |
-| `fract-r`  | 512   | 2         |             | 22.4s      | 25.4s        | 19.6 s    | 1.14  |
-| `sphere_3` | 192   | 2         |             | 1.6s       | 1.8s         | 1.5 s     | 1.04  |
-| `dragon`   | 2000  | 1         |             | 3.2s       | 3.8s         | 2.8 s     | 1.12  |
+| `random16` | 50    | 2         |             | 8.1ms      | 9.3ms        | 10.2ms   | 0.80  |
+| `o3_1024`  | 1024  | 3         | 1.8         | 4.3s       | 3.1s         | 3.1s     | 1.01  |
+| `o3_4096`  | 4096  | 3         | 1.4         | 143.2s     | 76.3s        | 75.6s    | 1.01  |
+| `fract-r`  | 512   | 2         |             | 22.4s      | 25.4s        | 19.6s    | 1.14  |
+| `sphere_3` | 192   | 2         |             | 1.6s       | 1.8s         | 1.5s     | 1.04  |
+| `dragon`   | 2000  | 1         |             | 3.2s       | 3.8s         | 2.8s     | 1.12  |
 
 The next table shows peak heap sizes as reported by `valgrind`.
 
@@ -65,7 +67,7 @@ Timing results:
 | `3_sphere` | 3000  | 3         | 623ms      | 809ms    | 0.77  |
 | `4_sphere` | 2000  | 4         | 5.9s       | 6.3s     | 0.94  |
 | `5_sphere` | 1000  | 5         | 49.7s      | 47.6s    | 1.04  |
-| `dragon`   | 2000  | 2         | 58ms       | 76.3s    | 0.76  |
+| `dragon`   | 2000  | 2         | 58ms       | 76.ms    | 0.76  |
 
 Peak heap size:
 
@@ -92,11 +94,11 @@ Timing results:
 
 | dataset  | size        | `ripserer` | `cubical_ripser` | ratio |
 | :------- | :---------- | :-------   | :--------------- | :---- |
-| `lena`   | 1999×999    | 3.8 s      | 2.0 s            | 1.90  |
-| `bonsai` | 128×128×128 | 33.1 s     | 15.0 s           | 2.21  |
-| `lena`   | 512×512     | 842.6 ms   | 295.9 ms         | 2.85  |
-| `head`   | 128×128×128 | 26.0 s     | 12.8 s           | 2.03  |
-| `bonsai` | 64×64×64    | 3.0 s      | 3.0 s            | 1.01  |
+| `lena`   | 512×512     | 842.6ms    | 295.9ms          | 2.85  |
+| `lena`   | 1999×999    | 3.8s       | 2.0s             | 1.90  |
+| `bonsai` | 64×64×64    | 3.0s       | 3.0s             | 1.01  |
+| `bonsai` | 128×128×128 | 33.1s      | 15.0s            | 2.21  |
+| `head`   | 128×128×128 | 26.0s      | 12.8s            | 2.03  |
 
 Peak heap size:
 
