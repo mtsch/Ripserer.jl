@@ -18,7 +18,7 @@ for b in benchmarks
     data = load_data(joinpath(@__DIR__, "data", b.file))
     suite[name] = @benchmarkable ripserer(
         Alpha($data); dim_max=$(b.dim_max)
-    ) gcsample=true seconds=60
+    ) samples=1
 end
 
 end
