@@ -174,7 +174,7 @@ end
             [(3sin(t), 3cos(t)) for t in range(0, 2π; length=22)[1:end-1]],
             vec([(i - 5, j - 5) for (i, j) in Iterators.product(0.0:10.0, 0.0:10.0)
                  if !(i ∈ 4:6 && j ∈ 4:6)])
-        )
+        ) |> unique!
         flt = Rips(pts)
         interval = sort!(ripserer(flt, reps=true)[2], by=persistence)[end]
 

@@ -325,30 +325,32 @@ function index_overflow_check(
 end
 
 """
-    dist(::AbstractFiltration, u, v)
     dist(::AbstractFiltration)
 
-Return the distance between vertices `u` and `v`. If the distance is somehow invalid, it may
-return `missing` instead. If `u` and `v` are not given, return the distance matrix.
+Return distance matrix of filtration. These distances are used to determine edge length when
+finding shortest represenatative cycle in [`reconstruct_cycle`](@ref).
 
-These distances are used for `AbstractRipsFiltration`s to determine birth times of
-simplices.
-
-For other filtrations, they are used when reconstructing representative cycles.
+Defaults to all distances being 1.
 
 # Examples
 
 ```jldoctest
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
-julia> Ripserer.dist(flt, 1, 3)
-2
-
 julia> Ripserer.dist(flt)
 3×3 Array{Int64,2}:
  1  1  2
  1  0  1
  2  1  0
+
+julia> flt = Custom([(1,2,3,4) => 10.0, (1,2) => 3.0, (1,3) => 4.0, (2,3) => 5.0]);
+
+julia> Ripserer.dist(flt)
+4×4 Ripserer.DefaultDist{Float64}:
+ 0.0  1.0  1.0  1.0
+ 1.0  0.0  1.0  1.0
+ 1.0  1.0  0.0  1.0
+ 1.0  1.0  1.0  0.0
 
 ```
 """
@@ -360,4 +362,4 @@ struct DefaultDist{T} <: AbstractMatrix{T}
 end
 
 Base.size(dd::DefaultDist) = (dd.nv, dd.nv)
-Base.getindex(dd::DefaultDist, _, _) = one(eltype(dd))
+Base.getindex(dd::DefaultDist, i, j) = ifelse(i == j, zero(eltype(dd)), one(eltype(dd)))
