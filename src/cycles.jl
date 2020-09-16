@@ -86,7 +86,7 @@ function _find_cycle(g)
     dists = dist(g.filtration)
     for sx in g.removed
         u, v = _linear.(Ref(g), sx)
-        path = a_star(g, u, v, dists, _heuristic(g.filtration, u))
+        path = a_star(g, u, v, dists, _heuristic(g.filtration, v))
         weight = _path_length(dists, path) + dists[u, v]
         if !isempty(path) && isless(weight, best_weight)
             best_weight = weight

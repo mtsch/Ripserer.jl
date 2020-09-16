@@ -170,11 +170,12 @@ end
     @testset "circle points over a grid with a hole" begin
         # The idea here is that at birth time, the cycle is a circle and at time 1, the
         # cycle is a square surrounding the hole.
-        pts = vcat(
+        pts = unique!(vcat(
             [(3sin(t), 3cos(t)) for t in range(0, 2π; length=22)[1:end-1]],
             vec([(i - 5, j - 5) for (i, j) in Iterators.product(0.0:10.0, 0.0:10.0)
                  if !(i ∈ 4:6 && j ∈ 4:6)])
-        ) |> unique!
+        ))
+
         flt = Rips(pts)
         interval = sort!(ripserer(flt, reps=true)[2], by=persistence)[end]
 
@@ -183,7 +184,7 @@ end
         cyc3 = reconstruct_cycle(flt, interval, 2)
         cyc4 = reconstruct_cycle(flt, interval, 3)
 
-        @test sum(birth, cyc1) ≈ 6π atol=0.05
+        @test sum(birth, cyc1) ≈ 6π atol=0.1
         @test sum(birth, cyc2) == 16
         @test sum(birth, cyc3) ≈ 8 + 4 * √2
         @test sum(birth, cyc4) ≈ 8 * √2
