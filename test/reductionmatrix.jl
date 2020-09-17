@@ -5,7 +5,7 @@ using Test
 using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
-using Ripserer: WorkingCoboundary, nonheap_push!, repair!
+using Ripserer: WorkingChain, nonheap_push!, repair!
 using Ripserer: ReductionMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
 
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
@@ -171,7 +171,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     end
 end
 
-@testset "WorkingCoboundary" begin
+@testset "WorkingChain" begin
     for S in (Simplex{2, Int, Int}, Simplex{1, Int, Int32}), T in (Mod{3}, Rational{Int})
         SE = chain_element_type(S, T)
 
@@ -181,8 +181,8 @@ end
         fwd = Base.Order.Forward
         rev = Base.Order.Reverse
 
-        @testset "a fresh WorkingCoboundary is empty and pop! yields nothing" begin
-            working_boundary = WorkingCoboundary{SE}(fwd)
+        @testset "a fresh WorkingChain is empty and pop! yields nothing" begin
+            working_boundary = WorkingChain{SE}(fwd)
 
             @test isempty(working_boundary)
             @test pop!(working_boundary) ≡ nothing
@@ -190,7 +190,7 @@ end
         end
 
         @testset "pushing elements and popping finds the lowest simplex (cohomology)" begin
-            working_boundary = WorkingCoboundary{SE}(fwd)
+            working_boundary = WorkingChain{SE}(fwd)
             for e in elements
                 push!(working_boundary, e)
             end
@@ -199,7 +199,7 @@ end
         end
 
         @testset "the same happens for nonheap_push! with repair! (homology)" begin
-            working_boundary = WorkingCoboundary{SE}(rev)
+            working_boundary = WorkingChain{SE}(rev)
             for e in elements
                 nonheap_push!(working_boundary, e)
             end
@@ -209,7 +209,7 @@ end
         end
 
         @testset "adding inverses removes elements" begin
-            working_boundary = WorkingCoboundary{SE}(fwd)
+            working_boundary = WorkingChain{SE}(fwd)
             for e in unq_elements
                 nonheap_push!(working_boundary, e)
             end

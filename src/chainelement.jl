@@ -45,11 +45,11 @@ Base.one(::AbstractChainElement{<:Any, F}) where F = one(F)
 Base.iszero(elem::AbstractChainElement) = iszero(coefficient(elem))
 
 Base.hash(elem::AbstractChainElement, u::UInt64) = hash(simplex(elem), u)
-function Base.:(==)(ce1::AbstractChainElement, ce2::AbstractChainElement)
-    return simplex(ce1) == simplex(ce2)
+function Base.:(==)(elem1::AbstractChainElement, elem2::AbstractChainElement)
+    return simplex(elem1) == simplex(elem2)
 end
-function Base.isless(ce1::AbstractChainElement, ce2::AbstractChainElement)
-    return isless(simplex(ce1), simplex(ce2))
+function Base.isless(elem1::AbstractChainElement, elem2::AbstractChainElement)
+    return isless(simplex(elem1), simplex(elem2))
 end
 
 # Make chain elements useful when they come out as representatives.
@@ -80,6 +80,7 @@ function Base.show(io::IO, elem::AbstractChainElement)
 end
 
 Base.convert(::Type{C}, simplex::S) where {S, C<:AbstractChainElement{S}} = C(simplex)
+Base.convert(::Type{S}, elem::AbstractChainElement{S}) where S = simplex(elem)
 
 """
     chain_element_type(simplex, coefficient)

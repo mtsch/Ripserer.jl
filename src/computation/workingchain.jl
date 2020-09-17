@@ -1,166 +1,31 @@
 """
-    ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement}
+    WorkingChain{E<:AbstractChainElement, O<:Base.Ordering}
 
-Representation of the reduced part of the matrix. Is indexed by `S`, indexing iterates
-values of type `E`. `is_homology` controls the ordering of values.
+This structure hold the chain that is currently being reduced. Elements are added to the
+chain with `push!`. The pivot element is the minimal element with respect to `O` and can be
+extracted with `pop!`. `nonheap_push!` followed by `repair!` can also be used to add
+elemetns to the chain.
 
-Changes to the matrix are recorded in a buffer with `record!`. Once a column is ready to be
-added, use `commit!` to move the changes from the buffer to the matrix and create a
-column. Changes can also be discarded with `discard!`.
+`move!` is used to empty the chain and transfer its elements to a new array.
 """
-struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement, O<:Base.Ordering}
-    column_index::Dict{S, Int}
-    indices::Vector{Int}
-    values::Vector{E}
-    buffer::Vector{E}
-    ordering::O
-
-    function ReducedMatrix{S, E}(ordering::O) where {S, E, O}
-        return new{S, E, O}(Dict{S, Int}(), Int[1], E[], E[], ordering)
-    end
-end
-
-function Base.sizehint!(matrix::ReducedMatrix, size)
-    sizehint!(matrix.column_index, size)
-    sizehint!(matrix.indices, size + 1)
-    sizehint!(matrix.values, size)
-    return matrix
-end
-
-"""
-    record!(matrix::ReducedMatrix, element)
-
-Record the operation that was performed in the buffer.
-"""
-function record!(matrix::ReducedMatrix{<:Any, E}, simplex::AbstractSimplex) where E
-    return push!(matrix.buffer, E(simplex))
-end
-
-function record!(matrix::ReducedMatrix, elements, factor)
-    i = length(matrix.buffer)
-    resize!(matrix.buffer, length(matrix.buffer) + length(elements))
-    @inbounds for element in elements
-        i += 1
-        matrix.buffer[i] = element * factor
-    end
-    return elements
-end
-
-"""
-    commit!(matrix::ReducedMatrix, simplex, factor)
-
-Commit the changes that were `record!`ed, creating a new column indexed by `simplex`. This
-sorts the buffer and adds duplicates together. All entries are multiplied by `factor`.
-"""
-function commit!(matrix::ReducedMatrix, simplex, factor)
-    @assert sign(simplex) == 1
-    isempty(matrix.buffer) && return matrix
-
-    sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
-    i = 0
-    @inbounds prev = matrix.buffer[1]
-    @inbounds for j in 2:length(matrix.buffer)
-        current = matrix.buffer[j]
-        if current == prev
-            prev += current
-        else
-            if !iszero(prev)
-                i += 1
-                matrix.buffer[i] = prev * factor
-            end
-            prev = current
-        end
-    end
-    if !iszero(prev)
-        i += 1
-        @inbounds matrix.buffer[i] = prev * factor
-    end
-    if i > 0
-        resize!(matrix.buffer, i)
-        append!(matrix.values, matrix.buffer)
-        push!(matrix.indices, matrix.indices[end] + i)
-        matrix.column_index[simplex] = length(matrix.indices) - 1
-    end
-
-    empty!(matrix.buffer)
-    return matrix
-end
-
-"""
-    bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
-
-Insert apparent pairs into reduced matrix. Columns are inserted so `matrix[τ] == [σ]`, where
-`pairs` is a collection of tuples `(σ, τ)`.
-"""
-function bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
-    n = length(pairs)
-    n_values = length(matrix.values)
-    resize!(matrix.values, n_values + n)
-    n_indices = length(matrix.indices)
-    last_index = last(matrix.indices)
-    resize!(matrix.indices, n_indices + n)
-    @inbounds for (i, (σ, τ)) in enumerate(pairs)
-        matrix.indices[n_indices + i] = last_index + i
-        matrix.values[n_values + i] = E(σ, sign(τ))
-        matrix.column_index[abs(τ)] = n_indices + i - 1
-    end
-    matrix
-end
-function bulk_add!(matrix::ReducedMatrix, ::Tuple{})
-    return matrix
-end
-
-"""
-    discard!(matrix::ReducedMatrix)
-
-Undo recorded changes.
-"""
-function discard!(matrix::ReducedMatrix)
-    empty!(matrix.buffer)
-    return matrix
-end
-
-Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
-Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
-
-Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, simplex)
-
-function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where S
-    return matrix[simplex(element)]
-end
-function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where S
-    index = get(matrix.column_index, simplex, 0)
-    if index == 0
-        from = 0
-        to = -1
-    else
-        from = matrix.indices[index]
-        to = matrix.indices[index + 1] - 1
-    end
-
-    # Constructing directly is equivalent to Base.unsafe_view
-    return SubArray(matrix.values, (from:to,))
-end
-
-# ======================================================================================== #
-struct WorkingCoboundary{E<:AbstractChainElement, O<:Base.Ordering}
+struct WorkingChain{E<:AbstractChainElement, O<:Base.Ordering}
     heap::Vector{E}
     ordering::O
 
-    function WorkingCoboundary{E}(ordering::O) where {E, O}
+    function WorkingChain{E}(ordering::O) where {E, O}
         new{E, O}(E[], ordering)
     end
 end
 
-Base.empty!(col::WorkingCoboundary) = empty!(col.heap)
-Base.isempty(col::WorkingCoboundary) = isempty(col.heap)
+Base.empty!(col::WorkingChain) = empty!(col.heap)
+Base.isempty(col::WorkingChain) = isempty(col.heap)
 
-function Base.sizehint!(col::WorkingCoboundary, size)
+function Base.sizehint!(col::WorkingChain, size)
     sizehint!(col.heap, size)
     return col
 end
 
-function Base.pop!(column::WorkingCoboundary)
+function Base.pop!(column::WorkingChain)
     isempty(column) && return nothing
     heap = column.heap
 
@@ -177,21 +42,21 @@ function Base.pop!(column::WorkingCoboundary)
     return iszero(pivot) ? nothing : pivot
 end
 
-function Base.push!(column::WorkingCoboundary{E}, element::E) where E
+function Base.push!(column::WorkingChain{E}, element::E) where E
     heappush!(column.heap, element, column.ordering)
 end
 
-function nonheap_push!(column::WorkingCoboundary{E}, simplex::AbstractSimplex) where E
+function nonheap_push!(column::WorkingChain{E}, simplex::AbstractSimplex) where E
     push!(column.heap, E(simplex))
 end
-function nonheap_push!(column::WorkingCoboundary{E}, element::E) where E
+function nonheap_push!(column::WorkingChain{E}, element::E) where E
     push!(column.heap, element)
 end
 
-repair!(column::WorkingCoboundary) = heapify!(column.heap, column.ordering)
-Base.first(column::WorkingCoboundary) = first(column.heap)
+repair!(column::WorkingChain) = heapify!(column.heap, column.ordering)
+Base.first(column::WorkingChain) = first(column.heap)
 
-function move!(column::WorkingCoboundary{E}) where E
+function move!(column::WorkingChain{E}) where E
     dst = E[]
     while (pivot = pop!(column)) ≠ nothing
         push!(dst, pivot)
@@ -207,7 +72,7 @@ struct ReductionMatrix{
 }
     filtration::Filtration
     reduced::ReducedMatrix{Cofacet, SimplexElem, O}
-    working_coboundary::WorkingCoboundary{CofacetElem, O}
+    working_coboundary::WorkingChain{CofacetElem, O}
     columns_to_reduce::Vector{Simplex}
     columns_to_skip::Vector{Simplex}
 end
@@ -226,7 +91,7 @@ function ReductionMatrix{C, T}(
 
     reduced = ReducedMatrix{Cofacet, SimplexElem}(ordering)
     sizehint!(reduced, length(columns_to_reduce))
-    working_coboundary = WorkingCoboundary{CofacetElem}(ordering)
+    working_coboundary = WorkingChain{CofacetElem}(ordering)
 
     return ReductionMatrix{C, T, Filtration, Simplex, SimplexElem, Cofacet, CofacetElem, O}(
         filtration,
@@ -420,10 +285,6 @@ function compute_intervals!(
         )
     )
 end
-
-simplex_name(::Type{<:Simplex{2}}) = "triangles"
-simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
-simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
 
 function next_matrix(matrix::ReductionMatrix, progress)
     new_dim = dim(simplex_type(matrix)) + 1
