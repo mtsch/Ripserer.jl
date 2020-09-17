@@ -29,8 +29,11 @@ end
 
 """
     record!(matrix::ReducedMatrix, element)
+    record!(matrix::ReducedMatrix, elements, factor)
+    record!(matrix::ReducedMatrix, chain, factor)
 
-Record the operation that was performed in the buffer.
+Record the operation that was performed in the buffer. If the second argument is a
+`WorkingChain`, it is emptied into the buffer.
 """
 function record!(matrix::ReducedMatrix{<:Any, E}, simplex::AbstractSimplex) where E
     return push!(matrix.buffer, E(simplex))
@@ -44,6 +47,13 @@ function record!(matrix::ReducedMatrix, elements, factor)
         matrix.buffer[i] = element * factor
     end
     return elements
+end
+
+function record!(matrix::ReducedMatrix, chain::WorkingChain, factor)
+    while (element = pop!(chain)) ≢ nothing
+        push!(matrix.buffer, element * factor)
+    end
+    return chain
 end
 
 """

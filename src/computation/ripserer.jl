@@ -68,7 +68,7 @@ function ripserer(
             filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
         )
     else
-        result = _homology(
+        result = homology(
             filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
         )
     end
@@ -76,29 +76,6 @@ function ripserer(
     prog_println(progress, "Done. Took ", elapsed, " seconds.")
 
     return result
-end
-
-function _cohomology(
-    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
-) where {F, dim_max, reps}
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, F, Val(reps)
-    )
-    push!(result, zeroth)
-    if dim_max == 0
-        return result
-    else
-        matrix = ReductionMatrix{true, F}(filtration, to_reduce, to_skip)
-        for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
-
-            if dim < dim_max
-                matrix = next_matrix(matrix, progress)
-            end
-        end
-        return result
-    end
 end
 
 # Homology is still experimental and does not always work correctly. It does not yet output

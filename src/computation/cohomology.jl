@@ -149,15 +149,15 @@ function compute_intervals!(
         progress, length(columns), " ", (simplex_name(eltype(columns))), " to reduce."
     )
     # One-dimensional columns are already sorted.
-    sort_t = time_ns()
     if dim(matrix) > 1
         prog_print(progress, " Sorting...")
+        sort_t = time_ns()
         sort!(columns, rev=true)
+        elapsed = round((time_ns() - sort_t) / 1e9, digits=3)
         prog_println(progress, "done. (", elapsed, "seconds)")
     else
         prog_println(progress)
     end
-    elapsed = round((time_ns() - sort_t) / 1e9, digits=3)
 
     if progress
         progbar = Progress(
@@ -181,11 +181,6 @@ function compute_intervals!(
         )
     )
 end
-
-simplex_name(::Type{<:Simplex{1}}) = "edges"
-simplex_name(::Type{<:Simplex{2}}) = "triangles"
-simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
-simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
 
 function next_matrix(matrix::CoboundaryMatrix, progress)
     new_dim = dim(matrix) + 1

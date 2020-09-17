@@ -44,9 +44,10 @@ include("chainelement.jl")
 
 include("computation/utils.jl")
 include("computation/zerodimensional.jl")
-include("computation/reducedmatrix.jl")
 include("computation/workingchain.jl")
+include("computation/reducedmatrix.jl")
 include("computation/cohomology.jl")
+include("computation/homology.jl")
 include("computation/ripserer.jl")
 
 include("filtrations/rips.jl")

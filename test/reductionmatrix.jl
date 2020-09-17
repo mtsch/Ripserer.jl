@@ -6,7 +6,7 @@ using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
 using Ripserer: WorkingChain, nonheap_push!, repair!
-using Ripserer: ReductionMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
+using Ripserer: BoundaryMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
 
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D + 1, T, I}
@@ -226,6 +226,7 @@ end
     end
 end
 
+#=
 @testset "ReductionMatrix" begin
     for Co in (true, false),
         T in (Mod{3}, Rational{Int})
@@ -268,3 +269,4 @@ end
         end
     end
 end
+=#

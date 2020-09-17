@@ -262,6 +262,8 @@ function columns_to_reduce(filtration::Cubical{K}, itr) where K
     return CubicalColumnsToReduce{D, K, typeof(filtration)}(filtration)
 end
 
+Base.eltype(::CubicalColumnsToReduce{D, <:Any, F}) where {D, F} = simplex_type(F, D)
+
 function Base.iterate(cols::CubicalColumnsToReduce{D, K}, i=1) where {D, K}
     last_i = lastindex(cols.filtration.cubemap)
     cart = CartesianIndices(cols.filtration.cubemap)
