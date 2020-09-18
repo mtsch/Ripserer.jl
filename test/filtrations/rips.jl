@@ -368,7 +368,7 @@ end
 
             @test res_hom == res_coh
         end
-        @testset "Has the same cirical simplices as cohomology" begin
+        @testset "Has the same critical simplices as cohomology" begin
             # Add some noise because critical simplices might be different if values are
             # exactly the same.
             cyc = cycle .+ 0.01 .* rand_dist_matrix(18)

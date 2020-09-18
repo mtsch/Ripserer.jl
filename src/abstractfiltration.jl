@@ -269,9 +269,9 @@ emergent_pairs(::AbstractFiltration) = true
     postprocess_diagram(::AbstractFiltration, diagram)
 
 This function is called on each resulting persistence diagram after all intervals have been
-computed. Defaults to `sort!`ing the diagram.
+computed. Defaults to not doing anything.
 """
-postprocess_diagram(::AbstractFiltration, diagram) = sort!(diagram)
+postprocess_diagram(::AbstractFiltration, diagram) = diagram
 
 """
     find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, progress)

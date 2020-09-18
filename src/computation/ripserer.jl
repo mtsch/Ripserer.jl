@@ -1,3 +1,48 @@
+function cohomology(
+    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
+) where {F, dim_max, reps}
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, progress, F, Val(reps)
+    )
+    push!(result, zeroth)
+    if dim_max > 0
+        matrix = CoboundaryMatrix(F, filtration, to_reduce, to_skip)
+        for dim in 1:dim_max
+            push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
+            if dim < dim_max
+                matrix = next_matrix(matrix, progress)
+            end
+        end
+    end
+    return result
+end
+
+function homology(
+    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
+) where {F, dim_max, reps}
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, progress, F, Val(reps)
+    )
+    push!(result, zeroth)
+    if dim_max > 0
+        simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
+        for dim in 1:dim_max
+            if isempty(simplices)
+                # not correct
+                return result
+            end
+            matrix = BoundaryMatrix(F, filtration, simplices)
+            push!(result, compute_intervals!(matrix, cutoff, progress, Val(true)))
+            if dim < dim_max
+                simplices = columns_to_reduce(filtration, simplices)
+            end
+        end
+    end
+    return result
+end
+
 """
     ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Distances.Euclidean(1e-12), births, kwargs...)
@@ -75,35 +120,6 @@ function ripserer(
     elapsed = round((time_ns() - start_time) / 1e9, digits=3)
     prog_println(progress, "Done. Took ", elapsed, " seconds.")
 
-    return result
-end
-
-# Homology is still experimental and does not always work correctly. It does not yet output
-# infinite intervals.
-function _homology(
-    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
-) where {F, dim_max, reps}
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, F, Val(reps)
-    )
-    push!(result, zeroth)
-
-    # We want to start with triangles. Starting at the highest dimension and going down, as
-    # dictated by the twist algorithm might not be worth it. The highest dimension may be
-    # sparse and twist is not supposed to bring a huge improvement to regular persistent
-    # homology.
-    # Constructing a matrix and throwing it away has some overhead, but is nothing compared
-    # to the slowness of homology.
-    matrix = next_matrix(
-        ReductionMatrix{false, F}(filtration, to_reduce, to_skip), progress
-    )
-    for dim in 1:dim_max
-        push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
-
-        if dim < dim_max
-            matrix = next_matrix(matrix, progress)
-        end
-    end
+    foreach(sort!, result)
     return result
 end
