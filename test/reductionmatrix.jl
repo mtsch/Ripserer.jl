@@ -6,7 +6,6 @@ using Ripserer: chain_element_type, coefficient, index
 
 using Ripserer: ReducedMatrix, record!, commit!, discard!
 using Ripserer: WorkingChain, nonheap_push!, repair!
-using Ripserer: BoundaryMatrix, simplex_type, simplex_element, cofacet_element, next_matrix
 
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
     Simplex{D + 1, T, I}
@@ -225,48 +224,3 @@ end
         end
     end
 end
-
-#=
-@testset "ReductionMatrix" begin
-    for Co in (true, false),
-        T in (Mod{3}, Rational{Int})
-        S = Simplex{2, Int, Int}
-
-        columns_1 = (S.([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]))
-        columns_2 = (S.([6, 7, 8, 9, 10], [6, 7, 8, 9, 10]))
-        data = [0 1 1 1 1; 1 0 1 1 1; 1 1 0 1 1; 1 1 1 0 1; 1 1 1 1 0]
-        flt = Rips(data)
-        co_str = Co ? "Coh" : "H"
-
-        SE = chain_element_type(S, T)
-        F = Co ? cofacet_type(S) : facet_type(S)
-        FE = chain_element_type(F, T)
-
-        @testset "$(co_str)omology, $S, $T" begin
-            @testset "construction inferrence, parameters" begin
-                @test begin
-                    @inferred ReductionMatrix{Co, T}(flt, columns_1, columns_2)
-                    true
-                end
-
-                matrix = ReductionMatrix{Co, T}(flt, columns_1, columns_2)
-
-                @test simplex_type(matrix) == S
-                @test simplex_element(matrix) == SE
-                @test cofacet_element(matrix) == FE
-                @test dim(matrix) == (Co ? dim(S) : dim(S) - 1)
-            end
-
-            @testset "next matrix inferrence" begin
-                matrix = ReductionMatrix{Co, T}(flt, columns_1, columns_2)
-                @test begin
-                    @inferred next_matrix(matrix, false)
-                    true
-                end
-                next = next_matrix(matrix, false)
-                @test dim(next) == dim(matrix) + 1
-            end
-        end
-    end
-end
-=#

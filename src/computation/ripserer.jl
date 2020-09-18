@@ -1,6 +1,4 @@
-function cohomology(
-    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
-) where {F, dim_max, reps}
+function cohomology(filtration, cutoff, progress, ::Type{F}, dim_max, reps) where F
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
         filtration, cutoff, progress, F, Val(reps)
@@ -9,7 +7,7 @@ function cohomology(
     if dim_max > 0
         matrix = CoboundaryMatrix(F, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, progress, Val(reps)))
+            push!(result, compute_intervals!(matrix, cutoff, progress, reps))
             if dim < dim_max
                 matrix = next_matrix(matrix, progress)
             end
@@ -18,9 +16,7 @@ function cohomology(
     return result
 end
 
-function homology(
-    filtration, cutoff, progress, ::Type{F}, ::Val{dim_max}, ::Val{reps}
-) where {F, dim_max, reps}
+function homology(filtration, cutoff, progress, ::Type{F}, dim_max, reps) where F
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
         filtration, cutoff, progress, F, Val(reps)
@@ -34,7 +30,7 @@ function homology(
                 return result
             end
             matrix = BoundaryMatrix(F, filtration, simplices)
-            push!(result, compute_intervals!(matrix, cutoff, progress, Val(true)))
+            push!(result, compute_intervals!(matrix, cutoff, progress, true))
             if dim < dim_max
                 simplices = columns_to_reduce(filtration, simplices)
             end
@@ -110,11 +106,11 @@ function ripserer(
     index_overflow_check(filtration, field_type, dim_max)
     if cohomology
         result = Ripserer.cohomology(
-            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+            filtration, cutoff, progress, field_type, dim_max, reps
         )
     else
         result = homology(
-            filtration, cutoff, progress, field_type, Val(dim_max), Val(reps)
+            filtration, cutoff, progress, field_type, dim_max, reps
         )
     end
     elapsed = round((time_ns() - start_time) / 1e9, digits=3)

@@ -1,3 +1,6 @@
+# Not needed: most of the trait type functions defined on matrices...
+# Except dim, chain_element_type
+
 function initialize_coboundary!(matrix, column)
     initialize_coboundary!(Val(is_cohomology(matrix)), matrix, column)
 end
@@ -15,7 +18,7 @@ function initialize_coboundary!(::Val{true}, matrix, column)
         if emergent_check && birth(cofacet) == birth(column)
             emergent_check = false
             if !haskey(matrix.reduced, cofacet)
-                return cofacet_element(matrix)(cofacet)
+                return chain_element_type(matrix)(cofacet)
             end
         end
         nonheap_push!(matrix.chain, cofacet)
@@ -52,7 +55,7 @@ function add!(::Val{true}, matrix, column, pivot)
             simplex(pivot) == cofacet && continue
             push!(
                 matrix.chain,
-                cofacet_element(matrix)(cofacet, coefficient(element) * factor),
+                chain_element_type(matrix)(cofacet, coefficient(element) * factor),
             )
         end
     end
@@ -156,15 +159,9 @@ function interval(::Val{false}, birth_simplex, death_simplex, cutoff, representa
 end
 
 function handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
-    return handle_apparent_pairs!(
-        Val(is_cohomology(matrix)),
-        Val(is_implicit(matrix)),
-        matrix,
-        intervals,
-        cutoff,
-        progress,
-        reps,
-    )
+    coho = Val(is_cohomology(matrix))
+    impl = Val(is_implicit(matrix))
+    return handle_apparent_pairs!(coho, impl, matrix, intervals, cutoff, progress, reps)
 end
 # Implicit cohomology version
 function handle_apparent_pairs!(
@@ -175,7 +172,7 @@ function handle_apparent_pairs!(
     )
     bulk_add!(matrix.reduced, apparent)
     for (σ, τ) in apparent
-        int = interval(matrix, σ, cofacet_element(matrix)(τ), cutoff, reps)
+        int = interval(matrix, σ, chain_element_type(matrix)(τ), cutoff, reps)
         !isnothing(int) && push!(intervals, int)
     end
     return columns
@@ -185,7 +182,7 @@ function handle_apparent_pairs!(::Val, ::Val, matrix, _, _, _, _)
     return matrix.columns_to_reduce
 end
 
-function compute_intervals!(matrix, cutoff, progress, ::Val{reps}) where {reps}
+function compute_intervals!(matrix, cutoff, progress, reps)
     ###
     ### Set up output.
     ###
@@ -269,11 +266,10 @@ end
 
 
 field_type(::CoboundaryMatrix{T}) where T = T
-simplex_type(::CoboundaryMatrix{<:Any, <:Any, S}) where S = S
-simplex_element(::CoboundaryMatrix{T, <:Any, S}) where {T, S} = chain_element_type(S, T)
-dim(cm::CoboundaryMatrix) = dim(simplex_type(cm))
-cofacet_type(cm::CoboundaryMatrix{<:Any, F}) where F = simplex_type(F, dim(cm) + 1)
-cofacet_element(cm::CoboundaryMatrix{T}) where {T} = chain_element_type(cofacet_type(cm), T)
+dim(cm::CoboundaryMatrix{<:Any, <:Any, S}) where S = dim(S)
+function chain_element_type(bm::CoboundaryMatrix{T, F}) where {T, F}
+    chain_element_type(simplex_type(F, dim(bm) + 1), T)
+end
 
 is_implicit(::CoboundaryMatrix) = true
 is_cohomology(::CoboundaryMatrix) = true
@@ -282,7 +278,7 @@ coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex) = coboundary(matr
 
 function next_matrix(matrix::CoboundaryMatrix, progress)
     new_dim = dim(matrix) + 1
-    C = cofacet_type(matrix)
+    C = simplex_type(matrix.filtration, new_dim)
     new_to_reduce = C[]
     new_to_skip = C[]
     sizehint!(new_to_skip, length(matrix.reduced))
@@ -343,11 +339,10 @@ function BoundaryMatrix(::Type{T}, filtration, columns_to_reduce) where T
 end
 
 field_type(::BoundaryMatrix{T}) where T = T
-simplex_type(::BoundaryMatrix{<:Any, <:Any, S}) where S = S
-simplex_element(::BoundaryMatrix{T, <:Any, S}) where {T, S} = chain_element_type(S, T)
-dim(bm::BoundaryMatrix) = dim(simplex_type(bm)) - 1
-cofacet_type(bm::BoundaryMatrix{<:Any, F}) where F = simplex_type(F, dim(bm))
-cofacet_element(bm::BoundaryMatrix{T}) where {T} = chain_element_type(facet_type(bm), T)
+dim(bm::BoundaryMatrix{<:Any, <:Any, S}) where S = dim(S) - 1
+function chain_element_type(bm::BoundaryMatrix{T, F}) where {T, F}
+    chain_element_type(simplex_type(F, dim(bm)), T)
+end
 
 is_implicit(::BoundaryMatrix) = false
 is_cohomology(::BoundaryMatrix) = false
