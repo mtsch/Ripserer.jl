@@ -358,7 +358,7 @@ end
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, cohomology=false)
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, alg=:homology)
 
         @test d0 == [(0, 1.0), (0, Inf)]
         @test isempty(d1)

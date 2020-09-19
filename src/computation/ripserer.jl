@@ -1,42 +1,7 @@
-function cohomology(filtration, cutoff, progress, ::Type{F}, dim_max, reps) where F
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, F, Val(reps)
-    )
-    push!(result, zeroth)
-    if dim_max > 0
-        matrix = CoboundaryMatrix(F, filtration, to_reduce, to_skip)
-        for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, progress, reps))
-            if dim < dim_max
-                matrix = next_matrix(matrix, progress)
-            end
-        end
-    end
-    return result
+function cohomology(filtration, cutoff, progress, ::Type{F}, dim_max, reps, implicit) where F
 end
 
-function homology(filtration, cutoff, progress, ::Type{F}, dim_max, reps) where F
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, F, Val(reps)
-    )
-    push!(result, zeroth)
-    if dim_max > 0
-        simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
-        for dim in 1:dim_max
-            if isempty(simplices)
-                # not correct
-                return result
-            end
-            matrix = BoundaryMatrix(F, filtration, simplices)
-            push!(result, compute_intervals!(matrix, cutoff, progress, true))
-            if dim < dim_max
-                simplices = columns_to_reduce(filtration, simplices)
-            end
-        end
-    end
-    return result
+function homology(filtration, cutoff, progress, ::Type{F}, dim_max, reps, implicit) where F
 end
 
 """
@@ -100,22 +65,73 @@ function ripserer(
     modulus=2,
     field_type=Mod{modulus},
     progress=false,
-    cohomology=true,
+    alg=:cohomology,
+    implicit=alg == :cohomology
 )
     start_time = time_ns()
     index_overflow_check(filtration, field_type, dim_max)
-    if cohomology
-        result = Ripserer.cohomology(
-            filtration, cutoff, progress, field_type, dim_max, reps
-        )
-    else
-        result = homology(
-            filtration, cutoff, progress, field_type, dim_max, reps
-        )
-    end
+    result = _ripserer(
+        Val(alg), filtration, cutoff, progress, field_type, dim_max, reps, implicit
+    )
     elapsed = round((time_ns() - start_time) / 1e9, digits=3)
     prog_println(progress, "Done. Took ", elapsed, " seconds.")
 
     foreach(sort!, result)
     return result
+end
+
+function _ripserer(
+    ::Val{:cohomology}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+)
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, progress, field_type, Val(reps)
+    )
+    push!(result, zeroth)
+    if dim_max > 0
+        matrix = CoboundaryMatrix{implicit}(field_type, filtration, to_reduce, to_skip)
+        for dim in 1:dim_max
+            push!(result, compute_intervals!(matrix, cutoff, progress, reps))
+            if dim < dim_max
+                matrix = next_matrix(matrix, progress)
+            end
+        end
+    end
+    return result
+end
+
+# Homology: reps is on by default for dimensions above 0.
+function _ripserer(
+    ::Val{:homology}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+)
+    result = PersistenceDiagram[]
+    zeroth, to_reduce, to_skip = zeroth_intervals(
+        filtration, cutoff, progress, field_type, Val(reps)
+    )
+    push!(result, zeroth)
+    if dim_max > 0
+        simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
+        for dim in 1:dim_max
+            if isempty(simplices)
+                return result
+            end
+            matrix = BoundaryMatrix{implicit}(field_type, filtration, simplices)
+            push!(result, compute_intervals!(matrix, cutoff, progress, true))
+            if dim < dim_max
+                simplices = columns_to_reduce(filtration, simplices)
+            end
+        end
+    end
+    return result
+end
+
+# Assisted homology: reps is on by default for dimensions above 0.
+# TODO
+function _ripserer(
+    ::Val{:assisted}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+)
+end
+
+function _ripserer(::Val{A}, args...) where A
+    throw(ArgumentError("unsupported alg=$A"))
 end

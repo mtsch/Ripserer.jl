@@ -17,24 +17,26 @@ struct WorkingChain{E<:AbstractChainElement, O<:Base.Ordering}
     end
 end
 
-Base.empty!(col::WorkingChain) = empty!(col.heap)
-Base.isempty(col::WorkingChain) = isempty(col.heap)
+Base.empty!(chain::WorkingChain) = empty!(chain.heap)
+Base.isempty(chain::WorkingChain) = isempty(chain.heap)
 
-function Base.sizehint!(col::WorkingChain, size)
-    sizehint!(col.heap, size)
-    return col
+Base.eltype(chain::WorkingChain{E}) where E = E
+
+function Base.sizehint!(chain::WorkingChain, size)
+    sizehint!(chain.heap, size)
+    return chain
 end
 
-function Base.pop!(column::WorkingChain)
-    isempty(column) && return nothing
-    heap = column.heap
+function Base.pop!(chain::WorkingChain)
+    isempty(chain) && return nothing
+    heap = chain.heap
 
-    pivot = heappop!(heap, column.ordering)
+    pivot = heappop!(heap, chain.ordering)
     while !isempty(heap)
         if iszero(pivot)
-            pivot = heappop!(heap, column.ordering)
+            pivot = heappop!(heap, chain.ordering)
         elseif first(heap) == pivot
-            pivot += heappop!(heap, column.ordering)
+            pivot += heappop!(heap, chain.ordering)
         else
             break
         end
@@ -42,21 +44,29 @@ function Base.pop!(column::WorkingChain)
     return iszero(pivot) ? nothing : pivot
 end
 
-function Base.push!(column::WorkingChain{E}, element::E) where E
-    heappush!(column.heap, element, column.ordering)
+function Base.push!(chain::WorkingChain{E}, element::E) where E
+    heappush!(chain.heap, element, chain.ordering)
 end
 
-function nonheap_push!(column::WorkingChain{E}, simplex::AbstractSimplex) where E
-    push!(column.heap, E(simplex))
+function nonheap_push!(chain::WorkingChain{E}, simplex::AbstractSimplex) where E
+    push!(chain.heap, E(simplex))
 end
-function nonheap_push!(column::WorkingChain{E}, element::E) where E
-    push!(column.heap, element)
-end
-
-repair!(column::WorkingChain) = heapify!(column.heap, column.ordering)
-
-function Base.sort!(column::WorkingChain; kwargs...)
-    return sort!(column.heap; order=column.ordering, kwargs...)
+function nonheap_push!(chain::WorkingChain{E}, element::E) where E
+    push!(chain.heap, element)
 end
 
-Base.first(column::WorkingChain) = first(column.heap)
+repair!(chain::WorkingChain) = heapify!(chain.heap, chain.ordering)
+
+function Base.sort!(chain::WorkingChain; kwargs...)
+    return sort!(chain.heap; order=chain.ordering, kwargs...)
+end
+
+Base.first(chain::WorkingChain) = first(chain.heap)
+
+function move!(chain::WorkingChain)
+    result = eltype(chain)[]
+    while (pivot = pop!(chain)) ≢ nothing
+        push!(result, pivot)
+    end
+    return result
+end

@@ -1,6 +1,3 @@
-# Not needed: most of the trait type functions defined on matrices...
-# Except dim, chain_element_type
-
 function initialize_coboundary!(matrix, column)
     initialize_coboundary!(Val(is_cohomology(matrix)), matrix, column)
 end
@@ -13,7 +10,7 @@ function initialize_coboundary!(::Val{true}, matrix, column)
 
     # This implementation of this optimization only works if (co)boundary simplices are
     # returned in the correct order and if the birth times of σ and τ are the same.
-    emergent_check = emergent_pairs(matrix.filtration)
+    emergent_check = emergent_pairs(matrix.filtration) && is_implicit(matrix)
     for cofacet in coboundary(matrix, column)
         if emergent_check && birth(cofacet) == birth(column)
             emergent_check = false
@@ -65,7 +62,7 @@ end
 function add!(::Val{false}, matrix, column, pivot)
     factor = -coefficient(pivot)
     for element in column
-        simplex(pivot) == simplex(element) && continue
+        # The pivot is not stored in the column, so there is no need to check for it.
         push!(matrix.chain, element * factor)
     end
 end
@@ -79,9 +76,8 @@ function finalize!(::Val{true}, matrix, column, pivot)
     commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
 end
 # Explicit version
-function finalize!(::Val{false}, matrix, _, pivot)
-    push!(matrix.chain, pivot)
-    record!(matrix.reduced, matrix.chain, -coefficient(pivot))
+function finalize!(::Val{false}, matrix, column, pivot)
+    record!(matrix.reduced, matrix.chain)
     commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
 end
 
@@ -114,12 +110,29 @@ function interval(matrix, column, pivot, cutoff, reps)
     else
         birth_simplex, death_simplex = simplex(pivot), column
     end
-    if reps && isnothing(pivot)
-        representative = eltype(matrix.reduced)[]
-    elseif reps
-        representative = collect(matrix.reduced[pivot])
-    else
+    if !reps
         representative = nothing
+    elseif is_cohomology(matrix)
+        if isnothing(pivot)
+            representative = simplex_type(matrix.filtration, dim(matrix))[]
+        elseif is_implicit(matrix)
+            representative = collect(matrix.reduced[pivot])
+        else
+            elem_t = chain_element_type(simplex_type(matrix.filtration, dim(matrix)), field_type(matrix))
+            tmp_chain = WorkingChain{elem_t}(Base.Order.Forward)
+            for elem in matrix.reduced[pivot]
+                for facet in boundary(matrix.filtration, simplex(elem))
+                    push!(tmp_chain, elem_t(facet, coefficient(elem)))
+                end
+            end
+            representative = move!(tmp_chain)
+        end
+    else
+        if is_implicit(matrix)
+            representative = pushfirst!(move!(matrix.chain), birth_simplex)
+        else
+            representative = pushfirst!(collect(matrix.reduced[pivot]), birth_simplex)
+        end
     end
     return interval(
         Val(is_implicit(matrix)), birth_simplex, death_simplex, cutoff, representative
@@ -240,7 +253,7 @@ end
 ###
 ###
 ###
-struct CoboundaryMatrix{T, F, S, R, C}
+struct CoboundaryMatrix{I, T, F, S, R, C}
     filtration::F
     reduced::R
     chain::C
@@ -248,37 +261,44 @@ struct CoboundaryMatrix{T, F, S, R, C}
     columns_to_skip::Vector{S}
 end
 
-function CoboundaryMatrix(::Type{T}, filtration, columns_to_reduce, columns_to_skip) where T
+function CoboundaryMatrix{I}(
+    ::Type{T}, filtration, columns_to_reduce, columns_to_skip
+) where {I, T}
     Simplex = eltype(columns_to_reduce)
     Cofacet = simplex_type(filtration, dim(Simplex) + 1)
     ordering = Base.Order.Forward
     SimplexElem = chain_element_type(Simplex, T)
     CofacetElem = chain_element_type(Cofacet, T)
 
-    reduced = ReducedMatrix{Cofacet, SimplexElem}(ordering)
+    if I
+        reduced = ReducedMatrix{Cofacet, SimplexElem}(ordering)
+    else
+        reduced = ReducedMatrix{Cofacet, CofacetElem}(ordering)
+    end
     sizehint!(reduced, length(columns_to_reduce))
     chain = WorkingChain{CofacetElem}(ordering)
 
-    return CoboundaryMatrix{T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)}(
+    return CoboundaryMatrix{
+        I, T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)
+    }(
         filtration, reduced, chain, columns_to_reduce, columns_to_skip
     )
 end
 
 
-field_type(::CoboundaryMatrix{T}) where T = T
-dim(cm::CoboundaryMatrix{<:Any, <:Any, S}) where S = dim(S)
-function chain_element_type(bm::CoboundaryMatrix{T, F}) where {T, F}
+field_type(::CoboundaryMatrix{<:Any, T}) where T = T
+dim(cm::CoboundaryMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
+function chain_element_type(bm::CoboundaryMatrix{<:Any, T, F}) where {T, F}
     chain_element_type(simplex_type(F, dim(bm) + 1), T)
 end
 
-is_implicit(::CoboundaryMatrix) = true
+is_implicit(::CoboundaryMatrix{I}) where I = I
 is_cohomology(::CoboundaryMatrix) = true
 
 coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex) = coboundary(matrix.filtration, simplex)
 
-function next_matrix(matrix::CoboundaryMatrix, progress)
-    new_dim = dim(matrix) + 1
-    C = simplex_type(matrix.filtration, new_dim)
+function next_matrix(matrix::CoboundaryMatrix{I}, progress) where I
+    C = simplex_type(matrix.filtration, dim(matrix) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
     sizehint!(new_to_skip, length(matrix.reduced))
@@ -302,7 +322,7 @@ function next_matrix(matrix::CoboundaryMatrix, progress)
     end
     prog_print(progress, '\r')
 
-    return CoboundaryMatrix(
+    return CoboundaryMatrix{I}(
         field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip
     )
 end
@@ -310,14 +330,14 @@ end
 ###
 ###
 ###
-struct BoundaryMatrix{T, F, S, R, C}
+struct BoundaryMatrix{I, T, F, S, R, C}
     filtration::F
     reduced::R
     chain::C
     columns_to_reduce::Vector{S}
 end
 
-function BoundaryMatrix(::Type{T}, filtration, columns_to_reduce) where T
+function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I, T}
     Simplex = typeof(first(columns_to_reduce))
     Facet = simplex_type(filtration, dim(Simplex) - 1)
     ordering = Base.Order.Reverse
@@ -329,22 +349,30 @@ function BoundaryMatrix(::Type{T}, filtration, columns_to_reduce) where T
         push!(columns, c)
     end
 
-    reduced = ReducedMatrix{Facet, FacetElem}(ordering)
+    if !I
+        reduced = ReducedMatrix{Facet, FacetElem}(ordering)
+    else
+        reduced = ReducedMatrix{Facet, SimplexElem}(ordering)
+    end
     sizehint!(reduced, length(columns))
     chain = WorkingChain{FacetElem}(ordering)
 
-    return BoundaryMatrix{T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)}(
+    return BoundaryMatrix{
+        I, T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)
+    }(
         filtration, reduced, chain, columns
     )
 end
 
-field_type(::BoundaryMatrix{T}) where T = T
-dim(bm::BoundaryMatrix{<:Any, <:Any, S}) where S = dim(S) - 1
-function chain_element_type(bm::BoundaryMatrix{T, F}) where {T, F}
+field_type(::BoundaryMatrix{<:Any, T}) where T = T
+dim(bm::BoundaryMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S) - 1
+function chain_element_type(bm::BoundaryMatrix{<:Any, T, F}) where {T, F}
     chain_element_type(simplex_type(F, dim(bm)), T)
 end
 
-is_implicit(::BoundaryMatrix) = false
+is_implicit(::BoundaryMatrix{I}) where I = I
 is_cohomology(::BoundaryMatrix) = false
 
-coboundary(matrix::BoundaryMatrix, simplex::AbstractSimplex) = boundary(matrix.filtration, simplex)
+function coboundary(matrix::BoundaryMatrix, simplex::AbstractSimplex)
+    return boundary(matrix.filtration, simplex)
+end

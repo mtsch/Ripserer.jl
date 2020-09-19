@@ -363,8 +363,8 @@ end
 
     @testset "Persistent homology" begin
         @testset "Produces the same diagram as cohomology" begin
-            res_hom = ripserer(cycle, cohomology=false, dim_max=3)
-            res_coh = ripserer(cycle, cohomology=true, dim_max=3)
+            res_hom = ripserer(cycle, alg=:homology, dim_max=3)
+            res_coh = ripserer(cycle, alg=:cohomology, dim_max=3)
 
             @test res_hom == res_coh
         end
@@ -372,8 +372,8 @@ end
             # Add some noise because critical simplices might be different if values are
             # exactly the same.
             cyc = cycle .+ 0.01 .* rand_dist_matrix(18)
-            res_hom = ripserer(cyc, cohomology=false, dim_max=3, reps=true)
-            res_coh = ripserer(cyc, cohomology=true, dim_max=3, reps=true)
+            res_hom = ripserer(cyc, alg=:homology, dim_max=3, reps=true)
+            res_coh = ripserer(cyc, alg=:cohomology, dim_max=3, reps=true)
 
             for i in 1:4
                 @test birth_simplex.(res_hom[i]) == birth_simplex.(res_coh[i])
@@ -381,13 +381,13 @@ end
             end
         end
         @testset "Representative cycle" begin
-            res_hom = ripserer(cycle, cohomology=false, reps=true, dim_max=3)
+            res_hom = ripserer(cycle, alg=:homology, reps=true, dim_max=3)
             @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
                 [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
             ))
         end
         @testset "Infinite intervals" begin
-            @test_broken ripserer(cycle, cohomology=false, threshold=2)[2][1] == (1.0, Inf)
+            @test_broken ripserer(cycle, alg=:homology, threshold=2)[2][1] == (1.0, Inf)
         end
     end
 
