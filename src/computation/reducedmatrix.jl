@@ -49,9 +49,9 @@ function record!(matrix::ReducedMatrix, elements, factor)
     return elements
 end
 
-function record!(matrix::ReducedMatrix, chain::WorkingChain, factor=one(eltype(chain)))
+function record!(matrix::ReducedMatrix, chain::WorkingChain)
     while (element = pop!(chain)) ≢ nothing
-        push!(matrix.buffer, element * factor)
+        push!(matrix.buffer, element)
     end
     return chain
 end

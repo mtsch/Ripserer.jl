@@ -1,9 +1,3 @@
-function cohomology(filtration, cutoff, progress, ::Type{F}, dim_max, reps, implicit) where F
-end
-
-function homology(filtration, cutoff, progress, ::Type{F}, dim_max, reps, implicit) where F
-end
-
 """
     ripserer(dists::AbstractMatrix; kwargs...)
     ripserer(points; metric=Distances.Euclidean(1e-12), births, kwargs...)
@@ -76,7 +70,6 @@ function ripserer(
     elapsed = round((time_ns() - start_time) / 1e9, digits=3)
     prog_println(progress, "Done. Took ", elapsed, " seconds.")
 
-    foreach(sort!, result)
     return result
 end
 

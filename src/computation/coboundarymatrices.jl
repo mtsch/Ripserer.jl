@@ -195,7 +195,7 @@ function handle_apparent_pairs!(::Val, ::Val, matrix, _, _, _, _)
     return matrix.columns_to_reduce
 end
 
-function compute_intervals!(matrix, cutoff, progress, reps)
+function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ###
     ### Set up output.
     ###
@@ -241,7 +241,7 @@ function compute_intervals!(matrix, cutoff, progress, reps)
 
     return postprocess_diagram(
         matrix.filtration, PersistenceDiagram(
-            intervals;
+            sortres ? sort!(intervals, by=persistence) : intervals;
             threshold=Float64(threshold(matrix.filtration)),
             dim=dim(matrix),
             field_type=field_type(matrix),

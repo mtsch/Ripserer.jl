@@ -136,7 +136,7 @@ end
 
 Get numer of bits needed to represent number mod `M`.
 """
-@pure n_bits(M::Int) = floor(Int, log2(M - 1)) + 1
+Base.@pure n_bits(M::Int) = 8 * sizeof(Int) - leading_zeros(M)
 
 function simplex(pe::PackedElement{S, <:Any, M, U}) where {S, M, U}
     mask = typemax(U) << n_bits(M) >> n_bits(M)

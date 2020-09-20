@@ -9,7 +9,7 @@ module Ripserer
 
 using Compat
 
-using Base: @propagate_inbounds, @pure
+using Base: @propagate_inbounds
 using Base.Cartesian
 using LinearAlgebra
 using SparseArrays
