@@ -128,7 +128,7 @@ function _ripserer(
     if dim_max > 0
         comatrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
-            columns = compute_death_simplices!(comatrix, progress)
+            columns = compute_death_simplices!(comatrix, progress, cutoff)
             if isempty(columns)
                 return result
             end

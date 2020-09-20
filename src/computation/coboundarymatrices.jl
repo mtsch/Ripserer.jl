@@ -376,7 +376,7 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     )
 end
 
-function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress)
+function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
     columns, apparent = find_apparent_pairs(
         matrix.filtration, matrix.columns_to_reduce, progress
     )
@@ -384,16 +384,28 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress)
     if progress
         progbar = Progress(length(columns); desc="Precomputing columns...   ")
     end
-    dim(matrix) > 1 && sort!(columns, rev=true)
-
     result = simplex_type(matrix.filtration, dim(matrix) + 1)[]
-    for pair in apparent
-        push!(result, pair[2])
+    if isempty(columns)
+        return result
+    else
+        dim(matrix) > 1 && sort!(columns, rev=true)
+        thresh = typemin(birth(first(columns)))
+        for pair in apparent
+            if birth(pair[2]) - birth(pair[1]) > cutoff
+                thresh = max(thresh, birth(pair[2]))
+            end
+            push!(result, pair[2])
+        end
+        for column in columns
+            pivot = reduce_column!(matrix, column)
+            if !isnothing(pivot)
+                if birth(pivot) - birth(column) > cutoff
+                    thresh = max(thresh, birth(pivot))
+                end
+                push!(result, simplex(pivot))
+            end
+            progress && next!(progbar)
+        end
+        return filter!(x -> birth(x) ≤ thresh, result)
     end
-    for column in columns
-        pivot = reduce_column!(matrix, column)
-        progress && next!(progbar)
-        !isnothing(pivot) && push!(result, simplex(pivot))
-    end
-    return result
 end

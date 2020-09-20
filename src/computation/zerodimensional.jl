@@ -156,7 +156,7 @@ function zeroth_intervals(
         postprocess_diagram(
             filtration,
             PersistenceDiagram(
-                intervals;
+                sort!(intervals, by=persistence);
                 threshold=thresh,
                 dim=0,
                 field_type=F,
