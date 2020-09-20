@@ -361,23 +361,28 @@ end
         end
     end
 
-    @testset "Persistent homology" begin
-        @testset "Produces the same diagram as cohomology" begin
-            res_hom = ripserer(cycle, alg=:homology, dim_max=3)
-            res_coh = ripserer(cycle, alg=:cohomology, dim_max=3)
-
-            @test res_hom == res_coh
-        end
-        @testset "Has the same critical simplices as cohomology" begin
-            # Add some noise because critical simplices might be different if values are
-            # exactly the same.
-            cyc = cycle .+ 0.01 .* rand_dist_matrix(18)
-            res_hom = ripserer(cyc, alg=:homology, dim_max=3, reps=true)
-            res_coh = ripserer(cyc, alg=:cohomology, dim_max=3, reps=true)
-
-            for i in 1:4
-                @test birth_simplex.(res_hom[i]) == birth_simplex.(res_coh[i])
-                @test death_simplex.(res_hom[i]) == death_simplex.(res_coh[i])
+    @testset "Homology and explicit cohomology" begin
+        for m in (2, 17)
+            @testset "Same for projective plane with modulus=$m" begin
+                r = Rips(projective_plane)
+                _, hom_imp1, hom_imp2 = ripserer(
+                    r; alg=:homology, implicit=true, dim_max=2, modulus=m
+                )
+                _, hom_exp1, hom_exp2 = ripserer(
+                    r; alg=:homology, implicit=false, dim_max=2, modulus=m
+                )
+                _, coh_imp1, coh_imp2 = ripserer(
+                    r ; implicit=true, reps=true, dim_max=2, modulus=m
+                )
+                _, coh_exp1, coh_exp2 = ripserer(
+                    r; implicit=true, reps=true, dim_max=2, modulus=m
+                )
+                @test hom_imp1 == hom_exp1 == coh_imp1 == coh_exp1
+                @test hom_imp2 == hom_exp2 == coh_imp2 == coh_exp2
+                @test representative.(hom_imp1) == representative.(hom_exp1)
+                @test representative.(hom_imp2) == representative.(hom_exp2)
+                @test representative.(coh_imp1) == representative.(coh_exp1)
+                @test representative.(coh_imp2) == representative.(coh_exp2)
             end
         end
         @testset "Representative cycle" begin

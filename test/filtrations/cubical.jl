@@ -354,16 +354,23 @@ end
         @test d0 == [(1, Inf)]
         @test d1 == [(1, Inf)]
     end
-    @testset "Homology" begin
+    @testset "Homology and explicit cohomology" begin
         data = zeros(5, 5, 5)
         data[2, 2:4, 2:4] .= 1
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, alg=:homology)
+        c = Cubical(data)
+        _, hom_imp1, hom_imp2 = ripserer(c; alg=:homology, implicit=true, dim_max=2)
+        _, hom_exp1, hom_exp2 = ripserer(c; alg=:homology, implicit=false, dim_max=2)
+        _, coh_imp1, coh_imp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
+        _, coh_exp1, coh_exp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
 
-        @test d0 == [(0, 1), (0, Inf)]
-        @test d1 == []
-        @test d2 == [(0, 1)]
+        @test hom_imp1 == hom_exp1 == coh_imp1 == coh_exp1
+        @test hom_imp2 == hom_exp2 == coh_imp2 == coh_exp2
+        @test representative.(hom_imp1) == representative.(hom_exp1)
+        @test representative.(hom_imp2) == representative.(hom_exp2)
+        @test representative.(coh_imp1) == representative.(coh_exp1)
+        @test representative.(coh_imp2) == representative.(coh_exp2)
     end
 end

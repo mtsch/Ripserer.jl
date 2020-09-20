@@ -63,15 +63,19 @@ end
 end
 
 @testset "Homology" begin
-    points = [(t*sinpi(t), t*cospi(t), t*cospi(t)) for t in range(0, 2, length=20)]
+    points = [(t*sinpi(t), t*cospi(t), cospi(2t)) for t in range(0, 2, length=20)]
 
     @static if Sys.iswindows()
         @test_broken begin Alpha(points); true end
     else
-        alpha = Alpha(points)
-        _, hom_imp = ripserer(alpha; alg=:homology, implicit=true)
-        _, hom_exp = ripserer(alpha; alg=:homology, implicit=false)
-        _, coh_imp = ripserer(alpha; alg=:cohomology, implicit=true)
-        _, coh_exp = ripserer(alpha; alg=:cohomology, implicit=true)
+        a = Alpha(points)
+        _, hom_imp = ripserer(a; alg=:homology, implicit=true)
+        _, hom_exp = ripserer(a; alg=:homology, implicit=false)
+        _, coh_imp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
+        _, coh_exp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
+
+        @test hom_imp == hom_exp == coh_imp == coh_exp
+        @test representative.(hom_imp) == representative.(hom_exp)
+        @test representative.(coh_imp) == representative.(coh_exp)
     end
 end

@@ -346,7 +346,7 @@ function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I, T
 
     columns = Simplex[]
     foreach(columns_to_reduce) do c
-        push!(columns, c)
+        push!(columns, abs(c))
     end
 
     if !I
