@@ -88,8 +88,8 @@ julia> ripserer(flt)[1]
 
 julia> ripserer(flt)[2]
 3-element 1-dimensional PersistenceDiagram:
- [4.0, 7.0)
  [5.0, 8.0)
+ [4.0, 7.0)
  [6.0, ∞)
 
 ```

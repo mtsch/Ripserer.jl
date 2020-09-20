@@ -5,7 +5,6 @@ using TupleTools
 
 using Ripserer: adjacency_matrix, births
 
-
 @testset "Custom filtration 1" begin
     flt = Custom([
         (1,) => 0,

@@ -60,7 +60,7 @@ function ripserer(
     field_type=Mod{modulus},
     progress=false,
     alg=:cohomology,
-    implicit=alg == :cohomology
+    implicit=alg == :cohomology,
 )
     start_time = time_ns()
     index_overflow_check(filtration, field_type, dim_max)

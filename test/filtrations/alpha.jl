@@ -33,11 +33,11 @@ end
         0.18918257, 0.20589813, 0.22270697, 0.23958947, 0.25653108,
         0.27352082, 0.29055025, 0.30761277, 0.32470317, Inf
     ]
-    d1_cechmate_births = 2 .* [0.83075319, 0.86707034, 0.89414800, 0.91920916]
-    d1_cechmate_deaths = 2 .* [0.83143060, 0.86803555, 0.89985412, 0.92415392]
+    d1_cechmate_births = 2 .* [0.83075319, 0.86707034, 0.91920916, 0.89414800]
+    d1_cechmate_deaths = 2 .* [0.83143060, 0.86803555, 0.92415392, 0.89985412]
 
     @static if Sys.iswindows()
-        @test_broken isempty(ripserer(Alpha(points), dim_max=2))
+        @test_broken begin Alpha(points); true end
     else
         d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
         @test all(iszero, birth.(d0))
@@ -52,12 +52,26 @@ end
     points = [(t*sinpi(t), t*cospi(t)) for t in range(0, 2, length=20)]
 
     @static if Sys.iswindows()
-        @test_broken isempty(ripserer(Alpha(points, threshold=1.8), dim_max=2)[end])
+        @test_broken begin Alpha(points); true end
     else
         d0, d1, d2 = ripserer(Alpha(points), dim_max=2)
         d0_t, d1_t, d2_t = ripserer(Alpha(points, threshold=1.8), dim_max=2)
         @test d0_t == d0
-        @test d1_t == d1[1:3]
+        @test d1_t == d1[[1:2; 4]]
         @test isempty(d2_t)
+    end
+end
+
+@testset "Homology" begin
+    points = [(t*sinpi(t), t*cospi(t), t*cospi(t)) for t in range(0, 2, length=20)]
+
+    @static if Sys.iswindows()
+        @test_broken begin Alpha(points); true end
+    else
+        alpha = Alpha(points)
+        _, hom_imp = ripserer(alpha; alg=:homology, implicit=true)
+        _, hom_exp = ripserer(alpha; alg=:homology, implicit=false)
+        _, coh_imp = ripserer(alpha; alg=:cohomology, implicit=true)
+        _, coh_exp = ripserer(alpha; alg=:cohomology, implicit=true)
     end
 end

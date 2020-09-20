@@ -341,7 +341,7 @@ end
             end
             # 0-dimensional persistence should find values of minima and maxima of our data.
             d0 = ripserer(dists; dim_max=0)[1]
-            @test d0 == [(0, Inf), (1, 4), (2, 3)]
+            @test d0 == [(2, 3), (1, 4), (0, Inf)]
         end
 
         @testset "with Rips" begin
@@ -357,7 +357,7 @@ end
                 end
             end
             d0 = ripserer(dists; dim_max=0)[1]
-            @test d0 == [(0, Inf), (1, 4), (2, 3)]
+            @test d0 == [(2, 3), (1, 4), (0, Inf)]
         end
     end
 

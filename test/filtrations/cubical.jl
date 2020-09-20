@@ -293,14 +293,15 @@ end
 end
 
 @testset "ripserer" begin
-    @testset "1D curve" begin
+    @testset "1D" begin
         data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
-        d0, d1 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
 
-        @test d0 == [(0, Inf), (1, 4), (2, 3)]
+        @test d0 == [(2, 3), (1, 4), (0, Inf)]
         @test d1 == []
+        @test d2 == []
     end
-    @testset "1D curve representatives" begin
+    @testset "1D representatives" begin
         n = 1000
         x = range(0, 1, length=n)
         curve = sin.(2π * 5x) .* x
@@ -311,7 +312,8 @@ end
             birth_sx = birth_simplex(int)
             @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
         end
-        @test only.(birth_simplex.(d0)) == CartesianIndex.([951, 752, 552, 354, 157, 1])
+        @test sort!(only.(birth_simplex.(d0))) ==
+            CartesianIndex.([1, 157, 354, 552, 752, 951])
     end
     @testset "2D image" begin
         data = [0 0 0 0 0;
@@ -322,14 +324,14 @@ end
 
         d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
 
-        @test d0 == [(0, Inf), (1, 2)]
+        @test d0 == [(1, 2), (0, Inf)]
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test sort(vertices.(representative(d0[1]))) ==
-            sort(SVector.(vec(CartesianIndices(data))))
-        @test vertices(only(representative(d0[2]))) ==
+        @test vertices(only(representative(d0[1]))) ==
             SVector(CartesianIndex(3, 3))
+        @test sort(vertices.(representative(d0[2]))) ==
+            sort(SVector.(vec(CartesianIndices(data))))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
@@ -340,8 +342,8 @@ end
 
         d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
 
-        @test d0 == [(0, 1.0), (0, Inf)]
-        @test isempty(d1)
+        @test d0 == [(0, 1), (0, Inf)]
+        @test d1 == []
         @test d2 == [(0, 1)]
     end
     @testset "Thresholding" begin
@@ -360,8 +362,8 @@ end
 
         d0, d1, d2 = ripserer(Cubical(data); dim_max=2, alg=:homology)
 
-        @test d0 == [(0, 1.0), (0, Inf)]
-        @test isempty(d1)
+        @test d0 == [(0, 1), (0, Inf)]
+        @test d1 == []
         @test d2 == [(0, 1)]
     end
 end
