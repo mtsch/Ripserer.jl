@@ -29,8 +29,11 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
 
-* `reps`: if `true`, return representative cocycles along with persistence intervals.
-  Defaults to `false`.
+* `reps`: if `true`, attach representative (co)cycles to persistence intervals. Can also be
+  set to collection of integers to only find representatives in specified dimensions,
+  e.g. `reps=1:2` will only find representatives in dimensions 1 and 2. This is useful for
+  large filtrations (such as cubical) where calculating zero-dimensional representatives can
+  be very slow.  Defaults to `false` for cohomology and `1:dim_max` for homology.
 
 * `progress`: If `true`, show a progress bar. Defaults to `false`.
 
@@ -38,10 +41,20 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
   `Distances.Euclidean(1e-12)`.
 
-* `cohomology`: if set to `false`, compute persistent homology instead of cohomology. This
-  is much slower and gives the same result, but may give more informative representatives
-  when `reps` is enabled. Currently unable to compute infinite intervals in dimensions
-  higher than 0. Defaults to `false`.
+* `alg`: select the algorithm used in computation. The options are:
+
+  - `:cohomology`: Default and fastest algorithm. When `reps` is set, intervals are equipped
+    with representative _co_cycles.
+
+  - `:homology`: Significantly slower than `:cohomology`, but finds representative
+    cycles. Does not find infinite intervals beyond dimension 0.
+
+  - `:assisted`: Use cohomology result to compute representative cycles. Can be extremely
+    efficient compared to `:homology`, especially for `Rips` filtrations.
+
+* `implicit`: If `true`, an implicit reduction algorithm is used. Defaults to `true` for
+  :cohomology and `false` for `:homology`. `implicit=false` is not recommended for
+  `:cohomology` because it disables the emergent pairs optimization.
 
 """
 function ripserer(
