@@ -420,4 +420,8 @@ end
     @testset "Overflow checking" begin
         @test_throws OverflowError ripserer(Rips{Int16}(ones(1000, 1000)))
     end
+
+    @testset "Unsupported algirithms" begin
+        @test_throws ArgumentError ripserer(Rips(ones(5,5)); alg=:something)
+    end
 end

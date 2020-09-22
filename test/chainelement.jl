@@ -43,6 +43,7 @@ for S in (Simplex{2, Float64, Int}, Simplex{3, Float64, Int32}),
             @test last(a) === -coef_3
             @test eltype(a) == Union{S, F}
             @test eltype(typeof(a)) == Union{S, F}
+            @test convert(S, a) == simplex(a)
             @test_throws BoundsError a[3]
             @test_throws BoundsError a[0]
 

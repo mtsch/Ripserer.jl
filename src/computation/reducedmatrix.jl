@@ -130,7 +130,6 @@ function discard!(matrix::ReducedMatrix)
     return matrix
 end
 
-Base.eltype(::Type{<:ReducedMatrix{<:Any, E}}) where E = E
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
 Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, simplex)
