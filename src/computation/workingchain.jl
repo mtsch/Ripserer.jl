@@ -22,11 +22,6 @@ Base.isempty(chain::WorkingChain) = isempty(chain.heap)
 
 Base.eltype(chain::WorkingChain{E}) where E = E
 
-function Base.sizehint!(chain::WorkingChain, size)
-    sizehint!(chain.heap, size)
-    return chain
-end
-
 function Base.pop!(chain::WorkingChain)
     isempty(chain) && return nothing
     heap = chain.heap
@@ -56,10 +51,6 @@ function nonheap_push!(chain::WorkingChain{E}, element::E) where E
 end
 
 repair!(chain::WorkingChain) = heapify!(chain.heap, chain.ordering)
-
-function Base.sort!(chain::WorkingChain; kwargs...)
-    return sort!(chain.heap; order=chain.ordering, kwargs...)
-end
 
 Base.first(chain::WorkingChain) = first(chain.heap)
 

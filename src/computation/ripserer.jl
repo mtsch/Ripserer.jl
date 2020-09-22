@@ -50,7 +50,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
     cycles. Does not find infinite intervals beyond dimension 0.
 
   - `:assisted`: Use cohomology result to compute representative cycles. Can be extremely
-    efficient compared to `:homology`, especially for `Rips` filtrations.
+    efficient compared to `:homology`, especially with `Rips` filtrations.
 
 * `implicit`: If `true`, an implicit reduction algorithm is used. Defaults to `true` for
   :cohomology and `:assisted`, and `false` for `:homology`. `implicit=false` is not
@@ -129,9 +129,6 @@ function _ripserer(
     if dim_max > 0
         simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
         for dim in 1:dim_max
-            if isempty(simplices)
-                return result
-            end
             matrix = BoundaryMatrix{implicit}(field_type, filtration, simplices)
             push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
@@ -154,9 +151,6 @@ function _ripserer(
         comatrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
             columns = compute_death_simplices!(comatrix, progress, cutoff)
-            if isempty(columns)
-                return result
-            end
             matrix = BoundaryMatrix{implicit}(field_type, filtration, columns)
             push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max

@@ -91,7 +91,11 @@ struct BoundaryMatrix{I, T, F, S, R, C}
 end
 
 function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I, T}
-    Simplex = typeof(first(columns_to_reduce))
+    if eltype(columns_to_reduce) === Any
+        Simplex = typeof(first(columns_to_reduce))
+    else
+        Simplex = eltype(columns_to_reduce)
+    end
     Facet = simplex_type(filtration, dim(Simplex) - 1)
     ordering = Base.Order.Reverse
     SimplexElem = chain_element_type(Simplex, T)

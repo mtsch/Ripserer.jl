@@ -371,16 +371,21 @@ end
                 _, hom_exp1, hom_exp2 = ripserer(
                     r; alg=:homology, implicit=false, dim_max=2, modulus=m
                 )
+                _, hom_ass1, hom_ass2 = ripserer(
+                    r; alg=:assisted, dim_max=2, modulus=m
+                )
                 _, coh_imp1, coh_imp2 = ripserer(
                     r ; implicit=true, reps=true, dim_max=2, modulus=m
                 )
                 _, coh_exp1, coh_exp2 = ripserer(
                     r; implicit=true, reps=true, dim_max=2, modulus=m
                 )
-                @test hom_imp1 == hom_exp1 == coh_imp1 == coh_exp1
-                @test hom_imp2 == hom_exp2 == coh_imp2 == coh_exp2
+                @test hom_imp1 == hom_exp1 == hom_ass1 == coh_imp1 == coh_exp1
+                @test hom_imp2 == hom_exp2 == hom_ass2 == coh_imp2 == coh_exp2
                 @test representative.(hom_imp1) == representative.(hom_exp1)
+                @test representative.(hom_imp1) == representative.(hom_ass1)
                 @test representative.(hom_imp2) == representative.(hom_exp2)
+                @test representative.(hom_imp2) == representative.(hom_ass2)
                 @test representative.(coh_imp1) == representative.(coh_exp1)
                 @test representative.(coh_imp2) == representative.(coh_exp2)
             end
@@ -392,7 +397,13 @@ end
             ))
         end
         @testset "Infinite intervals" begin
-            @test_broken ripserer(cycle, alg=:homology, threshold=2)[2][1] == (1.0, Inf)
+            @test_broken ripserer(
+                cycle, alg=:homology, threshold=2, implicit=true
+            )[2][1] == (1.0, Inf)
+            @test_broken ripserer(
+                cycle, alg=:homology, threshold=2, implicit=false
+            )[2][1] == (1.0, Inf)
+            @test_broken ripserer(cycle, alg=:assisted, threshold=2)[2][1] == (1.0, Inf)
         end
     end
 

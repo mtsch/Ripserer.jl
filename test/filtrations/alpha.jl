@@ -71,11 +71,13 @@ end
         a = Alpha(points)
         _, hom_imp = ripserer(a; alg=:homology, implicit=true)
         _, hom_exp = ripserer(a; alg=:homology, implicit=false)
+        _, hom_ass = ripserer(a; alg=:assisted)
         _, coh_imp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
         _, coh_exp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
 
-        @test hom_imp == hom_exp == coh_imp == coh_exp
+        @test hom_imp == hom_exp == hom_ass == coh_imp == coh_exp
         @test representative.(hom_imp) == representative.(hom_exp)
+        @test representative.(hom_exp) == representative.(hom_ass)
         @test representative.(coh_imp) == representative.(coh_exp)
     end
 end
