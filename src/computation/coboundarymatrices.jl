@@ -1,3 +1,9 @@
+"""
+    CoboundaryMatrix{I}
+
+This `struct` is used to compute cohomology. The `I` parameter sets whether the implicit
+algoritm is used or not.
+"""
 struct CoboundaryMatrix{I, T, F, S, R, C}
     filtration::F
     reduced::R
@@ -29,7 +35,6 @@ function CoboundaryMatrix{I}(
         filtration, reduced, chain, columns_to_reduce, columns_to_skip
     )
 end
-
 
 field_type(::CoboundaryMatrix{<:Any, T}) where T = T
 dim(cm::CoboundaryMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
@@ -72,9 +77,12 @@ function next_matrix(matrix::CoboundaryMatrix{I}, progress) where I
     )
 end
 
-###
-###
-###
+"""
+    BoundaryMatrix{I}
+
+This `struct` is used to compute homology. The `I` parameter sets whether the implicit
+algoritm is used or not.
+"""
 struct BoundaryMatrix{I, T, F, S, R, C}
     filtration::F
     reduced::R
@@ -118,18 +126,20 @@ end
 is_implicit(::BoundaryMatrix{I}) where I = I
 is_cohomology(::BoundaryMatrix) = false
 
+# The naming here is not ideal...
 function coboundary(matrix::BoundaryMatrix, simplex::AbstractSimplex)
     return boundary(matrix.filtration, simplex)
 end
 
-###
-###
-###
-function initialize_coboundary!(matrix, column)
-    initialize_coboundary!(Val(is_cohomology(matrix)), matrix, column)
-end
-# Cohomology version
-function initialize_coboundary!(::Val{true}, matrix, column)
+"""
+    initialize_coboundary!(matrix, column)
+
+Initialize the column indexed by `column` by adding its (co)boundary to `matrix.chain`. This
+is where the emergent pairs optimization gets triggered for implicit versions of the
+algorithm.
+
+"""
+function initialize_coboundary!(#=::Val{true},=# matrix, column)
     empty!(matrix.chain)
     # Emergent pairs: we are looking for pairs of simplices (σ, τ) where σ is the youngest
     # facet of τ and τ is the oldest cofacet of σ. These pairs give birth to persistence
@@ -154,20 +164,14 @@ function initialize_coboundary!(::Val{true}, matrix, column)
         return pop!(matrix.chain)
     end
 end
-# Homology version
-function initialize_coboundary!(::Val{false}, matrix, column)
-    empty!(matrix.chain)
-    for facet in coboundary(matrix, column)
-        nonheap_push!(matrix.chain, facet)
-    end
-    if isempty(matrix.chain)
-        return nothing
-    else
-        repair!(matrix.chain)
-        return pop!(matrix.chain)
-    end
-end
 
+"""
+    add!(matrix, column, pivot)
+
+Add already reduced column indexed by `column` multiplied by `-coefficient(pivot)` to
+`matrix.chain`.
+
+"""
 function add!(matrix, column, pivot)
     add!(Val(is_implicit(matrix)), matrix, column, pivot)
 end
@@ -194,6 +198,11 @@ function add!(::Val{false}, matrix, column, pivot)
     end
 end
 
+"""
+    finalize!(matrix, column, pivot)
+
+After reduction is done, finalize the column by adding it to the reduced matrix.
+"""
 function finalize!(matrix, column, pivot)
     finalize!(Val(is_implicit(matrix)), matrix, column, pivot)
 end
@@ -208,6 +217,13 @@ function finalize!(::Val{false}, matrix, column, pivot)
     commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
 end
 
+"""
+    reduce_column!(matrix, column_to_reduce)
+
+Reduce `column_to_reduce` by repeatedly adding other columns to it. Once nothing more can be
+added, `finalize!` the column.
+
+"""
 function reduce_column!(matrix, column_to_reduce)
     pivot = initialize_coboundary!(matrix, column_to_reduce)
 
@@ -227,23 +243,19 @@ function reduce_column!(matrix, column_to_reduce)
     return pivot
 end
 
-function interval(matrix, column, pivot, cutoff, reps)
+"""
+    collect_cocycle!(matrix, pivot, reps)
+
+Collect the representative (co)cycle.
+
+TODO: clean this up.
+"""
+function collect_cocycle!(matrix, pivot)
     if is_cohomology(matrix)
-        birth_simplex = column
-        death_simplex = isnothing(pivot) ? nothing : simplex(pivot)
-    elseif isnothing(pivot)
-        # In homology, birth simplex is nothing when column is fully reduced.
-        return nothing
-    else
-        birth_simplex, death_simplex = simplex(pivot), column
-    end
-    if !reps
-        representative = nothing
-    elseif is_cohomology(matrix)
         if isnothing(pivot)
-            representative = simplex_type(matrix.filtration, dim(matrix))[]
+            return simplex_type(matrix.filtration, dim(matrix))[]
         elseif is_implicit(matrix)
-            representative = collect(matrix.reduced[pivot])
+            return collect(matrix.reduced[pivot])
         else
             elem_t = chain_element_type(
                 simplex_type(matrix.filtration, dim(matrix)), field_type(matrix)
@@ -254,42 +266,37 @@ function interval(matrix, column, pivot, cutoff, reps)
                     push!(tmp_chain, elem_t(facet, coefficient(elem)))
                 end
             end
-            representative = move!(tmp_chain)
+            return move!(tmp_chain)
         end
     else
         if is_implicit(matrix)
-            representative = pushfirst!(move!(matrix.chain), birth_simplex)
+            return pushfirst!(move!(matrix.chain), pivot)
         else
-            representative = pushfirst!(collect(matrix.reduced[pivot]), birth_simplex)
+            return pushfirst!(collect(matrix.reduced[pivot]), pivot)
         end
     end
-    return interval(
-        Val(is_implicit(matrix)), birth_simplex, death_simplex, cutoff, representative
-    )
 end
-# Implicit version
-function interval(::Val{true}, birth_simplex, death_simplex, cutoff, representative)
-    birth_time = Float64(birth(birth_simplex))
-    death_time = isnothing(death_simplex) ? Inf : Float64(birth(death_simplex))
-    if death_time - birth_time > cutoff
-        if !isnothing(representative)
-            rep = (;representative=representative)
-        else
-            rep = NamedTuple()
-        end
-        meta = (;birth_simplex=birth_simplex, death_simplex=death_simplex, rep...)
-        return PersistenceInterval(birth_time, death_time, meta)
-    else
+
+"""
+    interval(matrix, column, pivot, cutoff, reps)
+
+Construct a persistence interval.
+"""
+function interval(matrix, column, pivot, cutoff, reps)
+    if is_cohomology(matrix)
+        birth_simplex = column
+        death_simplex = isnothing(pivot) ? nothing : simplex(pivot)
+    elseif isnothing(pivot)
+        # In homology, birth simplex is nothing when column is fully reduced.
         return nothing
+    else
+        birth_simplex, death_simplex = simplex(pivot), column
     end
-end
-# Explicit version
-function interval(::Val{false}, birth_simplex, death_simplex, cutoff, representative)
     birth_time = Float64(birth(birth_simplex))
     death_time = isnothing(death_simplex) ? Inf : Float64(birth(death_simplex))
     if death_time - birth_time > cutoff
-        if !isnothing(representative)
-            rep = (;representative=representative)
+        if reps
+            rep = (;representative=collect_cocycle!(matrix, pivot))
         else
             rep = NamedTuple()
         end
@@ -300,6 +307,12 @@ function interval(::Val{false}, birth_simplex, death_simplex, cutoff, representa
     end
 end
 
+"""
+    handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
+
+Handle apparent pair precomputation, if defined for `matrix.filtration`. Only does anything
+for implicit cohomology. Resulting intervals (if any) are `push!`ed to `intervals`.
+"""
 function handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
     coho = Val(is_cohomology(matrix))
     impl = Val(is_implicit(matrix))
@@ -324,6 +337,11 @@ function handle_apparent_pairs!(::Val, ::Val, matrix, _, _, _, _)
     return matrix.columns_to_reduce
 end
 
+"""
+    compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
+
+Compute all intervals by fully reducing `matrix`.
+"""
 function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ###
     ### Set up output.
@@ -376,6 +394,14 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     )
 end
 
+"""
+    compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
+
+Fully reduce `matrix`, but only compute (homological) death simplices. Return all death
+simplices up to the last that produces an interval with persistence greater than `cutoff`.
+
+Used for assisted homology.
+"""
 function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
     columns, apparent = find_apparent_pairs(
         matrix.filtration, matrix.columns_to_reduce, progress

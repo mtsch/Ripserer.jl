@@ -14,26 +14,35 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 # Keyword Arguments
 
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
+
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
+
 * `field_type`: use this type of field of coefficients. Defaults to
   [`Ripserer.Mod`](@ref)`{modulus}`.
+
 * `threshold`: compute persistent homology up to diameter smaller than threshold. This
   parameter is only applicable when using distance matrices or points as input. When using
   filtrations, threshold must be passed to the filtration constructor. Defaults to the
   radius of the input space. When using low thresholds with points or distance matrices,
   consider using `sparse=true`.
+
 * `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
+
 * `reps`: if `true`, return representative cocycles along with persistence intervals.
   Defaults to `false`.
+
 * `progress`: If `true`, show a progress bar. Defaults to `false`.
+
 * `metric`: when calculating persistent homology from points, any metric from
   [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
   `Distances.Euclidean(1e-12)`.
+
 * `cohomology`: if set to `false`, compute persistent homology instead of cohomology. This
   is much slower and gives the same result, but may give more informative representatives
   when `reps` is enabled. Currently unable to compute infinite intervals in dimensions
   higher than 0. Defaults to `false`.
+
 """
 function ripserer(
     dists::AbstractMatrix;
@@ -55,11 +64,11 @@ function ripserer(
     filtration::AbstractFiltration;
     dim_max=1,
     cutoff=0,
-    reps=false,
     modulus=2,
     field_type=Mod{modulus},
     progress=false,
     alg=:cohomology,
+    reps=alg == :cohomology ? false : 1:dim_max,
     implicit=alg != :homology,
 )
     start_time = time_ns()
@@ -73,18 +82,21 @@ function ripserer(
     return result
 end
 
+_reps(reps::Bool, _) = reps
+_reps(reps, dim) = dim in reps
+
 function _ripserer(
     ::Val{:cohomology}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, Val(reps)
+        filtration, cutoff, progress, field_type, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
         matrix = CoboundaryMatrix{implicit}(field_type, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, progress, reps))
+            push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
                 matrix = next_matrix(matrix, progress)
             end
@@ -98,7 +110,7 @@ function _ripserer(
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, Val(reps)
+        filtration, cutoff, progress, field_type, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
@@ -108,7 +120,7 @@ function _ripserer(
                 return result
             end
             matrix = BoundaryMatrix{implicit}(field_type, filtration, simplices)
-            push!(result, compute_intervals!(matrix, cutoff, progress, true))
+            push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
                 simplices = columns_to_reduce(filtration, simplices)
             end
@@ -122,7 +134,7 @@ function _ripserer(
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, Val(reps)
+        filtration, cutoff, progress, field_type, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
@@ -133,7 +145,7 @@ function _ripserer(
                 return result
             end
             matrix = BoundaryMatrix{implicit}(field_type, filtration, columns)
-            push!(result, compute_intervals!(matrix, cutoff, progress, true))
+            push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
                 comatrix = next_matrix(comatrix, progress)
             end

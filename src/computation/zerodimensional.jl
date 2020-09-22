@@ -77,9 +77,7 @@ end
 
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
-function add_interval!(
-    intervals, dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, ::Val{reps}
-) where reps
+function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, reps)
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
     if death_time - birth_time > cutoff
@@ -91,17 +89,19 @@ function add_interval!(
         else
             rep = NamedTuple()
         end
-        push!(intervals, PersistenceInterval(
+        return PersistenceInterval(
             birth_time, death_time;
             birth_simplex=birth_simplex,
             death_simplex=edge,
             rep...,
-        ))
+        )
+    else
+        return nothing
     end
 end
 
 """
-    zeroth_intervals(filtration, cutoff, progress, field_type, Val(reps))
+    zeroth_intervals(filtration, cutoff, progress, field_type, reps)
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 
@@ -109,9 +109,7 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
 `progress` is set.
 """
-function zeroth_intervals(
-    filtration, cutoff, progress, ::Type{F}, ::Val{reps}
-) where {F, reps}
+function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
     V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
@@ -125,6 +123,7 @@ function zeroth_intervals(
         progbar = Progress(
             length(simplices) + n_vertices(filtration);
             desc="Computing 0d intervals... ",
+            dt=1,
         )
     end
     for edge in simplices
@@ -134,7 +133,8 @@ function zeroth_intervals(
         if i ≠ j
             # According to the elder rule, the vertex with the higer birth will die first.
             last_vertex = birth(dset, i) > birth(dset, j) ? i : j
-            add_interval!(intervals, dset, filtration, last_vertex, edge, cutoff, Val(reps))
+            int = interval(dset, filtration, last_vertex, edge, cutoff, reps)
+            !isnothing(int) && push!(intervals, int)
 
             union!(dset, i, j)
             push!(to_skip, edge)
@@ -145,7 +145,8 @@ function zeroth_intervals(
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,), 1))
-            add_interval!(intervals, dset, filtration, v, nothing, cutoff, Val(reps))
+            int = interval(dset, filtration, v, nothing, cutoff, reps)
+            push!(intervals, int)
         end
         progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
