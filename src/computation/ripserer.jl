@@ -53,8 +53,8 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
     efficient compared to `:homology`, especially for `Rips` filtrations.
 
 * `implicit`: If `true`, an implicit reduction algorithm is used. Defaults to `true` for
-  :cohomology and `false` for `:homology`. `implicit=false` is not recommended for
-  `:cohomology` because it disables the emergent pairs optimization.
+  :cohomology and `:assisted`, and `false` for `:homology`. `implicit=false` is not
+  recommended for `:cohomology` because it disables the emergent pairs optimization.
 
 """
 function ripserer(

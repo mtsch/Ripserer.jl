@@ -407,9 +407,6 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
         matrix.filtration, matrix.columns_to_reduce, progress
     )
     bulk_add!(matrix.reduced, apparent)
-    if progress
-        progbar = Progress(length(columns); desc="Precomputing columns...   ")
-    end
     result = simplex_type(matrix.filtration, dim(matrix) + 1)[]
     if isempty(columns)
         return result
@@ -422,6 +419,9 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
             end
             push!(result, pair[2])
         end
+        if progress
+            progbar = Progress(length(columns); desc="Precomputing columns...   ")
+        end
         for column in columns
             pivot = reduce_column!(matrix, column)
             if !isnothing(pivot)
@@ -430,7 +430,7 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
                 end
                 push!(result, simplex(pivot))
             end
-            progress && next!(progbar)
+            progress && next!(progbar; showvalues=((:simplices, length(result)),))
         end
         return filter!(x -> birth(x) ≤ thresh, result)
     end
