@@ -179,13 +179,13 @@ plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 # representatives it finds, however, tend to not be as informative. Keep this in mind when
 # trying persistent homology out for larger datasets; it can take a very very long
 # time. This case is quite small and computing persistent homology should pose no problem.
-# We compute persistent homology with the argument `cohomology=false`.
+# We compute persistent homology with the argument `alg=:homology`.
 
 # !!! warning "Infinite Intervals in Persistent Homology"
 #     Ripserer currently can't compute infinite intervals in dimensions
 #     higher than zero with persistent homology.
 
-result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true, cohomology=false)
+result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true, alg=:homology)
 plot!(plt, only(result[2]), blackhole, label="H₁ cycle", color=3)
 
 # We have successfully found the hole in a black hole.
