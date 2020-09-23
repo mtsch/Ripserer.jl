@@ -411,9 +411,10 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
         matrix.filtration, matrix.columns_to_reduce, progress
     )
     bulk_add!(matrix.reduced, apparent)
-    result = simplex_type(matrix.filtration, dim(matrix) + 1)[]
+    deaths = simplex_type(matrix.filtration, dim(matrix) + 1)[]
+    inf_births = simplex_type(matrix.filtration, dim(matrix))[]
     if isempty(columns)
-        return result
+        return deaths, inf_births
     else
         dim(matrix) > 1 && sort!(columns, rev=true)
         thresh = typemin(birth(first(columns)))
@@ -421,7 +422,7 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
             if birth(pair[2]) - birth(pair[1]) > cutoff
                 thresh = max(thresh, birth(pair[2]))
             end
-            push!(result, pair[2])
+            push!(deaths, pair[2])
         end
         if progress
             progbar = Progress(length(columns); desc="Precomputing columns...   ")
@@ -432,10 +433,12 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
                 if birth(pivot) - birth(column) > cutoff
                     thresh = max(thresh, birth(pivot))
                 end
-                push!(result, simplex(pivot))
+                push!(deaths, simplex(pivot))
+            else
+                push!(inf_births, column)
             end
-            progress && next!(progbar; showvalues=((:simplices, length(result)),))
+            progress && next!(progbar; showvalues=((:simplices, length(deaths)),))
         end
-        return filter!(x -> birth(x) ≤ thresh, result)
+        return filter!(x -> birth(x) ≤ thresh, deaths), inf_births
     end
 end

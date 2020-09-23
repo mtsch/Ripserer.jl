@@ -403,7 +403,7 @@ end
             @test_broken ripserer(
                 cycle, alg=:homology, threshold=2, implicit=false
             )[2][1] == (1.0, Inf)
-            @test_broken ripserer(cycle, alg=:assisted, threshold=2)[2][1] == (1.0, Inf)
+            @test ripserer(cycle, alg=:assisted, threshold=2)[2][1] == (1.0, Inf)
         end
     end
 
