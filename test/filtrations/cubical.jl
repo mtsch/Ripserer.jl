@@ -293,14 +293,15 @@ end
 end
 
 @testset "ripserer" begin
-    @testset "1D curve" begin
+    @testset "1D" begin
         data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
-        d0, d1 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
 
-        @test d0 == [(0, Inf), (1, 4), (2, 3)]
+        @test d0 == [(2, 3), (1, 4), (0, Inf)]
         @test d1 == []
+        @test d2 == []
     end
-    @testset "1D curve representatives" begin
+    @testset "1D representatives" begin
         n = 1000
         x = range(0, 1, length=n)
         curve = sin.(2π * 5x) .* x
@@ -311,7 +312,8 @@ end
             birth_sx = birth_simplex(int)
             @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
         end
-        @test only.(birth_simplex.(d0)) == CartesianIndex.([951, 752, 552, 354, 157, 1])
+        @test sort!(only.(birth_simplex.(d0))) ==
+            CartesianIndex.([1, 157, 354, 552, 752, 951])
     end
     @testset "2D image" begin
         data = [0 0 0 0 0;
@@ -322,14 +324,14 @@ end
 
         d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
 
-        @test d0 == [(0, Inf), (1, 2)]
+        @test d0 == [(1, 2), (0, Inf)]
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test sort(vertices.(representative(d0[1]))) ==
-            sort(SVector.(vec(CartesianIndices(data))))
-        @test vertices(only(representative(d0[2]))) ==
+        @test vertices(only(representative(d0[1]))) ==
             SVector(CartesianIndex(3, 3))
+        @test sort(vertices.(representative(d0[2]))) ==
+            sort(SVector.(vec(CartesianIndices(data))))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
@@ -340,8 +342,8 @@ end
 
         d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
 
-        @test d0 == [(0, 1.0), (0, Inf)]
-        @test isempty(d1)
+        @test d0 == [(0, 1), (0, Inf)]
+        @test d1 == []
         @test d2 == [(0, 1)]
     end
     @testset "Thresholding" begin
@@ -352,16 +354,26 @@ end
         @test d0 == [(1, Inf)]
         @test d1 == [(1, Inf)]
     end
-    @testset "Homology" begin
+    @testset "Homology and explicit cohomology" begin
         data = zeros(5, 5, 5)
         data[2, 2:4, 2:4] .= 1
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2, cohomology=false)
+        c = Cubical(data)
+        _, hom_imp1, hom_imp2 = ripserer(c; alg=:homology, implicit=true, dim_max=2)
+        _, hom_exp1, hom_exp2 = ripserer(c; alg=:homology, implicit=false, dim_max=2)
+        _, hom_ass1, hom_ass2 = ripserer(c; alg=:assisted, implicit=false, dim_max=2)
+        _, coh_imp1, coh_imp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
+        _, coh_exp1, coh_exp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
 
-        @test d0 == [(0, 1.0), (0, Inf)]
-        @test isempty(d1)
-        @test d2 == [(0, 1)]
+        @test hom_imp1 == hom_exp1 == hom_ass1 == coh_imp1 == coh_exp1
+        @test hom_imp2 == hom_exp2 == hom_ass2 == coh_imp2 == coh_exp2
+        @test representative.(hom_imp1) == representative.(hom_exp1)
+        @test representative.(hom_imp1) == representative.(hom_ass1)
+        @test representative.(hom_imp2) == representative.(hom_exp2)
+        @test representative.(hom_imp2) == representative.(hom_ass2)
+        @test representative.(coh_imp1) == representative.(coh_exp1)
+        @test representative.(coh_imp2) == representative.(coh_exp2)
     end
 end

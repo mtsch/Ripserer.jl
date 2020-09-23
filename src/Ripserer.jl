@@ -9,7 +9,7 @@ module Ripserer
 
 using Compat
 
-using Base: @propagate_inbounds, @pure
+using Base: @propagate_inbounds
 using Base.Cartesian
 using LinearAlgebra
 using SparseArrays
@@ -42,9 +42,12 @@ include("simplex.jl")
 include("abstractfiltration.jl")
 include("chainelement.jl")
 
-include("zerodimensional.jl")
-include("reductionmatrix.jl")
-include("main.jl")
+include("computation/utils.jl")
+include("computation/zerodimensional.jl")
+include("computation/workingchain.jl")
+include("computation/reducedmatrix.jl")
+include("computation/coboundarymatrices.jl")
+include("computation/ripserer.jl")
 
 include("filtrations/rips.jl")
 include("filtrations/cubical.jl")

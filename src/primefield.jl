@@ -4,7 +4,7 @@
 
 Return `true` if `n` is a prime number.
 """
-@pure function is_prime(n::Int)
+Base.@pure function is_prime(n::Int)
     if iseven(n) || n < 2
         return n == 2
     else
