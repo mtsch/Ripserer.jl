@@ -75,13 +75,14 @@ end
             appa = ApparentPairsRips(projective_plane)
             _, hom_imp = ripserer(appa; alg=:homology, implicit=true, modulus=m)
             _, hom_exp = ripserer(appa; alg=:homology, implicit=false, modulus=m)
+            _, hom_ass = ripserer(appa; alg=:involuted, implicit=false, modulus=m)
             _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true, modulus=m)
             _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false, modulus=m)
 
-            @test hom_imp == hom_exp == coh_imp == coh_exp
-            @test all(
-                i.representative == j.representative for (i, j) in zip(hom_imp, hom_exp)
-            )
+            @test hom_imp == hom_exp == coh_imp == coh_exp == hom_ass
+            @test representative.(hom_imp) == representative.(hom_exp)
+            @test representative.(hom_imp) == representative.(hom_ass)
+            @test representative.(coh_imp) == representative.(coh_exp)
         end
     end
 end
@@ -123,11 +124,14 @@ end
         appa = ApparentPairsCustom()
         _, hom_imp = ripserer(appa; alg=:homology, implicit=true)
         _, hom_exp = ripserer(appa; alg=:homology, implicit=false)
-        _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true)
-        _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false)
+        _, hom_ass = ripserer(appa; alg=:involuted)
+        _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true, reps=true)
+        _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false, reps=true)
 
-        @test hom_imp == hom_exp == coh_imp == coh_exp
-        @test all(i.representative == j.representative for (i, j) in zip(hom_imp, hom_exp))
+        @test hom_imp == hom_exp == coh_imp == coh_exp == hom_ass
+        @test representative.(hom_imp) == representative.(hom_exp)
+        @test representative.(hom_imp) == representative.(hom_ass)
+        @test representative.(coh_imp) == representative.(coh_exp)
     end
 end
 

@@ -71,7 +71,7 @@ end
         a = Alpha(points)
         _, hom_imp = ripserer(a; alg=:homology, implicit=true)
         _, hom_exp = ripserer(a; alg=:homology, implicit=false)
-        _, hom_ass = ripserer(a; alg=:assisted)
+        _, hom_ass = ripserer(a; alg=:involuted)
         _, coh_imp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
         _, coh_exp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
 

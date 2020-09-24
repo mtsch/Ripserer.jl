@@ -363,7 +363,7 @@ end
         c = Cubical(data)
         _, hom_imp1, hom_imp2 = ripserer(c; alg=:homology, implicit=true, dim_max=2)
         _, hom_exp1, hom_exp2 = ripserer(c; alg=:homology, implicit=false, dim_max=2)
-        _, hom_ass1, hom_ass2 = ripserer(c; alg=:assisted, implicit=false, dim_max=2)
+        _, hom_ass1, hom_ass2 = ripserer(c; alg=:involuted, implicit=false, dim_max=2)
         _, coh_imp1, coh_imp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
         _, coh_exp1, coh_exp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
 
