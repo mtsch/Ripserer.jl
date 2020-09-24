@@ -23,7 +23,7 @@ for b in benchmarks
         filtration = b.filtration(data, threshold=b.threshold)
     end
     suite[name] = @benchmarkable ripserer(
-        $filtration; dim_max=$(b.dim_max), alg=:assisted
+        $filtration; dim_max=$(b.dim_max), alg=:involuted
     ) samples=1
 end
 
