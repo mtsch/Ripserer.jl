@@ -130,7 +130,7 @@ function coboundary(
     end
 end
 
-dist(rips::AbstractRipsFiltration) = adjacency_matrix(rips)
+distance_matrix(rips::AbstractRipsFiltration) = adjacency_matrix(rips)
 
 function _check_distance_matrix(dist::SparseMatrixCSC)
     n = LinearAlgebra.checksquare(dist)

@@ -112,11 +112,15 @@ end
 Reconstruct the shortest representative cycle for the first homology group of given
 `interval`. The optional argument `t` sets the time at which the cycle is to be computed. It
 defaults to interval birth time, which gives a cycle similar to a representative cycle
-computed from homology. In general, higher times will yield nicer cycles.
+computed from homology. In general, higher times will yield nicer cycles. `t` can be a
+simplex or a number.
 
 This method uses the representative cocycle to compute the cycle. As such, the interval must
 include a representative. To get such an interval, run `ripserer` with the keyword argument
-`reps=true`.
+`reps=true` or `reps=1`.
+
+!!! warning
+    This feature is still experimental
 """
 function reconstruct_cycle(
     filtration::AbstractFiltration{<:Any, T}, interval, r=birth_simplex(interval)
@@ -124,6 +128,10 @@ function reconstruct_cycle(
     if !hasproperty(interval, :representative)
         throw(ArgumentError(
             "interval has no representative! Run `ripserer` with `reps=true`"
+        ))
+    elseif !(eltype(interval.representative) <: AbstractSimplex{1})
+        throw(ArgumentError(
+            "cycles can only be reconstructed for 1-dimensional intervals."
         ))
     elseif !(birth(interval) ≤ _birth_or_value(r) < death(interval))
         return simplex_type(filtration, 1)[]

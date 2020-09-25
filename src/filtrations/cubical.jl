@@ -328,4 +328,4 @@ function Base.getindex(cd::CubicalDist, i::Integer, j::Integer)
     return sum(abs, Tuple(ci) .- Tuple(cj))
 end
 
-dist(cf::Cubical) = CubicalDist(cf)
+distance_matrix(cf::Cubical) = CubicalDist(cf)

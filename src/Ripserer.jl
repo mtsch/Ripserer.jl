@@ -36,7 +36,7 @@ export
 
 export
     Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
-    Rips, SparseRips, Cubical, Custom, Alpha, ripserer
+    Rips, SparseRips, Cubical, Custom, Alpha, ripserer, reconstruct_cycle
 
 include("primefield.jl")
 include("simplex.jl")

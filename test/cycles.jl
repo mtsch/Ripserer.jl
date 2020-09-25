@@ -2,7 +2,7 @@ using LightGraphs
 using Ripserer
 using Test
 
-using Ripserer: dist, reconstruct_cycle, OneSkeleton
+using Ripserer: distance_matrix, OneSkeleton
 
 @testset "OneSkeleton respects the LightGraphs interface" begin
     @testset "no threshold or removed simplices" begin
@@ -26,7 +26,7 @@ using Ripserer: dist, reconstruct_cycle, OneSkeleton
         @test edges(g) == [Edge(j, i) for i in 1:5 for j in i+1:6]
         @test vertices(g) == 1:6
         @test is_directed(g) == is_directed(typeof(g)) == false
-        @test weights(g) == dist(flt)
+        @test weights(g) == distance_matrix(flt)
         @test has_edge(g, 1, 2)
         @test has_edge(g, 3, 6)
         @test !has_edge(g, 3, 7)
@@ -56,7 +56,7 @@ using Ripserer: dist, reconstruct_cycle, OneSkeleton
                            if dists[i, j] ≠ 3 && (j, i) ∉ [(2, 1), (3, 1)]]
         @test vertices(g) == 1:6
         @test is_directed(g) == is_directed(typeof(g)) == false
-        @test weights(g) == dist(flt)
+        @test weights(g) == distance_matrix(flt)
         @test !has_edge(g, 1, 2)
         @test !has_edge(g, 3, 6)
         @test has_edge(g, 3, 5)
@@ -82,7 +82,7 @@ using Ripserer: dist, reconstruct_cycle, OneSkeleton
         @test edges(g) == [Edge(j, i) for i in 1:3 for j in i+1:4 if (j, i) ≥ (3, 2)]
         @test vertices(g) == 1:4
         @test is_directed(g) == is_directed(typeof(g)) == false
-        @test weights(g) == dist(flt)
+        @test weights(g) == distance_matrix(flt)
         @test !has_edge(g, 1, 2)
         @test !has_edge(g, 3, 6)
         @test has_edge(g, 3, 2)
@@ -111,7 +111,7 @@ using Ripserer: dist, reconstruct_cycle, OneSkeleton
         @test !has_vertex(g, 0)
         @test vertices(g) == 1:35
         @test is_directed(g) == is_directed(typeof(g)) == false
-        @test weights(g) == dist(flt)
+        @test weights(g) == distance_matrix(flt)
         @test has_edge(g, 1, 2)
         @test !has_edge(g, 3, 6)
         @test neighbors(g, 1) == [6, 2]
@@ -246,5 +246,20 @@ end
         @test reconstruct_cycle(cf, interval, 4) == reconstruct_cycle(cf, interval, 3)
         @test isempty(reconstruct_cycle(cf, interval, 0))
         @test isempty(reconstruct_cycle(cf, interval, 5))
+    end
+
+    @testset "Errors" begin
+        flt = Rips([
+            0 1 2 3 2 1
+            1 0 1 2 3 2
+            2 1 0 1 2 3
+            3 2 1 0 1 2
+            2 3 2 1 0 1
+            1 2 3 2 1 0
+        ])
+        _, d1, d2 = ripserer(flt, reps=2, dim_max=2)
+
+        @test_throws ArgumentError reconstruct_cycle(flt, d1[1])
+        @test_throws ArgumentError reconstruct_cycle(flt, d2[1])
     end
 end

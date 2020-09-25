@@ -325,7 +325,7 @@ function index_overflow_check(
 end
 
 """
-    dist(::AbstractFiltration)
+    distance_matrix(::AbstractFiltration)
 
 Return distance matrix of filtration. These distances are used to determine edge length when
 finding shortest represenatative cycle in [`reconstruct_cycle`](@ref).
@@ -337,7 +337,7 @@ Defaults to all distances being 1.
 ```jldoctest
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
-julia> Ripserer.dist(flt)
+julia> Ripserer.distance_matrix(flt)
 3×3 Array{Int64,2}:
  1  1  2
  1  0  1
@@ -345,7 +345,7 @@ julia> Ripserer.dist(flt)
 
 julia> flt = Custom([(1,2,3,4) => 10.0, (1,2) => 3.0, (1,3) => 4.0, (2,3) => 5.0]);
 
-julia> Ripserer.dist(flt)
+julia> Ripserer.distance_matrix(flt)
 4×4 Ripserer.DefaultDist{Float64}:
  0.0  1.0  1.0  1.0
  1.0  0.0  1.0  1.0
@@ -354,8 +354,8 @@ julia> Ripserer.dist(flt)
 
 ```
 """
-dist(flt::AbstractFiltration{<:Any, T}) where T = DefaultDist{T}(nv(flt))
-dist(flt::AbstractFiltration, i, j) = dist(flt)[i, j]
+distance_matrix(flt::AbstractFiltration{<:Any, T}) where T = DefaultDist{T}(nv(flt))
+distance_matrix(flt::AbstractFiltration, i, j) = dist(flt)[i, j]
 
 struct DefaultDist{T} <: AbstractMatrix{T}
     nv::Int

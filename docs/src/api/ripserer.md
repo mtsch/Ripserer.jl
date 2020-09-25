@@ -85,3 +85,9 @@ death_simplex(::PersistenceDiagrams.PersistenceInterval)
 ```@docs
 barcode
 ```
+
+## Experimental Features
+
+```@docs
+reconstruct_cycle
+```

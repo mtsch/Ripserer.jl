@@ -51,7 +51,7 @@ Ripserer.postprocess_diagram
 ```
 
 ```@docs
-Ripserer.dist
+Ripserer.distance_matrix
 ```
 
 ```@docs

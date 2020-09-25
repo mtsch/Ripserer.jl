@@ -219,4 +219,4 @@ function Base.getindex(ad::AlphaDist, i::Integer, j::Integer)
     Euclidean()(ad.alpha.points[i], ad.alpha.points[j])
 end
 
-dist(alpha::Alpha) = AlphaDist(alpha)
+distance_matrix(alpha::Alpha) = AlphaDist(alpha)
