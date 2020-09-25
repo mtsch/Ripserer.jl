@@ -19,6 +19,7 @@ using Distances
 using IterTools
 using MiniQhull
 using PersistenceDiagrams
+using Printf
 using ProgressMeter
 using RecipesBase
 using StaticArrays

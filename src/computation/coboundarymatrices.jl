@@ -363,15 +363,15 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ### Interval computation.
     ###
     prog_print(
-        progress, length(columns), " ", (simplex_name(eltype(columns))), " to reduce."
+        progress, fmt_number(length(columns)), " ", (simplex_name(eltype(columns))),
+        " to reduce."
     )
     # One-dimensional columns in cohomology are already sorted.
     if !is_cohomology(matrix) || dim(matrix) > 1
-        prog_print(progress, " Sorting... ")
         sort_t = time_ns()
         sort!(columns, rev=is_cohomology(matrix))
         elapsed = round((time_ns() - sort_t) / 1e9, digits=3)
-        prog_println(progress, "done. (", elapsed, "seconds)")
+        prog_println(progress, " Sorted in ", elapsed, "s)")
     else
         prog_println(progress)
     end
