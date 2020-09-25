@@ -372,7 +372,7 @@ end
                     r; alg=:homology, implicit=false, dim_max=2, modulus=m
                 )
                 _, hom_ass1, hom_ass2 = ripserer(
-                    r; alg=:assisted, dim_max=2, modulus=m
+                    r; alg=:involuted, dim_max=2, modulus=m
                 )
                 _, coh_imp1, coh_imp2 = ripserer(
                     r ; implicit=true, reps=true, dim_max=2, modulus=m
@@ -403,7 +403,7 @@ end
             @test_broken ripserer(
                 cycle, alg=:homology, threshold=2, implicit=false
             )[2][1] == (1.0, Inf)
-            @test ripserer(cycle, alg=:assisted, threshold=2)[2][1] == (1.0, Inf)
+            @test ripserer(cycle, alg=:involuted, threshold=2)[2][1] == (1.0, Inf)
         end
     end
 
