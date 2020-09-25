@@ -38,6 +38,9 @@ end
 @safetestset "new filtrations" begin
     include("filtrations/new-filtrations.jl")
 end
+@safetestset "cycles" begin
+    include("cycles.jl")
+end
 
 @safetestset "plotting" begin
     include("plotting.jl")

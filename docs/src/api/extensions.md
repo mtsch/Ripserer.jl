@@ -51,6 +51,10 @@ Ripserer.postprocess_diagram
 ```
 
 ```@docs
+Ripserer.distance_matrix
+```
+
+```@docs
 Ripserer.AbstractRipsFiltration
 ```
 

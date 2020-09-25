@@ -323,3 +323,43 @@ function index_overflow_check(
     )
     index_overflow_check(S, F, nv(flt), message)
 end
+
+"""
+    distance_matrix(::AbstractFiltration)
+
+Return a matrix with distances between vertices of the filtration. These distances are used
+to determine edge length when finding shortest represenatative cycle in
+[`reconstruct_cycle`](@ref).
+
+Defaults to all distances being 1.
+
+# Examples
+
+```jldoctest
+julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
+
+julia> Ripserer.distance_matrix(flt)
+3×3 Array{Int64,2}:
+ 1  1  2
+ 1  0  1
+ 2  1  0
+
+julia> flt = Custom([(1,2,3,4) => 10.0, (1,2) => 3.0, (1,3) => 4.0, (2,3) => 5.0]);
+
+julia> Ripserer.distance_matrix(flt)
+4×4 Ripserer.DefaultDist{Float64}:
+ 0.0  1.0  1.0  1.0
+ 1.0  0.0  1.0  1.0
+ 1.0  1.0  0.0  1.0
+ 1.0  1.0  1.0  0.0
+
+```
+"""
+distance_matrix(flt::AbstractFiltration{<:Any, T}) where T = DefaultDist{T}(nv(flt))
+
+struct DefaultDist{T} <: AbstractMatrix{T}
+    nv::Int
+end
+
+Base.size(dd::DefaultDist) = (dd.nv, dd.nv)
+Base.getindex(dd::DefaultDist, i, j) = ifelse(i == j, zero(eltype(dd)), one(eltype(dd)))

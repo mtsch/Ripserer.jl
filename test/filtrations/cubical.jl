@@ -5,7 +5,7 @@ using StaticArrays
 using Test
 using TupleTools
 
-using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
+using Ripserer: _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv,
     coboundary, boundary, edges, births,
     chain_element_type, CubicalChainElement
 
@@ -13,19 +13,19 @@ using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
     @testset "cubemap" begin
         @testset "1d" begin
             data = Float64[9, 1, 8, 2, 1, 3]
-            @test cubemap(data) == [9, 9, 1, 8, 8, 8, 2, 2, 1, 3, 3]
+            @test _cubemap(data) == [9, 9, 1, 8, 8, 8, 2, 2, 1, 3, 3]
         end
         @testset "2d" begin
             data = [1 2; 3 4]
-            @test cubemap(data) == [1 2 2; 3 4 4; 3 4 4]
+            @test _cubemap(data) == [1 2 2; 3 4 4; 3 4 4]
 
             data = [1; 2; 3]
-            @test cubemap(data) == [1; 2; 2; 3; 3]
+            @test _cubemap(data) == [1; 2; 2; 3; 3]
         end
         @testset "nd" begin
             for D in 3:6
                 data = ones(ntuple(identity, D)...)
-                map = cubemap(data)
+                map = _cubemap(data)
 
                 @test map == ones(ntuple(i -> 2i - 1, D)...)
             end
@@ -33,7 +33,7 @@ using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
     end
 
     @testset "from/to_cubemap" begin
-        @test from_cubemap(CartesianIndex(2, 2, 2), Val(8)) == SVector(
+        @test _from_cubemap(CartesianIndex(2, 2, 2), Val(8)) == SVector(
             CartesianIndex(1, 1, 1),
             CartesianIndex(2, 1, 1),
             CartesianIndex(1, 2, 1),
@@ -54,23 +54,13 @@ using Ripserer: one_hot, cubemap, from_cubemap, to_cubemap, nv,
                 CartesianIndex(1024, 1073, 14), CartesianIndex(1025, 1073, 14),
             ),
         )
-            @test from_cubemap(to_cubemap(vertices), Val(length(vertices))) ==
+            @test _from_cubemap(_to_cubemap(vertices), Val(length(vertices))) ==
                 sort(SVector(vertices))
-            root = to_cubemap(vertices)
-            @test begin from_cubemap(root, Val(length(vertices))); true end
+            root = _to_cubemap(vertices)
+            @test begin _from_cubemap(root, Val(length(vertices))); true end
         end
 
-
-        @test_throws ArgumentError from_cubemap(CartesianIndex(2, 2, 1), Val(8))
-        @test_throws ArgumentError to_cubemap(
-            (CartesianIndex(2), CartesianIndex(3), CartesianIndex(4))
-        )
-        @test_throws ArgumentError to_cubemap(
-            (CartesianIndex(2), CartesianIndex(2))
-        )
-        @test_throws ArgumentError to_cubemap(
-            (CartesianIndex(1), CartesianIndex(3))
-        )
+        @test_throws ArgumentError _from_cubemap(CartesianIndex(2, 2, 1), Val(8))
     end
 end
 
@@ -91,7 +81,7 @@ end
                 root = CartesianIndex{K}(ntuple(_ -> 2rand(1:100) - 1, Val(K)))
                 dirs = Tuple(sort!(shuffle(1:K)[1:D]))
                 for i in dirs
-                    root += one_hot(i, Val(K))
+                    root += _one_hot(i, Val(K))
                 end
                 c = Cube{D}(root, d)
 
@@ -117,8 +107,8 @@ end
                     @test c < Cube{D}(root2, d + 1)
                     @test c > Cube{D}(root2, d - 1)
 
-                    @test c < Cube{D}(root - 2one_hot(rand(1:K), Val(K)), d)
-                    @test c > Cube{D}(root + 2one_hot(rand(1:K), Val(K)), d)
+                    @test c < Cube{D}(root - 2_one_hot(rand(1:K), Val(K)), d)
+                    @test c > Cube{D}(root + 2_one_hot(rand(1:K), Val(K)), d)
                 end
 
                 @testset "Array interface, vertices" begin

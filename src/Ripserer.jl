@@ -17,6 +17,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
+using LightGraphs
 using MiniQhull
 using PersistenceDiagrams
 using ProgressMeter
@@ -35,7 +36,7 @@ export
 
 export
     Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
-    Rips, SparseRips, Cubical, Custom, Alpha, ripserer
+    Rips, SparseRips, Cubical, Custom, Alpha, ripserer, reconstruct_cycle
 
 include("primefield.jl")
 include("simplex.jl")
@@ -54,6 +55,8 @@ include("filtrations/rips.jl")
 include("filtrations/cubical.jl")
 include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
+
+include("cycles.jl")
 
 include("simplexrecipes.jl")
 
