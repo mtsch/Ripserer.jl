@@ -76,8 +76,8 @@ end
             _, hom_imp = ripserer(appa; alg=:homology, implicit=true, modulus=m)
             _, hom_exp = ripserer(appa; alg=:homology, implicit=false, modulus=m)
             _, hom_ass = ripserer(appa; alg=:involuted, implicit=false, modulus=m)
-            _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true, modulus=m)
-            _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false, modulus=m)
+            _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true, modulus=m, reps=1)
+            _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false, modulus=m, reps=1)
 
             @test hom_imp == hom_exp == coh_imp == coh_exp == hom_ass
             @test representative.(hom_imp) == representative.(hom_exp)
