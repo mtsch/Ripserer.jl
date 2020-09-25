@@ -82,7 +82,6 @@ end
             @test hom_imp == hom_exp == coh_imp == coh_exp == hom_ass
             @test representative.(hom_imp) == representative.(hom_exp)
             @test representative.(hom_imp) == representative.(hom_ass)
-            @test representative.(coh_imp) == representative.(coh_exp)
         end
     end
 end
@@ -105,7 +104,7 @@ Ripserer.adjacency_matrix(::ApparentPairsCustom) = sparse(Bool[0 1 1; 1 0 1; 1 1
 function Ripserer.find_apparent_pairs(a::ApparentPairsCustom, columns, _)
     σ = columns[1]
     a.found[] = true
-    return typeof(σ)[], [(σ, minimum(Ripserer.coboundary(a, σ)))]
+    return typeof(σ)[], [(σ, only(Ripserer.coboundary(a, σ)))]
 end
 
 @testset "Apparent pairs can produce valid intervals." begin
@@ -124,14 +123,11 @@ end
         appa = ApparentPairsCustom()
         _, hom_imp = ripserer(appa; alg=:homology, implicit=true)
         _, hom_exp = ripserer(appa; alg=:homology, implicit=false)
-        _, hom_ass = ripserer(appa; alg=:involuted)
-        _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true, reps=true)
-        _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false, reps=true)
+        _, coh_imp = ripserer(appa; alg=:cohomology, implicit=true)
+        _, coh_exp = ripserer(appa; alg=:cohomology, implicit=false)
 
-        @test hom_imp == hom_exp == coh_imp == coh_exp == hom_ass
+        @test hom_imp == hom_exp == coh_imp == coh_exp
         @test representative.(hom_imp) == representative.(hom_exp)
-        @test representative.(hom_imp) == representative.(hom_ass)
-        @test representative.(coh_imp) == representative.(coh_exp)
     end
 end
 
