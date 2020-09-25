@@ -248,6 +248,30 @@ end
         @test isempty(reconstruct_cycle(cf, interval, 5))
     end
 
+    @testset "Overriding distance matrix" begin
+        flt = Rips([
+            0 2 4 2 2
+            2 0 2 4 2
+            4 2 0 2 6
+            2 4 2 0 6
+            2 2 6 6 0
+        ])
+
+        interval = ripserer(flt, reps=true)[2][1]
+
+        dists = [
+            0 2 4 2 0
+            2 0 2 4 0
+            4 2 0 2 6
+            2 4 2 0 6
+            0 0 6 6 0
+        ]
+        cyc1 = reconstruct_cycle(flt, interval, 2)
+        cyc2 = reconstruct_cycle(flt, interval, 2, distances=dists)
+        @test length(cyc1) == 4
+        @test length(cyc2) == 5
+    end
+
     @testset "Errors" begin
         flt = Rips([
             0 1 2 3 2 1

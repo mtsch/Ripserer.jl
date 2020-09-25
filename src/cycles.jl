@@ -1,14 +1,18 @@
-struct OneSkeleton{T, F<:AbstractFiltration, S<:AbstractSimplex{1}} <: AbstractGraph{Int}
+struct OneSkeleton{T, F<:AbstractFiltration, S<:AbstractSimplex{1}, A} <: AbstractGraph{Int}
     filtration::F
     threshold::T
+    weights::A
     removed::Set{S}
 end
 function OneSkeleton(
-    filtration::F, thresh::T=threshold(filtration), removed=()
+    filtration::F,
+    thresh::T=threshold(filtration),
+    removed=(),
+    weights=distance_matrix(filtration),
 ) where {F, T}
     S = simplex_type(filtration, 1)
     removed = Set{S}(removed)
-    return OneSkeleton{T, F, S}(filtration, thresh, removed)
+    return OneSkeleton{T, F, S, typeof(weights)}(filtration, thresh, weights, removed)
 end
 
 _birth_or_value(σ::AbstractSimplex) = birth(σ)
@@ -63,9 +67,9 @@ LightGraphs.is_directed(::OneSkeleton) = false
 LightGraphs.is_directed(::Type{<:OneSkeleton}) = false
 
 # need default dist for filtrations...
-LightGraphs.weights(g::OneSkeleton) = dist(g.filtration)
+LightGraphs.weights(g::OneSkeleton) = g.weights
 
-_heuristic(filtration, src) = dst -> dist(filtration, dst, src)
+_heuristic(filtration, src, distances) = dst -> distances[dst, src]
 function _path_length(dists, cyc)
     result = zero(eltype(dists))
     for edge in cyc
@@ -79,14 +83,13 @@ end
 _linear(g, i) = LinearIndices(vertices(g.filtration))[i]
 _inv_linear(g, i) = vertices(g.filtration)[i]
 
-function _find_cycle(g)
+function _find_cycle(g, dists)
     best_weight = missing
     best_path = edgetype(g)[]
     best_sx = first(g.removed)
-    dists = dist(g.filtration)
     for sx in g.removed
         u, v = _linear.(Ref(g), sx)
-        path = a_star(g, u, v, dists, _heuristic(g.filtration, v))
+        path = a_star(g, u, v, dists, _heuristic(g.filtration, v, dists))
         weight = _path_length(dists, path) + dists[u, v]
         if !isempty(path) && isless(weight, best_weight)
             best_weight = weight
@@ -107,7 +110,7 @@ function _find_cycle(g)
 end
 
 """
-    reconstruct_cycle(filtration, interval[, t])
+    reconstruct_cycle(filtration, interval[, t]; distances=distance_matrix(filtration))
 
 Reconstruct the shortest representative cycle for the first homology group of given
 `interval`. The optional argument `t` sets the time at which the cycle is to be computed. It
@@ -115,21 +118,25 @@ defaults to interval birth time, which gives a cycle similar to a representative
 computed from homology. In general, higher times will yield nicer cycles. `t` can be a
 simplex or a number.
 
+The optional `distances` keyword argument can be used to change the distance matrix used for
+determining edge lengths.
+
 This method uses the representative cocycle to compute the cycle. As such, the interval must
 include a representative. To get such an interval, run `ripserer` with the keyword argument
 `reps=true` or `reps=1`.
 
 !!! warning
-    This feature is still experimental
+    This feature is still experimental.
 """
 function reconstruct_cycle(
-    filtration::AbstractFiltration{<:Any, T}, interval, r=birth_simplex(interval)
+    filtration::AbstractFiltration{<:Any, T}, interval, r=birth_simplex(interval);
+    distances=distance_matrix(filtration)
 ) where T
     if !hasproperty(interval, :representative)
         throw(ArgumentError(
             "interval has no representative! Run `ripserer` with `reps=true`"
         ))
-    elseif !(eltype(interval.representative) <: AbstractSimplex{1})
+    elseif !(eltype(interval.representative)<:AbstractChainElement{<:AbstractSimplex{1}})
         throw(ArgumentError(
             "cycles can only be reconstructed for 1-dimensional intervals."
         ))
@@ -140,6 +147,6 @@ function reconstruct_cycle(
             birth(sx) ≤ _birth_or_value(r)
         end
         g = OneSkeleton(filtration, r, reps)
-        return _find_cycle(g)
+        return _find_cycle(g, distances)
     end
 end

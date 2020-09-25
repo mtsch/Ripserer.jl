@@ -327,8 +327,9 @@ end
 """
     distance_matrix(::AbstractFiltration)
 
-Return distance matrix of filtration. These distances are used to determine edge length when
-finding shortest represenatative cycle in [`reconstruct_cycle`](@ref).
+Return a matrix with distances between vertices of the filtration. These distances are used
+to determine edge length when finding shortest represenatative cycle in
+[`reconstruct_cycle`](@ref).
 
 Defaults to all distances being 1.
 
@@ -355,7 +356,6 @@ julia> Ripserer.distance_matrix(flt)
 ```
 """
 distance_matrix(flt::AbstractFiltration{<:Any, T}) where T = DefaultDist{T}(nv(flt))
-distance_matrix(flt::AbstractFiltration, i, j) = dist(flt)[i, j]
 
 struct DefaultDist{T} <: AbstractMatrix{T}
     nv::Int
