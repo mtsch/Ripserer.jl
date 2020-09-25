@@ -9,3 +9,4 @@
   representatives only for specified dimensions.
 * Implicit or explicit reduction can be set with the `implicit` keyword argument.
 * Improved progress printing.
+* New function: `find_apparent_pairs`.

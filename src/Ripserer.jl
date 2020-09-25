@@ -49,6 +49,7 @@ include("computation/reducedmatrix.jl")
 include("computation/coboundarymatrices.jl")
 include("computation/ripserer.jl")
 
+include("filtrations/utils.jl")
 include("filtrations/rips.jl")
 include("filtrations/cubical.jl")
 include("filtrations/custom.jl")

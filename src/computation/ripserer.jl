@@ -49,12 +49,12 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   - `:homology`: Significantly slower than `:cohomology`, but finds representative
     cycles. Does not find infinite intervals beyond dimension 0.
 
-  - `:assisted`: Use cohomology result to compute representative cycles. Can be extremely
+  - `:involuted`: Use cohomology result to compute representative cycles. Can be extremely
     efficient compared to `:homology`, especially with `Rips` filtrations. Unlike
     `:homology`, this algorithm finds infinite intervals.
 
 * `implicit`: If `true`, an implicit reduction algorithm is used. Defaults to `true` for
-  :cohomology and `:assisted`, and `false` for `:homology`. `implicit=false` is not
+  :cohomology and `:involuted`, and `false` for `:homology`. `implicit=false` is not
   recommended for `:cohomology` because it disables the emergent pairs optimization.
 
 """
@@ -91,7 +91,7 @@ function ripserer(
         Val(alg), filtration, cutoff, progress, field_type, dim_max, reps, implicit
     )
     elapsed = round((time_ns() - start_time) / 1e9, digits=3)
-    prog_println(progress, "Done. Took ", elapsed, " seconds.")
+    prog_println(progress, "Done. Time: ", ProgressMeter.durationstring(elapsed))
 
     return result
 end
@@ -141,7 +141,7 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:assisted}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+    ::Val{:involuted}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(

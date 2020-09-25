@@ -9,3 +9,12 @@ simplex_name(::Type{<:Simplex{1}}) = "edges"
 simplex_name(::Type{<:Simplex{2}}) = "triangles"
 simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
 simplex_name(::Type{<:AbstractSimplex{D}}) where D = "$D-simplices"
+
+function fmt_number(i)
+    # Stolen from Humanize.jl
+    value = string(i)
+    group_ends = reverse(collect(length(value):-3:1))
+    groups = [value[max(end_index - 2, 1):end_index]
+              for end_index in group_ends]
+    join(groups, ",")
+end
