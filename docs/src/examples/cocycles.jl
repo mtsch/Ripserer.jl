@@ -26,7 +26,7 @@ end
 
 data = annulus(300)
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 
 # Let's start by taking a look at the persistence diagram.
 
@@ -58,12 +58,12 @@ data[death_sx]
 # Ripserer also provides a Plots recipe for plotting simplices. It is invoked by passing the
 # simplex and the data to `plot`. Not that only the edges of the simplices are plotted.
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(death_sx, data; label="death simplex")
 plot!(birth_simplex(diagram[2][end]), data; label="birth simplex")
 
-# When the birth simplex is added to the filtration, the hole first appears. When the death
-# simplex is added, the hole is filled in. {??}
+# The birth simplex is the simplex that first connects the hole. The death simplex is the
+# simplex that fills the hole in.
 
 # While the death simplex gives us a vague idea of where the hole is located, there are
 # other methods available.
@@ -88,7 +88,7 @@ cocycle = representative(most_persistent_co)
 
 # The representative can be plotted in the same way as a simplex.
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(cocycle, data; label="cocycle")
 
 # The cocycle is a collection of 1-simplices that, if removed, would break the cycle in our
@@ -118,13 +118,14 @@ most_persistent_ho = diagram_cycles[2][end]
 
 # If an interval with a representative is passed to `plot`, the representative is plotted.
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(most_persistent_ho, data; label="cycle")
 
 # The cycle is still not the prettiest, but it at least corresponds to a topological circle
-# wound around the hole in the middle of the data set. The extra cycles that were found are
-# all contractible at the time the cycle exists. To make the result look even better, we can
-# try reconstructing the shortest representative cycle.
+# wound around the hole in the middle of the data set. Sometimes, the cycle will also have
+# multiple connected components. All except one will be contractible at the time the cycle
+# exists. To make the result look even better, we can try reconstructing the shortest
+# representative cycle.
 
 # ## Reconstructed Shortest Cycles
 
@@ -141,7 +142,7 @@ plot!(most_persistent_ho, data; label="cycle")
 filtration = diagram_cocycles[2].filtration
 reconstructed_at_birth = reconstruct_cycle(filtration, most_persistent_co)
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(reconstructed_at_birth, data; label="reconstruction")
 
 # This looks much nicer than the homology example, but could still use some improvement. To
@@ -154,12 +155,12 @@ plot!(reconstructed_at_birth, data; label="reconstruction")
 midpoint = (death(most_persistent_co) - birth(most_persistent_co))/2
 reconstructed_at_midpoint = reconstruct_cycle(filtration, most_persistent_co, midpoint)
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(reconstructed_at_midpoint, data; label="reconstruction")
 
 # As an extreme case, let's look at what the cycle looks like right before its death.
 
-scatter(data, label="data", markersize=1)
+scatter(data, label="data", markersize=2, aspect_ratio=1)
 plot!(
     reconstruct_cycle(filtration, most_persistent_co, death(most_persistent_co) - 0.01),
     data;
