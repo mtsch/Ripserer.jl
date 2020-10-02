@@ -99,3 +99,4 @@ In these benchmarks, we compare Ripserer to
 |`dragon1000`|1000|1  |         |575.749 ms|8.441 s |0.068|
 |`celegans`  |297 |2  |         |4.217 s   |4.588 s |0.919|
 |`o3_1024`   |1024|3  |1.8      |5.735 s   |8.314 s |0.69 |
+|`random16`  |50  |7  |         |8.577 s   |7.688 s |1.116|
