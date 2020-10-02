@@ -37,7 +37,7 @@ supports. The time it takes to parse a file is included for both Ripser and Rips
 |`o3_4096`     |4096|3  |1.4      |151.527 s|76.177 s|1.989|4.7 GiB      |4.1 GiB    |
 |`dragon2000`  |2000|1  |         |3.133 s |2.833 s  |1.106|316.7 MiB    |296.8 MiB  |
 |`fract-r`     |512 |2  |         |22.807 s|19.482 s |1.171|2.2 GiB      |2.0 GiB    |
-|`random16`    |50  |2  |         |8.479 ms|10.561 ms|0.803|111.1 MiB    |1.1 MiB    |
+|`random16`    |50  |2  |         |8 ms    |10 ms    |0.803|111.1 MiB    |1.1 MiB    |
 |`sphere_3_192`|192 |2  |         |1.549 s |1.491 s  |1.039|287.0 MiB    |209.5 MiB  |
 
 ### Sparse results
@@ -50,7 +50,7 @@ These benchmarks were performed with the `sparse=true` keyword argument.
 |`o3_4096`     |4096|3  |1.4      |76.052 s|76.177 s |0.998|4.9 GiB      |4.1 GiB    |
 |`dragon2000`  |2000|1  |         |3.588 s |2.833 s  |1.267|350.4 MiB    |296.8 MiB  |
 |`fract-r`     |512 |2  |         |25.399 s|19.482 s |1.304|2.2 GiB      |2.0 GiB    |
-|`random16`    |50  |2  |         |9.839 ms|10.561 ms|0.932|111.1 MiB    |1.1 MiB    |
+|`random16`    |50  |2  |         |9 ms    |10 ms    |0.932|111.1 MiB    |1.1 MiB    |
 |`sphere_3_192`|192 |2  |         |1.734 s |1.491 s  |1.163|288.5 MiB    |209.5 MiB  |
 
 ### Alpha-Rips
@@ -61,10 +61,10 @@ inputs.
 
 |dataset              |size |dim|Ripserer  |Ripser    |ratio|Ripserer heap|Ripser heap|
 |:--------------------|:----|:--|:---------|:---------|:----|:------------|:----------|
-|`alpha_3_sphere_3000`|3000 |3  |636.909 ms|789.505 ms|0.807|138.4 MiB    |33.2 MiB   |
-|`alpha_torus_10_000` |10000|2  |872.977 ms|1.179 s   |0.741|130.0 MiB    |27.7 MiB   |
+|`alpha_3_sphere_3000`|3000 |3  |636 ms    |789 ms    |0.807|138.4 MiB    |33.2 MiB   |
+|`alpha_torus_10_000` |10000|2  |872 ms    |1.179 s   |0.741|130.0 MiB    |27.7 MiB   |
 |`alpha_5_sphere_1000`|1000 |5  |49.431 s  |46.707 s  |1.058|387.2 MiB    |202.0 MiB  |
-|`alpha_dragon_2000`  |2000 |2  |56.589 ms |76.045 ms |0.744|2.4 GiB      |1.5 GiB    |
+|`alpha_dragon_2000`  |2000 |2  |56 ms     |76 ms     |0.744|2.4 GiB      |1.5 GiB    |
 |`alpha_4_sphere_2000`|2000 |4  |5.844 s   |6.203 s   |0.942|110.9 MiB    |33.2 MiB   |
 
 ## Comparison with Cubical Ripser
@@ -80,7 +80,7 @@ footprint and increase performance.
 
 |dataset       |size   |dim|Ripserer  |Cubical Ripser|ratio|Ripserer heap|Cubical Ripser heap|
 |:-------------|:------|:--|:---------|:-------------|:----|:------------|:------------------|
-|`lena512`     |262144 |1  |787.598 ms|299.312 ms    |2.631|145.0 MiB    |49.3 MiB           |
+|`lena512`     |262144 |1  |787 ms    |299 ms        |2.631|145.0 MiB    |49.3 MiB           |
 |`bonsai128`   |2097152|2  |31.151 s  |14.733 s      |2.114|514.4 MiB    |186.7 MiB          |
 |`bonsai64`    |262144 |2  |2.875 s   |2.996 s       |0.96 |280.6 MiB    |1.3 GiB            |
 |`head128`     |2097152|2  |24.102 s  |12.434 s      |1.938|1.5 GiB      |1.9 GiB            |
@@ -96,6 +96,7 @@ In these benchmarks, we compare Ripserer to
 |:-----------|:---|:--|:--------|:---------|:-------|:----|
 |`gcycle`    |100 |3  |         |6.231 s   |24.158 s|0.258|
 |`hiv`       |1088|1  |         |1.824 s   |7.774 s |0.235|
-|`dragon1000`|1000|1  |         |575.749 ms|8.441 s |0.068|
+|`dragon1000`|1000|1  |         |575 ms    |8.441 s |0.068|
 |`celegans`  |297 |2  |         |4.217 s   |4.588 s |0.919|
 |`o3_1024`   |1024|3  |1.8      |5.735 s   |8.314 s |0.69 |
+|`random16`  |50  |7  |         |8.577 s   |7.688 s |1.116|
