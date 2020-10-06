@@ -283,10 +283,20 @@ end
             @test eltype(d3) isa DataType
             @test eltype(d3[1].representative) <: ChainElement
         end
-        @testset "Infinite interval" begin
-            _, d1 = ripserer(cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int})
+        @testset "Infinite interval very low threshold" begin
+            _, d1 = ripserer(
+                cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
+            )
             rep = representative(only(d1))
-            @test rep == []
+            @test isempty(rep)
+            @test eltype(rep) == ChainElement{Simplex{1, Int, Int}, Rational{Int}}
+        end
+        @testset "Infinite interval higher threshold" begin
+            _, d1 = ripserer(
+                cycle; dim_max=1, reps=true, threshold=3, field_type=Rational{Int}
+            )
+            rep = representative(only(d1))
+            @test !isempty(rep)
             @test eltype(rep) == ChainElement{Simplex{1, Int, Int}, Rational{Int}}
         end
         @testset "Critical simplices" begin

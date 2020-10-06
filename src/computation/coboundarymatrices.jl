@@ -229,6 +229,7 @@ added, `finalize!` the column.
 
 """
 function reduce_column!(matrix, column_to_reduce)
+    clear_buffer!(matrix.reduced)
     pivot = initialize_coboundary!(matrix, column_to_reduce)
 
     while !isnothing(pivot)
@@ -238,9 +239,7 @@ function reduce_column!(matrix, column_to_reduce)
         add!(matrix, column, pivot)
         pivot = pop!(matrix.chain)
     end
-    if isnothing(pivot)
-        discard!(matrix.reduced)
-    else
+    if !isnothing(pivot)
         finalize!(matrix, column_to_reduce, pivot)
     end
 
@@ -257,7 +256,7 @@ TODO: clean this up.
 function collect_cocycle!(matrix, pivot)
     if is_cohomology(matrix)
         if isnothing(pivot)
-            return simplex_type(matrix.filtration, dim(matrix))[]
+            return copy(collect_buffer!(matrix.reduced))
         elseif is_implicit(matrix)
             return collect(matrix.reduced[pivot])
         else

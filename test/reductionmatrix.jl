@@ -4,7 +4,7 @@ using Test
 
 using Ripserer: chain_element_type, coefficient, index
 
-using Ripserer: ReducedMatrix, record!, commit!, discard!
+using Ripserer: ReducedMatrix, record!, commit!, clear_buffer!
 using Ripserer: WorkingChain, nonheap_push!, repair!
 
 cofacet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
@@ -73,6 +73,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                 record!(matrix, S(4, 1))
 
                 commit!(matrix, columns[1], T(2))
+                clear_buffer!(matrix)
                 commit!(matrix, columns[2], T(2))
 
                 @test length(matrix) == 1
@@ -87,7 +88,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                 end
             end
 
-            @testset "discard! undos changes" begin
+            @testset "clear_buffer! undos changes" begin
                 matrix = ReducedMatrix{C, SE}(rev)
                 vals = [
                     SE(S(1, 1)),
@@ -98,7 +99,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                     SE(S(-1, 1)),
                 ]
                 record!(matrix, vals, one(T))
-                discard!(matrix)
+                clear_buffer!(matrix)
                 commit!(matrix, columns[2], T(2))
 
                 record!(matrix, vals, one(T))
@@ -146,6 +147,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                 ]
                 record!(matrix, vals_1, -one(T))
                 commit!(matrix, columns[1], T(2))
+                clear_buffer!(matrix)
 
                 vals_2 = [
                     SE(S(4, 1)),
@@ -156,6 +158,7 @@ facet_type(::Type{<:A}) where {D, T, I, A<:Simplex{D, T, I}} =
                 ]
                 record!(matrix, vals_2, one(T))
                 commit!(matrix, columns[2], T(-1))
+                clear_buffer!(matrix)
 
                 @test length(matrix) == 2
 

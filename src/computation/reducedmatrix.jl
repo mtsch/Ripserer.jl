@@ -57,6 +57,37 @@ function record!(matrix::ReducedMatrix, chain::WorkingChain)
 end
 
 """
+    collect_buffer!(matrix::ReducedMatrix{<:Any, E}, factor=one(E))
+
+Sort buffer and add duplicates together. Return buffer.
+"""
+function collect_buffer!(matrix::ReducedMatrix{<:Any, E}, factor=one(E)) where E
+    if !isempty(matrix.buffer)
+        sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
+        i = 0
+        @inbounds prev = matrix.buffer[1]
+        @inbounds for j in 2:length(matrix.buffer)
+            current = matrix.buffer[j]
+            if current == prev
+                prev += current
+            else
+                if !iszero(prev)
+                    i += 1
+                    matrix.buffer[i] = prev * factor
+                end
+                prev = current
+            end
+        end
+        if !iszero(prev)
+            i += 1
+            @inbounds matrix.buffer[i] = prev * factor
+        end
+        resize!(matrix.buffer, i)
+    end
+    return matrix.buffer
+end
+
+"""
     commit!(matrix::ReducedMatrix, simplex, factor)
 
 Commit the changes that were `record!`ed, creating a new column indexed by `simplex`. This
@@ -64,34 +95,24 @@ sorts the buffer and adds duplicates together. All entries are multiplied by `fa
 """
 function commit!(matrix::ReducedMatrix, simplex, factor)
     @assert sign(simplex) == 1
-    isempty(matrix.buffer) && return matrix
+    collect_buffer!(matrix, factor)
 
-    sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
-    i = 0
-    @inbounds prev = matrix.buffer[1]
-    @inbounds for j in 2:length(matrix.buffer)
-        current = matrix.buffer[j]
-        if current == prev
-            prev += current
-        else
-            if !iszero(prev)
-                i += 1
-                matrix.buffer[i] = prev * factor
-            end
-            prev = current
-        end
-    end
-    if !iszero(prev)
-        i += 1
-        @inbounds matrix.buffer[i] = prev * factor
-    end
-    if i > 0
-        resize!(matrix.buffer, i)
+    n = length(matrix.buffer)
+    if n > 0
         append!(matrix.values, matrix.buffer)
-        push!(matrix.indices, matrix.indices[end] + i)
+        push!(matrix.indices, matrix.indices[end] + n)
         matrix.column_index[simplex] = length(matrix.indices) - 1
     end
 
+    return matrix
+end
+
+"""
+    clear_buffer!(matrix::ReducedMatrix)
+
+Empty buffer.
+"""
+function clear_buffer!(matrix::ReducedMatrix)
     empty!(matrix.buffer)
     return matrix
 end
@@ -120,15 +141,6 @@ function bulk_add!(matrix::ReducedMatrix, ::Tuple{})
     return matrix
 end
 
-"""
-    discard!(matrix::ReducedMatrix)
-
-Undo recorded changes.
-"""
-function discard!(matrix::ReducedMatrix)
-    empty!(matrix.buffer)
-    return matrix
-end
 
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
