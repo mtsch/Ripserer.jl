@@ -123,7 +123,6 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
         progbar = Progress(
             length(simplices) + n_vertices(filtration);
             desc="Computing 0d intervals... ",
-            dt=1,
         )
     end
     for edge in simplices
