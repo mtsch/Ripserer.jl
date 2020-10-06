@@ -1,3 +1,7 @@
+# v0.15.1
+
+* Representative cocycles are computed for infinite intervals.
+
 # v0.15.0
 
 * `SparseRips(...)` is deprecated. Use `Rips(...; sparse=true)`.
