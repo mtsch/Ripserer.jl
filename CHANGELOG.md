@@ -1,3 +1,7 @@
+# v0.15.2
+
+* Update compat with Distances.jl
+
 # v0.15.1
 
 * Representative cocycles are computed for infinite intervals.
