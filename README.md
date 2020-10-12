@@ -5,6 +5,7 @@ _Flexible and efficient persistent homology computation._
 [![Coverage Status](https://coveralls.io/repos/github/mtsch/Ripserer.jl/badge.svg?branch=master)](https://coveralls.io/github/mtsch/Ripserer.jl?branch=master)
 [![Build Status](https://travis-ci.com/mtsch/Ripserer.jl.svg?branch=master)](https://travis-ci.com/mtsch/Ripserer.jl)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://mtsch.github.io/Ripserer.jl/dev)
+[![DOI](https://zenodo.org/badge/254291600.svg)](https://zenodo.org/badge/latestdoi/254291600)
 
 ![](docs/src/assets/title_plot.svg)
 
