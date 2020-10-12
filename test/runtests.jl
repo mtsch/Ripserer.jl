@@ -1,12 +1,6 @@
 using SafeTestsets
 using Test
 
-@safetestset "Aqua" begin
-    include("aqua.jl")
-end
-@safetestset "doctests" begin
-    include("doctests.jl")
-end
 @safetestset "primefield" begin
     include("primefield.jl")
 end
@@ -38,10 +32,17 @@ end
 @safetestset "new filtrations" begin
     include("filtrations/new-filtrations.jl")
 end
+
 @safetestset "cycles" begin
     include("cycles.jl")
 end
-
 @safetestset "plotting" begin
     include("plotting.jl")
+end
+
+@safetestset "aqua" begin
+    include("aqua.jl")
+end
+@safetestset "doctests" begin
+    include("doctests.jl")
 end
