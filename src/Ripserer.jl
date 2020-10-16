@@ -29,6 +29,9 @@ using TupleTools
 # piracy involved here.
 import LightGraphs: vertices, edges, nv, adjacency_matrix
 
+import MLJModelInterface
+const MMI = MLJModelInterface
+
 # Reexporting basics makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold, dim
 export birth, death, persistence, representative, birth_simplex, death_simplex, barcode
@@ -70,6 +73,7 @@ include("filtrations/alpha.jl")
 
 include("cycles.jl")
 
+include("mlj.jl")
 include("simplexrecipes.jl")
 
 end
