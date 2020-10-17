@@ -6,10 +6,7 @@ and birth vertices.
 Has no `num_groups` method.
 """
 struct DisjointSetsWithBirth{
-    I<:AbstractArray,
-    A<:AbstractArray,
-    B<:AbstractArray,
-    C<:AbstractArray,
+    I<:AbstractArray,A<:AbstractArray,B<:AbstractArray,C<:AbstractArray
 }
     vertices::I
     parents::A
@@ -21,7 +18,7 @@ struct DisjointSetsWithBirth{
         ranks = similar(parents, Int)
         ranks .= 0
         births = collect(zip(births, vertices))
-        return new{typeof(vertices), typeof(parents), typeof(ranks), typeof(births)}(
+        return new{typeof(vertices),typeof(parents),typeof(ranks),typeof(births)}(
             vertices, parents, ranks, births
         )
     end
@@ -55,7 +52,7 @@ function Base.union!(s::DisjointSetsWithBirth, x, y)
     parents = s.parents
     xroot = find_root!(s, x)
     yroot = find_root!(s, y)
-    xroot != yroot ? root_union!(s, xroot, yroot) : xroot
+    return xroot != yroot ? root_union!(s, xroot, yroot) : xroot
 end
 
 function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
@@ -85,17 +82,16 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
             filtration, Val(0), (birth_vertex,)
         )
         if reps
-            rep = (;representative=sort!(
-                [simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)]
-            ))
+            rep = (;
+                representative=sort!([
+                    simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)
+                ]),
+            )
         else
             rep = NamedTuple()
         end
         return PersistenceInterval(
-            birth_time, death_time;
-            birth_simplex=birth_simplex,
-            death_simplex=edge,
-            rep...,
+            birth_time, death_time; birth_simplex=birth_simplex, death_simplex=edge, rep...
         )
     else
         return nothing
@@ -111,7 +107,7 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
 `progress` is set.
 """
-function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
+function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where {F}
     V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
@@ -123,8 +119,7 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
     simplices = sort!(edges(filtration))
     if progress
         progbar = Progress(
-            length(simplices) + n_vertices(filtration);
-            desc="Computing 0d intervals... ",
+            length(simplices) + n_vertices(filtration); desc="Computing 0d intervals... "
         )
     end
     for edge in simplices
@@ -158,7 +153,7 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where F
         postprocess_diagram(
             filtration,
             PersistenceDiagram(
-                sort!(intervals, by=persistence);
+                sort!(intervals; by=persistence);
                 threshold=thresh,
                 dim=0,
                 field_type=F,

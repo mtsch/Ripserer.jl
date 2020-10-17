@@ -1,4 +1,4 @@
-struct OneSkeleton{T, F<:AbstractFiltration, S<:AbstractSimplex{1}, A} <: AbstractGraph{Int}
+struct OneSkeleton{T,F<:AbstractFiltration,S<:AbstractSimplex{1},A} <: AbstractGraph{Int}
     filtration::F
     threshold::T
     weights::A
@@ -9,15 +9,15 @@ function OneSkeleton(
     thresh::T=threshold(filtration),
     removed=(),
     weights=distance_matrix(filtration),
-) where {F, T}
+) where {F,T}
     S = simplex_type(filtration, 1)
     removed = Set{S}(removed)
-    return OneSkeleton{T, F, S, typeof(weights)}(filtration, thresh, weights, removed)
+    return OneSkeleton{T,F,S,typeof(weights)}(filtration, thresh, weights, removed)
 end
 
 _birth_or_value(σ::AbstractSimplex) = birth(σ)
 _birth_or_value(σ) = σ
-_in(σ::S, g::OneSkeleton{S}) where S = !isnothing(σ) && σ ≤ g.threshold && σ ∉ g.removed
+_in(σ::S, g::OneSkeleton{S}) where {S} = !isnothing(σ) && σ ≤ g.threshold && σ ∉ g.removed
 _in(σ, g::OneSkeleton) = !isnothing(σ) && birth(σ) ≤ g.threshold && σ ∉ g.removed
 
 LightGraphs.edgetype(::OneSkeleton) = Edge{Int}
@@ -129,17 +129,15 @@ include a representative. To get such an interval, run `ripserer` with the keywo
     This feature is still experimental.
 """
 function reconstruct_cycle(
-    filtration::AbstractFiltration{<:Any, T}, interval, r=birth_simplex(interval);
-    distances=distance_matrix(filtration)
-) where T
+    filtration::AbstractFiltration{<:Any,T},
+    interval,
+    r=birth_simplex(interval);
+    distances=distance_matrix(filtration),
+) where {T}
     if !hasproperty(interval, :representative)
-        throw(ArgumentError(
-            "interval has no representative! Run `ripserer` with `reps=true`"
-        ))
-    elseif !(eltype(interval.representative)<:AbstractChainElement{<:AbstractSimplex{1}})
-        throw(ArgumentError(
-            "cycles can only be reconstructed for 1-dimensional intervals."
-        ))
+        throw(ArgumentError("interval has no representative! Run `ripserer` with `reps=true`"))
+    elseif !(eltype(interval.representative) <: AbstractChainElement{<:AbstractSimplex{1}})
+        throw(ArgumentError("cycles can only be reconstructed for 1-dimensional intervals."))
     elseif !(birth(interval) ≤ _birth_or_value(r) < death(interval))
         return simplex_type(filtration, 1)[]
     else

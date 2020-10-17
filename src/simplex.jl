@@ -20,16 +20,21 @@ actually needed for the main algorithm.
 * `Base.:-(::AbstractSimplex)`
 
 """
-abstract type AbstractSimplex{D, T, I} <: AbstractVector{I} end
+abstract type AbstractSimplex{D,T,I} <: AbstractVector{I} end
 
-function Base.show(io::IO, sx::AbstractSimplex{D}) where D
-    print(io, sign(sx) == 1 ? :+ : :-, nameof(typeof(sx)), "{", D, "}(",
-          vertices(sx), ", ", birth(sx), ")")
+function Base.show(io::IO, sx::AbstractSimplex{D}) where {D}
+    sgn = sign(sx) == 1 ? :+ : :-
+    name = nameof(typeof(sx))
+    return print(io, "$sgn$name{$D}($(vertices(sx)), $(birth(sx)))")
 end
-function Base.show(io::IO, ::MIME"text/plain", sx::AbstractSimplex{D}) where D
-    print(io, D, "-dimensional ", nameof(typeof(sx)),
-          "(index=", index(sx), ", birth=", birth(sx), "):\n  ",
-          sign(sx) == 1 ? :+ : :-, vertices(sx))
+function Base.show(io::IO, ::MIME"text/plain", sx::AbstractSimplex{D}) where {D}
+    sgn = sign(sx) == 1 ? :+ : :-
+    name = nameof(typeof(sx))
+    return print(
+        io,
+        "$D-dimensional $name(index=$(index(sx)), birth=$(birth(sx))):\n  $sgn",
+        vertices(sx),
+    )
 end
 
 """
@@ -47,8 +52,8 @@ julia> index(Simplex{2}((3, 2, 1), 3.2))
 index(::AbstractSimplex)
 
 Base.:(==)(::AbstractSimplex, ::AbstractSimplex) = false
-Base.:(==)(sx1::A, sx2::A) where A<:AbstractSimplex = index(sx1) == index(sx2)
-Base.isequal(sx1::A, sx2::A) where A<:AbstractSimplex = index(sx1) == index(sx2)
+Base.:(==)(sx1::A, sx2::A) where {A<:AbstractSimplex} = index(sx1) == index(sx2)
+Base.isequal(sx1::A, sx2::A) where {A<:AbstractSimplex} = index(sx1) == index(sx2)
 Base.hash(sx::AbstractSimplex, h::UInt64) = hash(index(sx), h)
 
 """
@@ -66,11 +71,7 @@ julia> birth(Simplex{2}((3, 2, 1), 3.2))
 birth(::AbstractSimplex)
 
 function Base.isless(sx1::A, sx2::A) where {A<:AbstractSimplex}
-    return ifelse(
-        birth(sx1) ≠ birth(sx2),
-        birth(sx1) < birth(sx2),
-        index(sx1) > index(sx2),
-    )
+    return ifelse(birth(sx1) ≠ birth(sx2), birth(sx1) < birth(sx2), index(sx1) > index(sx2))
 end
 
 # vertices and indices =================================================================== #
@@ -80,9 +81,9 @@ end
 Binomial coefficients for small, statically known values of `K`, where `n` and `K` are
 always positive. Using `Val(K)` allows the compiler to optimize away the loop.
 """
-_binomial(::I, ::Val{0}) where I = one(I)
+_binomial(::I, ::Val{0}) where {I} = one(I)
 _binomial(n, ::Val{1}) = n
-function _binomial(n::I, ::Val{K}) where {K, I}
+function _binomial(n::I, ::Val{K}) where {K,I}
     x = nn = I(n - K + 1)
     nn += one(I)
     for rr in I(2):I(K)
@@ -98,7 +99,7 @@ end
 Use binary search to find index of first vertex in `(K - 1)`-dimensional simplex with index
 `index`.
 """
-function _find_max_vertex(index::I, ::Val{K}) where {I, K}
+function _find_max_vertex(index::I, ::Val{K}) where {I,K}
     lo = I(K - 1)
     hi = I(K + 100)
     while _binomial(hi, Val(K)) ≤ index
@@ -109,7 +110,7 @@ function _find_max_vertex(index::I, ::Val{K}) where {I, K}
     return _find_max_vertex(index, Val(K), hi + one(I), lo)
 end
 
-function _find_max_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K-1)) where {I, K}
+function _find_max_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K - 1)) where {I,K}
     while lo < hi - one(I)
         m = lo + ((hi - lo) >>> 0x01)
         if _binomial(m, Val(K)) ≤ index
@@ -127,7 +128,7 @@ end
 Get the vertices of simplex represented by index. Returns `SVector{N, I}`.
 For regular simplices, `N` should be equal to `dim+1`.
 """
-@generated function _vertices(index::I, ::Val{N})::SVector{N, I} where {I, N}
+@generated function _vertices(index::I, ::Val{N})::SVector{N,I} where {I,N}
     # Generate code of the form
     # index = abs(index) - 1
     # vk   = _find_max_vertex(index, Val(k))
@@ -136,18 +137,18 @@ For regular simplices, `N` should be equal to `dim+1`.
     # v1 = _find_max_vertex(index, Val(3), v2)
     # v0 = _find_max_vertex(index, Val(3), v1)
     # (vk, ..., v0) .+ 1
-    vars = Symbol[Symbol("v", k) for k in N-1:-1:0]
+    vars = Symbol[Symbol("v", k) for k in (N - 1):-1:0]
     expr = quote
         index = abs(index) - one(I)
         $(vars[1]) = _find_max_vertex(index, Val($N))
         index -= _binomial($(vars[1]), Val($N))
     end
 
-    for (i, k) in enumerate(N-1:-1:1)
+    for (i, k) in enumerate((N - 1):-1:1)
         expr = quote
             $expr
-            $(vars[i+1]) = _find_max_vertex(index, Val($k), $(vars[i]))
-            index -= _binomial($(vars[i+1]), Val($k))
+            $(vars[i + 1]) = _find_max_vertex(index, Val($k), $(vars[i]))
+            index -= _binomial($(vars[i + 1]), Val($k))
         end
     end
     return quote
@@ -172,7 +173,7 @@ julia> index((6,2,1))
 11
 ```
 """
-@generated function index(vertices::Union{NTuple{K}, SVector{K}}) where K
+@generated function index(vertices::Union{NTuple{K},SVector{K}}) where {K}
     # generate code of the form
     # 1 + _binomial(vertices[1] - 1, Val(K))
     #   + _binomial(vertices[2] - 1, Val(K-1))
@@ -198,7 +199,7 @@ Check if index overflows for a particular collection of vertices. Throw an error
 function index_overflow_check(
     vertices,
     message="simplex $vertices overflows in $(I)! " *
-    "Try using a bigger index type in your filtration."
+            "Try using a bigger index type in your filtration.",
 )
     idx = index(vertices)
     idx_big = index(BigInt.(vertices))
@@ -233,7 +234,7 @@ Base.lastindex(sx::AbstractSimplex) = length(sx)
 Base.size(sx::AbstractSimplex) = (length(sx),)
 
 Base.length(sx::AbstractSimplex) = length(typeof(sx))
-Base.length(::Type{<:AbstractSimplex{D}}) where D = D + 1
+Base.length(::Type{<:AbstractSimplex{D}}) where {D} = D + 1
 
 """
     sign(simplex::AbstractSimplex)
@@ -287,7 +288,7 @@ julia> dim(Cube{3, Int, 4})
 ```
 """
 dim(sx::AbstractSimplex) = dim(typeof(sx))
-dim(::Type{<:AbstractSimplex{D}}) where D = D
+dim(::Type{<:AbstractSimplex{D}}) where {D} = D
 
 Base.abs(sx::AbstractSimplex) = sign(sx) == 1 ? sx : -sx
 
@@ -333,7 +334,7 @@ end
 +Simplex{2}([4, 3, 1], 1)
 ```
 """
-function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where A
+function coboundary(filtration, simplex::AbstractSimplex, ::Val{A}=Val(true)) where {A}
     return Coboundary{A}(filtration, simplex)
 end
 
@@ -368,22 +369,22 @@ end
 """
 boundary(filtration, simplex::AbstractSimplex) = Boundary(filtration, simplex)
 
-struct Coboundary{A, D, I, F, S}
+struct Coboundary{A,D,I,F,S}
     filtration::F
     simplex::S
-    vertices::NTuple{D, I}
+    vertices::NTuple{D,I}
 
     function Coboundary{A}(
-        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
-    ) where {A, D, I, F}
+        filtration::F, simplex::AbstractSimplex{D,<:Any,I}
+    ) where {A,D,I,F}
         S = typeof(simplex)
-        return new{A, D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+        return new{A,D + 1,I,F,S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
 function Base.iterate(
-    ci::Coboundary{A, D, I}, (v, k)=(I(nv(ci.filtration) + 1), D),
-) where {A, D, I}
+    ci::Coboundary{A,D,I}, (v, k)=(I(nv(ci.filtration) + 1), D)
+) where {A,D,I}
     @inbounds while true
         v -= one(I)
         while k > 0 && v == ci.vertices[end + 1 - k]
@@ -402,22 +403,22 @@ function Base.iterate(
     end
 end
 
-struct SparseCoboundary{A, D, I, F, S}
+struct SparseCoboundary{A,D,I,F,S}
     filtration::F
     simplex::S
-    vertices::SVector{D, I}
-    ptrs_begin::SVector{D, I}
-    ptrs_end::SVector{D, I}
+    vertices::SVector{D,I}
+    ptrs_begin::SVector{D,I}
+    ptrs_end::SVector{D,I}
 
     function SparseCoboundary{A}(
-        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
-    ) where {A, D, I, F}
+        filtration::F, simplex::AbstractSimplex{D,<:Any,I}
+    ) where {A,D,I,F}
         verts = vertices(simplex)
         adj = adjacency_matrix(filtration)
         colptr = adj.colptr
         ptrs_begin = colptr[verts .+ 1]
         ptrs_end = colptr[verts]
-        return new{A, D + 1, I, F, typeof(simplex)}(
+        return new{A,D + 1,I,F,typeof(simplex)}(
             filtration, simplex, verts, ptrs_begin, ptrs_end
         )
     end
@@ -425,7 +426,7 @@ end
 
 @propagate_inbounds @inline function next_common(
     ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
-) where D
+) where {D}
     # could also indicate when m is equal to one of the points
     ptrs = ptrs .- 1
     for i in 1:D
@@ -449,8 +450,8 @@ end
 end
 
 function Base.iterate(
-    it::SparseCoboundary{A, D, I}, (ptrs, k)=(it.ptrs_begin, D)
-) where {A, D, I}
+    it::SparseCoboundary{A,D,I}, (ptrs, k)=(it.ptrs_begin, D)
+) where {A,D,I}
     adj = adjacency_matrix(it.filtration)
     rowval = adj.rowval
     nzval = adj.nzval
@@ -469,9 +470,7 @@ function Base.iterate(
             sign = ifelse(iseven(k), 1, -1)
             new_vertices = insert(it.vertices, D - k + 1, v)
             new_edges = nzval[ptrs]
-            sx = unsafe_cofacet(
-                it.filtration, it.simplex, new_vertices, v, sign, new_edges
-            )
+            sx = unsafe_cofacet(it.filtration, it.simplex, new_vertices, v, sign, new_edges)
             if !isnothing(sx)
                 _sx::simplex_type(it.filtration, D) = sx
                 return _sx, (ptrs, k)
@@ -480,20 +479,18 @@ function Base.iterate(
     end
 end
 
-struct Boundary{D, I, F, S}
+struct Boundary{D,I,F,S}
     filtration::F
     simplex::S
-    vertices::NTuple{D, I}
+    vertices::NTuple{D,I}
 
-    function Boundary(
-        filtration::F, simplex::AbstractSimplex{D, <:Any, I}
-    ) where {D, I, F}
+    function Boundary(filtration::F, simplex::AbstractSimplex{D,<:Any,I}) where {D,I,F}
         S = typeof(simplex)
-        return new{D + 1, I, F, S}(filtration, simplex, Tuple(vertices(simplex)))
+        return new{D + 1,I,F,S}(filtration, simplex, Tuple(vertices(simplex)))
     end
 end
 
-function Base.iterate(bi::Boundary{D, I}, k=1) where {D, I}
+function Base.iterate(bi::Boundary{D,I}, k=1) where {D,I}
     while k ≤ D
         facet_vertices = TupleTools.deleteat(bi.vertices, k)
         k += 1
@@ -536,27 +533,27 @@ julia> Simplex{2}((5, 2, 1), 1)
 
 ```
 """
-struct Simplex{D, T, I<:Integer} <: AbstractSimplex{D, T, I}
+struct Simplex{D,T,I<:Integer} <: AbstractSimplex{D,T,I}
     index::I
     birth::T
 
-    function Simplex{D, T, I}(index::Integer, birth) where {D, T, I<:Integer}
+    function Simplex{D,T,I}(index::Integer, birth) where {D,T,I<:Integer}
         D ≥ 0 || throw(DomainError(D, "dimension must be a non-negative integer"))
-        return new{D, T, I}(I(index), convert(T, birth))
+        return new{D,T,I}(I(index), convert(T, birth))
     end
 end
 
-function Simplex{D}(index::I, birth::T) where {D, T, I<:Integer}
-    return Simplex{D, T, I}(index, birth)
+function Simplex{D}(index::I, birth::T) where {D,T,I<:Integer}
+    return Simplex{D,T,I}(index, birth)
 end
-function Simplex{D}(vertices, birth::T) where {D, T}
+function Simplex{D}(vertices, birth::T) where {D,T}
     length(vertices) == D + 1 ||
         throw(ArgumentError("invalid number of vertices $(length(vertices))"))
-    vertices_svec = sort(SVector{D + 1}(vertices), rev=true)
-    return Simplex{D, T, eltype(vertices)}(index(vertices_svec), T(birth))
+    vertices_svec = sort(SVector{D + 1}(vertices); rev=true)
+    return Simplex{D,T,eltype(vertices)}(index(vertices_svec), T(birth))
 end
 
 index(sx::Simplex) = abs(sx.index)
 birth(sx::Simplex) = sx.birth
 Base.sign(sx::Simplex) = sign(sx.index)
-Base.:-(sx::S) where S<:Simplex = S(-sx.index, birth(sx))
+Base.:-(sx::S) where {S<:Simplex} = S(-sx.index, birth(sx))

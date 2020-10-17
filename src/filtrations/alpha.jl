@@ -18,15 +18,15 @@ function circumcenter_radius2(pts)
 
         A = ones(n + 1, n + 1)
         A[end, end] = 0.0
-        A[1:end-1, 1:end-1] .= 2 * P' * P
+        A[1:(end - 1), 1:(end - 1)] .= 2 * P' * P
 
-        b = vec(sum(abs2, P, dims=1))
+        b = vec(sum(abs2, P; dims=1))
         push!(b, 1.0)
 
-        fact = lu(A, check=false)
+        fact = lu(A; check=false)
         if issuccess(fact)
             x = fact \ b
-            bary_coords = x[1:end-1]
+            bary_coords = x[1:(end - 1)]
 
             center = P * bary_coords
             radius = P[:, 1] - center
@@ -38,13 +38,13 @@ function circumcenter_radius2(pts)
 end
 
 # TODO: could be faster, takes a long time to compile
-function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where D
+function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where {D}
     if progress
-        progbar = Progress(size(triangulation, 2), desc="Collecting $D-simplcies... ")
+        progbar = Progress(size(triangulation, 2); desc="Collecting $D-simplcies... ")
     end
     for face in eachcol(triangulation)
-        for σ in IterTools.subsets(face, Val(D+1))
-            @assert issorted(σ, rev=true)
+        for σ in IterTools.subsets(face, Val(D + 1))
+            @assert issorted(σ; rev=true)
             σ_idx = index(σ)
             if !haskey(dicts[D + 1], σ_idx)
                 _, σ_r2 = circumcenter_radius2(points[SVector(σ)])
@@ -56,7 +56,7 @@ function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where D
             end
             # Propagate birth time to facets.
             σ_r2 = dicts[D + 1][σ_idx]
-            for i in 1:D+1
+            for i in 1:(D + 1)
                 τ = TupleTools.deleteat(σ, i)
                 τ_idx = index(τ)
                 if haskey(dicts[D], τ_idx)
@@ -73,12 +73,12 @@ function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where D
     end
 end
 
-function _fix_dim!(dicts, threshold, ::Val{D}, progress) where D
+function _fix_dim!(dicts, threshold, ::Val{D}, progress) where {D}
     for (idx, birth) in dicts[D + 1]
         σ = Tuple(_vertices(idx, Val(D + 1)))
         σ_idx = index(σ)
         if D > 1
-            for i in 1:D+1
+            for i in 1:(D + 1)
                 τ = TupleTools.deleteat(σ, i)
                 τ_idx = index(τ)
                 dicts[D][τ_idx] = min(dicts[D][τ_idx], birth)
@@ -96,17 +96,17 @@ Collect all simplices and their birth times in alpha filtration.
 
 Based on https://github.com/scikit-tda/cechmate/blob/master/cechmate/filtrations/alpha.py
 """
-function alpha_simplices(points, threshold, progress, ::Type{I}) where I
-    progress && printstyled(stderr, "Building triangulation... ", color=:green)
+function alpha_simplices(points, threshold, progress, ::Type{I}) where {I}
+    progress && printstyled(stderr, "Building triangulation... "; color=:green)
     triangulation = I.(delaunay(to_matrix(points)))
     sort!.(eachcol(triangulation), rev=true, alg=InsertionSort)
-    progress && printstyled(stderr, "done.\n", color=:green)
+    progress && printstyled(stderr, "done.\n"; color=:green)
 
     largest_face = tuple(maximum(eachcol(triangulation))...)
     index_overflow_check(largest_face)
 
     dim = length(points[1])
-    dicts = [Dict{I, Float64}() for _ in 0:dim]
+    dicts = [Dict{I,Float64}() for _ in 0:dim]
 
     # Build the filtration
     for d in dim:-1:1
@@ -116,7 +116,7 @@ function alpha_simplices(points, threshold, progress, ::Type{I}) where I
         dicts[1][i] = 0.0
     end
     if progress
-        progbar = Progress(dim, desc="Fixing birth times...     ")
+        progbar = Progress(dim; desc="Fixing birth times...     ")
     end
     # Make sure all simplices are born after their facets and sqrt the birth times.
     for d in dim:-1:1
@@ -189,18 +189,18 @@ julia> sort(ripserer(rips)[2], by=persistence)[end]
  death_simplex: 3-element Ripserer.Simplex{2,Float64,Int64}
 ```
 """
-struct Alpha{I, P<:SVector} <: AbstractCustomFiltration{I, Float64}
-    dicts::Vector{Dict{I, Float64}}
-    adj::SparseMatrixCSC{Bool, Int}
+struct Alpha{I,P<:SVector} <: AbstractCustomFiltration{I,Float64}
+    dicts::Vector{Dict{I,Float64}}
+    adj::SparseMatrixCSC{Bool,Int}
     threshold::Float64
     points::Vector{P}
 end
-function Alpha{I}(points; threshold=nothing, progress=false) where I
+function Alpha{I}(points; threshold=nothing, progress=false) where {I}
     pts = SVector.(points)
     threshold = isnothing(threshold) ? 2radius(pts) : threshold
     dicts = alpha_simplices(pts, threshold, progress, I)
     adj = _adjacency_matrix(dicts)
-    return Alpha{I, eltype(pts)}(dicts, adj, threshold, pts)
+    return Alpha{I,eltype(pts)}(dicts, adj, threshold, pts)
 end
 function Alpha(points; kwargs...)
     return Alpha{Int}(points; kwargs...)
@@ -216,7 +216,7 @@ end
 
 Base.size(ad::AlphaDist) = (nv(ad.alpha), nv(ad.alpha))
 function Base.getindex(ad::AlphaDist, i::Integer, j::Integer)
-    Euclidean()(ad.alpha.points[i], ad.alpha.points[j])
+    return Euclidean()(ad.alpha.points[i], ad.alpha.points[j])
 end
 
 distance_matrix(alpha::Alpha) = AlphaDist(alpha)

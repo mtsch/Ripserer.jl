@@ -24,7 +24,7 @@ Return distance matrix calculated from `points` with `metric`.
 """
 function distances(points, metric=Euclidean(1e-12))
     points_mat = to_matrix(points)
-    dists = pairwise(metric, points_mat, dims=2)
+    dists = pairwise(metric, points_mat; dims=2)
     return dists
 end
 

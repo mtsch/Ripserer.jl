@@ -13,7 +13,7 @@
 # the birth times of cofaces.
 #
 # See https://link.springer.com/chapter/10.1007%2F978-3-642-23175-9_7 for more info.
-@generated function _cubemap(input::Array{T, N}) where {T, N}
+@generated function _cubemap(input::Array{T,N}) where {T,N}
     quote
         result = similar(input, size(input) .* 2 .- 1)
         result .= typemin(T)
@@ -27,10 +27,10 @@
     end
 end
 
-_one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
+_one_hot(i, ::Val{N}) where {N} = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
 
 # Convenience functions from converting cubemap index to vertices and back.
-@inline function _from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K, N}
+@inline function _from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K,N}
     2^count(iseven, Tuple(root)) == N || throw(ArgumentError("invalid N"))
     result = ntuple(_ -> root, Val(N))
     for (i, j) in enumerate(Tuple(root))
@@ -39,7 +39,7 @@ _one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
                 ifelse(isodd(k), 1, -1) * _one_hot(i, Val(K))
             end
         end
-        result = TupleTools.sort(result, by=Base.Fix2(getindex, i))
+        result = TupleTools.sort(result; by=Base.Fix2(getindex, i))
     end
     result = SVector(TupleTools.sort(result))
     return map(result) do c
@@ -47,7 +47,7 @@ _one_hot(i, ::Val{N}) where N = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
     end
 end
 
-function _to_cubemap(vertices::NTuple{N}) where N
+function _to_cubemap(vertices::NTuple{N}) where {N}
     K = length(first(vertices))
     result = ntuple(Val(K)) do i
         sum(2 .* getindex.(vertices, i) .- 1) ÷ N
@@ -58,7 +58,7 @@ end
 function _is_valid(vertices::Tuple{})
     return true
 end
-function _is_valid(vertices::NTuple{N}) where N
+function _is_valid(vertices::NTuple{N}) where {N}
     floor(log2(N)) == log2(N) || return false
     allunique(vertices) || return false
     K = length(first(vertices))
@@ -85,19 +85,19 @@ julia> Cube{1}(CartesianIndex(1, 2), 1.0)
 
 ```
 """
-struct Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
-    root::NTuple{K, Int32}
+struct Cube{D,T,K} <: AbstractSimplex{D,T,CartesianIndex{K}}
+    root::NTuple{K,Int32}
     birth::T
 
-    function Cube{D, T, K}(root::CartesianIndex{K}, birth) where {D, T, K}
+    function Cube{D,T,K}(root::CartesianIndex{K}, birth) where {D,T,K}
         D < 0 && throw(DomainError("dimension must be a non-negative integer"))
-        return new{D, T, K}(Int32.(Tuple(root)), convert(T, birth))
+        return new{D,T,K}(Int32.(Tuple(root)), convert(T, birth))
     end
 end
-function Cube{D}(root::CartesianIndex{K}, birth::T) where {D, T, K}
-    return Cube{D, T, K}(root, birth)
+function Cube{D}(root::CartesianIndex{K}, birth::T) where {D,T,K}
+    return Cube{D,T,K}(root, birth)
 end
-function Cube{D}(vertices, birth) where D
+function Cube{D}(vertices, birth) where {D}
     vs = tuple(CartesianIndex.(vertices)...)
     _is_valid(vs) || throw(ArgumentError("invalid vertices"))
     root = _to_cubemap(vs)
@@ -110,8 +110,8 @@ Base.sign(cube::Cube) = 1
 Base.:-(cube::Cube) = cube
 Base.abs(cube::Cube) = cube
 
-@generated Base.length(::Type{<:Cube{D}}) where D = :($(2^D))
-vertices(cube::Cube{D}) where D = _from_cubemap(index(cube), Val(length(cube)))
+@generated Base.length(::Type{<:Cube{D}}) where {D} = :($(2^D))
+vertices(cube::Cube{D}) where {D} = _from_cubemap(index(cube), Val(length(cube)))
 
 """
     Cubical{T, K} <: AbstractFiltration{CartesianIndex{K}, T}
@@ -146,25 +146,25 @@ julia> ripserer(Cubical(image))[2]
 
 ```
 """
-struct Cubical{K, T, A<:AbstractArray{T, K}} <: AbstractFiltration{CartesianIndex{K}, T}
+struct Cubical{K,T,A<:AbstractArray{T,K}} <: AbstractFiltration{CartesianIndex{K},T}
     data::A
     cubemap::A
     threshold::T
 end
 
-function Cubical(data::AbstractArray{T, K}; threshold=maximum(data)) where {T, K}
-    Cubical{K, T, typeof(data)}(data, _cubemap(data), T(threshold))
+function Cubical(data::AbstractArray{T,K}; threshold=maximum(data)) where {T,K}
+    return Cubical{K,T,typeof(data)}(data, _cubemap(data), T(threshold))
 end
 
 nv(cf::Cubical) = length(cf.data)
 threshold(cf::Cubical) = cf.threshold
-simplex_type(::Type{<:Cubical{K, T}}, D) where {K, T} = Cube{D, T, K}
+simplex_type(::Type{<:Cubical{K,T}}, D) where {K,T} = Cube{D,T,K}
 
 # when working with vertices, we don't cubemap them.
 births(cf::Cubical) = cf.data
 vertices(cf::Cubical) = CartesianIndices(cf.data)
 
-function edges(cf::Cubical{K}) where K
+function edges(cf::Cubical{K}) where {K}
     result = edge_type(cf)[]
     for i in CartesianIndices(cf.cubemap)
         if count(iseven, Tuple(i)) == 1
@@ -177,7 +177,7 @@ function edges(cf::Cubical{K}) where K
     return result
 end
 
-function simplex(cf::Cubical{N, T}, ::Val{D}, vertices, sign=1) where {D, T, N}
+function simplex(cf::Cubical{N,T}, ::Val{D}, vertices, sign=1) where {D,T,N}
     if _is_valid(vertices)
         root = _to_cubemap(vertices)
         return unsafe_simplex(cf, Val(D), root, sign)
@@ -186,25 +186,25 @@ function simplex(cf::Cubical{N, T}, ::Val{D}, vertices, sign=1) where {D, T, N}
     end
 end
 
-function unsafe_simplex(cf::Cubical{N, T}, ::Val{D}, new_root, _) where {D, T, N}
+function unsafe_simplex(cf::Cubical{N,T}, ::Val{D}, new_root, _) where {D,T,N}
     birth = get(cf.cubemap, new_root, missing)
     if ismissing(birth) || birth > cf.threshold
         return nothing
     else
-        return Cube{D, T, N}(new_root, birth)
+        return Cube{D,T,N}(new_root, birth)
     end
 end
 
-struct CubeCoboundary{K, D, F<:Cubical{K}, C<:Cube{D}}
+struct CubeCoboundary{K,D,F<:Cubical{K},C<:Cube{D}}
     filtration::F
     cube::C
 end
 
-function coboundary(filtration::Cubical{K}, cube::Cube{D}) where {K, D}
-    return CubeCoboundary{K, D, typeof(filtration), typeof(cube)}(filtration, cube)
+function coboundary(filtration::Cubical{K}, cube::Cube{D}) where {K,D}
+    return CubeCoboundary{K,D,typeof(filtration),typeof(cube)}(filtration, cube)
 end
 
-function Base.iterate(cob::CubeCoboundary{K, D}, (i,sign)=(K,1)) where {K, D}
+function Base.iterate(cob::CubeCoboundary{K,D}, (i, sign)=(K, 1)) where {K,D}
     orig_root = index(cob.cube)
     while i ≤ K
         # To get coboundary in decreasing root order, we have to traverse i from K to 1 and
@@ -218,9 +218,7 @@ function Base.iterate(cob::CubeCoboundary{K, D}, (i,sign)=(K,1)) where {K, D}
 
         if isodd(orig_root[i])
             new_root = orig_root + sign * _one_hot(i, Val(K))
-            cofacet = unsafe_simplex(
-                cob.filtration, Val(D + 1), new_root, sign
-            )
+            cofacet = unsafe_simplex(cob.filtration, Val(D + 1), new_root, sign)
             if !isnothing(cofacet)
                 _cofacet::simplex_type(cob.filtration, D + 1) = cofacet
                 return _cofacet, (next_i, next_sign)
@@ -232,16 +230,16 @@ function Base.iterate(cob::CubeCoboundary{K, D}, (i,sign)=(K,1)) where {K, D}
     return nothing
 end
 
-struct CubeBoundary{K, D, F<:Cubical{K}, C<:Cube{D}}
+struct CubeBoundary{K,D,F<:Cubical{K},C<:Cube{D}}
     filtration::F
     cube::C
 end
 
-function boundary(filtration::Cubical{K}, cube::Cube{D}) where {K, D}
-    return CubeBoundary{K, D, typeof(filtration), typeof(cube)}(filtration, cube)
+function boundary(filtration::Cubical{K}, cube::Cube{D}) where {K,D}
+    return CubeBoundary{K,D,typeof(filtration),typeof(cube)}(filtration, cube)
 end
 
-function Base.iterate(bnd::CubeBoundary{K, D}, (i,sign)=(K,-1)) where {K, D}
+function Base.iterate(bnd::CubeBoundary{K,D}, (i, sign)=(K, -1)) where {K,D}
     orig_root = index(bnd.cube)
     while i ≤ K
         next_i = i + sign
@@ -253,9 +251,7 @@ function Base.iterate(bnd::CubeBoundary{K, D}, (i,sign)=(K,-1)) where {K, D}
 
         if iseven(orig_root[i])
             new_root = orig_root + sign * _one_hot(i, Val(K))
-            facet = unsafe_simplex(
-                bnd.filtration, Val(D - 1), new_root, sign
-            )
+            facet = unsafe_simplex(bnd.filtration, Val(D - 1), new_root, sign)
             if !isnothing(facet)
                 _facet::simplex_type(bnd.filtration, D - 1) = facet
                 return _facet, (next_i, next_sign)
@@ -267,18 +263,18 @@ function Base.iterate(bnd::CubeBoundary{K, D}, (i,sign)=(K,-1)) where {K, D}
     return nothing
 end
 
-struct CubicalColumnsToReduce{D, K, F<:Cubical{K}}
+struct CubicalColumnsToReduce{D,K,F<:Cubical{K}}
     filtration::F
 end
 
-function columns_to_reduce(filtration::Cubical{K}, itr) where K
+function columns_to_reduce(filtration::Cubical{K}, itr) where {K}
     D = dim(eltype(itr)) + 1
-    return CubicalColumnsToReduce{D, K, typeof(filtration)}(filtration)
+    return CubicalColumnsToReduce{D,K,typeof(filtration)}(filtration)
 end
 
-Base.eltype(::CubicalColumnsToReduce{D, <:Any, F}) where {D, F} = simplex_type(F, D)
+Base.eltype(::CubicalColumnsToReduce{D,<:Any,F}) where {D,F} = simplex_type(F, D)
 
-function Base.iterate(cols::CubicalColumnsToReduce{D, K}, i=1) where {D, K}
+function Base.iterate(cols::CubicalColumnsToReduce{D,K}, i=1) where {D,K}
     last_i = lastindex(cols.filtration.cubemap)
     cart = CartesianIndices(cols.filtration.cubemap)
     while i < last_i
@@ -298,12 +294,12 @@ end
 # Having a custom chain element type may save a few bytes per element. Allowing fields other
 # than Mod{2} makes no sense and may present extra work with having to keep track of cube
 # signs.
-struct CubicalChainElement{C<:Cube} <: AbstractChainElement{C, Mod{2}}
+struct CubicalChainElement{C<:Cube} <: AbstractChainElement{C,Mod{2}}
     cube::C
     coefficient::Bool
 
-    function CubicalChainElement{C}(cube, coef=Mod{2}(1)) where C<:Cube
-        new{C}(cube, Mod{2}(coef) == Mod{2}(1))
+    function CubicalChainElement{C}(cube, coef=Mod{2}(1)) where {C<:Cube}
+        return new{C}(cube, Mod{2}(coef) == Mod{2}(1))
     end
 end
 
@@ -316,8 +312,8 @@ end
 function chain_element_type(::Type{C}, ::Type{Mod{2}}) where {C<:Cube}
     return CubicalChainElement{C}
 end
-function chain_element_type(::Type{C}, ::Type{F}) where {C<:Cube, F}
-    error("only Mod{2} allowed as field type for cubical homology")
+function chain_element_type(::Type{C}, ::Type{F}) where {C<:Cube,F}
+    return error("only Mod{2} allowed as field type for cubical homology")
 end
 
 struct CubicalDist{C} <: AbstractMatrix{Int}
