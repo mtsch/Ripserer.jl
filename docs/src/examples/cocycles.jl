@@ -8,13 +8,13 @@
 using LinearAlgebra
 using Plots
 using Ripserer
-using Random
-Random.seed!(1337)
+using Random # hide
+Random.seed!(1337) # hide
 gr() # hide
 nothing # hide
 
-function annulus(n, r1=1, r2=2, offset=(0,0))
-    result = Tuple{Float64, Float64}[]
+function annulus(n, r1=1, r2=2, offset=(0, 0))
+    result = Tuple{Float64,Float64}[]
     while length(result) < n
         point = 2 * r2 * rand(2) .- r2
         if r1 < norm(point) < r2
@@ -26,7 +26,7 @@ end
 
 data = annulus(300)
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 
 # Let's start by taking a look at the persistence diagram.
 
@@ -58,7 +58,7 @@ data[death_sx]
 # Ripserer also provides a Plots recipe for plotting simplices. It is invoked by passing the
 # simplex and the data to `plot`. Not that only the edges of the simplices are plotted.
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(death_sx, data; label="death simplex")
 plot!(birth_simplex(diagram[2][end]), data; label="birth simplex")
 
@@ -77,7 +77,7 @@ plot!(birth_simplex(diagram[2][end]), data; label="birth simplex")
 
 # Let's take a look at the most persistent cocycle of our data set.
 
-diagram_cocycles = ripserer(data, reps=true)
+diagram_cocycles = ripserer(data; reps=true)
 most_persistent_co = diagram_cocycles[2][end]
 
 # Notice that now, the interval also has a `representative` attached. The representative is
@@ -88,7 +88,7 @@ cocycle = representative(most_persistent_co)
 
 # The representative can be plotted in the same way as a simplex.
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(cocycle, data; label="cocycle")
 
 # The cocycle is a collection of 1-simplices that, if removed, would break the cycle in our
@@ -113,12 +113,12 @@ plot!(cocycle, data; label="cocycle")
 # Let's try it out. Note that invoking homology also turns on `reps` for dimensions one and
 # higher.
 
-diagram_cycles = ripserer(data, alg=:involuted)
+diagram_cycles = ripserer(data; alg=:involuted)
 most_persistent_ho = diagram_cycles[2][end]
 
 # If an interval with a representative is passed to `plot`, the representative is plotted.
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(most_persistent_ho, data; label="cycle")
 
 # The cycle is still not the prettiest, but it at least corresponds to a topological circle
@@ -142,7 +142,7 @@ plot!(most_persistent_ho, data; label="cycle")
 filtration = diagram_cocycles[2].filtration
 reconstructed_at_birth = reconstruct_cycle(filtration, most_persistent_co)
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(reconstructed_at_birth, data; label="reconstruction")
 
 # This looks much nicer than the homology example, but could still use some improvement. To
@@ -152,15 +152,15 @@ plot!(reconstructed_at_birth, data; label="reconstruction")
 # cycles change as well. The previous example was drawn at interval birth time, which is the
 # default. Let's see what happens if we set the time to the interval midpoint.
 
-midpoint = (death(most_persistent_co) - birth(most_persistent_co))/2
+midpoint = (death(most_persistent_co) - birth(most_persistent_co)) / 2
 reconstructed_at_midpoint = reconstruct_cycle(filtration, most_persistent_co, midpoint)
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(reconstructed_at_midpoint, data; label="reconstruction")
 
 # As an extreme case, let's look at what the cycle looks like right before its death.
 
-scatter(data, label="data", markersize=2, aspect_ratio=1)
+scatter(data; label="data", markersize=2, aspect_ratio=1)
 plot!(
     reconstruct_cycle(filtration, most_persistent_co, death(most_persistent_co) - 0.01),
     data;
