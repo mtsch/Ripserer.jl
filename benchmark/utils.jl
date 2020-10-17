@@ -3,9 +3,9 @@ using SparseArrays
 
 function load_points(filename)
     # ripser uses Float32
-    table = CSV.read(filename, header=0, type=Float32, delim=' ')
+    table = CSV.read(filename; header=0, type=Float32, delim=' ')
     nrow, dim = size(table)
-    result = Vector{NTuple{dim, Float32}}(undef, nrow)
+    result = Vector{NTuple{dim,Float32}}(undef, nrow)
     for i in 1:nrow
         result[i] = Tuple(table[i, :])
     end
@@ -13,15 +13,15 @@ function load_points(filename)
 end
 
 function load_dist(filename)
-    return Matrix(CSV.read(filename, header=0, type=Float32, delim=' '))
+    return Matrix(CSV.read(filename; header=0, type=Float32, delim=' '))
 end
 
 function load_sparse(filename)
-    table = CSV.read(filename, header=0, type=Float32, delim=' ')
+    table = CSV.read(filename; header=0, type=Float32, delim=' ')
     I = table[:, 1] .+ 1
     J = table[:, 2] .+ 1
     V = table[:, 3] .+ 1
-    sparse([I; J], [J; I], [V; V])
+    return sparse([I; J], [J; I], [V; V])
 end
 
 function load_dipha(filename)

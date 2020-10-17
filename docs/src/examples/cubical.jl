@@ -126,7 +126,7 @@ plt = plot(
     seriestype=:path,
 )
 
-for interval in sort(filter(isfinite, filtered_result), by=birth)
+for interval in sort(filter(isfinite, filtered_result); by=birth)
     plot!(plt, interval, noisy_curve; seriestype=:path)
 end
 
