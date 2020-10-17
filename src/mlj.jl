@@ -5,15 +5,15 @@ abstract type RipsererModel <: MMI.Unsupervised end
 
 PointLike = AbstractVector{Tuple{Vararg{MMI.Continuous}}}
 DistanceMatrix = AbstractMatrix{MMI.Continuous}
-ImageLike = Union{AbstractArray{MMI.Continuous, N} where N, MMI.Image}
+ImageLike = Union{AbstractArray{MMI.Continuous,N} where N,MMI.Image}
 
 MMI.fit(model::RipsererModel, _::Int, X) = (nothing, nothing, NamedTuple())
 
 function MMI.transform(model::RipsererModel, ::Nothing, X)
-    result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:model.dim_max)
+    result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max))
     for x in X
         r = ripserer(_filtration(model, x); dim_max=model.dim_max, modulus=model.modulus)
-        for i in 1:model.dim_max+1
+        for i in 1:(model.dim_max + 1)
             push!(result[i], r[i])
         end
     end
@@ -27,7 +27,7 @@ MMI.output_scitype(::Type{<:RipsererModel}) = MMI.Table(PersistenceDiagram)
 MMI.@mlj_model mutable struct RipsPersistentHomology <: RipsererModel
     dim_max::Int = 1::(_ ≥ 0)
     modulus::Int = 2::(is_prime(_))
-    threshold::Union{Nothing, Float64} = nothing
+    threshold::Union{Nothing,Float64} = nothing
     cutoff::Float64 = 0::(_ ≥ 0)
     sparse::Bool = false
 end
@@ -40,17 +40,19 @@ function _filtration(model::RipsPersistentHomology, data)
     end
 end
 
-MMI.input_scitype(::Type{<:RipsPersistentHomology}) = Union{
-    MMI.Table(Union{PointLike, DistanceMatrix}),
-    AbstractVector{Union{PointLike, DistanceMatrix}},
-}
+function MMI.input_scitype(::Type{<:RipsPersistentHomology})
+    return Union{
+        MMI.Table(Union{PointLike,DistanceMatrix}),
+        AbstractVector{Union{PointLike,DistanceMatrix}},
+    }
+end
 
 """
 """
 MMI.@mlj_model mutable struct AlphaPersistentHomology <: RipsererModel
     dim_max::Int = 1::(_ ≥ 0)
     modulus::Int = 2::(is_prime(_))
-    threshold::Union{Nothing, Float64} = nothing
+    threshold::Union{Nothing,Float64} = nothing
     cutoff::Float64 = 0::(_ ≥ 0)
 end
 
@@ -62,17 +64,16 @@ function _filtration(model::AlphaPersistentHomology, data)
     end
 end
 
-MMI.input_scitype(::Type{<:AlphaPersistentHomology}) = Union{
-    MMI.Table(PointLike),
-    AbstractVector{PointLike},
-}
+function MMI.input_scitype(::Type{<:AlphaPersistentHomology})
+    return Union{MMI.Table(PointLike),AbstractVector{PointLike}}
+end
 
 """
 """
 MMI.@mlj_model mutable struct CubicalPersistentHomology <: RipsererModel
     dim_max::Int = 1::(_ ≥ 0)
     modulus::Int = 2::(is_prime(_))
-    threshold::Union{Nothing, Float64} = nothing
+    threshold::Union{Nothing,Float64} = nothing
     cutoff::Float64 = 0::(_ ≥ 0)
     inverse::Bool = false
 end
@@ -85,7 +86,6 @@ function _filtration(model::CubicalPersistentHomology, data)
     end
 end
 
-MMI.input_scitype(::Type{<:AlphaPersistentHomology}) = Union{
-    MMI.Table(ImageLike),
-    AbstractVector{ImageLike},
-}
+function MMI.input_scitype(::Type{<:AlphaPersistentHomology})
+    return Union{MMI.Table(ImageLike),AbstractVector{ImageLike}}
+end
