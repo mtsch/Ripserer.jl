@@ -1,6 +1,10 @@
+# v0.15.3
+
+* Fix type instability in zeroth interval generation.
+
 # v0.15.2
 
-* Update compat with Distances.jl
+* Update compat with Distances.jl.
 
 # v0.15.1
 

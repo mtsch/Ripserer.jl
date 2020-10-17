@@ -101,12 +101,16 @@ julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
 ```
 """
 function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where D
-    vs = TupleTools.sort(Tuple(vertices), rev=true)
-    if allunique(vs) && all(x -> x > 0, vs) && length(vs) == length(simplex_type(flt, D))
-        return unsafe_simplex(flt, Val(D), vs, sign)
+    if D == 0 && length(vertices) == 1 && vertices[1] > 0
+        # No need to run allunique in this case.
+        return unsafe_simplex(flt, Val(0), vertices, sign)
     else
-        throw(ArgumentError("invalid vertices $(vertices)"))
+        vs = TupleTools.sort(Tuple(vertices), rev=true)
+        if allunique(vs) && all(x -> x > 0, vs) && length(vs) == length(simplex_type(flt, D))
+            return unsafe_simplex(flt, Val(D), vs, sign)
+        end
     end
+    throw(ArgumentError("invalid vertices $(vertices)"))
 end
 
 """
