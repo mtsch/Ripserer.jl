@@ -15,9 +15,9 @@ using Ripserer: is_prime
     @test !is_prime(9)
     @test !is_prime(10)
     @test is_prime(11)
-    @test !is_prime((1,2,3))
+    @test !is_prime((1, 2, 3))
     @test !is_prime(:two)
-    @test !is_prime(Array{Float64, 2})
+    @test !is_prime(Array{Float64,2})
 end
 
 @testset "Mod" begin

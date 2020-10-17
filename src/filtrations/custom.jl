@@ -6,7 +6,7 @@ should be accessible by the function [`simplex_dicts`](@ref) and should be a vec
 `Dict{I, T}`. A custom filtration should also have [`adjacency_matrix`](@ref) defined. This
 matrix is only used as an adjacency matrix. Its values are ignored.
 """
-abstract type AbstractCustomFiltration{I, T} <: AbstractFiltration{I, T} end
+abstract type AbstractCustomFiltration{I,T} <: AbstractFiltration{I,T} end
 
 """
     simplex_dicts(::AbstractCustomFiltration)
@@ -19,11 +19,11 @@ simplex_dicts
 
 Base.getindex(cf::AbstractCustomFiltration, d) = cf[Val(d)]
 # Val for type stability with edges and column assembly.
-function Base.getindex(cf::AbstractCustomFiltration, ::Val{D}) where D
+function Base.getindex(cf::AbstractCustomFiltration, ::Val{D}) where {D}
     if D ≤ dim(cf)
         return [
-            simplex_type(cf, D)(i, b) for (i, b) in simplex_dicts(cf)[D + 1]
-            if b ≤ threshold(cf)
+            simplex_type(cf, D)(i, b)
+            for (i, b) in simplex_dicts(cf)[D + 1] if b ≤ threshold(cf)
         ]
     else
         return simplex_type(cf, D)[]
@@ -32,7 +32,7 @@ end
 
 function unsafe_simplex(
     ::Type{S}, cf::AbstractCustomFiltration, vertices, sign
-) where {D, S<:Simplex{D}}
+) where {D,S<:Simplex{D}}
     if D > dim(cf)
         return nothing
     else
@@ -47,7 +47,7 @@ function unsafe_simplex(
 end
 
 dim(cf::AbstractCustomFiltration) = length(simplex_dicts(cf)) - 1
-simplex_type(::Type{<:AbstractCustomFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
+simplex_type(::Type{<:AbstractCustomFiltration{I,T}}, D) where {I,T} = Simplex{D,T,I}
 births(cf::AbstractCustomFiltration) = [simplex_dicts(cf)[1][i] for i in 1:nv(cf)]
 edges(cf::AbstractCustomFiltration) = cf[Val(1)]
 columns_to_reduce(cf::AbstractCustomFiltration, prev) = cf[Val(dim(eltype(prev)) + 1)]
@@ -94,18 +94,18 @@ julia> ripserer(flt)[2]
 
 ```
 """
-struct Custom{I, T} <: AbstractCustomFiltration{I, T}
-    adj::SparseMatrixCSC{Bool, Int} # adjacency matrix for sparse coboundary
-    dicts::Vector{Dict{I, T}}
+struct Custom{I,T} <: AbstractCustomFiltration{I,T}
+    adj::SparseMatrixCSC{Bool,Int} # adjacency matrix for sparse coboundary
+    dicts::Vector{Dict{I,T}}
     threshold::T
 end
 
-@inline insert_simplex!(::Vector{Dict{I, T}}, ::Tuple{}, _, _) where {I, T} = nothing
+@inline insert_simplex!(::Vector{Dict{I,T}}, ::Tuple{}, _, _) where {I,T} = nothing
 @inline function insert_simplex!(
-    dicts::Vector{Dict{I, T}}, vertices::NTuple{N, I}, birth, threshold
-) where {N, T, I}
+    dicts::Vector{Dict{I,T}}, vertices::NTuple{N,I}, birth, threshold
+) where {N,T,I}
     if birth > threshold
-        return
+        return nothing
     else
         idx = index(vertices)
         dim = N - 1
@@ -132,23 +132,23 @@ function _adjacency_matrix(dicts)
     return sparse(adj_is, adj_js, adj_vs, nv, nv)
 end
 
-function Custom{I, T}(simplices, dim_max::Int, threshold::T) where {I, T}
-    dicts = [Dict{I, T}() for _ in 0:dim_max]
+function Custom{I,T}(simplices, dim_max::Int, threshold::T) where {I,T}
+    dicts = [Dict{I,T}() for _ in 0:dim_max]
     threshold = T(threshold)
 
     for (_vertices, birth) in simplices
-        vertices = I.(TupleTools.sort(_vertices, rev=true))
+        vertices = I.(TupleTools.sort(_vertices; rev=true))
         if birth ≤ threshold
             insert_simplex!(dicts, vertices, birth, threshold)
         end
     end
     adj = _adjacency_matrix(dicts)
 
-    return Custom{I, T}(adj, dicts, threshold)
+    return Custom{I,T}(adj, dicts, threshold)
 end
 
 # TODO: hot mess. Simplex sorting and index conversion could be done here.
-function Custom{I}(simplices; threshold=nothing) where I
+function Custom{I}(simplices; threshold=nothing) where {I}
     # Promote birth types and find dim and threshold.
     T = Union{}
     dim = 0
@@ -161,14 +161,14 @@ function Custom{I}(simplices; threshold=nothing) where I
             thresh = max(thresh, birth)
         end
         if length(vertices) ≥ length(largest_simplex)
-            largest_simplex = max(TupleTools.sort(vertices, rev=true), largest_simplex)
+            largest_simplex = max(TupleTools.sort(vertices; rev=true), largest_simplex)
         end
     end
     if isnothing(threshold)
         threshold = thresh
     end
     index_overflow_check(I.(largest_simplex))
-    return Custom{I, T}(simplices, dim, T(threshold))
+    return Custom{I,T}(simplices, dim, T(threshold))
 end
 
 Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)

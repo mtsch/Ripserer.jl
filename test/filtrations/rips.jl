@@ -7,15 +7,22 @@ using StaticArrays
 using Suppressor
 using Test
 
-using Ripserer: distances, births, adjacency_matrix, edges, nv, unsafe_simplex,
-    ChainElement, PackedElement
+using Ripserer:
+    distances,
+    births,
+    adjacency_matrix,
+    edges,
+    nv,
+    unsafe_simplex,
+    ChainElement,
+    PackedElement
 
 include("test-datasets.jl")
 
 @testset "distances" begin
     for points in (
         [(0, 0), (0, 1), (1, 1), (1, 0)],
-        [SVector(0, 0), SVector(0, 1), SVector(1, 1), SVector(1, 0)]
+        [SVector(0, 0), SVector(0, 1), SVector(1, 1), SVector(1, 0)],
     )
         @test distances(points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
         @test distances(points, Cityblock()) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
@@ -24,10 +31,9 @@ end
 
 for sparse in (true, false)
     @testset "With no threshold, sparse=$sparse" begin
-        filtration = Rips(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0], sparse=sparse)
+        filtration = Rips(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0]; sparse=sparse)
 
-        @test sprint(show, filtration) ==
-            "Rips{Int64, Float64}(nv=4, sparse=$sparse)"
+        @test sprint(show, filtration) == "Rips{Int64, Float64}(nv=4, sparse=$sparse)"
 
         @test nv(filtration) == 4
         if issparse(adjacency_matrix(filtration))
@@ -49,8 +55,7 @@ for sparse in (true, false)
     @testset "With threshold and index type, sparse=$sparse" begin
         filtration = Rips{Int128}([1 2 2; 2 2 3; 2 3 2]; threshold=2, sparse=sparse)
 
-        @test sprint(show, filtration) ==
-            "Rips{Int128, Int64}(nv=3, sparse=$sparse)"
+        @test sprint(show, filtration) == "Rips{Int128, Int64}(nv=3, sparse=$sparse)"
 
         @test nv(filtration) == 3
         @test threshold(filtration) == 2
@@ -65,34 +70,33 @@ for sparse in (true, false)
 
         @test adjacency_matrix(filtration) == filtration.adj
 
-        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0, Int, Int128}(1, 1)
+        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0,Int,Int128}(1, 1)
         @test unsafe_simplex(filtration, Val(2), (3, 2, 1)) === nothing
-        @test simplex(filtration, Val(1), (1, 2), -1) === -Simplex{1, Int, Int128}(1, 2)
+        @test simplex(filtration, Val(1), (1, 2), -1) === -Simplex{1,Int,Int128}(1, 2)
         @test_throws ArgumentError simplex(filtration, Val(2), (0, 1, 2))
     end
 end
 
 @testset "Rips points constructor, sparse=false" begin
-    filtration = Rips(
-        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]]
-    )
+    filtration = Rips([(sin(x), cos(x)) for x in range(0, 2π; length=101)[1:(end - 1)]])
     adj = adjacency_matrix(filtration)
-    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in i+1:100)
-    @test eltype(edges(filtration)) === Simplex{1, Float64, Int}
+    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in (i + 1):100)
+    @test eltype(edges(filtration)) === Simplex{1,Float64,Int}
 
-    filtration = Rips{Int32}(
-        [(sin(x), cos(x)) for x in range(0f0, 2f0π, length=101)[1:end-1]]
-    )
+    filtration = Rips{Int32}([
+        (sin(x), cos(x)) for x in range(0.0f0, 2.0f0π; length=101)[1:(end - 1)]
+    ])
     adj = adjacency_matrix(filtration)
     @test !issparse(adj)
-    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in i+1:100)
-    @test eltype(edges(filtration)) === Simplex{1, Float32, Int32}
+    @test all(x -> x > 0, adj[i, j] for i in 1:100 for j in (i + 1):100)
+    @test eltype(edges(filtration)) === Simplex{1,Float32,Int32}
 end
 
 @testset "Rips points constructor, sparse=true" begin
     filtration = Rips(
-        [(sin(x), cos(x)) for x in range(0, 2π, length=101)[1:end-1]];
-        threshold=0.1, sparse=true,
+        [(sin(x), cos(x)) for x in range(0, 2π; length=101)[1:(end - 1)]];
+        threshold=0.1,
+        sparse=true,
     )
     adj = adjacency_matrix(filtration)
     @test issparse(adj)
@@ -101,19 +105,21 @@ end
 end
 
 @testset "Construction does not alter input" begin
-    dist = [0 9 1 2
-            9 0 3 4
-            1 3 0 4
-            2 4 4 0]
+    dist = [
+        0 9 1 2
+        9 0 3 4
+        1 3 0 4
+        2 4 4 0
+    ]
     orig_dist = copy(dist)
-    Rips(dist, threshold=1)
+    Rips(dist; threshold=1)
     @test dist == orig_dist
-    Rips(dist, threshold=1, sparse=true)
+    Rips(dist; threshold=1, sparse=true)
     @test dist == orig_dist
 
     dist = sparse(dist)
     orig_dist = copy(dist)
-    Rips(dist, threshold=1)
+    Rips(dist; threshold=1)
     @test dist == orig_dist
 end
 
@@ -180,14 +186,14 @@ end
             @test d2 == []
         end
         @testset "RP2 with various fields, threshold=1" begin
-            _, d1_2, d2_2 = ripserer(projective_plane;
-                                     dim_max=2, threshold=1)
-            _, d1_3, d2_3 = ripserer(projective_plane;
-                                     dim_max=2, modulus=3, threshold=1)
-            _, d1_331, d2_331 = ripserer(projective_plane;
-                                         dim_max=2, field_type=Mod{5}, threshold=1)
-            _, d1_r, d2_r = ripserer(projective_plane;
-                                     dim_max=2, field_type=Rational{Int}, threshold=1)
+            _, d1_2, d2_2 = ripserer(projective_plane; dim_max=2, threshold=1)
+            _, d1_3, d2_3 = ripserer(projective_plane; dim_max=2, modulus=3, threshold=1)
+            _, d1_331, d2_331 = ripserer(
+                projective_plane; dim_max=2, field_type=Mod{5}, threshold=1
+            )
+            _, d1_r, d2_r = ripserer(
+                projective_plane; dim_max=2, field_type=Rational{Int}, threshold=1
+            )
             @test d1_2 == [(1, Inf)]
             @test d2_2 == [(1, Inf)]
             @test d1_3 == d1_331 == d1_r == []
@@ -200,7 +206,7 @@ end
             end
         end
         @testset "Cutoff" begin
-            d0, d1 = ripserer(rand_dist_matrix(20), cutoff=0.5)
+            d0, d1 = ripserer(rand_dist_matrix(20); cutoff=0.5)
             @test all(persistence.(d0) .> 0.5)
             @test all(persistence.(d1) .> 0.5)
         end
@@ -214,14 +220,16 @@ end
             @test d2 == [(1.0, 2.0)]
         end
         @testset "RP2 with various fields, threshold=1" begin
-            _, d1_2, d2_2 = ripserer(sparse(projective_plane);
-                                     dim_max=2, threshold=1)
-            _, d1_3, d2_3 = ripserer(Rips(projective_plane; threshold=1, sparse=true);
-                                     dim_max=2, modulus=3)
-            _, d1_331, d2_331 = ripserer(sparse(projective_plane);
-                                         dim_max=2, field_type=Mod{5}, threshold=1)
-            _, d1_r, d2_r = ripserer(sparse(projective_plane);
-                                     dim_max=2, field_type=Rational{Int}, threshold=1)
+            _, d1_2, d2_2 = ripserer(sparse(projective_plane); dim_max=2, threshold=1)
+            _, d1_3, d2_3 = ripserer(
+                Rips(projective_plane; threshold=1, sparse=true); dim_max=2, modulus=3
+            )
+            _, d1_331, d2_331 = ripserer(
+                sparse(projective_plane); dim_max=2, field_type=Mod{5}, threshold=1
+            )
+            _, d1_r, d2_r = ripserer(
+                sparse(projective_plane); dim_max=2, field_type=Rational{Int}, threshold=1
+            )
             @test d1_2 == [(1, Inf)]
             @test d2_2 == [(1, Inf)]
             @test d1_3 == d1_331 == d1_r == []
@@ -275,8 +283,7 @@ end
             @test eltype(d3) isa DataType
             @test eltype(d1[1].representative) <: PackedElement
 
-            d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true,
-                                      field_type=Rational{Int})
+            d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true, field_type=Rational{Int})
             @test eltype(d0) isa DataType
             @test eltype(d1) isa DataType
             @test eltype(d2) isa DataType
@@ -289,7 +296,7 @@ end
             )
             rep = representative(only(d1))
             @test isempty(rep)
-            @test eltype(rep) == ChainElement{Simplex{1, Int, Int}, Rational{Int}}
+            @test eltype(rep) == ChainElement{Simplex{1,Int,Int},Rational{Int}}
         end
         @testset "Infinite interval higher threshold" begin
             _, d1 = ripserer(
@@ -297,7 +304,7 @@ end
             )
             rep = representative(only(d1))
             @test !isempty(rep)
-            @test eltype(rep) == ChainElement{Simplex{1, Int, Int}, Rational{Int}}
+            @test eltype(rep) == ChainElement{Simplex{1,Int,Int},Rational{Int}}
         end
         @testset "Critical simplices" begin
             result = ripserer(torus(100); reps=true, threshold=0.5)
@@ -313,7 +320,9 @@ end
 
     @testset "Diagram metadata" begin
         filtration = Rips(cycle)
-        d0, d1, d2, d3 = ripserer(filtration; dim_max=3, reps=true, field_type=Rational{Int})
+        d0, d1, d2, d3 = ripserer(
+            filtration; dim_max=3, reps=true, field_type=Rational{Int}
+        )
         @test d0.dim == 0
         @test d1.dim == 1
         @test d2.dim == 2
@@ -323,7 +332,7 @@ end
         @test d1.threshold ≡ thresh
         @test d2.threshold ≡ thresh
         @test d3.threshold ≡ thresh
-        field_type=Rational{Int}
+        field_type = Rational{Int}
         @test d0.field_type ≡ field_type
         @test d1.field_type ≡ field_type
         @test d2.field_type ≡ field_type
@@ -345,7 +354,7 @@ end
             for i in 1:n
                 dists[i, i] = data[i]
             end
-            for i in 1:n-1
+            for i in 1:(n - 1)
                 j = i + 1
                 dists[i, j] = dists[j, i] = max(dists[i, i], dists[j, j])
             end
@@ -381,11 +390,9 @@ end
                 _, hom_exp1, hom_exp2 = ripserer(
                     r; alg=:homology, implicit=false, dim_max=2, modulus=m
                 )
-                _, hom_ass1, hom_ass2 = ripserer(
-                    r; alg=:involuted, dim_max=2, modulus=m
-                )
+                _, hom_ass1, hom_ass2 = ripserer(r; alg=:involuted, dim_max=2, modulus=m)
                 _, coh_imp1, coh_imp2 = ripserer(
-                    r ; implicit=true, reps=true, dim_max=2, modulus=m
+                    r; implicit=true, reps=true, dim_max=2, modulus=m
                 )
                 _, coh_exp1, coh_exp2 = ripserer(
                     r; implicit=true, reps=true, dim_max=2, modulus=m
@@ -401,19 +408,16 @@ end
             end
         end
         @testset "Representative cycle" begin
-            res_hom = ripserer(cycle, alg=:homology, reps=true, dim_max=3)
-            @test vertices.(simplex.(representative(res_hom[2][1]))) == sort!(vcat(
-                [SVector(i+1, i) for i in 1:17], [SVector(18, 1)]
-            ))
+            res_hom = ripserer(cycle; alg=:homology, reps=true, dim_max=3)
+            @test vertices.(simplex.(representative(res_hom[2][1]))) ==
+                  sort!(vcat([SVector(i + 1, i) for i in 1:17], [SVector(18, 1)]))
         end
         @testset "Infinite intervals" begin
-            @test_broken ripserer(
-                cycle, alg=:homology, threshold=2, implicit=true
-            )[2][1] == (1.0, Inf)
-            @test_broken ripserer(
-                cycle, alg=:homology, threshold=2, implicit=false
-            )[2][1] == (1.0, Inf)
-            @test ripserer(cycle, alg=:involuted, threshold=2)[2][1] == (1.0, Inf)
+            @test_broken ripserer(cycle; alg=:homology, threshold=2, implicit=true)[2][1] ==
+                         (1.0, Inf)
+            @test_broken ripserer(cycle; alg=:homology, threshold=2, implicit=false)[2][1] ==
+                         (1.0, Inf)
+            @test ripserer(cycle; alg=:involuted, threshold=2)[2][1] == (1.0, Inf)
         end
     end
 
@@ -432,6 +436,6 @@ end
     end
 
     @testset "Unsupported algirithms" begin
-        @test_throws ArgumentError ripserer(Rips(ones(5,5)); alg=:something)
+        @test_throws ArgumentError ripserer(Rips(ones(5, 5)); alg=:something)
     end
 end

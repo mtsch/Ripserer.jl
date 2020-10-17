@@ -4,7 +4,7 @@
 This `struct` is used to compute cohomology. The `I` parameter sets whether the implicit
 algoritm is used or not.
 """
-struct CoboundaryMatrix{I, T, F, S, R, C}
+struct CoboundaryMatrix{I,T,F,S,R,C}
     filtration::F
     reduced::R
     chain::C
@@ -14,7 +14,7 @@ end
 
 function CoboundaryMatrix{I}(
     ::Type{T}, filtration, columns_to_reduce, columns_to_skip
-) where {I, T}
+) where {I,T}
     Simplex = eltype(columns_to_reduce)
     Cofacet = simplex_type(filtration, dim(Simplex) + 1)
     ordering = Base.Order.Forward
@@ -22,32 +22,32 @@ function CoboundaryMatrix{I}(
     CofacetElem = chain_element_type(Cofacet, T)
 
     if I
-        reduced = ReducedMatrix{Cofacet, SimplexElem}(ordering)
+        reduced = ReducedMatrix{Cofacet,SimplexElem}(ordering)
     else
-        reduced = ReducedMatrix{Cofacet, CofacetElem}(ordering)
+        reduced = ReducedMatrix{Cofacet,CofacetElem}(ordering)
     end
     sizehint!(reduced, length(columns_to_reduce))
     chain = WorkingChain{CofacetElem}(ordering)
 
-    return CoboundaryMatrix{
-        I, T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)
-    }(
+    return CoboundaryMatrix{I,T,typeof(filtration),Simplex,typeof(reduced),typeof(chain)}(
         filtration, reduced, chain, columns_to_reduce, columns_to_skip
     )
 end
 
-field_type(::CoboundaryMatrix{<:Any, T}) where T = T
-dim(cm::CoboundaryMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S)
-function chain_element_type(bm::CoboundaryMatrix{<:Any, T, F}) where {T, F}
-    chain_element_type(simplex_type(F, dim(bm) + 1), T)
+field_type(::CoboundaryMatrix{<:Any,T}) where {T} = T
+dim(cm::CoboundaryMatrix{<:Any,<:Any,<:Any,S}) where {S} = dim(S)
+function chain_element_type(bm::CoboundaryMatrix{<:Any,T,F}) where {T,F}
+    return chain_element_type(simplex_type(F, dim(bm) + 1), T)
 end
 
-is_implicit(::CoboundaryMatrix{I}) where I = I
+is_implicit(::CoboundaryMatrix{I}) where {I} = I
 is_cohomology(::CoboundaryMatrix) = true
 
-coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex) = coboundary(matrix.filtration, simplex)
+function coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex)
+    return coboundary(matrix.filtration, simplex)
+end
 
-function next_matrix(matrix::CoboundaryMatrix{I}, progress) where I
+function next_matrix(matrix::CoboundaryMatrix{I}, progress) where {I}
     C = simplex_type(matrix.filtration, dim(matrix) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
@@ -65,10 +65,12 @@ function next_matrix(matrix::CoboundaryMatrix{I}, progress) where I
         else
             push!(new_to_reduce, abs(simplex))
         end
-        progress && next!(progbar; showvalues=(
-            ("cleared", length(new_to_skip)),
-            ("to reduce", length(new_to_reduce)),
-        ))
+        progress && next!(
+            progbar;
+            showvalues=(
+                ("cleared", length(new_to_skip)), ("to reduce", length(new_to_reduce))
+            ),
+        )
     end
     prog_print(progress, '\r')
 
@@ -83,14 +85,14 @@ end
 This `struct` is used to compute homology. The `I` parameter sets whether the implicit
 algoritm is used or not.
 """
-struct BoundaryMatrix{I, T, F, S, R, C}
+struct BoundaryMatrix{I,T,F,S,R,C}
     filtration::F
     reduced::R
     chain::C
     columns_to_reduce::Vector{S}
 end
 
-function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I, T}
+function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I,T}
     if eltype(columns_to_reduce) === Any
         Simplex = typeof(first(columns_to_reduce))
     else
@@ -107,27 +109,25 @@ function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I, T
     end
 
     if !I
-        reduced = ReducedMatrix{Facet, FacetElem}(ordering)
+        reduced = ReducedMatrix{Facet,FacetElem}(ordering)
     else
-        reduced = ReducedMatrix{Facet, SimplexElem}(ordering)
+        reduced = ReducedMatrix{Facet,SimplexElem}(ordering)
     end
     sizehint!(reduced, length(columns))
     chain = WorkingChain{FacetElem}(ordering)
 
-    return BoundaryMatrix{
-        I, T, typeof(filtration), Simplex, typeof(reduced), typeof(chain)
-    }(
+    return BoundaryMatrix{I,T,typeof(filtration),Simplex,typeof(reduced),typeof(chain)}(
         filtration, reduced, chain, columns
     )
 end
 
-field_type(::BoundaryMatrix{<:Any, T}) where T = T
-dim(bm::BoundaryMatrix{<:Any, <:Any, <:Any, S}) where S = dim(S) - 1
-function chain_element_type(bm::BoundaryMatrix{<:Any, T, F}) where {T, F}
-    chain_element_type(simplex_type(F, dim(bm)), T)
+field_type(::BoundaryMatrix{<:Any,T}) where {T} = T
+dim(bm::BoundaryMatrix{<:Any,<:Any,<:Any,S}) where {S} = dim(S) - 1
+function chain_element_type(bm::BoundaryMatrix{<:Any,T,F}) where {T,F}
+    return chain_element_type(simplex_type(F, dim(bm)), T)
 end
 
-is_implicit(::BoundaryMatrix{I}) where I = I
+is_implicit(::BoundaryMatrix{I}) where {I} = I
 is_cohomology(::BoundaryMatrix) = false
 
 # The naming here is not ideal...
@@ -143,7 +143,7 @@ is where the emergent pairs optimization gets triggered for implicit versions of
 algorithm.
 
 """
-function initialize_coboundary!(#=::Val{true},=# matrix, column)
+function initialize_coboundary!(matrix, column)#=::Val{true},=#
     empty!(matrix.chain)
     # Emergent pairs: we are looking for pairs of simplices (σ, τ) where σ is the youngest
     # facet of τ and τ is the oldest cofacet of σ. These pairs give birth to persistence
@@ -177,7 +177,7 @@ Add already reduced column indexed by `column` multiplied by `-coefficient(pivot
 
 """
 function add!(matrix, column, pivot)
-    add!(Val(is_implicit(matrix)), matrix, column, pivot)
+    return add!(Val(is_implicit(matrix)), matrix, column, pivot)
 end
 # Implicit version
 function add!(::Val{true}, matrix, column, pivot)
@@ -191,7 +191,7 @@ function add!(::Val{true}, matrix, column, pivot)
             )
         end
     end
-    record!(matrix.reduced, column, factor)
+    return record!(matrix.reduced, column, factor)
 end
 # Explicit version
 function add!(::Val{false}, matrix, column, pivot)
@@ -208,17 +208,17 @@ end
 After reduction is done, finalize the column by adding it to the reduced matrix.
 """
 function finalize!(matrix, column, pivot)
-    finalize!(Val(is_implicit(matrix)), matrix, column, pivot)
+    return finalize!(Val(is_implicit(matrix)), matrix, column, pivot)
 end
 # Implicit version
 function finalize!(::Val{true}, matrix, column, pivot)
     record!(matrix.reduced, column)
-    commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
+    return commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
 end
 # Explicit version
 function finalize!(::Val{false}, matrix, column, pivot)
     record!(matrix.reduced, matrix.chain)
-    commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
+    return commit!(matrix.reduced, simplex(pivot), inv(coefficient(pivot)))
 end
 
 """
@@ -299,11 +299,11 @@ function interval(matrix, column, pivot, cutoff, reps)
     death_time = isnothing(death_simplex) ? Inf : Float64(birth(death_simplex))
     if death_time - birth_time > cutoff
         if reps
-            rep = (;representative=collect_cocycle!(matrix, pivot))
+            rep = (; representative=collect_cocycle!(matrix, pivot))
         else
             rep = NamedTuple()
         end
-        meta = (;birth_simplex=birth_simplex, death_simplex=death_simplex, rep...)
+        meta = (; birth_simplex=birth_simplex, death_simplex=death_simplex, rep...)
         return PersistenceInterval(birth_time, death_time, meta)
     else
         return nothing
@@ -362,14 +362,17 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ### Interval computation.
     ###
     prog_print(
-        progress, fmt_number(length(columns)), " ", (simplex_name(eltype(columns))),
-        " to reduce."
+        progress,
+        fmt_number(length(columns)),
+        " ",
+        (simplex_name(eltype(columns))),
+        " to reduce.",
     )
     # One-dimensional columns in cohomology are already sorted.
     if !is_cohomology(matrix) || dim(matrix) > 1
         sort_t = time_ns()
-        sort!(columns, rev=is_cohomology(matrix))
-        elapsed = round((time_ns() - sort_t) / 1e9, digits=3)
+        sort!(columns; rev=is_cohomology(matrix))
+        elapsed = round((time_ns() - sort_t) / 1e9; digits=3)
         prog_println(progress, " Sorted in ", elapsed, "s)")
     else
         prog_println(progress)
@@ -387,13 +390,14 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     end
 
     return postprocess_diagram(
-        matrix.filtration, PersistenceDiagram(
-            sortres ? sort!(intervals, by=persistence) : intervals;
+        matrix.filtration,
+        PersistenceDiagram(
+            sortres ? sort!(intervals; by=persistence) : intervals;
             threshold=Float64(threshold(matrix.filtration)),
             dim=dim(matrix),
             field_type=field_type(matrix),
             filtration=matrix.filtration,
-        )
+        ),
     )
 end
 
@@ -415,7 +419,7 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
     if isempty(columns)
         return deaths, inf_births
     else
-        dim(matrix) > 1 && sort!(columns, rev=true)
+        dim(matrix) > 1 && sort!(columns; rev=true)
         thresh = typemin(birth(first(columns)))
         for pair in apparent
             if birth(pair[2]) - birth(pair[1]) > cutoff

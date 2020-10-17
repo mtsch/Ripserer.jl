@@ -8,19 +8,19 @@ elemetns to the chain.
 
 `move!` is used to empty the chain and transfer its elements to a new array.
 """
-struct WorkingChain{E<:AbstractChainElement, O<:Base.Ordering}
+struct WorkingChain{E<:AbstractChainElement,O<:Base.Ordering}
     heap::Vector{E}
     ordering::O
 
-    function WorkingChain{E}(ordering::O) where {E, O}
-        new{E, O}(E[], ordering)
+    function WorkingChain{E}(ordering::O) where {E,O}
+        return new{E,O}(E[], ordering)
     end
 end
 
 Base.empty!(chain::WorkingChain) = empty!(chain.heap)
 Base.isempty(chain::WorkingChain) = isempty(chain.heap)
 
-Base.eltype(chain::WorkingChain{E}) where E = E
+Base.eltype(chain::WorkingChain{E}) where {E} = E
 
 function Base.pop!(chain::WorkingChain)
     isempty(chain) && return nothing
@@ -39,15 +39,15 @@ function Base.pop!(chain::WorkingChain)
     return iszero(pivot) ? nothing : pivot
 end
 
-function Base.push!(chain::WorkingChain{E}, element::E) where E
-    heappush!(chain.heap, element, chain.ordering)
+function Base.push!(chain::WorkingChain{E}, element::E) where {E}
+    return heappush!(chain.heap, element, chain.ordering)
 end
 
-function nonheap_push!(chain::WorkingChain{E}, simplex::AbstractSimplex) where E
-    push!(chain.heap, E(simplex))
+function nonheap_push!(chain::WorkingChain{E}, simplex::AbstractSimplex) where {E}
+    return push!(chain.heap, E(simplex))
 end
-function nonheap_push!(chain::WorkingChain{E}, element::E) where E
-    push!(chain.heap, element)
+function nonheap_push!(chain::WorkingChain{E}, element::E) where {E}
+    return push!(chain.heap, element)
 end
 
 repair!(chain::WorkingChain) = heapify!(chain.heap, chain.ordering)

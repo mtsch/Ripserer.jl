@@ -31,12 +31,24 @@ import LightGraphs: vertices, edges, nv, adjacency_matrix
 
 # Reexporting basics makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold, dim
-export
-    birth, death, persistence, representative, birth_simplex, death_simplex, barcode
+export birth, death, persistence, representative, birth_simplex, death_simplex, barcode
 
-export
-    Mod, Simplex, Cube, index, vertices, dim, threshold, simplex, coefficient,
-    Rips, SparseRips, Cubical, Custom, Alpha, ripserer, reconstruct_cycle
+export Mod,
+    Simplex,
+    Cube,
+    index,
+    vertices,
+    dim,
+    threshold,
+    simplex,
+    coefficient,
+    Rips,
+    SparseRips,
+    Cubical,
+    Custom,
+    Alpha,
+    ripserer,
+    reconstruct_cycle
 
 include("primefield.jl")
 include("simplex.jl")

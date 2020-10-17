@@ -8,15 +8,15 @@ Changes to the matrix are recorded in a buffer with `record!`. Once a column is 
 added, use `commit!` to move the changes from the buffer to the matrix and create a
 column. Changes can also be discarded with `discard!`.
 """
-struct ReducedMatrix{S<:AbstractSimplex, E<:AbstractChainElement, O<:Base.Ordering}
-    column_index::Dict{S, Int}
+struct ReducedMatrix{S<:AbstractSimplex,E<:AbstractChainElement,O<:Base.Ordering}
+    column_index::Dict{S,Int}
     indices::Vector{Int}
     values::Vector{E}
     buffer::Vector{E}
     ordering::O
 
-    function ReducedMatrix{S, E}(ordering::O) where {S, E, O}
-        return new{S, E, O}(Dict{S, Int}(), Int[1], E[], E[], ordering)
+    function ReducedMatrix{S,E}(ordering::O) where {S,E,O}
+        return new{S,E,O}(Dict{S,Int}(), Int[1], E[], E[], ordering)
     end
 end
 
@@ -35,7 +35,7 @@ end
 Record the operation that was performed in the buffer. If the second argument is a
 `WorkingChain`, it is emptied into the buffer.
 """
-function record!(matrix::ReducedMatrix{<:Any, E}, simplex::AbstractSimplex) where E
+function record!(matrix::ReducedMatrix{<:Any,E}, simplex::AbstractSimplex) where {E}
     return push!(matrix.buffer, E(simplex))
 end
 
@@ -61,9 +61,9 @@ end
 
 Sort buffer and add duplicates together. Return buffer.
 """
-function collect_buffer!(matrix::ReducedMatrix{<:Any, E}, factor=one(E)) where E
+function collect_buffer!(matrix::ReducedMatrix{<:Any,E}, factor=one(E)) where {E}
     if !isempty(matrix.buffer)
-        sort!(matrix.buffer, alg=QuickSort, order=matrix.ordering)
+        sort!(matrix.buffer; alg=QuickSort, order=matrix.ordering)
         i = 0
         @inbounds prev = matrix.buffer[1]
         @inbounds for j in 2:length(matrix.buffer)
@@ -123,7 +123,7 @@ end
 Insert apparent pairs into reduced matrix. Columns are inserted so `matrix[τ] == [σ]`, where
 `pairs` is a collection of tuples `(σ, τ)`.
 """
-function bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
+function bulk_add!(matrix::ReducedMatrix{<:Any,E}, pairs) where {E}
     n = length(pairs)
     n_values = length(matrix.values)
     resize!(matrix.values, n_values + n)
@@ -135,21 +135,20 @@ function bulk_add!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
         matrix.values[n_values + i] = E(σ, sign(τ))
         matrix.column_index[abs(τ)] = n_indices + i - 1
     end
-    matrix
+    return matrix
 end
 function bulk_add!(matrix::ReducedMatrix, ::Tuple{})
     return matrix
 end
 
-
 Base.length(matrix::ReducedMatrix) = length(matrix.indices) - 1
 
 Base.haskey(matrix::ReducedMatrix, simplex) = haskey(matrix.column_index, simplex)
 
-function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where S
+function Base.getindex(matrix::ReducedMatrix{S}, element::AbstractChainElement{S}) where {S}
     return matrix[simplex(element)]
 end
-function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where S
+function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where {S}
     index = get(matrix.column_index, simplex, 0)
     if index == 0
         from = 0

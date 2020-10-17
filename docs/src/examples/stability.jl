@@ -11,18 +11,24 @@
 
 using Ripserer
 using Plots
-using Random; Random.seed!(1337); gr(); nothing # hide
+using Random; # hide
+Random.seed!(1337); # hide
+gr(); # hide
+nothing; # hide
 
 # As in the Basics example, we will look at the persistent homology of a noisy circle.
 
 function noisy_circle(n; r1=1, r2=1, noise=0.1)
-    points = NTuple{2, Float64}[]
+    points = NTuple{2,Float64}[]
     for _ in 1:n
         θ = 2π * rand()
-        push!(points, (r1*sin(θ) + noise*rand() - noise/2,
-                       r2*cos(θ) + noise*rand() - noise/2))
+        point = (
+            r1 * sin(θ) + noise * rand() - noise / 2,
+            r2 * cos(θ) + noise * rand() - noise / 2,
+        )
+        push!(points, point)
     end
-    points
+    return points
 end
 
 # We will look at the first persistent homology group of this space.
@@ -30,17 +36,20 @@ end
 # First, let's see what happens if we repeatedly sample 100 random points from a circle.
 
 anim = @animate for _ in 1:200
-    points = noisy_circle(100, noise=0)
+    points = noisy_circle(100; noise=0)
     result = ripserer(points)
 
-    plt_pts = scatter(points, legend=false,
-                      aspect_ratio=1,
-                      xlim=(-2.2, 2.2),
-                      ylim=(-2.2, 2.2),
-                      title="Data")
-    plt_diag = plot(result, infinity=3)
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title="Data",
+    )
+    plt_diag = plot(result; infinity=3)
 
-    plot(plt_pts, plt_diag, size=(800, 400))
+    plot(plt_pts, plt_diag; size=(800, 400))
 end
 gif(anim, "stability_anim_1.gif") # hide
 
@@ -52,17 +61,20 @@ gif(anim, "stability_anim_1.gif") # hide
 # Now, let's add some noise!
 
 anim = @animate for _ in 1:200
-    points = noisy_circle(100, noise=0.2)
+    points = noisy_circle(100; noise=0.2)
     result = ripserer(points)
 
-    plt_pts = scatter(points, legend=false,
-                      aspect_ratio=1,
-                      xlim=(-2.2, 2.2),
-                      ylim=(-2.2, 2.2),
-                      title="Data")
-    plt_diag = plot(result, infinity=3)
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title="Data",
+    )
+    plt_diag = plot(result; infinity=3)
 
-    plot(plt_pts, plt_diag, size=(800, 400))
+    plot(plt_pts, plt_diag; size=(800, 400))
 end
 gif(anim, "stability_anim_2.gif") # hide
 
@@ -72,17 +84,20 @@ gif(anim, "stability_anim_2.gif") # hide
 # Next, let's look at how adding more and more noise affects the diagram.
 
 anim = @animate for noise in vcat(0:0.01:1, 1:-0.01:0)
-    points = noisy_circle(100, noise=noise)
+    points = noisy_circle(100; noise=noise)
     result = ripserer(points)
 
-    plt_pts = scatter(points, legend=false,
-                      aspect_ratio=1,
-                      xlim=(-2.2, 2.2),
-                      ylim=(-2.2, 2.2),
-                      title="Data")
-    plt_diag = plot(result, infinity=3)
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title="Data",
+    )
+    plt_diag = plot(result; infinity=3)
 
-    plot(plt_pts, plt_diag, size=(800, 400))
+    plot(plt_pts, plt_diag; size=(800, 400))
 end
 gif(anim, "stability_anim_3.gif") # hide
 
@@ -93,17 +108,20 @@ gif(anim, "stability_anim_3.gif") # hide
 # Finally, let's stretch our circle.
 
 anim = @animate for r in vcat(0.0:0.02:2, 2:-0.02:0.0)
-    points = noisy_circle(100, noise=0.1, r1=r)
+    points = noisy_circle(100; noise=0.1, r1=r)
     result = ripserer(points)
 
-    plt_pts = scatter(points, legend=false,
-                      aspect_ratio=1,
-                      xlim=(-2.2, 2.2),
-                      ylim=(-2.2, 2.2),
-                      title="Data")
-    plt_diag = plot(result, infinity=3)
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title="Data",
+    )
+    plt_diag = plot(result; infinity=3)
 
-    plot(plt_pts, plt_diag, size=(800, 400))
+    plot(plt_pts, plt_diag; size=(800, 400))
 end
 gif(anim, "stability_anim_4.gif") # hide
 

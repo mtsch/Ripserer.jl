@@ -19,10 +19,10 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`emergent_pairs(::AbstractFiltration)`](@ref)
 * [`postprocess_diagram(::AbstractFiltration, ::Any)`](@ref)
 """
-abstract type AbstractFiltration{I, T} end
+abstract type AbstractFiltration{I,T} end
 
-function Base.show(io::IO, flt::AbstractFiltration{I, T}) where {I, T}
-    print(io, nameof(typeof(flt)), "{$I, $T}(nv=$(nv(flt)))")
+function Base.show(io::IO, flt::AbstractFiltration{I,T}) where {I,T}
+    return print(io, nameof(typeof(flt)), "{$I, $T}(nv=$(nv(flt)))")
 end
 
 """
@@ -100,17 +100,19 @@ julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
 
 ```
 """
-function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where D
+function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where {D}
     if D == 0 && length(vertices) == 1 && vertices[1] > 0
         # No need to run allunique in this case.
         return unsafe_simplex(flt, Val(0), vertices, sign)
     else
-        vs = TupleTools.sort(Tuple(vertices), rev=true)
-        if allunique(vs) && all(x -> x > 0, vs) && length(vs) == length(simplex_type(flt, D))
+        vs = TupleTools.sort(Tuple(vertices); rev=true)
+        if allunique(vs) &&
+           all(x -> x > 0, vs) &&
+           length(vs) == length(simplex_type(flt, D))
             return unsafe_simplex(flt, Val(D), vs, sign)
         end
     end
-    throw(ArgumentError("invalid vertices $(vertices)"))
+    return throw(ArgumentError("invalid vertices $(vertices)"))
 end
 
 """
@@ -120,7 +122,7 @@ Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return
 if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
 to ensure vertices are sorted and unique.
 """
-function unsafe_simplex(flt, ::Val{D}, vertices, sign=1) where D
+function unsafe_simplex(flt, ::Val{D}, vertices, sign=1) where {D}
     return unsafe_simplex(simplex_type(typeof(flt), D), flt, vertices, sign)
 end
 
@@ -142,8 +144,8 @@ Default implementation uses [`unsafe_simplex`](@ref).
 @inline @propagate_inbounds function unsafe_cofacet(flt, sx, args...)
     return unsafe_cofacet(simplex_type(typeof(flt), dim(sx) + 1), flt, sx, args...)
 end
-function unsafe_cofacet(::Type{S}, flt, _, vertices, _, sign, args...) where S
-    return unsafe_simplex(flt, Val(dim(S)), vertices, sign)::Union{S, Nothing}
+function unsafe_cofacet(::Type{S}, flt, _, vertices, _, sign, args...) where {S}
+    return unsafe_simplex(flt, Val(dim(S)), vertices, sign)::Union{S,Nothing}
 end
 
 """
@@ -181,7 +183,7 @@ julia> Ripserer.births(flt)
 
 ```
 """
-births(flt::AbstractFiltration{<:Any, T}) where T = zeros(T, size(vertices(flt)))
+births(flt::AbstractFiltration{<:Any,T}) where {T} = zeros(T, size(vertices(flt)))
 
 """
     threshold(::AbstractFiltration)
@@ -255,9 +257,7 @@ julia> Ripserer.columns_to_reduce(flt, Ripserer.edges(flt)) |> collect
 ```
 """
 function columns_to_reduce(flt::AbstractFiltration, prev_column_itr)
-    return Iterators.flatten(
-        imap(σ -> coboundary(flt, σ, Val(false)), prev_column_itr)
-    )
+    return Iterators.flatten(imap(σ -> coboundary(flt, σ, Val(false)), prev_column_itr))
 end
 
 """
@@ -301,31 +301,35 @@ find_apparent_pairs(::AbstractFiltration, columns, _) = columns, ()
 # Vals everywhere so compiler computes this at compile time.
 @inline function interval_type(
     flt::AbstractFiltration, ::Val{dim}, ::Val{reps}, ::Type{F}
-) where {dim, reps, F}
+) where {dim,reps,F}
     if reps
-        return PersistenceInterval{@NamedTuple begin
-            birth_simplex::simplex_type(flt, dim)
-            death_simplex::Union{simplex_type(flt, dim + 1), Nothing}
-            representative::Vector{chain_element_type(simplex_type(flt, dim), F)}
-        end}
+        return PersistenceInterval{
+            @NamedTuple begin
+                birth_simplex::simplex_type(flt, dim)
+                death_simplex::Union{simplex_type(flt, dim + 1),Nothing}
+                representative::Vector{chain_element_type(simplex_type(flt, dim), F)}
+            end
+        }
     else
-        return PersistenceInterval{@NamedTuple begin
-            birth_simplex::simplex_type(flt, dim)
-            death_simplex::Union{simplex_type(flt, dim + 1), Nothing}
-        end}
+        return PersistenceInterval{
+            @NamedTuple begin
+                birth_simplex::simplex_type(flt, dim)
+                death_simplex::Union{simplex_type(flt, dim + 1),Nothing}
+            end
+        }
     end
 end
 
 function index_overflow_check(
-    flt::AbstractFiltration, ::Type{F}, dim_max,
+    flt::AbstractFiltration,
+    ::Type{F},
+    dim_max,
     message="$flt overflows in $(dim_max)D. " *
-    "Try using a bigger index type or lower `dim_max`"
-) where F
+            "Try using a bigger index type or lower `dim_max`",
+) where {F}
     S = simplex_type(flt, dim_max + 1)
-    length(S) > nv(flt) && throw(
-        ArgumentError("$S has more than $(nv) vertices.")
-    )
-    index_overflow_check(S, F, nv(flt), message)
+    length(S) > nv(flt) && throw(ArgumentError("$S has more than $(nv) vertices."))
+    return index_overflow_check(S, F, nv(flt), message)
 end
 
 """
@@ -359,7 +363,7 @@ julia> Ripserer.distance_matrix(flt)
 
 ```
 """
-distance_matrix(flt::AbstractFiltration{<:Any, T}) where T = DefaultDist{T}(nv(flt))
+distance_matrix(flt::AbstractFiltration{<:Any,T}) where {T} = DefaultDist{T}(nv(flt))
 
 struct DefaultDist{T} <: AbstractMatrix{T}
     nv::Int

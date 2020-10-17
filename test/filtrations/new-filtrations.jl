@@ -14,7 +14,7 @@ using Ripserer: nv, edges
 # This test is mostly supposed to test that pre-finding apparent pairs with
 # `find_apparent_pairs` first works correctly. On the side, it also tests that rips
 # filtrations that only overload `adjacency_matrix` and `threshold` work fine.
-struct ApparentPairsRips{I, T, R<:Rips{I, T}} <: Ripserer.AbstractRipsFiltration{I, T}
+struct ApparentPairsRips{I,T,R<:Rips{I,T}} <: Ripserer.AbstractRipsFiltration{I,T}
     rips::R
     apparent::Ref{Int}
     normal::Ref{Int}
@@ -32,9 +32,9 @@ Ripserer.threshold(rw::ApparentPairsRips) = Ripserer.threshold(rw.rips)
 # in parallel or on the GPU is an option, however.  See https://arxiv.org/abs/2003.07989
 function Ripserer.find_apparent_pairs(rw::ApparentPairsRips, columns, _)
     S = eltype(columns)
-    C = Ripserer.simplex_type(rw, dim(S)+1)
+    C = Ripserer.simplex_type(rw, dim(S) + 1)
     cols_left = S[]
-    apparent = Tuple{S, C}[]
+    apparent = Tuple{S,C}[]
     for σ in columns
         τ = minimum(Ripserer.coboundary(rw, σ)) # This is broken if coboundary is empty.
         σ′ = maximum(Ripserer.boundary(rw, τ))
@@ -88,17 +88,13 @@ end
 
 # This test checks that apparent pairs can produce correct intervals. On the side, it checks
 # `AbstractCustomFiltration`s.
-struct ApparentPairsCustom <: Ripserer.AbstractCustomFiltration{Int, Int}
+struct ApparentPairsCustom <: Ripserer.AbstractCustomFiltration{Int,Int}
     found::Ref{Bool}
 end
 ApparentPairsCustom() = ApparentPairsCustom(Ref(false))
 
 function Ripserer.simplex_dicts(::ApparentPairsCustom)
-    return [
-        Dict(1 => 0, 2 => 0, 3 => 0),
-        Dict(1 => 1, 2 => 1, 3 => 2),
-        Dict(1 => 3)
-    ]
+    return [Dict(1 => 0, 2 => 0, 3 => 0), Dict(1 => 1, 2 => 1, 3 => 2), Dict(1 => 3)]
 end
 Ripserer.adjacency_matrix(::ApparentPairsCustom) = sparse(Bool[0 1 1; 1 0 1; 1 1 0])
 function Ripserer.find_apparent_pairs(a::ApparentPairsCustom, columns, _)
@@ -111,7 +107,7 @@ end
     @testset "cohomology" begin
         appa = ApparentPairsCustom()
         @test !appa.found[]
-        d0, d1 = ripserer(appa, reps=true)
+        d0, d1 = ripserer(appa; reps=true)
         @test appa.found[]
         @test d0 == [(0, 1), (0, 1), (0, Inf)]
         @test d1 == [(2, 3)]
@@ -132,26 +128,18 @@ end
 end
 
 # The main idea of this test is to test postprocess_diagrams
-struct NoRepsFiltration <: Ripserer.AbstractFiltration{Int, Int} end
+struct NoRepsFiltration <: Ripserer.AbstractFiltration{Int,Int} end
 
-function Ripserer.unsafe_simplex(
-    ::Type{Simplex{0, Int, Int}},
-    ::NoRepsFiltration,
-    (v,),
-    sign,
-)
+function Ripserer.unsafe_simplex(::Type{Simplex{0,Int,Int}}, ::NoRepsFiltration, (v,), sign)
     return Simplex{0}(sign * v, 0)
 end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D, Int, Int}},
-    ::NoRepsFiltration,
-    vertices,
-    sign,
-) where D
+    ::Type{Simplex{D,Int,Int}}, ::NoRepsFiltration, vertices, sign
+) where {D}
     return Simplex{D}(sign * index(vertices), 1)
 end
 Ripserer.nv(::NoRepsFiltration) = 10
-Ripserer.simplex_type(::Type{NoRepsFiltration}, D) = Simplex{D, Int, Int}
+Ripserer.simplex_type(::Type{NoRepsFiltration}, D) = Simplex{D,Int,Int}
 Ripserer.edges(::NoRepsFiltration) = Simplex{1}.(10:-1:1, 1)
 function Ripserer.postprocess_diagram(::NoRepsFiltration, diagram)
     result = PersistenceInterval[]
@@ -160,7 +148,7 @@ function Ripserer.postprocess_diagram(::NoRepsFiltration, diagram)
             push!(result, PersistenceInterval(birth(int) + 1, death(int) + 1))
         end
     end
-    PersistenceDiagram(sort!(result); diagram.meta...)
+    return PersistenceDiagram(sort!(result); diagram.meta...)
 end
 
 @testset "New filtration" begin
@@ -168,7 +156,7 @@ end
     @test d0 == [fill((1.0, 2.0), 4); fill((1.0, Inf), 6)]
     @test d1 == []
 
-    d0, d1 = ripserer(NoRepsFiltration(), reps=true)
+    d0, d1 = ripserer(NoRepsFiltration(); reps=true)
     @test d0 == []
     @test d1 == []
 end

@@ -58,17 +58,17 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   recommended for `:cohomology` because it disables the emergent pairs optimization.
 
 """
-function ripserer(
-    dists::AbstractMatrix;
-    threshold=nothing, sparse=false, kwargs...,
-)
+function ripserer(dists::AbstractMatrix; threshold=nothing, sparse=false, kwargs...)
     filtration = Rips(dists; threshold=threshold, sparse=sparse)
     return ripserer(filtration; kwargs...)
 end
 
 function ripserer(
     points::AbstractVector;
-    metric=Euclidean(1e-12), threshold=nothing, sparse=false, kwargs...
+    metric=Euclidean(1e-12),
+    threshold=nothing,
+    sparse=false,
+    kwargs...,
 )
     filtration = Rips(points; metric=metric, threshold=threshold, sparse=sparse)
     return ripserer(filtration; kwargs...)
@@ -90,7 +90,7 @@ function ripserer(
     result = _ripserer(
         Val(alg), filtration, cutoff, progress, field_type, dim_max, reps, implicit
     )
-    elapsed = round((time_ns() - start_time) / 1e9, digits=3)
+    elapsed = round((time_ns() - start_time) / 1e9; digits=3)
     prog_println(progress, "Done. Time: ", ProgressMeter.durationstring(elapsed))
 
     return result
@@ -157,7 +157,7 @@ function _ripserer(
             for birth_simplex in inf_births
                 push!(
                     diagram.intervals,
-                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim))
+                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim)),
                 )
             end
             push!(result, diagram)
@@ -169,6 +169,6 @@ function _ripserer(
     return result
 end
 
-function _ripserer(::Val{A}, args...) where A
-    throw(ArgumentError("unsupported alg=$A"))
+function _ripserer(::Val{A}, args...) where {A}
+    return throw(ArgumentError("unsupported alg=$A"))
 end

@@ -3,7 +3,7 @@
 
 Index into each arg with `indices`, placing `NaN`s where `indices` are zero.
 """
-function index_data(indices, pts::AbstractVector{<:NTuple{N}}) where N
+function index_data(indices, pts::AbstractVector{<:NTuple{N}}) where {N}
     return map(indices) do i
         i == 0 ? ntuple(_ -> NaN, N) : Float64.(pts[i])
     end
@@ -57,7 +57,7 @@ function plottable(sxs::AbstractVector{<:AbstractSimplex{1}}, args...)
     end
     return index_data(indices, args...), [:seriestype => :path], 1
 end
-function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where D
+function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where {D}
     indices = mapreduce(vcat, vertices.(sxs)) do vs
         idxs = Int[]
         for (u, v, w) in subsets(vs, Val(3))
@@ -96,7 +96,7 @@ end
     },
     args...;
     threshold=Inf,
-    threshold_strict=Inf
+    threshold_strict=Inf,
 )
     sx = apply_threshold(sx, threshold, threshold_strict)
     isnothing(sx) && return ()
@@ -108,7 +108,7 @@ end
     for attr in keys(plotattributes)
         value = plotattributes[attr]
         if value isa Vector
-            n = D < 2 ? D + 2 : 4 * binomial(D+1, 3) + 1
+            n = D < 2 ? D + 2 : 4 * binomial(D + 1, 3) + 1
             plotattributes[attr] = mapreduce(x -> fill(x, n), vcat, value)
         end
     end

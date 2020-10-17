@@ -5,9 +5,18 @@ using StaticArrays
 using Test
 using TupleTools
 
-using Ripserer: _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv,
-    coboundary, boundary, edges, births,
-    chain_element_type, CubicalChainElement
+using Ripserer:
+    _one_hot,
+    _cubemap,
+    _from_cubemap,
+    _to_cubemap,
+    nv,
+    coboundary,
+    boundary,
+    edges,
+    births,
+    chain_element_type,
+    CubicalChainElement
 
 @testset "CubeMap" begin
     @testset "cubemap" begin
@@ -48,16 +57,23 @@ using Ripserer: _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv,
             (CartesianIndex(5, 4),),
             (CartesianIndex(1024, 1072), CartesianIndex(1025, 1072)),
             (
-                CartesianIndex(1024, 1072, 15), CartesianIndex(1025, 1072, 15),
-                CartesianIndex(1024, 1073, 15), CartesianIndex(1025, 1073, 15),
-                CartesianIndex(1024, 1072, 14), CartesianIndex(1025, 1072, 14),
-                CartesianIndex(1024, 1073, 14), CartesianIndex(1025, 1073, 14),
+                CartesianIndex(1024, 1072, 15),
+                CartesianIndex(1025, 1072, 15),
+                CartesianIndex(1024, 1073, 15),
+                CartesianIndex(1025, 1073, 15),
+                CartesianIndex(1024, 1072, 14),
+                CartesianIndex(1025, 1072, 14),
+                CartesianIndex(1024, 1073, 14),
+                CartesianIndex(1025, 1073, 14),
             ),
         )
             @test _from_cubemap(_to_cubemap(vertices), Val(length(vertices))) ==
-                sort(SVector(vertices))
+                  sort(SVector(vertices))
             root = _to_cubemap(vertices)
-            @test begin _from_cubemap(root, Val(length(vertices))); true end
+            @test begin
+                _from_cubemap(root, Val(length(vertices)))
+                true
+            end
         end
 
         @test_throws ArgumentError _from_cubemap(CartesianIndex(2, 2, 1), Val(8))
@@ -67,11 +83,11 @@ end
 @testset "Cube" begin
     @testset "Constructors" begin
         @test Cube{1}([CartesianIndex(1, 1), CartesianIndex(1, 2)], 1) ==
-            Cube{1}(CartesianIndex(1, 2), 1)
+              Cube{1}(CartesianIndex(1, 2), 1)
         @test Cube{1}((CartesianIndex(2, 1), CartesianIndex(1, 1)), 1) ==
-            Cube{1}(CartesianIndex(2, 1), 1)
+              Cube{1}(CartesianIndex(2, 1), 1)
         @test Cube{2}([(1, 1), (1, 2), (2, 2), (2, 1)], 1) ==
-            Cube{2}(CartesianIndex(2, 2), 1)
+              Cube{2}(CartesianIndex(2, 2), 1)
     end
 
     @testset "Randomized tests for AbstractSimplex interface" begin
@@ -86,8 +102,8 @@ end
                 c = Cube{D}(root, d)
 
                 @testset "Type stuff" begin
-                    @test c ≡ Cube{D, T, K}(root, d)
-                    @test typeof(c) ≡ Cube{D, T, K}
+                    @test c ≡ Cube{D,T,K}(root, d)
+                    @test typeof(c) ≡ Cube{D,T,K}
                     D > 0 && @test_throws DomainError Cube{-D}(root, d)
                     @test eltype(c) == CartesianIndex{K}
                 end
@@ -126,7 +142,10 @@ end
                         @test v == verts[i]
                     end
 
-                    @test begin @inferred vertices(c); true end
+                    @test begin
+                        @inferred vertices(c)
+                        true
+                    end
                 end
             end
         end
@@ -136,12 +155,24 @@ end
         @test vertices(Cube{0}(((1, 1),), 1)) == [CartesianIndex(1, 1)]
         @test vertices(Cube{1}(((1, 1), (1, 2)), 1)) == CartesianIndex.([(1, 1), (1, 2)])
         @test vertices(Cube{4}(CartesianIndex(10, 14, 15, 22, 2), 1)) ==
-            CartesianIndex.([
-                (5, 7, 8, 11, 1), (6, 7, 8, 11, 1), (5, 8, 8, 11, 1), (6, 8, 8, 11, 1),
-                (5, 7, 8, 12, 1), (6, 7, 8, 12, 1), (5, 8, 8, 12, 1), (6, 8, 8, 12, 1),
-                (5, 7, 8, 11, 2), (6, 7, 8, 11, 2), (5, 8, 8, 11, 2), (6, 8, 8, 11, 2),
-                (5, 7, 8, 12, 2), (6, 7, 8, 12, 2), (5, 8, 8, 12, 2), (6, 8, 8, 12, 2),
-            ])
+              CartesianIndex.([
+            (5, 7, 8, 11, 1),
+            (6, 7, 8, 11, 1),
+            (5, 8, 8, 11, 1),
+            (6, 8, 8, 11, 1),
+            (5, 7, 8, 12, 1),
+            (6, 7, 8, 12, 1),
+            (5, 8, 8, 12, 1),
+            (6, 8, 8, 12, 1),
+            (5, 7, 8, 11, 2),
+            (6, 7, 8, 11, 2),
+            (5, 8, 8, 11, 2),
+            (6, 8, 8, 11, 2),
+            (5, 7, 8, 12, 2),
+            (6, 7, 8, 12, 2),
+            (5, 8, 8, 12, 2),
+            (6, 8, 8, 12, 2),
+        ])
     end
 end
 
@@ -159,9 +190,9 @@ end
 
 @testset "Coboundary" begin
     @testset "Edges have no coboundary in 1d" begin
-        data = cos.(range(0, 4π, length=1000))
+        data = cos.(range(0, 4π; length=1000))
 
-        cob = Cube{2, Float64, 1}[]
+        cob = Cube{2,Float64,1}[]
         flt = Cubical(data)
         cub = simplex(flt, Val(1), (CartesianIndex(3), CartesianIndex(2)))
         for c in coboundary(flt, cub)
@@ -171,13 +202,15 @@ end
     end
 
     @testset "Coboundary of edges in 2d" begin
-        data = [2 2 2 0 1 1 1 1 1 1 1;
-                2 1 2 0 1 2 2 2 2 2 1;
-                2 1 2 0 1 2 3 3 3 2 1;
-                2 0 2 0 1 2 3 2 3 2 1;
-                2 1 2 0 1 2 3 3 3 2 1;
-                2 1 2 0 1 2 2 2 2 2 1;
-                2 2 2 0 1 1 1 1 1 1 1]
+        data = [
+            2 2 2 0 1 1 1 1 1 1 1
+            2 1 2 0 1 2 2 2 2 2 1
+            2 1 2 0 1 2 3 3 3 2 1
+            2 0 2 0 1 2 3 2 3 2 1
+            2 1 2 0 1 2 3 3 3 2 1
+            2 1 2 0 1 2 2 2 2 2 1
+            2 2 2 0 1 1 1 1 1 1 1
+        ]
         cob = []
         flt = Cubical(data)
         cub = Cube{1}([(3, 2), (2, 2)], 1)
@@ -189,7 +222,7 @@ end
         @test sign(cob[1]) == 1
         @test cob[2] == Cube{2}(((3, 1), (2, 1), (3, 2), (2, 2)), 2)
         @test sign(cob[2]) == 1
-        @test issorted(cob, by=index, rev=true)
+        @test issorted(cob; by=index, rev=true)
 
         cocob = []
         for c in coboundary(flt, cob[1])
@@ -214,24 +247,34 @@ end
                 for c in coboundary(Cubical(data), cube)
                     push!(cob, c)
                 end
-                @test issorted(cob, by=index, rev=true)
+                @test issorted(cob; by=index, rev=true)
                 @test all(c -> issubset(cube, c), cob)
                 @test all(c -> birth(cube) ≤ birth(c), cob)
             end
         end
         @testset "All 2-cubes have the same coboundary" begin
             for cube in [
-                Cube{2}(((1,1,1), (2,1,1), (1,2,1), (2,2,1)), 2.0),
-                Cube{2}(((1,1,1), (2,1,1), (1,1,2), (2,1,2)), 4.0),
-                Cube{2}(((1,1,1), (1,2,1), (1,1,2), (1,2,2)), 3.0),
-                Cube{2}(((2,1,1), (2,2,1), (2,1,2), (2,2,2)), 4.0),
-                Cube{2}(((1,2,1), (2,2,1), (1,2,2), (2,2,2)), 4.0),
-                Cube{2}(((1,1,2), (2,1,2), (1,2,2), (2,2,2)), 4.0),
+                Cube{2}(((1, 1, 1), (2, 1, 1), (1, 2, 1), (2, 2, 1)), 2.0),
+                Cube{2}(((1, 1, 1), (2, 1, 1), (1, 1, 2), (2, 1, 2)), 4.0),
+                Cube{2}(((1, 1, 1), (1, 2, 1), (1, 1, 2), (1, 2, 2)), 3.0),
+                Cube{2}(((2, 1, 1), (2, 2, 1), (2, 1, 2), (2, 2, 2)), 4.0),
+                Cube{2}(((1, 2, 1), (2, 2, 1), (1, 2, 2), (2, 2, 2)), 4.0),
+                Cube{2}(((1, 1, 2), (2, 1, 2), (1, 2, 2), (2, 2, 2)), 4.0),
             ]
                 cofacet = only(coboundary(Cubical(data), cube))
-                @test abs(cofacet) == Cube{3}((
-                    (2,2,2), (1,2,2), (2,1,2), (1,1,2), (2,2,1), (1,2,1), (2,1,1), (1,1,1)
-                ), 4.0)
+                @test abs(cofacet) == Cube{3}(
+                    (
+                        (2, 2, 2),
+                        (1, 2, 2),
+                        (2, 1, 2),
+                        (1, 1, 2),
+                        (2, 2, 1),
+                        (1, 2, 1),
+                        (2, 1, 1),
+                        (1, 1, 1),
+                    ),
+                    4.0,
+                )
             end
         end
     end
@@ -244,7 +287,7 @@ end
             push!(cob, c)
         end
         @test length(cob) == 3
-        @test issorted(cob, by=index, rev=true)
+        @test issorted(cob; by=index, rev=true)
 
         cocob = []
         for c in coboundary(flt, cob[1])
@@ -255,26 +298,31 @@ end
 end
 
 @testset "Boundary" begin
-    data = [1 2;
-            3 4]
-    cube = Cube{2}((
-        CartesianIndex(1, 1),
-        CartesianIndex(2, 1),
-        CartesianIndex(1, 2),
-        CartesianIndex(2, 2),
-    ), 4)
+    data = [
+        1 2
+        3 4
+    ]
+    cube = Cube{2}(
+        (
+            CartesianIndex(1, 1),
+            CartesianIndex(2, 1),
+            CartesianIndex(1, 2),
+            CartesianIndex(2, 2),
+        ),
+        4,
+    )
 
     bnd = []
     for f in boundary(Cubical(data), cube)
         push!(bnd, f)
     end
     @test length(bnd) == 4
-    @test issorted(bnd, by=index)
+    @test issorted(bnd; by=index)
     @test sort(birth.(bnd)) == [2, 3, 4, 4]
 end
 
 @testset "CubicalChainElement" begin
-    for C in (Cube{2, Float64, 3}, Cube{3, Int, 5})
+    for C in (Cube{2,Float64,3}, Cube{3,Int,5})
         @test @inferred(chain_element_type(C, Mod{2})) == CubicalChainElement{C}
         @test_throws ErrorException chain_element_type(C, Mod{251})
         @test_throws ErrorException chain_element_type(C, Mod{257})
@@ -293,24 +341,26 @@ end
     end
     @testset "1D representatives" begin
         n = 1000
-        x = range(0, 1, length=n)
+        x = range(0, 1; length=n)
         curve = sin.(2π * 5x) .* x
 
-        d0, _ = ripserer(Cubical(curve), reps=true)
+        d0, _ = ripserer(Cubical(curve); reps=true)
 
         for int in d0
             birth_sx = birth_simplex(int)
             @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
         end
         @test sort!(only.(birth_simplex.(d0))) ==
-            CartesianIndex.([1, 157, 354, 552, 752, 951])
+              CartesianIndex.([1, 157, 354, 552, 752, 951])
     end
     @testset "2D image" begin
-        data = [0 0 0 0 0;
-                0 2 2 2 0;
-                0 2 1 2 0;
-                0 2 2 2 0;
-                0 0 0 0 0]
+        data = [
+            0 0 0 0 0
+            0 2 2 2 0
+            0 2 1 2 0
+            0 2 2 2 0
+            0 0 0 0 0
+        ]
 
         d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
 
@@ -318,10 +368,9 @@ end
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test vertices(only(representative(d0[1]))) ==
-            SVector(CartesianIndex(3, 3))
+        @test vertices(only(representative(d0[1]))) == SVector(CartesianIndex(3, 3))
         @test sort(vertices.(representative(d0[2]))) ==
-            sort(SVector.(vec(CartesianIndices(data))))
+              sort(SVector.(vec(CartesianIndices(data))))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
@@ -337,10 +386,12 @@ end
         @test d2 == [(0, 1)]
     end
     @testset "Thresholding" begin
-        data = [1 1 1;
-                1 2 1;
-                1 1 1]
-        d0, d1 = ripserer(Cubical(data, threshold=1))
+        data = [
+            1 1 1
+            1 2 1
+            1 1 1
+        ]
+        d0, d1 = ripserer(Cubical(data; threshold=1))
         @test d0 == [(1, Inf)]
         @test d1 == [(1, Inf)]
     end

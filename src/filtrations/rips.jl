@@ -19,7 +19,7 @@ julia> ripserer(MyRips())
 
 ```
 """
-abstract type AbstractRipsFiltration{I<:Signed, T} <: AbstractFiltration{I, T} end
+abstract type AbstractRipsFiltration{I<:Signed,T} <: AbstractFiltration{I,T} end
 
 nv(rips::AbstractRipsFiltration) = size(adjacency_matrix(rips), 1)
 
@@ -28,7 +28,7 @@ function births(rips::AbstractRipsFiltration)
     return view(adj, diagind(adj))
 end
 
-simplex_type(::Type{<:AbstractRipsFiltration{I, T}}, D) where {I, T} = Simplex{D, T, I}
+simplex_type(::Type{<:AbstractRipsFiltration{I,T}}, D) where {I,T} = Simplex{D,T,I}
 
 function edges(rips::AbstractRipsFiltration)
     if issparse(adjacency_matrix(rips))
@@ -40,7 +40,7 @@ end
 
 function _full_edges(rips::AbstractRipsFiltration)
     result = edge_type(rips)[]
-    @inbounds for u in 1:nv(rips), v in u+1:nv(rips)
+    @inbounds for u in 1:nv(rips), v in (u + 1):nv(rips)
         sx = unsafe_simplex(rips, Val(1), (v, u), 1)
         !isnothing(sx) && push!(result, sx)
     end
@@ -64,15 +64,15 @@ function _sparse_edges(rips::AbstractRipsFiltration)
 end
 
 @inline @propagate_inbounds function unsafe_simplex(
-    ::Type{S}, rips::AbstractRipsFiltration{I, T}, vertices, sign
-) where {I, T, S<:Simplex}
+    ::Type{S}, rips::AbstractRipsFiltration{I,T}, vertices, sign
+) where {I,T,S<:Simplex}
     if dim(S) == 0
         return S(I(sign) * vertices[1], births(rips)[vertices[1]])
     else
         adj = adjacency_matrix(rips)
         n = length(vertices)
         diameter = typemin(T)
-        for i in 1:n, j in i+1:n
+        for i in 1:n, j in (i + 1):n
             e = adj[vertices[j], vertices[i]]
             (iszero(e) || e > threshold(rips)) && return nothing
             diameter = ifelse(e > diameter, e, diameter)
@@ -83,12 +83,12 @@ end
 
 @inline @propagate_inbounds function unsafe_cofacet(
     ::Type{S},
-    rips::AbstractRipsFiltration{I, T},
+    rips::AbstractRipsFiltration{I,T},
     simplex,
     cofacet_vertices,
     new_vertex,
     sign,
-) where {I, T, S<:Simplex}
+) where {I,T,S<:Simplex}
     diameter = birth(simplex)
     adj = adjacency_matrix(rips)
     for v in cofacet_vertices
@@ -111,7 +111,7 @@ end
     _,
     sign,
     new_edges,
-) where {I, S<:Simplex}
+) where {I,S<:Simplex}
     diameter = birth(simplex)
     for e in new_edges
         e > threshold(rips) && return nothing
@@ -122,7 +122,7 @@ end
 
 function coboundary(
     rips::AbstractRipsFiltration, sx::AbstractSimplex, ::Val{A}=Val(true)
-) where A
+) where {A}
     if adjacency_matrix(rips) isa SparseMatrixCSC
         return SparseCoboundary{A}(rips, sx)
     else
@@ -141,15 +141,11 @@ function _check_distance_matrix(dist::SparseMatrixCSC)
         for j in nzrange(dist, i)
             i == rows[j] && continue
             edge_birth = vals[j]
-            iszero(edge_birth) && throw(ArgumentError(
-                "zero edges in input matrix"
-            ))
-            edge_birth < vertex_birth && throw(ArgumentError(
-                "edges with birth value lower than vertex births in input matrix"
-            ))
-            edge_birth ≠ dist[i, rows[j]] && throw(ArgumentError(
-                "input matrix not symmetric"
-            ))
+            iszero(edge_birth) && throw(ArgumentError("zero edges in input matrix"))
+            edge_birth < vertex_birth &&
+                throw(ArgumentError("edges with birth value lower than vertex births in input matrix"))
+            edge_birth ≠ dist[i, rows[j]] &&
+                throw(ArgumentError("input matrix not symmetric"))
         end
     end
 end
@@ -157,18 +153,13 @@ end
 function _check_distance_matrix(dist::AbstractMatrix)
     n = LinearAlgebra.checksquare(dist)
     for i in 1:n
-        for j in i+1:n
+        for j in (i + 1):n
             vertex_birth = max(dist[j, j], dist[i, i])
             edge_birth = dist[j, i]
-            iszero(edge_birth) && throw(ArgumentError(
-                "zero edges in input matrix"
-            ))
-            edge_birth < vertex_birth && throw(ArgumentError(
-                "edges with birth value lower than vertex births in input matrix"
-            ))
-            edge_birth ≠ dist[i, j] && throw(ArgumentError(
-                "input matrix not symmetric"
-            ))
+            iszero(edge_birth) && throw(ArgumentError("zero edges in input matrix"))
+            edge_birth < vertex_birth &&
+                throw(ArgumentError("edges with birth value lower than vertex births in input matrix"))
+            edge_birth ≠ dist[i, j] && throw(ArgumentError("input matrix not symmetric"))
         end
     end
 end
@@ -215,14 +206,12 @@ julia> ripserer(Rips(data, metric=Cityblock()))[2]
 
 ```
 """
-struct Rips{I, T, A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I, T}
+struct Rips{I,T,A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I,T}
     adj::A
     threshold::T
 end
 
-function Rips{I}(
-    dists::AbstractMatrix{T}; threshold=nothing, sparse=false,
-) where {I, T}
+function Rips{I}(dists::AbstractMatrix{T}; threshold=nothing, sparse=false) where {I,T}
     _check_distance_matrix(dists)
     thresh = isnothing(threshold) ? radius(dists) : T(threshold)
     if sparse
@@ -231,14 +220,13 @@ function Rips{I}(
         adj = copy(dists)
     end
     if issparse(adj)
-        adj isa SparseMatrixCSC || throw(ArgumentError(
-            "only SparseMatrixCSC sparse matrices supported"
-        ))
+        adj isa SparseMatrixCSC ||
+            throw(ArgumentError("only SparseMatrixCSC sparse matrices supported"))
         SparseArrays.fkeep!(adj, (_, _, v) -> v ≤ thresh)
     end
-    return Rips{I, T, typeof(adj)}(adj, thresh)
+    return Rips{I,T,typeof(adj)}(adj, thresh)
 end
-function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where I
+function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where {I}
     if !allunique(points)
         @warn "points not unique"
         points = unique(points)
@@ -249,8 +237,8 @@ function Rips(dist_or_points; kwargs...)
     return Rips{Int}(dist_or_points; kwargs...)
 end
 
-function Base.show(io::IO, rips::Rips{I, T}) where {I, T}
-    print(io, "Rips{$I, $T}(nv=$(nv(rips)), sparse=$(issparse(rips.adj)))")
+function Base.show(io::IO, rips::Rips{I,T}) where {I,T}
+    return print(io, "Rips{$I, $T}(nv=$(nv(rips)), sparse=$(issparse(rips.adj)))")
 end
 
 threshold(rips::Rips) = rips.threshold

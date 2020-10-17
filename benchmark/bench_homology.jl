@@ -20,11 +20,10 @@ for b in benchmarks
     if isnothing(b.threshold)
         filtration = b.filtration(data)
     else
-        filtration = b.filtration(data, threshold=b.threshold)
+        filtration = b.filtration(data; threshold=b.threshold)
     end
-    suite[name] = @benchmarkable ripserer(
-        $filtration; dim_max=$(b.dim_max), alg=:involuted
-    ) samples=1
+    suite[name] = @benchmarkable ripserer($filtration; dim_max=$(b.dim_max), alg=:involuted) samples =
+        1
 end
 
 end

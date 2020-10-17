@@ -21,8 +21,8 @@ nothing # hide
 # pretend we were only given 200 images to work with. We have chosen the 200 images
 # randomly.
 
-uninfected = shuffle!(load.(readdir(joinpath(data_dir, "uninfected"), join=true)))
-infected = shuffle!(load.(readdir(joinpath(data_dir, "infected"), join=true)))
+uninfected = shuffle!(load.(readdir(joinpath(data_dir, "uninfected"); join=true)))
+infected = shuffle!(load.(readdir(joinpath(data_dir, "infected"); join=true)))
 
 images = [uninfected; infected]
 classes = [fill(false, length(uninfected)); fill(true, length(infected))]
@@ -30,10 +30,12 @@ nothing # hide
 
 # Let's see what the images look like.
 
-plot(plot(uninfected[1], title="Healthy"),
-     plot(uninfected[2], title="Healthy"),
-     plot(infected[1], title="Infected"),
-     plot(infected[2], title="Infected"))
+plot(
+    plot(uninfected[1]; title="Healthy"),
+    plot(uninfected[2]; title="Healthy"),
+    plot(infected[1]; title="Infected"),
+    plot(infected[2]; title="Infected"),
+)
 
 # To make the images work with Ripserer, we convert them to floating gray scale values. We
 # do not have to resize the images. Maybe some additional preprocessing, such as
@@ -51,11 +53,11 @@ diagrams = @showprogress [ripserer(Cubical(i)) for i in inputs]
 
 # This is what some of the diagrams look like.
 
-plot(plot(images[1], title="Healthy"), plot(diagrams[1]))
+plot(plot(images[1]; title="Healthy"), plot(diagrams[1]))
 
 #
 
-plot(plot(images[end], title="Infected"), plot(diagrams[end]))
+plot(plot(images[end]; title="Infected"), plot(diagrams[end]))
 
 # Notice that there is a lot more going on in the middle of the infected diagram, especially
 # in ``H_0``.
@@ -82,28 +84,25 @@ nothing; # hide
 # in the ``[0,1]×[0,1]`` square and the default sigma of 1 would be too wide. We will use
 # the default image size, which is 5×5.
 
-image_0 = PersistenceImage(dim_0, sigma=0.1)
+image_0 = PersistenceImage(dim_0; sigma=0.1)
 
 #
 
-image_1 = PersistenceImage(dim_1, sigma=0.1)
+image_1 = PersistenceImage(dim_1; sigma=0.1)
 
 # Let's see how some of the images look like.
 
-plot(plot(dim_0[end], persistence=true),
-     heatmap(image_0(dim_0[end]), aspect_ratio=1))
+plot(plot(dim_0[end]; persistence=true), heatmap(image_0(dim_0[end]); aspect_ratio=1))
 
 #
 
-plot(plot(dim_1[end], persistence=true),
-     heatmap(image_1(dim_1[end]), aspect_ratio=1))
+plot(plot(dim_1[end]; persistence=true), heatmap(image_1(dim_1[end]); aspect_ratio=1))
 
 # Next, we convert all diagrams to images and use `vec` to turn them into flat vectors. We
 # then concatenate the zero and one-dimensional images. The result is a vector of length 50
 # for each diagram.
 
-persims = [[vec(image_0(dim_0[i])); vec(image_1(dim_1[i]))]
-           for i in 1:length(diagrams)]
+persims = [[vec(image_0(dim_0[i])); vec(image_1(dim_1[i]))] for i in 1:length(diagrams)]
 
 # Now it's time to fit our model. We will use
 # [GLMNet.jl](https://github.com/JuliaStats/GLMNet.jl) to fit a regularized linear model.
@@ -147,16 +146,15 @@ accuracy = count(predictions .== test_y) / length(test_y)
 
 missed = findall(predictions .!= test_y)
 label = ("Healthy", "Infected")
-plts = [plot(images[i],
-             title="$(label[test_y[i] + 1])",
-             ticks=nothing)
-        for i in missed]
+plts = [plot(images[i]; title="$(label[test_y[i] + 1])", ticks=nothing) for i in missed]
 plot(plts...)
 
 # Finally, let's look at which parts of the persistence images `glmnet` considered important.
 
-plot(heatmap(reshape(path.betas[1:25], (5,5)), title="H₀ coefficients"),
-     heatmap(reshape(path.betas[26:50], (5,5)), title="H₁ coefficients"))
+plot(
+    heatmap(reshape(path.betas[1:25], (5, 5)); title="H₀ coefficients"),
+    heatmap(reshape(path.betas[26:50], (5, 5)); title="H₁ coefficients"),
+)
 
 # These correspond to the area we identified at the beginning. Also note that in this case,
 # the classifier does not care about ``H_1`` at all.
