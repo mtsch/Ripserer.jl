@@ -7,27 +7,27 @@ using Ripserer
 using Images
 using Plots
 gr() # hide
-using Random
-Random.seed!(1337)
+using Random # hide
+Random.seed!(1337) # hide
 nothing # hide
 
 # We will use two data sets in this example. The first will be a curve:
 
 n = 1000
-x = range(0, 1, length=n)
+x = range(0, 1; length=n)
 curve = sin.(2π * 5x) .* x
 
-curve_plot = plot(curve, legend=false, title="Curve")
+curve_plot = plot(curve; legend=false, title="Curve")
 
 # The other will be [the Event Horizon Telescope picture of a black
 # hole](https://en.wikipedia.org/wiki/File:Black_hole_-_Messier_87_crop_max_res.jpg). We
 # will use a small, 240×240 pixel version of the image. Ripserer should have no problems
 # with processing larger images, but this will work well enough for this tutorial.
 
-blackhole_image = load(
-    joinpath(@__DIR__, "../assets/data/240px-Black_hole_-_Messier_87_crop_max_res.jpg")
-)
-blackhole_plot = plot(blackhole_image, title="Black Hole")
+blackhole_image = load(joinpath(
+    @__DIR__, "../assets/data/240px-Black_hole_-_Messier_87_crop_max_res.jpg"
+))
+blackhole_plot = plot(blackhole_image; title="Black Hole")
 
 # To use the image with Ripserer, we have to convert it to grayscale.
 
@@ -48,7 +48,7 @@ plot(curve_plot, plot(result))
 # To see which minimum each interval corresponds to, we compute representatives by setting
 # `reps=true`.
 
-result, _ = ripserer(Cubical(curve), reps=true)
+result, _ = ripserer(Cubical(curve); reps=true)
 
 # The infinite interval's representative will include the whole function. To plot a
 # representative, simply pass the interval along with the data to `plot`. An alternative
@@ -56,13 +56,16 @@ result, _ = ripserer(Cubical(curve), reps=true)
 # plot that in the same way. Let's use both ways in the following example.
 
 infinite_interval = only(filter(!isfinite, result))
-plt = plot(representative(infinite_interval), curve,
-           legend=false,
-           title="Representatives",
-           seriestype=:path)
+plt = plot(
+    representative(infinite_interval),
+    curve;
+    legend=false,
+    title="Representatives",
+    seriestype=:path,
+)
 
 for interval in filter(isfinite, result)
-    plot!(plt, interval, curve, seriestype=:path)
+    plot!(plt, interval, curve; seriestype=:path)
 end
 
 # To get the locations of the minima, extract the critical simplices from intervals. Since
@@ -74,9 +77,8 @@ end
 min_indices = [only(birth_simplex(int)) for int in result]
 min_x = eachindex(curve)[min_indices]
 
-scatter!(plt, min_x, curve[min_x], color=1:6, markershape=:star)
-plot(plt, plot(result, markercolor=1:6, markeralpha=1))
-
+scatter!(plt, min_x, curve[min_x]; color=1:6, markershape=:star)
+plot(plt, plot(result; markercolor=1:6, markeralpha=1))
 
 # Note that each interval's birth is equal to the value of the corresponding local minimum
 # and its death is equal to the higher of the two adjacent maxima. An intuitive way of
@@ -94,15 +96,15 @@ plot(noisy_curve)
 # the diagram in birth, persistence coordinates, which will make the level of noise easier
 # to see.
 
-noisy_result, _ = ripserer(Cubical(noisy_curve), reps=true)
-plot(noisy_result, persistence=true)
+noisy_result, _ = ripserer(Cubical(noisy_curve); reps=true)
+plot(noisy_result; persistence=true)
 
 # We can see a lot of noise in the diagram, but notice how all of it is below 1, which is
 # exactly the amount we added. We can filter this out by supplying the `cutoff` argument to
 # `ripserer`. This will ignore all intervals below this cutoff.
 
-filtered_result, _ = ripserer(Cubical(noisy_curve), reps=true, cutoff=1)
-plot(filtered_result, persistence=true)
+filtered_result, _ = ripserer(Cubical(noisy_curve); reps=true, cutoff=1)
+plot(filtered_result; persistence=true)
 
 # We could achieve the same result by simply filtering the resulting diagram.
 
@@ -116,20 +118,25 @@ filter(int -> persistence(int) > 1, noisy_result) == filtered_result
 # Now we can repeat what we did earlier.
 
 infinite_interval = only(filter(!isfinite, filtered_result))
-plt = plot(representative(infinite_interval), noisy_curve,
-           legend=false,
-           title="Representatives",
-           seriestype=:path)
+plt = plot(
+    representative(infinite_interval),
+    noisy_curve;
+    legend=false,
+    title="Representatives",
+    seriestype=:path,
+)
 
-for interval in filter(isfinite, filtered_result)
-    plot!(plt, interval, noisy_curve, seriestype=:path)
+for interval in sort(filter(isfinite, filtered_result); by=birth)
+    plot!(plt, interval, noisy_curve; seriestype=:path)
 end
 
 min_indices = [first(birth_simplex(int)) for int in filtered_result]
 min_x = eachindex(curve)[min_indices]
 
-scatter!(plt, min_x, noisy_curve[min_x], color=eachindex(filtered_result), markershape=:star)
-plot(plt, plot(filtered_result, markercolor=eachindex(filtered_result), markeralpha=1))
+scatter!(
+    plt, min_x, noisy_curve[min_x]; color=eachindex(filtered_result), markershape=:star
+)
+plot(plt, plot(filtered_result; markercolor=eachindex(filtered_result), markeralpha=1))
 
 # The result we got is very similar even though the data set was very noisy.
 
@@ -147,7 +154,7 @@ plot(blackhole_plot, plot(result))
 # local geometry of the image, so we are not interested in them right now. To filter them
 # out, we set a cutoff.
 
-result = ripserer(Cubical(-blackhole), cutoff=0.1)
+result = ripserer(Cubical(-blackhole); cutoff=0.1)
 plot(blackhole_plot, plot(result))
 
 # Like earlier, we can show the local extrema in the image. We will show a different way to
@@ -155,12 +162,12 @@ plot(blackhole_plot, plot(result))
 # representative with a diameter equal to or lower than `threshold`. If we needed a strict
 # `<`, we could use `threshold_strict`.
 
-result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true)
-plt = plot(blackhole_image, title="Black Hole")
+result = ripserer(Cubical(-blackhole); cutoff=0.1, reps=true)
+plt = plot(blackhole_image; title="Black Hole")
 for interval in result[1]
-    plot!(plt, interval, blackhole, threshold=birth(interval))
+    plot!(plt, interval, blackhole; threshold=birth(interval))
 end
-plot(plt, plot(result[1], markercolor=2:3, markeralpha=1))
+plot(plt, plot(result[1]; markercolor=2:3, markeralpha=1))
 
 # Some maxima have multiple values because more than one pixel in the image has the same
 # value. Using `birth_simplex` instead of plotting the filtered representative would only
@@ -169,8 +176,8 @@ plot(plt, plot(result[1], markercolor=2:3, markeralpha=1))
 # Unlike in the previous example, we now also have access to ``H_1``, which corresponds to
 # the cycles in the image. Let's try to plot the representative of ``H_1``.
 
-plt = plot(blackhole_image, title="Black Hole")
-plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
+plt = plot(blackhole_image; title="Black Hole")
+plot!(plt, only(result[2]), blackhole; label="H₁ cocycle", color=1)
 
 # Notice that the result is not a cycle, but rather a collection of pixels that
 # would destroy the cycle if removed. The reason is that Ripserer computes persistent
@@ -185,7 +192,7 @@ plot!(plt, only(result[2]), blackhole, label="H₁ cocycle", color=1)
 #     Ripserer currently can't compute infinite intervals in dimensions
 #     higher than zero with persistent homology.
 
-result = ripserer(Cubical(-blackhole), cutoff=0.1, reps=true, alg=:homology)
-plot!(plt, only(result[2]), blackhole, label="H₁ cycle", color=3)
+result = ripserer(Cubical(-blackhole); cutoff=0.1, reps=true, alg=:homology)
+plot!(plt, only(result[2]), blackhole; label="H₁ cycle", color=3)
 
 # We have successfully found the hole in a black hole.
