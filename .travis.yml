@@ -1,6 +1,9 @@
 language: julia
 
 jobs:
+  allow_failures:
+  - julia: nightly
+
   include:
     - os: linux
       julia: 1

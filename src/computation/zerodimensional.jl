@@ -81,7 +81,7 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
     if death_time - birth_time > cutoff
-        birth_simplex::simplex_type(filtration, 0) = simplex(
+        birth_simplex::simplex_type(filtration, 0) = unsafe_simplex(
             filtration, Val(0), (birth_vertex,)
         )
         if reps
