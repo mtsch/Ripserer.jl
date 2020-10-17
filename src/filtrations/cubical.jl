@@ -55,6 +55,9 @@ function _to_cubemap(vertices::NTuple{N}) where N
     return CartesianIndex{K}(result)
 end
 
+function _is_valid(vertices::Tuple{})
+    return true
+end
 function _is_valid(vertices::NTuple{N}) where N
     floor(log2(N)) == log2(N) || return false
     allunique(vertices) || return false
