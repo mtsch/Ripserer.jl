@@ -1,7 +1,7 @@
 using Ripserer
 using Aqua
 
-Aqua.test_ambiguities([Ripserer, Base]; exclude=[convert, all])
+Aqua.test_ambiguities([Ripserer, Base]; exclude=[convert, all, in])
 Aqua.test_unbound_args(Ripserer)
 Aqua.test_undefined_exports(Ripserer)
 Aqua.test_project_extras(Ripserer)

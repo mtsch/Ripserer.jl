@@ -1,3 +1,6 @@
+import MLJModelInterface
+const MMI = MLJModelInterface
+
 abstract type RipsererModel <: MMI.Unsupervised end
 
 PointLike = AbstractVector{Tuple{Vararg{MMI.Continuous}}}
@@ -71,6 +74,7 @@ MMI.@mlj_model mutable struct CubicalPersistentHomology <: RipsererModel
     modulus::Int = 2::(is_prime(_))
     threshold::Union{Nothing, Float64} = nothing
     cutoff::Float64 = 0::(_ ≥ 0)
+    inverse::Bool = false
 end
 
 function _filtration(model::CubicalPersistentHomology, data)
