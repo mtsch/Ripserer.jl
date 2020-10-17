@@ -15,30 +15,27 @@ Idea: apply recipe and check the number of series on plots.
 Not a perfect way to test, but at least it makes sure all points are plotted and checks that
 there are no errors.
 """
-series(args...; kwargs...) =
-    apply_recipe(Dict{Symbol, Any}(kwargs), args...)
+series(args...; kwargs...) = apply_recipe(Dict{Symbol,Any}(kwargs), args...)
 
 @testset "simplex plots" begin
     @testset "plottable" begin
         @test isequal(
-            plottable(Simplex{0}(3, 1), 1:10),
-            ([3],
-             [:seriestype => :scatter], 0),
+            plottable(Simplex{0}(3, 1), 1:10), ([3], [:seriestype => :scatter], 0)
         )
         @test isequal(
-            plottable(Simplex{1}(1, 1),  1:10),
-            ([2, 1, NaN],
-             [:seriestype => :path], 1),
+            plottable(Simplex{1}(1, 1), 1:10), ([2, 1, NaN], [:seriestype => :path], 1)
         )
         @test isequal(
             plottable(Simplex{2}(3, 1), 1:10),
-            ([4, 3, 1, 4, NaN],
-             [:seriestype => :path], 2),
+            ([4, 3, 1, 4, NaN], [:seriestype => :path], 2),
         )
         @test isequal(
             plottable(Simplex{3}(1, 1), 1:10),
-            ([4, 3, 2, 4, 4, 3, 1, 4, 4, 2, 1, 4, 3, 2, 1, 3, NaN],
-             [:seriestype => :path], 3),
+            (
+                [4, 3, 2, 4, 4, 3, 1, 4, 4, 2, 1, 4, 3, 2, 1, 3, NaN],
+                [:seriestype => :path],
+                3,
+            ),
         )
     end
     @testset "plot" begin
@@ -50,12 +47,16 @@ series(args...; kwargs...) =
             @test length(series(sx, data)) == 1
             @test length(series([sx], data)) == 1
             @test length(series([sx], data)) == 1
-            @test length(series(PersistenceInterval(
-                1.0, 1.0;
-                birth_simplex=sx,
-                death_simplex=fsx,
-                representative=[ChainElement{typeof(sx), typeof(1//1)}(sx, 1//1)],
-            ), data)) == 1
+            @test length(series(
+                PersistenceInterval(
+                    1.0,
+                    1.0;
+                    birth_simplex=sx,
+                    death_simplex=fsx,
+                    representative=[ChainElement{typeof(sx),typeof(1//1)}(sx, 1//1)],
+                ),
+                data,
+            )) == 1
             @test_throws ErrorException series(PersistenceInterval(1.0, 1.0), data)
         end
     end
