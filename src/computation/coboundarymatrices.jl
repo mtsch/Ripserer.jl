@@ -349,9 +349,7 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ###
     ### Set up output.
     ###
-    intervals = interval_type(
-        matrix.filtration, Val(dim(matrix)), Val(reps), field_type(matrix)
-    )[]
+    intervals = PersistenceInterval[]
 
     ###
     ### Apparent pair stuff.

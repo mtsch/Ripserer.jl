@@ -112,7 +112,7 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where {
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
 
-    intervals = interval_type(filtration, Val(0), Val(reps), F)[]
+    intervals = PersistenceInterval[]
 
     to_skip = simplex_type(filtration, 1)[]
     to_reduce = simplex_type(filtration, 1)[]

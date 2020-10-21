@@ -1,3 +1,7 @@
+# v0.15.4
+
+* Use `PersistenceDiagrams` v0.8.
+
 # v0.15.3
 
 * Fix type instability in zeroth interval generation.
