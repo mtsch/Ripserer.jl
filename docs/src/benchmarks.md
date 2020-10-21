@@ -81,10 +81,10 @@ footprint and increase performance.
 |dataset       |size   |dim|Ripserer  |Cubical Ripser|ratio|Ripserer heap|Cubical Ripser heap|
 |:-------------|:------|:--|:---------|:-------------|:----|:------------|:------------------|
 |`lena512`     |262144 |1  |787 ms    |299 ms        |2.631|145.0 MiB    |49.3 MiB           |
-|`bonsai128`   |2097152|2  |31.151 s  |14.733 s      |2.114|514.4 MiB    |186.7 MiB          |
+|`lena1999x999`|1997001|1  |2.87 s    |2.009 s       |1.429|514.4 MiB    |186.7 MiB          |
 |`bonsai64`    |262144 |2  |2.875 s   |2.996 s       |0.96 |280.6 MiB    |1.3 GiB            |
+|`bonsai128`   |2097152|2  |31.151 s  |14.733 s      |2.114|1.5 GiB      |1.9 GiB            |
 |`head128`     |2097152|2  |24.102 s  |12.434 s      |1.938|1.5 GiB      |1.9 GiB            |
-|`lena1999x999`|1997001|1  |2.87 s    |2.009 s       |1.429|1.5 GiB      |1.9 GiB            |
 
 ## Comparison with Eirene
 
