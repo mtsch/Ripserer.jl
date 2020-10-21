@@ -90,3 +90,11 @@ for more information.
 If you used this software in a cool project, or if you have any comments, questions, or
 suggestions, feel free to contact me at
 [matijacufar@gmail.com](mailto:matijacufar@gmail.com).
+
+## Citing
+
+If you used Ripserer in your work, consider citing the [JOSS
+paper](https://joss.theoj.org/papers/10.21105/joss.02614).
+
+A bibtex entry is provided in
+[CITATION.bib](https://github.com/mtsch/Ripserer.jl/blob/master/CITATION.bib).
