@@ -47,6 +47,7 @@ export Mod,
     Cubical,
     Custom,
     Alpha,
+    EdgeCollapsedRips,
     ripserer,
     reconstruct_cycle
 
@@ -67,6 +68,7 @@ include("filtrations/rips.jl")
 include("filtrations/cubical.jl")
 include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
+include("filtrations/edgecollapse.jl")
 
 include("cycles.jl")
 
