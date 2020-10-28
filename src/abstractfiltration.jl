@@ -298,28 +298,6 @@ Should return a tuple of:
 """
 find_apparent_pairs(::AbstractFiltration, columns, _) = columns, ()
 
-# Vals everywhere so compiler computes this at compile time.
-@inline function interval_type(
-    flt::AbstractFiltration, ::Val{dim}, ::Val{reps}, ::Type{F}
-) where {dim,reps,F}
-    if reps
-        return PersistenceInterval{
-            @NamedTuple begin
-                birth_simplex::simplex_type(flt, dim)
-                death_simplex::Union{simplex_type(flt, dim + 1),Nothing}
-                representative::Vector{chain_element_type(simplex_type(flt, dim), F)}
-            end
-        }
-    else
-        return PersistenceInterval{
-            @NamedTuple begin
-                birth_simplex::simplex_type(flt, dim)
-                death_simplex::Union{simplex_type(flt, dim + 1),Nothing}
-            end
-        }
-    end
-end
-
 function index_overflow_check(
     flt::AbstractFiltration,
     ::Type{F},
