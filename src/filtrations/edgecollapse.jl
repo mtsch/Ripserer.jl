@@ -29,7 +29,8 @@ function _get_adjacent_edges!(edgeset, graph::AbstractGraph, edge, removed=LazyF
     for u in (src(edge), dst(edge))
         for v in neighbors(graph, u)
             if !removed[v, u]
-                push!(edgeset, Edge(TupleTools.sort((u, v))...))
+                #push!(edgeset, Edge(TupleTools.sort((u, v))...))
+                edgeset[u,v] = edgeset[v,u] = true
             end
         end
     end
@@ -73,17 +74,22 @@ function _remove_edge!(removed, edge)
     removed[s, d] = removed[d, s] = true
 end
 
+function _in(edgeset, edge::Edge)
+    return edgeset[src(edge), dst(edge)]
+end
+
 function _back_pass!(
     buffer, removed, core_edges, neighbor_edges, graph, parent, edges, i, time
 )
-    empty!(neighbor_edges)
-    _get_adjacent_edges!(neighbor_edges, graph, parent)
+    neighbor_edges .= false
     removed .= false
+
+    _get_adjacent_edges!(neighbor_edges, graph, parent)
     # Some edges that were not dominated before may be dominated now.
     for j in (i - 1):-1:1
         edge, _ = edges[j]
         if iszero(core_edges[src(edge), dst(edge)])
-            if edge ∈ neighbor_edges && !_is_dominated(buffer, graph, edge, removed)
+            if _in(neighbor_edges, edge) && !_is_dominated(buffer, graph, edge, removed)
                 _add_core_edge!(core_edges, edge, time)
                 _get_adjacent_edges!(neighbor_edges, graph, edge, removed)
             else
@@ -103,7 +109,7 @@ function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
     buffer = Int[]
     removed = fill(false, nv(filtration), nv(filtration))
     core_edges = zeros(T, nv(filtration), nv(filtration))
-    neighbor_edges = Set{Edge{Int}}()
+    neighbor_edges = fill(false, nv(filtration), nv(filtration))
     graph = Graph(nv(filtration))
     # Add self loops so i ∈ neighbors(graph, i)
     for i in 1:nv(filtration)
