@@ -120,18 +120,18 @@ function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
     if progress
         progbar = Progress(length(filtration_edges), desc="Collapsing edges...")
     end
+    need_backpass = false
     for (i, (edge, curr_time)) in enumerate(filtration_edges)
         add_edge!(graph, edge)
-        was_dominated = false
         if !_is_dominated(buffer, graph, edge)
             _add_core_edge!(core_edges, edge, curr_time)
-            was_dominated = true
+            need_backpass = true
         end
         # This part implements the approximate computation mentioned in reference.
         # We need to look at the next time for step, because we want the error to be smaller
         # than eps.
         step = filtration_edges[min(i + 1, end)][2] - prev_time
-        if (iszero(eps) && was_dominated) || step > eps
+        if (iszero(eps) && need_backpass) || (!iszero(eps) && step > eps && need_backpass)
             _back_pass!(
                 buffer,
                 removed,
@@ -144,6 +144,7 @@ function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
                 curr_time,
             )
             prev_time = curr_time
+            need_backpass = false
         end
         progress && next!(progbar)
     end
@@ -199,7 +200,7 @@ julia> collapsed = EdgeCollapsedRips(data) # or EdgeCollapsedRips(rips)
 EdgeCollapsedRips{Int64, Float64}(nv=100)
 
 julia> length(Ripserer.edges(collapsed))
-1998
+1419
 
 julia> ripserer(rips) == ripserer(collapsed)
 true
