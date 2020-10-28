@@ -1,6 +1,10 @@
-function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge)
-    nu = neighbors(graph, src(edge))
-    nv = neighbors(graph, dst(edge))
+struct LazyFalses end
+Base.getindex(lf::LazyFalses, i, j) = false
+
+function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge, removed=LazyFalses())
+    s, d = src(edge), dst(edge)
+    nu = neighbors(graph, s)
+    nv = neighbors(graph, d)
     empty!(buffer)
     # Sorted version of intersect
     i, j = 1, 1
@@ -8,7 +12,9 @@ function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge)
         u = nu[i]
         v = nv[j]
         if u == v
-            push!(buffer, u)
+            if !removed[u, s] && !removed[u, d]
+                push!(buffer, u)
+            end
             i += 1; j += 1
         elseif u < v
             i += 1
@@ -19,19 +25,21 @@ function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge)
     return buffer
 end
 
-function _get_adjacent_edges!(edgeset, graph::AbstractGraph, edge)
+function _get_adjacent_edges!(edgeset, graph::AbstractGraph, edge, removed=LazyFalses())
     for u in (src(edge), dst(edge))
         for v in neighbors(graph, u)
-            push!(edgeset, Edge(TupleTools.sort((u, v))...))
+            if !removed[v, u]
+                push!(edgeset, Edge(TupleTools.sort((u, v))...))
+            end
         end
     end
     return edgeset
 end
 
-function _is_dominated(buffer, graph::AbstractGraph, edge)
+function _is_dominated(buffer, graph::AbstractGraph, edge, removed=LazyFalses())
     # N[e] ⊆ N[v] for some v ∉ edge
     s, d = src(edge), dst(edge)
-    ne = _get_edge_neighbors!(buffer, graph, edge)
+    ne = _get_edge_neighbors!(buffer, graph, edge, removed)
     for w in ne
         (w == s || w == d) && continue
 
@@ -41,7 +49,9 @@ function _is_dominated(buffer, graph::AbstractGraph, edge)
         while i ≤ length(ne) && j ≤ length(nw)
             u = ne[i]
             v = nw[j]
-            if u < v
+            if removed[v, w]
+
+            elseif u < v
                 break
             elseif u == v
                 i += 1
@@ -58,26 +68,32 @@ function _add_core_edge!(core_edges, edge, val)
     core_edges[s, d] = core_edges[d, s] = val
 end
 
-function _back_pass!(buffer, core_edges, neighbor_edges, graph, parent, edges, i, time)
+function _remove_edge!(removed, edge)
+    s, d = src(edge), dst(edge)
+    removed[s, d] = removed[d, s] = true
+end
+
+function _back_pass!(
+    buffer, removed, core_edges, neighbor_edges, graph, parent, edges, i, time
+)
     empty!(neighbor_edges)
     _get_adjacent_edges!(neighbor_edges, graph, parent)
-    graph′ = copy(graph)
+    removed .= false
     # Some edges that were not dominated before may be dominated now.
     for j in (i - 1):-1:1
         edge, _ = edges[j]
         if iszero(core_edges[src(edge), dst(edge)])
-            if edge ∈ neighbor_edges && !_is_dominated(buffer, graph′, edge)
+            if edge ∈ neighbor_edges && !_is_dominated(buffer, graph, edge, removed)
                 _add_core_edge!(core_edges, edge, time)
-                _get_adjacent_edges!(neighbor_edges, graph′, edge)
+                _get_adjacent_edges!(neighbor_edges, graph, edge, removed)
             else
-                rem_edge!(graph′, edge)
+                _remove_edge!(removed, edge)
             end
         end
     end
 end
 
 function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
-    #eps ≠ 0 && error("eps not implemented")
     filtration_edges = Tuple{Edge{Int}, T}[]
     for e in sort!(edges(filtration))
         v, u = vertices(e)
@@ -85,6 +101,7 @@ function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
     end
 
     buffer = Int[]
+    removed = fill(false, nv(filtration), nv(filtration))
     core_edges = zeros(T, nv(filtration), nv(filtration))
     neighbor_edges = Set{Edge{Int}}()
     graph = Graph(nv(filtration))
@@ -111,6 +128,7 @@ function _core_graph(filtration::Rips{<:Any, T}; eps=0, progress=false) where T
         if (iszero(eps) && was_dominated) || step > eps
             _back_pass!(
                 buffer,
+                removed,
                 core_edges,
                 neighbor_edges,
                 graph,
@@ -134,9 +152,9 @@ computation time and does not change the result. The speedup is especially appar
 datasets that have a boundary, and with high-dimensional persistent homology computation.
 
 The drawback is that doing the collapses themselves can be time-consuming. The construction
-does not require a lot of memory (``\mathcal{O}(n^2)`` for ``n`` vertices). This might still
-be a good choice for large inputs if you are willing to wait but don't have enough memory
-to compute persistent homology with `Rips`.
+does not require a lot of memory (``\\mathcal{O}(n^2)`` for ``n`` vertices). This might
+still be a good choice for large inputs if you are willing to wait but don't have enough
+memory to compute persistent homology with `Rips`.
 
 Setting the `eps` keyword argument approximates the collapses instead. For small `eps`, the
 bottleneck distance between the exact and approximate diagrams is guaranteed to be at most
@@ -175,19 +193,18 @@ julia> collapsed = EdgeCollapsedRips(data) # or EdgeCollapsedRips(rips)
 EdgeCollapsedRips{Int64, Float64}(nv=100)
 
 julia> length(Ripserer.edges(collapsed))
-1419
+1998
 
 julia> ripserer(rips) == ripserer(collapsed)
 true
 
-julia> ripserer(collapsed; dim_max=5)
-6-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+julia> ripserer(collapsed; dim_max=4)
+5-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
  100-element 0-dimensional PersistenceDiagram
  75-element 1-dimensional PersistenceDiagram
  37-element 2-dimensional PersistenceDiagram
  14-element 3-dimensional PersistenceDiagram
  1-element 4-dimensional PersistenceDiagram
- 0-element 5-dimensional PersistenceDiagram
 
 ```
 
