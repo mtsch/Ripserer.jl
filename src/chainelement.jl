@@ -86,6 +86,11 @@ end
 function Base.convert(::Type{S}, elem::AbstractChainElement{S}) where {S<:AbstractSimplex}
     return simplex(elem)
 end
+function Base.convert(
+    ::Type{C}, elem::AbstractChainElement{S,F}
+) where {S,F,C<:AbstractChainElement{S,F}}
+    return C(simplex(elem), coefficient(elem))
+end
 
 """
     chain_element_type(simplex, coefficient)
