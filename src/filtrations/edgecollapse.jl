@@ -15,7 +15,8 @@ function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge, removed=LazyFa
             if !removed[u, s] && !removed[u, d]
                 push!(buffer, u)
             end
-            i += 1; j += 1
+            i += 1
+            j += 1
         elseif u < v
             i += 1
         elseif v < u
@@ -29,7 +30,7 @@ function _get_adjacent_edges!(adjacent, graph::AbstractGraph, edge, removed=Lazy
     for u in (src(edge), dst(edge))
         for v in neighbors(graph, u)
             if !removed[v, u]
-                adjacent[u,v] = adjacent[v,u] = true
+                adjacent[u, v] = adjacent[v, u] = true
             end
         end
     end
@@ -65,20 +66,20 @@ end
 
 function _add_core_edge!(core_edges, edge, val)
     s, d = src(edge), dst(edge)
-    core_edges[s, d] = core_edges[d, s] = val
+    return core_edges[s, d] = core_edges[d, s] = val
 end
 
 function _remove_edge!(removed, edge)
     s, d = src(edge), dst(edge)
-    removed[s, d] = removed[d, s] = true
+    return removed[s, d] = removed[d, s] = true
 end
 
 function _in(edgeset, edge::Edge)
     return edgeset[src(edge), dst(edge)]
 end
 
-function _core_graph(filtration::Rips{<:Any, T}; progress=false) where T
-    filtration_edges = Tuple{Edge{Int}, T}[]
+function _core_graph(filtration::Rips{<:Any,T}; progress=false) where {T}
+    filtration_edges = Tuple{Edge{Int},T}[]
     for e in sort!(edges(filtration))
         v, u = vertices(e)
         push!(filtration_edges, (Edge{Int}(u, v), birth(e)))
@@ -96,7 +97,7 @@ function _core_graph(filtration::Rips{<:Any, T}; progress=false) where T
 
     prev_time = filtration_edges[1][2]
     if progress
-        progbar = Progress(length(filtration_edges), desc="Collapsing edges...")
+        progbar = Progress(length(filtration_edges); desc="Collapsing edges...")
     end
     for (i, (curr_edge, curr_time)) in enumerate(filtration_edges)
         add_edge!(graph, curr_edge)
