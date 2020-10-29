@@ -1,5 +1,5 @@
 struct LazyFalses end
-Base.getindex(lf::LazyFalses, i, j) = false
+Base.getindex(::LazyFalses, i, j) = false
 
 function _get_edge_neighbors!(buffer, graph::AbstractGraph, edge, removed=LazyFalses())
     s, d = src(edge), dst(edge)
@@ -111,7 +111,7 @@ function _core_graph(filtration::Rips{<:Any, T}; progress=false) where T
                 edge, _ = filtration_edges[j]
                 if iszero(core[src(edge), dst(edge)])
                     if _in(adjacent, edge) && _not_dominated(buffer, graph, edge, removed)
-                        _add_core_edge!(core, edge, time)
+                        _add_core_edge!(core, edge, curr_time)
                         _get_adjacent_edges!(adjacent, graph, edge, removed)
                     else
                         _remove_edge!(removed, edge)
