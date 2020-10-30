@@ -55,7 +55,7 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
             @test chain[2] === elements[2]
 
             @test chain[1:2] isa Chain
-            @test chain[begin:end] == chain
+            @test chain[firstindex(chain):end] == chain
 
             @test view(chain, 1:2) == chain
         end

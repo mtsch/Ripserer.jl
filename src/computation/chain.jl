@@ -26,7 +26,7 @@ function Chain{F,S}(elements) where {F,S}
     return Chain{F,S,E}(convert.(E, elements))
 end
 function Chain(elements::AbstractVector{ChainElement{S,F}}) where {S,F}
-    return Chain{F,S}(elements)
+    return Chain{F,S}(collect(elements))
 end
 
 function Base.summary(io::IO, chain::Chain{F,S}) where {F,S}

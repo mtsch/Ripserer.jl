@@ -251,7 +251,7 @@ function collect_cocycle!(matrix, pivot)
         if isnothing(pivot)
             return copy(clean!(matrix.buffer, ordering(matrix)))
         elseif is_implicit(matrix)
-            return Chain(collect(matrix.reduced[pivot]))
+            return Chain(matrix.reduced[pivot])
         else
             tmp_chain = Chain{
                 field_type(matrix),simplex_type(matrix.filtration, dim(matrix))
@@ -268,7 +268,7 @@ function collect_cocycle!(matrix, pivot)
             heappush!(matrix.chain, pivot, ordering(matrix))
             return heapmove!(matrix.chain, ordering(matrix))
         else
-            rep = Chain(collect(matrix.reduced[pivot]))
+            rep = Chain(matrix.reduced[pivot])
             push!(rep, pivot)
             return clean!(rep, ordering(matrix))
         end
