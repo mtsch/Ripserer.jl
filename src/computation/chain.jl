@@ -123,7 +123,7 @@ chain_element_type(::Type{S}, ::Type{F}) where {S,F} = ChainElement{S,F}
     PackedElement{S<:Simplex, F<:Mod} <: AbstractChainElement{S, F}
 
 Like `ChainElement` for `Simplex` and `Mod`. Packs the coefficient value into top `M` bits
-of index.
+of index. Used internally by `Chain`.
 """
 struct PackedElement{S<:Simplex,F<:Mod,M,U,T} <: AbstractChainElement{S,F}
     index_coef::U
@@ -135,31 +135,31 @@ struct PackedElement{S<:Simplex,F<:Mod,M,U,T} <: AbstractChainElement{S,F}
         idx = simplex.index
         coef = F(coefficient) * sign(idx)
         uidx = U(abs(idx))
-        index_coef = U(Int(coef)) << (sizeof(U) * 8 - n_bits(M)) | uidx
+        index_coef = U(Int(coef)) << (sizeof(U) * 8 - n_bits(Val(M))) | uidx
 
         return new{S,F,M,U,T}(index_coef, birth(simplex))
     end
 end
 
 """
-    n_bits(M)
+    n_bits(::Val{M})
 
 Get numer of bits needed to represent number mod `M`.
 """
-Base.@pure n_bits(M::Int) = 8 * sizeof(Int) - leading_zeros(M)
+@inline n_bits(::Val{M}) where {M} = 8 * sizeof(Int) - leading_zeros(M)
 
 function simplex(pe::PackedElement{S,<:Any,M,U}) where {S,M,U}
-    mask = typemax(U) << n_bits(M) >> n_bits(M)
+    mask = typemax(U) << n_bits(Val(M)) >> n_bits(Val(M))
     return S(pe.index_coef & mask, pe.birth)
 end
 function coefficient(elem::PackedElement{<:Any,F,M,U}) where {F,U,M}
-    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(M)), false)
+    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(Val(M))), false)
 end
 
 function chain_element_type(
     ::Type{S}, ::Type{F}
 ) where {M,I,T,S<:Simplex{<:Any,T,I},F<:Mod{M}}
-    if n_bits(M) ≤ 8
+    if n_bits(Val(M)) ≤ 8
         return PackedElement{S,F,M,unsigned(I),T}
     else
         return ChainElement{S,F}
@@ -181,4 +181,136 @@ function index_overflow_check(
 end
 function index_overflow_check(::Type{<:AbstractSimplex}, F, nv, message="")
     return nothing
+end
+
+"""
+    Chain{F,S,E,O<:Base.Ordering} <: AbstractVector{ChainElement{S,F}}
+
+A chain should behave exactly like an array of `ChainElements`. Internally, it may store its
+elements in a more efficient way.
+
+It can be used as a heap with `heapify!`, `heappush!`, and `heapop!`. When used this way, it
+will only return unique elements, summing elements with the same simplex together.
+
+`clean!` can be used to sum duplicates together and sort the chain.
+"""
+struct Chain{F,S,E,O<:Base.Ordering} <: AbstractVector{ChainElement{S,F}}
+    elements::Vector{E}
+    ordering::O
+end
+
+_internal_eltype(::Type{Mod{2}}, ::Type{S}) where {S} = S
+_internal_eltype(::Type{F}, ::Type{S}) where {F,S} = chain_element_type(S, F)
+_internal_eltype(chain::Chain) = eltype(chain.elements)
+
+function Chain{F,S}(ordering::O=Base.Order.Forward) where {F,S,O<:Base.Ordering}
+    E = _internal_eltype(F, S)
+    return Chain{F,S,E,O}(_internal_eltype(F, S)[], ordering)
+end
+function Chain{F,S}(elements, ordering::O=Base.Order.Forward) where {F,S,O<:Base.Ordering}
+    E = _internal_eltype(F, S)
+    return Chain{F,S,E,O}(convert.(E, elements), ordering)
+end
+
+function Base.summary(io::IO, chain::Chain{F,S}) where {F,S}
+    return print(io, length(chain), "-element Chain{$F,$S}")
+end
+
+# Array stuff
+Base.size(chain::Chain) = size(chain.elements)
+@propagate_inbounds function Base.getindex(chain::Chain{Mod{2}}, i::Int)
+    return eltype(chain)(chain.elements[i])
+end
+@propagate_inbounds function Base.getindex(chain::Chain, i::Int)
+    el = chain.elements[i]
+    return eltype(chain)(simplex(el), coefficient(el))
+end
+@propagate_inbounds function Base.getindex(chain::Chain{F,S,E,O}, is) where {F,S,E,O}
+    return Chain{F,S,E,O}(chain.elements[is], chain.ordering)
+end
+
+function Base.setindex!(chain::Chain, val, i::Int)
+    return chain.elements[i] = convert(_internal_eltype(chain), val)
+end
+function Base.setindex!(chain::Chain{Mod{2}}, val, i::Int)
+    return chain.elements[i] = convert(_internal_eltype(chain), val)
+end
+
+function Base.resize!(chain::Chain, n)
+    resize!(chain.elements, n)
+    return chain
+end
+function Base.empty!(chain::Chain)
+    empty!(chain.elements)
+    return chain
+end
+function Base.pop!(chain::Chain{F,S}) where {F,S}
+    return convert(ChainElement{S,F}, pop!(chain.elements))
+end
+
+function Base.copy(chain::Chain{F,S,E,O}) where {F,S,E,O}
+    return Chain{F,S,E,O}(copy(chain.elements), chain.ordering)
+end
+
+# Heap stuff
+function DataStructures.heapify!(chain::Chain)
+    heapify!(chain.elements, chain.ordering)
+    return chain
+end
+function DataStructures.heappush!(chain::Chain, el)
+    return heappush!(chain.elements, convert(_internal_eltype(chain), el), chain.ordering)
+end
+function DataStructures.heappop!(chain::Chain)
+    if isempty(chain)
+        return nothing
+    else
+        heap = chain.elements
+        E = eltype(chain)
+
+        top = convert(E, heappop!(heap, chain.ordering))
+        while !isempty(heap)
+            if iszero(top)
+                top = convert(E, heappop!(heap, chain.ordering))
+            elseif convert(E, first(heap)) == top
+                top += convert(E, heappop!(heap, chain.ordering))
+            else
+                break
+            end
+        end
+        return iszero(top) ? nothing : top
+    end
+end
+function heapmove!(chain::Chain{F,S}) where {F,S}
+    result = Chain{F,S}(chain.ordering)
+    while (pivot = heappop!(chain)) ≢ nothing
+        push!(result, pivot)
+    end
+    return result
+end
+
+# Other stuff
+function clean!(chain::Chain{F}, factor=one(F)) where {F}
+    @inbounds if !isempty(chain)
+        sort!(chain.elements; alg=QuickSort, order=chain.ordering)
+        i = 0
+        current = chain[1]
+        for j in 2:length(chain)
+            top = chain[j]
+            if top == current
+                current += top
+            else
+                if !iszero(current)
+                    i += 1
+                    chain[i] = current * factor
+                end
+                current = top
+            end
+        end
+        if !iszero(current)
+            i += 1
+            chain[i] = current * factor
+        end
+        resize!(chain, i)
+    end
+    return chain
 end

@@ -54,10 +54,9 @@ export Mod,
 include("primefield.jl")
 include("simplex.jl")
 include("abstractfiltration.jl")
-include("chainelement.jl")
-include("chain.jl")
 
 include("computation/utils.jl")
+include("computation/chain.jl")
 include("computation/zerodimensional.jl")
 include("computation/workingchain.jl")
 include("computation/reducedmatrix.jl")

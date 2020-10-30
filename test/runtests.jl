@@ -7,8 +7,8 @@ end
 @safetestset "simplex" begin
     include("simplex.jl")
 end
-@safetestset "chainelement" begin
-    include("chainelement.jl")
+@safetestset "chain" begin
+    include("chain.jl")
 end
 @safetestset "zerodimensional" begin
     include("zerodimensional.jl")
