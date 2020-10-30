@@ -29,6 +29,9 @@ end
 @safetestset "alpha" begin
     include("filtrations/alpha.jl")
 end
+@safetestset "edgecollapse" begin
+    include("filtrations/edgecollapse.jl")
+end
 @safetestset "new filtrations" begin
     include("filtrations/new-filtrations.jl")
 end

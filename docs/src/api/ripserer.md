@@ -24,6 +24,10 @@ Custom
 Alpha
 ```
 
+```@docs
+EdgeCollapsedRips
+```
+
 ## Simplices
 
 ```@docs
