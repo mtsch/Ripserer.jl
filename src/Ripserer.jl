@@ -56,6 +56,7 @@ include("simplex.jl")
 include("abstractfiltration.jl")
 
 include("computation/utils.jl")
+include("computation/chainelement.jl")
 include("computation/chain.jl")
 include("computation/zerodimensional.jl")
 include("computation/workingchain.jl")
