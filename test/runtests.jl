@@ -7,14 +7,17 @@ end
 @safetestset "simplex" begin
     include("simplex.jl")
 end
+@safetestset "chainelement" begin
+    include("chainelement.jl")
+end
 @safetestset "chain" begin
     include("chain.jl")
 end
+@safetestset "reducedmatrix" begin
+    include("reducedmatrix.jl")
+end
 @safetestset "zerodimensional" begin
     include("zerodimensional.jl")
-end
-@safetestset "reductionmatrix" begin
-    include("reductionmatrix.jl")
 end
 
 @safetestset "rips" begin

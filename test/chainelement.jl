@@ -2,6 +2,7 @@ using Test
 using Ripserer
 
 using Ripserer:
+    ChainElement,
     PackedElement,
     chain_element_type,
     simplex,

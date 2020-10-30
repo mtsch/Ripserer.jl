@@ -25,6 +25,9 @@ function Chain{F,S}(elements) where {F,S}
     E = _internal_eltype(F, S)
     return Chain{F,S,E}(convert.(E, elements))
 end
+function Chain(elements::AbstractVector{ChainElement{S,F}}) where {S,F}
+    return Chain{F,S}(elements)
+end
 
 function Base.summary(io::IO, chain::Chain{F,S}) where {F,S}
     return print(io, length(chain), "-element Chain{$F,$S}")
@@ -49,8 +52,9 @@ end
 function Base.setindex!(chain::Chain, val, i::Int)
     return chain.elements[i] = convert(_internal_eltype(chain), val)
 end
-function Base.setindex!(chain::Chain{Mod{2}}, val, i::Int)
-    return chain.elements[i] = convert(_internal_eltype(chain), val)
+function Base.setindex!(chain::Chain{F,S}, (s, c)::Tuple{S,F}, i::Int) where {F,S}
+    element = ChainElement{S,F}(s, c)
+    return chain[i] = element
 end
 
 function Base.resize!(chain::Chain, n)
@@ -78,8 +82,14 @@ function DataStructures.heapify!(chain::Chain, ordering::Base.Ordering)
     heapify!(chain.elements, ordering)
     return chain
 end
-function DataStructures.heappush!(chain::Chain, el, ordering::Base.Ordering)
-    return heappush!(chain.elements, convert(_internal_eltype(chain), el), ordering)
+function DataStructures.heappush!(chain::Chain, val, ordering::Base.Ordering)
+    return heappush!(chain.elements, convert(_internal_eltype(chain), val), ordering)
+end
+function DataStructures.heappush!(
+    chain::Chain{F,S}, (s, c)::Tuple{S,F}, ordering::Base.Ordering
+) where {F,S}
+    element = ChainElement{S,F}(s, c)
+    return heappush!(chain, element, ordering)
 end
 function DataStructures.heappop!(chain::Chain, ordering::Base.Ordering)
     if isempty(chain)

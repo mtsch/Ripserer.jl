@@ -291,31 +291,6 @@ function Base.iterate(cols::CubicalColumnsToReduce{D,K}, i=1) where {D,K}
     return nothing
 end
 
-# Having a custom chain element type may save a few bytes per element. Allowing fields other
-# than Mod{2} makes no sense and may present extra work with having to keep track of cube
-# signs.
-struct CubicalChainElement{C<:Cube} <: AbstractChainElement{C,Mod{2}}
-    cube::C
-    coefficient::Bool
-
-    function CubicalChainElement{C}(cube, coef=Mod{2}(1)) where {C<:Cube}
-        return new{C}(cube, Mod{2}(coef) == Mod{2}(1))
-    end
-end
-
-function coefficient(cce::CubicalChainElement)
-    return ifelse(cce.coefficient, Mod{2}(1), Mod{2}(0))
-end
-function simplex(cce::CubicalChainElement)
-    return cce.cube
-end
-function chain_element_type(::Type{C}, ::Type{Mod{2}}) where {C<:Cube}
-    return CubicalChainElement{C}
-end
-function chain_element_type(::Type{C}, ::Type{F}) where {C<:Cube,F}
-    return error("only Mod{2} allowed as field type for cubical homology")
-end
-
 struct CubicalDist{C} <: AbstractMatrix{Int}
     filtration::C
 end
