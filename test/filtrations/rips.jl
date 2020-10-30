@@ -8,14 +8,7 @@ using Suppressor
 using Test
 
 using Ripserer:
-    distances,
-    births,
-    adjacency_matrix,
-    edges,
-    nv,
-    unsafe_simplex,
-    ChainElement,
-    Chain
+    distances, births, adjacency_matrix, edges, nv, unsafe_simplex, ChainElement, Chain
 
 include("test-datasets.jl")
 

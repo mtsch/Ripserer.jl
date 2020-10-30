@@ -71,9 +71,7 @@ function next_matrix(matrix::Cohomology{I}, progress) where {I}
     end
     prog_print(progress, '\r')
 
-    return Cohomology{I}(
-        field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip
-    )
+    return Cohomology{I}(field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip)
 end
 
 """
@@ -181,7 +179,7 @@ function add!(::Val{true}, matrix, column, pivot)
         for cofacet in coboundary(matrix, simplex(element))
             simplex(pivot) == cofacet && continue
             heappush!(
-                matrix.chain, (cofacet, coefficient(element) * factor), ordering(matrix),
+                matrix.chain, (cofacet, coefficient(element) * factor), ordering(matrix)
             )
         end
     end
@@ -214,7 +212,7 @@ end
 # Explicit version
 function finalize!(::Val{false}, matrix, column, pivot)
     return matrix.reduced[simplex(pivot)] = clean!(
-        matrix.chain, ordering(matrix), inv(coefficient(pivot)),
+        matrix.chain, ordering(matrix), inv(coefficient(pivot))
     )
 end
 

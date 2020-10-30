@@ -108,10 +108,10 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
     end
 
     @testset "Integers and floats are not allowed as field types" begin
-        @test_throws ErrorException ChainElement{S, Int}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S, UInt8}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S, Float64}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S, BigFloat}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S,Int}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S,UInt8}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S,Float64}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S,BigFloat}(S(5, 3.0))
     end
 
     @testset "PackedElement" begin

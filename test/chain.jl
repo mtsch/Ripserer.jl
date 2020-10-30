@@ -2,13 +2,7 @@ using Test
 using DataStructures
 using Ripserer
 
-using Ripserer:
-    Chain,
-    ChainElement,
-    field_type,
-    simplex_type,
-    heapmove!,
-    clean!
+using Ripserer: Chain, ChainElement, field_type, simplex_type, heapmove!, clean!
 
 for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
     @testset "Chain with $F" begin

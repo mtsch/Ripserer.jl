@@ -57,7 +57,7 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
                 (S(1, 1), I(2, 2)),
                 (S(3, 3), I(4, 4)),
                 (S(5, 5), I(6, 6)),
-                (S(7, 7), I(8, 8))
+                (S(7, 7), I(8, 8)),
             ]
             bulk_insert!(matrix, pairs)
 

@@ -6,15 +6,7 @@ using Test
 using TupleTools
 
 using Ripserer:
-    _one_hot,
-    _cubemap,
-    _from_cubemap,
-    _to_cubemap,
-    nv,
-    coboundary,
-    boundary,
-    edges,
-    births
+    _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv, coboundary, boundary, edges, births
 
 @testset "CubeMap" begin
     @testset "cubemap" begin
