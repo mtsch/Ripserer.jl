@@ -14,6 +14,13 @@ using Ripserer:
     clean!
 
 @testset "ChainElements" for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
+    @testset "Integers and floats are not allowed as field types" begin
+        @test_throws ErrorException ChainElement{S, Int}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S, UInt8}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S, Float64}(S(5, 3.0))
+        @test_throws ErrorException ChainElement{S, BigFloat}(S(5, 3.0))
+    end
+
     for F in (Mod{2}, Mod{11}, Rational{Int}, Mod{251}, Mod{257})
         @testset "chain element with $S, $F" begin
             simplex_1 = S(5, 3.0)
@@ -23,7 +30,7 @@ using Ripserer:
             coef_2 = F(17)
             coef_3 = F(7919)
 
-            @testset "Constructing a chain element is inferrable." begin
+            @testset "Constructing a chain element is inferrable" begin
                 @test begin
                     @inferred chain_element_type(S, F)
                     true
@@ -37,12 +44,12 @@ using Ripserer:
 
             Element = chain_element_type(S, F)
 
-            @testset "Printing." begin
+            @testset "Printing" begin
                 @test sprint(show, Element(simplex_1)) == "$(simplex_1) => $(one(F))"
                 @test sprint(show, Element(simplex_2, coef_1)) ==
                       "$(simplex_2) => $(coef_1)"
             end
-            @testset "Simplex, coefficient, birth, index and iteration." begin
+            @testset "Simplex, coefficient, birth, index and iteration" begin
                 a = Element(-simplex_1, coef_3)
                 s, c = a
                 @test s === simplex_1 === simplex(a)
@@ -65,7 +72,7 @@ using Ripserer:
                 @test birth(a) == birth(s)
                 @test index(a) == index(s)
             end
-            @testset "Arithmetic." begin
+            @testset "Arithmetic" begin
                 α = F(5)
                 a = @inferred Element(-simplex_1, coef_1)
                 b = @inferred Element(simplex_1, coef_2)
@@ -94,7 +101,7 @@ using Ripserer:
 
                 @test_throws ArgumentError Element(simplex_2) + Element(simplex_1)
             end
-            @testset "Hash, equality and order." begin
+            @testset "Hash, equality and order" begin
                 a = @inferred Element(simplex_1, coef_1)
                 b = @inferred Element(simplex_1, coef_2)
                 c = @inferred Element(simplex_2, coef_1)
@@ -112,7 +119,7 @@ using Ripserer:
     end
 
     @testset "PackedElement" begin
-        @testset "Construct a `PackedElement` for Simplex if n_bits < 8." begin
+        @testset "Construct a `PackedElement` for Simplex if n_bits < 8" begin
             for S in (Simplex{2,Float64,Int}, Simplex{3,Int,Int128})
                 @test @inferred(chain_element_type(S, Mod{2})) <: PackedElement{S,Mod{2}}
                 @test @inferred(chain_element_type(S, Mod{251})) <:
@@ -158,7 +165,7 @@ end
         simplices = [Simplex{1}(1, 1), Simplex{1}(2, 2)]
         elements = ChainElement{S,F}.(simplices)
 
-        @testset "Constructors" begin
+        @testset "Constructors, basics" begin
             @test begin
                 @inferred Chain{F,S}(simplices)
                 @inferred Chain{F,S}(elements)
@@ -178,6 +185,9 @@ end
             @test chain1 == chain3 == chain4
 
             @test sprint(summary, chain1) == "2-element Chain{$F,$S}"
+
+            @test simplex_type(chain1) ≡ S
+            @test field_type(chain2) ≡ F
         end
 
         @testset "Array stuff" begin

@@ -59,6 +59,11 @@ index(elem::AbstractChainElement) = index(simplex(elem))
 Base.sign(elem::AbstractChainElement) = sign(coefficient(elem))
 vertices(elem::AbstractChainElement) = vertices(simplex(elem))
 
+simplex_type(::Type{<:AbstractChainElement{S}}) where S = S
+field_type(::Type{<:AbstractChainElement{<:Any,F}}) where F = F
+simplex_type(::C) where C<:AbstractChainElement = simplex_type(C)
+field_type(::C) where C<:AbstractChainElement = field_type(C)
+
 # Make chain elements kinda similar to `Pair`s
 function Base.getindex(elem::AbstractChainElement, i)
     if i == 1
@@ -111,6 +116,9 @@ struct ChainElement{S<:AbstractSimplex,F} <: AbstractChainElement{S,F}
     coefficient::F
 
     function ChainElement{S,F}(simplex::S, coefficient=one(F)) where {S,F}
+        if F <: Union{Signed, Unsigned, AbstractFloat}
+            error("$F is not a field! Please try a differnet field type")
+        end
         return new{S,F}(abs(simplex), sign(simplex) * F(coefficient))
     end
 end
@@ -183,6 +191,10 @@ function index_overflow_check(::Type{<:AbstractSimplex}, F, nv, message="")
     return nothing
 end
 
+###
+### Chain
+###
+
 """
     Chain{F,S,E,O<:Base.Ordering} <: AbstractVector{ChainElement{S,F}}
 
@@ -215,6 +227,9 @@ end
 function Base.summary(io::IO, chain::Chain{F,S}) where {F,S}
     return print(io, length(chain), "-element Chain{$F,$S}")
 end
+
+simplex_type(chain::Chain) = simplex_type(eltype(chain))
+field_type(chain::Chain) = field_type(eltype(chain))
 
 # Array stuff
 Base.size(chain::Chain) = size(chain.elements)
