@@ -1,8 +1,16 @@
-function prog_print(progress, args...)
-    return progress && printstyled(stderr, args...; color=:green)
+macro prog_print(progress, args...)
+    quote
+        if $(esc(progress))
+            printstyled(stderr, $(esc.(args)...); color=:green)
+        end
+    end
 end
-function prog_println(progress, args...)
-    return prog_print(progress, args..., '\n')
+macro prog_println(progress, args...)
+    quote
+        if $(esc(progress))
+            printstyled(stderr, $(esc.(args)...), '\n'; color=:green)
+        end
+    end
 end
 
 simplex_name(::Type{<:Simplex{1}}) = "edges"

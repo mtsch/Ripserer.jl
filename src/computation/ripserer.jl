@@ -91,7 +91,7 @@ function ripserer(
         Val(alg), filtration, cutoff, progress, field_type, dim_max, reps, implicit
     )
     elapsed = round((time_ns() - start_time) / 1e9; digits=3)
-    prog_println(progress, "Done. Time: ", ProgressMeter.durationstring(elapsed))
+    @prog_println progress "Done. Time: " ProgressMeter.durationstring(elapsed)
 
     return result
 end
@@ -108,7 +108,7 @@ function _ripserer(
     )
     push!(result, zeroth)
     if dim_max > 0
-        matrix = Cohomology{implicit}(field_type, filtration, to_reduce, to_skip)
+        matrix = CoboundaryMatrix{implicit}(field_type, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
             push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
@@ -130,7 +130,7 @@ function _ripserer(
     if dim_max > 0
         simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
         for dim in 1:dim_max
-            matrix = Homology{implicit}(field_type, filtration, simplices)
+            matrix = BoundaryMatrix{implicit}(field_type, filtration, simplices)
             push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
             if dim < dim_max
                 simplices = columns_to_reduce(filtration, simplices)
@@ -149,10 +149,10 @@ function _ripserer(
     )
     push!(result, zeroth)
     if dim_max > 0
-        comatrix = Cohomology{true}(field_type, filtration, to_reduce, to_skip)
+        comatrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
             columns, inf_births = compute_death_simplices!(comatrix, progress, cutoff)
-            matrix = Homology{implicit}(field_type, filtration, columns)
+            matrix = BoundaryMatrix{implicit}(field_type, filtration, columns)
             diagram = compute_intervals!(matrix, cutoff, progress, _reps(reps, dim))
             for birth_simplex in inf_births
                 push!(

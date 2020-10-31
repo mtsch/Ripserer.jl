@@ -14,20 +14,21 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
             @test begin
                 @inferred Chain{F,S}(simplices)
                 @inferred Chain{F,S}(elements)
+                @inferred Chain(view(elements, 1:2))
                 @inferred Chain{F,S}()
                 @inferred Chain{F,S}()
                 true
             end
             chain1 = Chain{F,S}(simplices)
             chain2 = Chain{F,S}(elements)
-            chain3 = Chain{F,S}()
+            chain3 = Chain(view(elements, 1:2))
             chain4 = Chain{F,S}()
-            @test chain1 == chain2
+            chain5 = Chain{F,S}()
 
-            append!(chain3, simplices)
-            append!(chain4, elements)
+            append!(chain4, simplices)
+            append!(chain5, elements)
 
-            @test chain1 == chain3 == chain4
+            @test chain1 == chain2 == chain3 == chain4 == chain5
 
             @test sprint(summary, chain1) == "2-element Chain{$F,$S}"
 

@@ -1,10 +1,12 @@
 """
-    Cohomology{I}
+    CoboundaryMatrix{I}
 
 This `struct` is used to compute cohomology. The `I` parameter sets whether the implicit
 algoritm is used or not.
 """
-struct Cohomology{I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}}
+struct CoboundaryMatrix{
+    I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
+}
     filtration::F
     reduced::R
     buffer::B
@@ -13,7 +15,7 @@ struct Cohomology{I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},
     columns_to_skip::Vector{S}
 end
 
-function Cohomology{I}(
+function CoboundaryMatrix{I}(
     ::Type{T}, filtration, columns_to_reduce, columns_to_skip
 ) where {I,T}
     S = eltype(columns_to_reduce)
@@ -28,23 +30,25 @@ function Cohomology{I}(
     sizehint!(reduced, length(columns_to_reduce))
     chain = Chain{T,C}()
 
-    return Cohomology{I,T,typeof(filtration),S,typeof(reduced),typeof(buffer),typeof(chain)}(
+    return CoboundaryMatrix{
+        I,T,typeof(filtration),S,typeof(reduced),typeof(buffer),typeof(chain)
+    }(
         filtration, reduced, buffer, chain, columns_to_reduce, columns_to_skip
     )
 end
 
-field_type(::Cohomology{<:Any,T}) where {T} = T
-dim(cm::Cohomology{<:Any,<:Any,<:Any,S}) where {S} = dim(S)
+field_type(::CoboundaryMatrix{<:Any,T}) where {T} = T
+dim(cm::CoboundaryMatrix{<:Any,<:Any,<:Any,S}) where {S} = dim(S)
 
-is_implicit(::Cohomology{I}) where {I} = I
-is_cohomology(::Cohomology) = true
-ordering(::Cohomology) = Base.Order.Forward
+is_implicit(::CoboundaryMatrix{I}) where {I} = I
+is_cohomology(::CoboundaryMatrix) = true
+ordering(::CoboundaryMatrix) = Base.Order.Forward
 
-function coboundary(matrix::Cohomology, simplex::AbstractSimplex)
+function coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex)
     return coboundary(matrix.filtration, simplex)
 end
 
-function next_matrix(matrix::Cohomology{I}, progress) where {I}
+function next_matrix(matrix::CoboundaryMatrix{I}, progress) where {I}
     C = simplex_type(matrix.filtration, dim(matrix) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
@@ -69,18 +73,22 @@ function next_matrix(matrix::Cohomology{I}, progress) where {I}
             ),
         )
     end
-    prog_print(progress, '\r')
+    @prog_print progress '\r'
 
-    return Cohomology{I}(field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip)
+    return CoboundaryMatrix{I}(
+        field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip
+    )
 end
 
 """
-    Homology{I}
+    BoundaryMatrix{I}
 
 This `struct` is used to compute homology. The `I` parameter sets whether the implicit
 algoritm is used or not.
 """
-struct Homology{I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}}
+struct BoundaryMatrix{
+    I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
+}
     filtration::F
     reduced::R
     buffer::B
@@ -88,7 +96,7 @@ struct Homology{I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<
     columns_to_reduce::Vector{S}
 end
 
-function Homology{I}(::Type{T}, filtration, columns_to_reduce) where {I,T}
+function BoundaryMatrix{I}(::Type{T}, filtration, columns_to_reduce) where {I,T}
     if eltype(columns_to_reduce) === Any
         S = typeof(first(columns_to_reduce))
     else
@@ -111,20 +119,22 @@ function Homology{I}(::Type{T}, filtration, columns_to_reduce) where {I,T}
     sizehint!(reduced, length(columns))
     chain = Chain{T,C}()
 
-    return Homology{I,T,typeof(filtration),S,typeof(reduced),typeof(buffer),typeof(chain)}(
+    return BoundaryMatrix{
+        I,T,typeof(filtration),S,typeof(reduced),typeof(buffer),typeof(chain)
+    }(
         filtration, reduced, buffer, chain, columns
     )
 end
 
-field_type(::Homology{<:Any,T}) where {T} = T
-dim(::Homology{<:Any,<:Any,<:Any,S}) where {S} = dim(S) - 1
-ordering(::Homology) = Base.Order.Reverse
+field_type(::BoundaryMatrix{<:Any,T}) where {T} = T
+dim(::BoundaryMatrix{<:Any,<:Any,<:Any,S}) where {S} = dim(S) - 1
+ordering(::BoundaryMatrix) = Base.Order.Reverse
 
-is_implicit(::Homology{I}) where {I} = I
-is_cohomology(::Homology) = false
+is_implicit(::BoundaryMatrix{I}) where {I} = I
+is_cohomology(::BoundaryMatrix) = false
 
 # The naming here is not ideal...
-function coboundary(matrix::Homology, simplex::AbstractSimplex)
+function coboundary(matrix::BoundaryMatrix, simplex::AbstractSimplex)
     return boundary(matrix.filtration, simplex)
 end
 
@@ -226,7 +236,6 @@ added, `finalize!` the column.
 function reduce_column!(matrix, column_to_reduce)
     empty!(matrix.buffer)
     pivot = initialize_coboundary!(matrix, column_to_reduce)
-
     while !isnothing(pivot)
         column = matrix.reduced[pivot]
         isempty(column) && break
@@ -355,11 +364,11 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ###
     ### Interval computation.
     ###
-    prog_print(
+    @prog_print(
         progress,
         fmt_number(length(columns)),
         " ",
-        (simplex_name(eltype(columns))),
+        simplex_name(eltype(columns)),
         " to reduce.",
     )
     # One-dimensional columns in cohomology are already sorted.
@@ -367,9 +376,9 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
         sort_t = time_ns()
         sort!(columns; rev=is_cohomology(matrix))
         elapsed = round((time_ns() - sort_t) / 1e9; digits=3)
-        prog_println(progress, " Sorted in ", elapsed, "s)")
+        @prog_println progress " Sorted in " elapsed, "s)"
     else
-        prog_println(progress)
+        @prog_println progress ()
     end
 
     if progress
@@ -396,14 +405,14 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
 end
 
 """
-    compute_death_simplices!(matrix::Cohomology{true}, progress, cutoff)
+    compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
 
 Fully reduce `matrix`, but only compute (homological) death simplices. Return all death
 simplices up to the last that produces an interval with persistence greater than `cutoff`.
 
 Used for assisted homology.
 """
-function compute_death_simplices!(matrix::Cohomology{true}, progress, cutoff)
+function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
     columns, apparent = find_apparent_pairs(
         matrix.filtration, matrix.columns_to_reduce, progress
     )
