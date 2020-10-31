@@ -64,7 +64,7 @@ function Base.getindex(matrix::ReducedMatrix{S}, simplex::S) where {S}
 end
 
 """
-    bulk_insert!(matrix::ReducedMatrix{<:Any, E}, pairs) where E
+    bulk_insert!(matrix::ReducedMatrix, pairs)
 
 Insert apparent pairs into reduced matrix. Columns are inserted so `matrix[τ] == [σ]`, where
 `pairs` is a collection of tuples `(σ, τ)`.

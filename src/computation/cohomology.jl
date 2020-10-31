@@ -340,7 +340,7 @@ function handle_apparent_pairs!(
     end
     return columns
 end
-# Other versions
+# Other versions don't support this
 function handle_apparent_pairs!(::Val, ::Val, matrix, _, _, _, _)
     return matrix.columns_to_reduce
 end
