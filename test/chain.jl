@@ -40,11 +40,11 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
             chain = Chain{F,S}(simplices)
 
             if F === Mod{2}
-                @test eltype(chain.elements) isa Simplex
+                @test eltype(chain.elements) <: Simplex
             elseif F === Mod{3}
                 @test eltype(chain.elements) <: Ripserer.PackedElement
             else
-                @test eltype(chain.elements) isa ChainElement
+                @test eltype(chain.elements) <: ChainElement
             end
         end
 

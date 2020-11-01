@@ -376,9 +376,9 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
         sort_t = time_ns()
         sort!(columns; rev=is_cohomology(matrix))
         elapsed = round((time_ns() - sort_t) / 1e9; digits=3)
-        @prog_println progress " Sorted in " elapsed, "s)"
+        @prog_println progress " Sorted in " elapsed "s."
     else
-        @prog_println progress ()
+        @prog_println progress
     end
 
     if progress
