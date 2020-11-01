@@ -36,8 +36,10 @@ end
 simplex_type(chain::Chain) = simplex_type(eltype(chain))
 field_type(chain::Chain) = field_type(eltype(chain))
 
-# Array stuff
-Base.size(chain::Chain) = size(chain.elements)
+# Array overloads
+function Base.size(chain::Chain)
+    return size(chain.elements)
+end
 @propagate_inbounds function Base.getindex(chain::Chain{Mod{2}}, i::Int)
     return eltype(chain)(chain.elements[i])
 end
@@ -48,7 +50,6 @@ end
 @propagate_inbounds function Base.getindex(chain::Chain{F,S,E}, is) where {F,S,E}
     return Chain{F,S,E}(chain.elements[is])
 end
-
 function Base.setindex!(chain::Chain, val, i::Int)
     return chain.elements[i] = convert(_internal_eltype(chain), val)
 end
@@ -56,7 +57,6 @@ function Base.setindex!(chain::Chain{F,S}, (s, c)::Tuple{S,F}, i::Int) where {F,
     element = ChainElement{S,F}(s, c)
     return chain[i] = element
 end
-
 function Base.resize!(chain::Chain, n)
     resize!(chain.elements, n)
     return chain
@@ -68,13 +68,29 @@ end
 function Base.pop!(chain::Chain{F,S}) where {F,S}
     return convert(ChainElement{S,F}, pop!(chain.elements))
 end
-
 function Base.copy(chain::Chain{F,S,E}) where {F,S,E}
     return Chain{F,S,E}(copy(chain.elements))
 end
 function Base.sizehint!(chain::Chain, n)
     sizehint!(chain.elements, n)
     return chain
+end
+# Compat: these methods are here for compatibility reasons.
+# Remove when 1.6 becomes LTS
+function Base.append!(chain::Chain, elements)
+    n = length(chain)
+    resize!(chain, n + length(elements))
+    @inbounds for (i, e) in enumerate(elements)
+        chain[i + n] = e
+    end
+    return chain
+end
+function Base.append!(chain1::C, chain2::C) where C<:Chain
+    return append!(chain1.elements, chain2.elements)
+end
+function Base.push!(chain::Chain, element)
+    resize!(chain, length(chain) + 1)
+    chain[end] = element
 end
 
 # Heap stuff
