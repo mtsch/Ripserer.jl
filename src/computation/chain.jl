@@ -57,6 +57,9 @@ function Base.setindex!(chain::Chain{F,S}, (s, c)::Tuple{S,F}, i::Int) where {F,
     element = ChainElement{S,F}(s, c)
     return chain[i] = element
 end
+function Base.IndexStyle(::Chain)
+    return Base.IndexLinear()
+end
 function Base.resize!(chain::Chain, n)
     resize!(chain.elements, n)
     return chain
@@ -76,7 +79,7 @@ function Base.sizehint!(chain::Chain, n)
     return chain
 end
 # Compat: these methods are here for compatibility reasons.
-# Remove when 1.6 becomes LTS
+# TODO: Remove when 1.6 becomes LTS
 function Base.append!(chain::Chain, elements)
     n = length(chain)
     resize!(chain, n + length(elements))
@@ -85,12 +88,12 @@ function Base.append!(chain::Chain, elements)
     end
     return chain
 end
-function Base.append!(chain1::C, chain2::C) where C<:Chain
+function Base.append!(chain1::C, chain2::C) where {C<:Chain}
     return append!(chain1.elements, chain2.elements)
 end
 function Base.push!(chain::Chain, element)
     resize!(chain, length(chain) + 1)
-    chain[end] = element
+    return @inbounds chain[end] = element
 end
 
 # Heap stuff

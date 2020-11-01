@@ -36,6 +36,18 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
             @test field_type(chain2) ≡ F
         end
 
+        @testset "Internal eltypes" begin
+            chain = Chain{F,S}(simplices)
+
+            if F === Mod{2}
+                @test eltype(chain.elements) isa Simplex
+            elseif F === Mod{3}
+                @test eltype(chain.elements) <: Ripserer.PackedElement
+            else
+                @test eltype(chain.elements) isa ChainElement
+            end
+        end
+
         @testset "Array stuff" begin
             chain = Chain{F,S}()
             @test isempty(chain)
