@@ -6,17 +6,7 @@ using Test
 using TupleTools
 
 using Ripserer:
-    _one_hot,
-    _cubemap,
-    _from_cubemap,
-    _to_cubemap,
-    nv,
-    coboundary,
-    boundary,
-    edges,
-    births,
-    chain_element_type,
-    CubicalChainElement
+    _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv, coboundary, boundary, edges, births
 
 @testset "CubeMap" begin
     @testset "cubemap" begin
@@ -319,15 +309,6 @@ end
     @test length(bnd) == 4
     @test issorted(bnd; by=index)
     @test sort(birth.(bnd)) == [2, 3, 4, 4]
-end
-
-@testset "CubicalChainElement" begin
-    for C in (Cube{2,Float64,3}, Cube{3,Int,5})
-        @test @inferred(chain_element_type(C, Mod{2})) == CubicalChainElement{C}
-        @test_throws ErrorException chain_element_type(C, Mod{251})
-        @test_throws ErrorException chain_element_type(C, Mod{257})
-        @test_throws ErrorException chain_element_type(C, Rational{Int})
-    end
 end
 
 @testset "ripserer" begin

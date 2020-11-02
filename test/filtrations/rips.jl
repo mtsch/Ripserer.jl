@@ -8,14 +8,7 @@ using Suppressor
 using Test
 
 using Ripserer:
-    distances,
-    births,
-    adjacency_matrix,
-    edges,
-    nv,
-    unsafe_simplex,
-    ChainElement,
-    PackedElement
+    distances, births, adjacency_matrix, edges, nv, unsafe_simplex, ChainElement, Chain
 
 include("test-datasets.jl")
 
@@ -277,18 +270,10 @@ end
         end
         @testset "Types" begin
             d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true)
-            @test eltype(d0) isa DataType
-            @test eltype(d1) isa DataType
-            @test eltype(d2) isa DataType
-            @test eltype(d3) isa DataType
-            @test eltype(d1[1].representative) <: PackedElement
+            @test d1[1].representative isa Chain
 
             d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true, field_type=Rational{Int})
-            @test eltype(d0) isa DataType
-            @test eltype(d1) isa DataType
-            @test eltype(d2) isa DataType
-            @test eltype(d3) isa DataType
-            @test eltype(d3[1].representative) <: ChainElement
+            @test d3[1].representative isa Chain
         end
         @testset "Infinite interval very low threshold" begin
             _, d1 = ripserer(
@@ -296,7 +281,7 @@ end
             )
             rep = representative(only(d1))
             @test isempty(rep)
-            @test eltype(rep) == ChainElement{Simplex{1,Int,Int},Rational{Int}}
+            @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
         end
         @testset "Infinite interval higher threshold" begin
             _, d1 = ripserer(
@@ -304,7 +289,7 @@ end
             )
             rep = representative(only(d1))
             @test !isempty(rep)
-            @test eltype(rep) == ChainElement{Simplex{1,Int,Int},Rational{Int}}
+            @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
         end
         @testset "Critical simplices" begin
             result = ripserer(torus(100); reps=true, threshold=0.5)

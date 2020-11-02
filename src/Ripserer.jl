@@ -54,13 +54,13 @@ export Mod,
 include("primefield.jl")
 include("simplex.jl")
 include("abstractfiltration.jl")
-include("chainelement.jl")
 
 include("computation/utils.jl")
+include("computation/chainelement.jl")
+include("computation/chain.jl")
 include("computation/zerodimensional.jl")
-include("computation/workingchain.jl")
 include("computation/reducedmatrix.jl")
-include("computation/coboundarymatrices.jl")
+include("computation/cohomology.jl")
 include("computation/ripserer.jl")
 
 include("filtrations/utils.jl")

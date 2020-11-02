@@ -59,6 +59,11 @@ index(elem::AbstractChainElement) = index(simplex(elem))
 Base.sign(elem::AbstractChainElement) = sign(coefficient(elem))
 vertices(elem::AbstractChainElement) = vertices(simplex(elem))
 
+simplex_type(::Type{<:AbstractChainElement{S}}) where {S} = S
+field_type(::Type{<:AbstractChainElement{<:Any,F}}) where {F} = F
+simplex_type(::C) where {C<:AbstractChainElement} = simplex_type(C)
+field_type(::C) where {C<:AbstractChainElement} = field_type(C)
+
 # Make chain elements kinda similar to `Pair`s
 function Base.getindex(elem::AbstractChainElement, i)
     if i == 1
@@ -86,6 +91,11 @@ end
 function Base.convert(::Type{S}, elem::AbstractChainElement{S}) where {S<:AbstractSimplex}
     return simplex(elem)
 end
+function Base.convert(
+    ::Type{C}, elem::AbstractChainElement{S,F}
+) where {S,F,C<:AbstractChainElement{S,F}}
+    return C(simplex(elem), coefficient(elem))
+end
 
 """
     chain_element_type(simplex, coefficient)
@@ -106,6 +116,9 @@ struct ChainElement{S<:AbstractSimplex,F} <: AbstractChainElement{S,F}
     coefficient::F
 
     function ChainElement{S,F}(simplex::S, coefficient=one(F)) where {S,F}
+        if F <: Union{Signed,Unsigned,AbstractFloat}
+            error("$F is not a field! Please try a differnet field type")
+        end
         return new{S,F}(abs(simplex), sign(simplex) * F(coefficient))
     end
 end
@@ -118,7 +131,7 @@ chain_element_type(::Type{S}, ::Type{F}) where {S,F} = ChainElement{S,F}
     PackedElement{S<:Simplex, F<:Mod} <: AbstractChainElement{S, F}
 
 Like `ChainElement` for `Simplex` and `Mod`. Packs the coefficient value into top `M` bits
-of index.
+of index. Used internally by `Chain`.
 """
 struct PackedElement{S<:Simplex,F<:Mod,M,U,T} <: AbstractChainElement{S,F}
     index_coef::U
@@ -130,31 +143,31 @@ struct PackedElement{S<:Simplex,F<:Mod,M,U,T} <: AbstractChainElement{S,F}
         idx = simplex.index
         coef = F(coefficient) * sign(idx)
         uidx = U(abs(idx))
-        index_coef = U(Int(coef)) << (sizeof(U) * 8 - n_bits(M)) | uidx
+        index_coef = U(Int(coef)) << (sizeof(U) * 8 - n_bits(Val(M))) | uidx
 
         return new{S,F,M,U,T}(index_coef, birth(simplex))
     end
 end
 
 """
-    n_bits(M)
+    n_bits(::Val{M})
 
 Get numer of bits needed to represent number mod `M`.
 """
-Base.@pure n_bits(M::Int) = 8 * sizeof(Int) - leading_zeros(M)
+@inline n_bits(::Val{M}) where {M} = 8 * sizeof(Int) - leading_zeros(M)
 
 function simplex(pe::PackedElement{S,<:Any,M,U}) where {S,M,U}
-    mask = typemax(U) << n_bits(M) >> n_bits(M)
+    mask = typemax(U) << n_bits(Val(M)) >> n_bits(Val(M))
     return S(pe.index_coef & mask, pe.birth)
 end
 function coefficient(elem::PackedElement{<:Any,F,M,U}) where {F,U,M}
-    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(M)), false)
+    return F(elem.index_coef >> (sizeof(U) * 8 - n_bits(Val(M))), false)
 end
 
 function chain_element_type(
     ::Type{S}, ::Type{F}
 ) where {M,I,T,S<:Simplex{<:Any,T,I},F<:Mod{M}}
-    if n_bits(M) ≤ 8
+    if n_bits(Val(M)) ≤ 8
         return PackedElement{S,F,M,unsigned(I),T}
     else
         return ChainElement{S,F}
