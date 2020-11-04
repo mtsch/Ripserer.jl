@@ -71,6 +71,7 @@ include("filtrations/alpha.jl")
 include("filtrations/edgecollapse.jl")
 
 include("cycles.jl")
+include("circularcoordinates.jl")
 
 include("simplexrecipes.jl")
 

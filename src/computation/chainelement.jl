@@ -116,9 +116,6 @@ struct ChainElement{S<:AbstractSimplex,F} <: AbstractChainElement{S,F}
     coefficient::F
 
     function ChainElement{S,F}(simplex::S, coefficient=one(F)) where {S,F}
-        if F <: Union{Signed,Unsigned,AbstractFloat}
-            error("$F is not a field! Please try a differnet field type")
-        end
         return new{S,F}(abs(simplex), sign(simplex) * F(coefficient))
     end
 end
