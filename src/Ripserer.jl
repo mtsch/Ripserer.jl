@@ -49,7 +49,8 @@ export Mod,
     Alpha,
     EdgeCollapsedRips,
     ripserer,
-    reconstruct_cycle
+    reconstruct_cycle,
+    CircularCoordinates,
 
 include("primefield.jl")
 include("simplex.jl")

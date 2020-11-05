@@ -1,10 +1,49 @@
-# TODO: Perhaps this should be done elsewhere.
-# TODO: Maybe field_type should be coefficient_type
-function to_integer_coefficients(chain::Chain{Mod{M},S}) where {M,S}
-    if M == 2
-        # TODO message
-        error()
+export Partition
+module Partition
+
+linear(r, d) = max(r - d, 0.0)
+gauss(r, d) = exp(-3 * (d - r)^2)
+
+end
+
+###
+### Landmark selection
+###
+function _maxmin_sample(points, n, metric=Euclidean())
+    dists_to_landmarks = zeros(length(points), n)
+
+    l = rand(1:length(points))
+    landmarks = zeros(Int, n)
+    i = 1
+    closest_landmark = fill(Inf, length(points))
+    while i ≤ n
+        landmarks[i] = l
+        for (j, p) in enumerate(points)
+            dist = metric(SVector(points[l]), SVector(p))
+            dists_to_landmarks[j, i] = dist
+            closest_landmark[j] = min(closest_landmark[j], dist)
+        end
+        i += 1
+        l = argmax(closest_landmark)
     end
+    return SVector.(points[landmarks]), dists_to_landmarks
+end
+
+function _landmarks_and_distances(points, landmarks::Int, metric)
+    return _maxmin_sample(points, landmarks, metric)
+end
+function _landmarks_and_distances(points, landmarks::AbstractVector{Int}, metric)
+    return _landmarks_and_distances(points, points[landmarks], metric)
+end
+function _landmarks_and_distances(points, landmarks, metric)
+    dists = [metric(SVector(l), SVector(p)) for l in landmarks, p in points]
+    return (SVector.(landmarks), dists)
+end
+
+###
+### Cocycle massage
+###
+function _to_integer_coefficients(chain::Chain{Mod{M},S}) where {M,S}
     result = Chain{Int,S}()
     resize!(result, length(chain))
     for (i, (sx, coef)) in enumerate(chain)
@@ -14,11 +53,6 @@ function to_integer_coefficients(chain::Chain{Mod{M},S}) where {M,S}
     return result
 end
 
-"""
-    is_cocycle(filtration, chain::Chain{F,S}, t) where {F,S}
-
-Test whether `chain` is a cocycle in `filtration` at time `t`.
-"""
 function is_cocycle(filtration, chain::Chain{F,S}, time) where {F,S}
     buffer = Chain{F,simplex_type(filtration, dim(S) + 1)}()
     for (simplex, coefficient) in chain
@@ -28,20 +62,10 @@ function is_cocycle(filtration, chain::Chain{F,S}, time) where {F,S}
             end
         end
     end
-    # Handle numerical errors with Float64
-    pivot = heappop!(buffer, Base.Order.Forward)
-    while !isnothing(pivot) && coefficient(pivot) < √eps(Float64)
-        pivot = heappop!(buffer, Base.Order.Forward)
-    end
     return isnothing(pivot)
 end
 
-"""
-    zero_coboundary_matrix(filtration::AbstractFiltration, time)
-
-Return the zeroth coboundary matrix as a sparse matrix of Float64.
-"""
-function zero_coboundary_matrix(filtration::AbstractFiltration, time)
+function _zero_coboundary_matrix(filtration::AbstractFiltration, time)
     edges_at_t = filter!(e -> birth(e) < time, edges(filtration))
     is = Int[]
     js = Int[]
@@ -57,7 +81,7 @@ function zero_coboundary_matrix(filtration::AbstractFiltration, time)
     return sparse(is, js, vs, n * (n - 1), n)
 end
 
-function cocycle_to_vector(filtration::AbstractFiltration, cocycle::Chain{Int}, time)
+function _cocycle_to_vector(filtration::AbstractFiltration, cocycle::Chain{Int}, time)
     n = nv(filtration)
     vector = zeros(n * (n - 1))
     for (sx, c) in cocycle
@@ -68,133 +92,161 @@ function cocycle_to_vector(filtration::AbstractFiltration, cocycle::Chain{Int}, 
     return vector
 end
 
-function vector_to_cocycle(filtration, vector)
-    S = simplex_type(filtration, 1)
-    cocycle = Chain{Float64, S}()
-    for (i, c) in enumerate(vector)
-        if c ≠ 0
-            u, v = _vertices(i, Val(2))
-            push!(cocycle, (simplex(filtration, Val(1), (u, v)), c))
-        end
-    end
-    return cocycle
-end
-
-function mod_z(t)
+function _mod_z(t)
     t = rem(t, 1)
     return t < 0 ? 1 + t : t
 end
 
-function harmonic_cocycle(
-    filtration, interval::PersistenceInterval; time=death(interval), kwargs...
-)
-    return harmonic_cocycle(filtration, interval.representative; time=time, kwargs...)
-end
-
-function harmonic_cocycle(filtration, chain; time, check_cocycle=true)
-    integral_cocycle = to_integer_coefficients(chain)
+function _harmonic_smoothing(filtration, chain; time, check_cocycle=true)
+    integral_cocycle = _to_integer_coefficients(chain)
     if check_cocycle && !is_cocycle(filtration, integral_cocycle, time)
-        error("no longer a cocycle in `Int`. Try using a different `modulus`.")
+        error(
+            "the cocycle cannot be converted to `Int` coefficients. ",
+            "Try using a different `modulus`.",
+        )
     end
-    coboundary = zero_coboundary_matrix(filtration, time)
-    real_cocycle = cocycle_to_vector(filtration, integral_cocycle, time)
+    coboundary = _zero_coboundary_matrix(filtration, time)
+    real_cocycle = _cocycle_to_vector(filtration, integral_cocycle, time)
 
-    minimizer = mod_z.(coboundary \ real_cocycle)
+    minimizer = _mod_z.(coboundary \ real_cocycle)
     harmonic_cocycle = real_cocycle - coboundary * minimizer
     return minimizer, harmonic_cocycle
 end
 
-export circular_coordinates
-
-# TODO: mention picking a later time a good idea in docs.
-# TODO: mention that time is an open interval.
-function circular_coordinates(points, landmarks=eachindex(points); kwargs...)
-    return circular_coordinates(Rips, points, landmarks; kwargs...)
+struct CircularCoordinateData
+    radius::Float64
+    coordinate::Vector{Float64}
+    cocycle::Vector{Float64}
 end
 
-function circular_coordinates(
-    F::Type, points, landmarks::AbstractVector{Int}=eachindex(points);
+struct CircularCoordinates{F, P<:SVector, M}
+    out_dim::Int
+    landmarks::Vector{P}
+    partition_function::F
+    metric::M
+
+    coordinate_data::Vector{CircularCoordinateData}
+
+    meta::NamedTuple
+    #
+    partition::Vector{Float64}
+end
+
+function CircularCoordinates(args...; kwargs...)
+    return CircularCoordinates(Rips, args...; kwargs...)
+end
+function CircularCoordinates(
+    ::Type{F}, points, landmarks;
+    out_dim=1,
+    modulus=23,
+    metric=Euclidean(),
+    threshold=nothing,
     coverage=1,
-    n_intervals=1,
-    progress=false,
-    modulus=29,
-)
-    allunique(landmarks) || throw(ArgumentError("landmarks not unique"))
+    partition=Partition.gauss,
+    kwargs...,
+) where {F<:AbstractFiltration}
+    landmarks, dists_to_landmarks = _landmarks_and_distances(points, landmarks, metric)
 
-    filtration = F(points[landmarks])
-    intervals = ripserer(filtration; progress=progress, modulus=modulus, reps=true)[2]
-    selected = intervals[end:-1:(end - n_intervals + 1)]
+    # TODO: new ripserer interface, extract filtration from diagram
+    flt_kwargs = metric == Euclidean() ? NamedTuple() : (metric=Euclidean())
+    flt_kwargs = isnothing(threshold) ? flt_kwargs : (; threshold=threshold, flt_kwargs...)
 
-    result = zeros(length(points), n_intervals)
+    # compute cohomology
+    filtration = F(landmarks; flt_kwargs...)
+    diagram = ripserer(filtration; modulus=modulus, reps=true, kwargs...)[2]
+    if length(diagram) < out_dim
+        error("diagram has $(length(diagram)) intervals")
+    end
 
-    if landmarks == eachindex(points)
-        for i in 1:n_intervals
-            interval = selected[i]
-            time = birth(interval) + coverage * persistence(interval)
-            result[:, i] .= circular_coordinates(filtration, interval; time=time)
-        end
-    else
-        for i in 1:n_intervals
-            interval = selected[i]
-            result[:, i] .= circular_coordinates(
-                points, points[landmarks], filtration, interval;
-                coverage=coverage,
-                metric=Euclidean(),
+    min_radius = maximum(minimum(dists_to_landmarks; dims=1))
+
+    coord_data = map(1:out_dim) do d
+        interval = diagram[end + 1 - d]
+        birth, death = interval
+        if max(birth, min_radius) ≥ death / 2
+            error(
+                "landmarks do not cover the points well enough.\n",
+                "interval: $interval\n",
+                "max distance to landmarks: $min_radius",
             )
+        end
+        radius = coverage * max(birth, min_radius) + (1 - coverage) * death / 2
+
+        # Smoothen the cocycle.
+        coords, cocycle = _harmonic_smoothing(
+            filtration, interval.representative; time=2 * radius
+        )
+        CircularCoordinateData(radius, coords, cocycle)
+    end
+
+    meta = (
+        diagram=diagram,
+        intervals=diagram[end:-1:(end + 1 - out_dim)],
+        modulus=modulus,
+    )
+
+    return CircularCoordinates(
+        out_dim,
+        landmarks,
+        partition,
+        metric,
+        coord_data,
+        meta,
+        zeros(length(landmarks)),
+    )
+end
+
+function Base.show(io::IO, cc::CircularCoordinates)
+    return print(
+        io,
+        "CircularCoordinates(\n",
+        "  out_dim=$(cc.out_dim),\n",
+        "  radii=$(tuple((d.radius for d in cc.coordinate_data)...)),\n",
+        "  n_landmarks=$(length(cc.landmarks)),\n",
+        "  partition=$(cc.partition_function),\n",
+        "  metric=$(cc.metric),\n)",
+    )
+end
+
+function _transform(cc::CircularCoordinates, point, dim)
+    cd = cc.coordinate_data[dim]
+
+    nearest_index = 0
+    nearest_dist = Inf
+    for (j, l) in enumerate(cc.landmarks)
+        dist = cc.metric(point, l)
+        cc.partition[j] = cc.partition_function(cd.radius, dist)
+        if dist < nearest_dist
+            nearest_index = j
+            nearest_dist = dist
+        end
+    end
+    norm = sum(cc.partition)
+    if norm > 0
+        cc.partition ./= norm
+    else
+        @warn "partition of unity summed to 0." maxlog=1
+    end
+
+    j = nearest_index
+    coord = cd.coordinate[j]
+    for k in eachindex(cc.landmarks)
+        cocycle_value = j > k ? cd.cocycle[index((j, k))] : -cd.cocycle[index((k, j))]
+        coord += cc.partition[k] + cocycle_value
+    end
+    return _mod_z(coord)
+end
+
+function (cc::CircularCoordinates)(points)
+    if cc.out_dim > 1
+        result = zeros(length(points), cc.out_dim)
+    else
+        result = zeros(length(points))
+    end
+    for dim in 1:cc.out_dim
+        for (i, p) in enumerate(points)
+            result[i, dim] = _transform(cc, SVector(p), dim)
         end
     end
     return result
-end
-
-function circular_coordinates(
-    filtration::AbstractFiltration, interval; time=death(interval), kwargs...
-)
-    return harmonic_cocycle(filtration, interval.representative; time=time, kwargs...)[1]
-end
-
-function circular_coordinates(
-    points, landmarks, filtration, interval; coverage=0.999, metric=Euclidean()
-)
-    dists_to_landmarks = [
-        metric(SVector(l), SVector(p)) for l in landmarks, p in points
-    ]
-
-    # Determine ball radius.
-    rL = maximum(minimum(dists_to_landmarks; dims=1))
-    birth, death = interval
-    if max(birth, rL) ≥ death / 2
-        error(
-            "landmarks do not cover the points well enough.\n",
-            "interval: $interval\n",
-            "max distance to landmarks: $rL",
-        )
-    end
-    radius = coverage * max(birth, rL) + (1 - coverage) * death / 2
-
-    # Smoothen the cocycle.
-    τ, harmonic = harmonic_cocycle(filtration, interval; time=2 * radius)
-
-    circular_coordinates = zeros(length(points))
-    partition = zeros(length(landmarks))
-
-    # TODO: this could be hidden away in a struct to allow transforming new data.
-    for (i, p) in enumerate(points)
-        for j in eachindex(landmarks)
-            partition[j] = max(0.0, radius - dists_to_landmarks[j, i])
-        end
-        partition ./= sum(partition)
-        # Choose an arbitrary ball
-        j = findfirst(≤(radius), view(dists_to_landmarks, :, i))
-        if isnothing(j)
-            @warn "Can't find a ball to cover $(points[i])"
-            circular_coordinates[i] = NaN # TODO: is NaN a good idea?
-        else
-            θ = τ[j]
-            for k in eachindex(landmarks)
-                θ += partition[k] + (j > k ? harm[index((j, k))] : -harm[index((k, j))])
-            end
-            circular_coordinates[i] = mod_z(θ)
-        end
-    end
-    return circular_coordinates
 end
