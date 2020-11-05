@@ -155,19 +155,18 @@ function CircularCoordinates(
     @prog_print progress "Massaging cocycles... "
     coord_data = map(1:out_dim) do d
         interval = diagram[end + 1 - d]
-        birth, death = interval
-        if !isfinite(death)
-            radius = 2 * birth
-        elseif max(birth, min_radius) ≥ death / 2
-           @warn(
-               "landmarks do not cover the points well enough.\n",
-               "interval: $interval\n",
-               "max distance to landmarks: $min_radius",
-           )
-           radius = death / 2
-        else
-            radius = coverage * max(birth, min_radius) + (1 - coverage) * death / 2
+        b, d = interval
+        if !isfinite(death(interval))
+            d = Float64(maximum(birth, interval.cocycle))
+        elseif max(b, min_radius) ≥ d / 2
+            @warn(
+                "landmarks do not cover the points well enough.\n",
+                "interval: $interval\n",
+                "max distance to landmarks: $min_radius",
+            )
+            min_radius = -Inf
         end
+        radius = coverage * max(b, min_radius) + (1 - coverage) * d / 2
 
         # Smoothen the cocycle.
         coords, cocycle = _harmonic_smoothing(
@@ -178,6 +177,7 @@ function CircularCoordinates(
     @prog_println progress "done."
 
     meta = (
+        filtration=filtration,
         diagram=diagram,
         intervals=diagram[end:-1:(end + 1 - out_dim)],
         modulus=modulus,
