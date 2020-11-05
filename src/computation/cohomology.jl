@@ -255,9 +255,10 @@ end
 
 Collect the representative (co)cycle.
 """
-function collect_cocycle!(matrix, pivot)
+function collect_cocycle!(matrix, column, pivot)
     if is_cohomology(matrix)
         if isnothing(pivot)
+            push!(matrix.buffer, column)
             return copy(clean!(matrix.buffer, ordering(matrix)))
         elseif is_implicit(matrix)
             return Chain(matrix.reduced[pivot])
@@ -303,7 +304,7 @@ function interval(matrix, column, pivot, cutoff, reps)
     death_time = isnothing(death_simplex) ? Inf : Float64(birth(death_simplex))
     if death_time - birth_time > cutoff
         if reps
-            rep = (; representative=collect_cocycle!(matrix, pivot))
+            rep = (; representative=collect_cocycle!(matrix, column, pivot))
         else
             rep = NamedTuple()
         end
