@@ -280,7 +280,7 @@ end
                 cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
             )
             rep = representative(only(d1))
-            @test isempty(rep)
+            @test simplex(only(rep)) == birth_simplex(only(d1))
             @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
         end
         @testset "Infinite interval higher threshold" begin
