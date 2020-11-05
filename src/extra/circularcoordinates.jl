@@ -53,18 +53,6 @@ function _to_integer_coefficients(chain::Chain{Mod{M},S}) where {M,S}
     return result
 end
 
-function is_cocycle(filtration, chain::Chain{F,S}, time) where {F,S}
-    buffer = Chain{F,simplex_type(filtration, dim(S) + 1)}()
-    for (simplex, coefficient) in chain
-        for cofacet in coboundary(filtration, simplex)
-            if birth(cofacet) < time
-                heappush!(buffer, (cofacet, coefficient), Base.Order.Forward)
-            end
-        end
-    end
-    return isnothing(pivot)
-end
-
 function _zero_coboundary_matrix(filtration::AbstractFiltration, time)
     edges_at_t = filter!(e -> birth(e) < time, edges(filtration))
     is = Int[]

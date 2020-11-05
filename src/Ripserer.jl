@@ -50,15 +50,16 @@ export Mod,
     EdgeCollapsedRips,
     ripserer,
     reconstruct_cycle,
-    CircularCoordinates,
+    CircularCoordinates
 
-include("primefield.jl")
-include("simplex.jl")
-include("abstractfiltration.jl")
+include("base/primefield.jl")
+include("base/simplex.jl")
+include("base/abstractfiltration.jl")
+include("base/chainelement.jl")
+include("base/chain.jl")
+include("base/simplexrecipes.jl")
 
 include("computation/utils.jl")
-include("computation/chainelement.jl")
-include("computation/chain.jl")
 include("computation/zerodimensional.jl")
 include("computation/reducedmatrix.jl")
 include("computation/cohomology.jl")
@@ -71,9 +72,7 @@ include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
 include("filtrations/edgecollapse.jl")
 
-include("cycles.jl")
-include("circularcoordinates.jl")
-
-include("simplexrecipes.jl")
+include("extra/cycles.jl")
+include("extra/circularcoordinates.jl")
 
 end

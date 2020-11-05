@@ -1,6 +1,9 @@
 using SafeTestsets
 using Test
 
+###
+### Basic stuff
+###
 @safetestset "primefield" begin
     include("primefield.jl")
 end
@@ -13,6 +16,10 @@ end
 @safetestset "chain" begin
     include("chain.jl")
 end
+
+###
+### Computation structs
+###
 @safetestset "reducedmatrix" begin
     include("reducedmatrix.jl")
 end
@@ -20,6 +27,9 @@ end
     include("zerodimensional.jl")
 end
 
+###
+### Main tests
+###
 @safetestset "rips" begin
     include("filtrations/rips.jl")
 end
@@ -39,13 +49,22 @@ end
     include("filtrations/new-filtrations.jl")
 end
 
+###
+### Extra features
+###
 @safetestset "cycles" begin
     include("cycles.jl")
+end
+@safetestset "circularcoordinates" begin
+    include("circularcoordinates.jl")
 end
 @safetestset "plotting" begin
     include("plotting.jl")
 end
 
+###
+### Sanity checks
+###
 @safetestset "aqua" begin
     include("aqua.jl")
 end

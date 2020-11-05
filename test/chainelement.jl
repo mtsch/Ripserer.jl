@@ -32,7 +32,6 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
             end
 
             Element = chain_element_type(S, F)
-
             @testset "Printing" begin
                 @test sprint(show, Element(simplex_1)) == "$(simplex_1) => $(one(F))"
                 @test sprint(show, Element(simplex_2, coef_1)) ==
@@ -105,13 +104,6 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
                 @test hash(c) == hash(d)
             end
         end
-    end
-
-    @testset "Integers and floats are not allowed as field types" begin
-        @test_throws ErrorException ChainElement{S,Int}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S,UInt8}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S,Float64}(S(5, 3.0))
-        @test_throws ErrorException ChainElement{S,BigFloat}(S(5, 3.0))
     end
 
     @testset "PackedElement" begin
