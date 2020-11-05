@@ -135,7 +135,7 @@ function CircularCoordinates(
     progress=false,
     kwargs...,
 ) where {F<:AbstractFiltration}
-    @prog_print progress "Determining radius... "
+    @prog_print progress "Determining radius...   "
     landmarks, min_radius = _landmarks_and_radius(points, landmarks, metric)
     @prog_println progress "done."
 
@@ -152,21 +152,25 @@ function CircularCoordinates(
         error("diagram has $(length(diagram)) intervals")
     end
 
-    @prog_print progress "Massaging cocycles... "
+    @prog_print progress "Massaging cocycles...   "
     coord_data = map(1:out_dim) do d
         interval = diagram[end + 1 - d]
         b, d = interval
         if !isfinite(death(interval))
-            d = Float64(maximum(birth, interval.cocycle))
-        elseif max(b, min_radius) ≥ d / 2
-            @warn(
-                "landmarks do not cover the points well enough.\n",
-                "interval: $interval\n",
-                "max distance to landmarks: $min_radius",
-            )
-            min_radius = -Inf
+            d = Float64(maximum(birth, interval.representative))
         end
-        radius = coverage * max(b, min_radius) + (1 - coverage) * d / 2
+        if max(b, min_radius) ≥ d / 2
+            @prog_println progress
+            @warn(string(
+                "unable to cover points with landmarks\n",
+                "interval: $interval\n",
+                "max distance to landmarks: $min_radius\n",
+                "setting radius = $(d / 2)",
+            ))
+            radius = d / 2
+        else
+            radius = coverage * max(b, min_radius) + (1 - coverage) * d / 2
+        end
 
         # Smoothen the cocycle.
         coords, cocycle = _harmonic_smoothing(
@@ -182,7 +186,6 @@ function CircularCoordinates(
         intervals=diagram[end:-1:(end + 1 - out_dim)],
         modulus=modulus,
     )
-
     return CircularCoordinates(
         out_dim,
         landmarks,
