@@ -179,5 +179,5 @@ function is_cocycle(filtration, chain::Chain{F,S}, time) where {F,S}
             end
         end
     end
-    return isnothing(pivot)
+    return isnothing(heappop!(buffer, Base.Order.Forward))
 end

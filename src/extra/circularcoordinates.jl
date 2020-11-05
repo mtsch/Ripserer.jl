@@ -10,8 +10,6 @@ end
 ### Landmark selection
 ###
 function _maxmin_sample(points, n, metric=Euclidean())
-    dists_to_landmarks = zeros(length(points), n)
-
     l = rand(1:length(points))
     landmarks = zeros(Int, n)
     i = 1
@@ -20,24 +18,27 @@ function _maxmin_sample(points, n, metric=Euclidean())
         landmarks[i] = l
         for (j, p) in enumerate(points)
             dist = metric(SVector(points[l]), SVector(p))
-            dists_to_landmarks[j, i] = dist
             closest_landmark[j] = min(closest_landmark[j], dist)
         end
         i += 1
         l = argmax(closest_landmark)
     end
-    return SVector.(points[landmarks]), dists_to_landmarks
+    return SVector.(points[landmarks]), maximum(closest_landmark)
 end
 
-function _landmarks_and_distances(points, landmarks::Int, metric)
+function _landmarks_and_radius(points, landmarks::Int, metric)
     return _maxmin_sample(points, landmarks, metric)
 end
-function _landmarks_and_distances(points, landmarks::AbstractVector{Int}, metric)
-    return _landmarks_and_distances(points, points[landmarks], metric)
+function _landmarks_and_radius(points, landmarks::AbstractVector{Int}, metric)
+    return _landmarks_and_radius(points, points[landmarks], metric)
 end
-function _landmarks_and_distances(points, landmarks, metric)
-    dists = [metric(SVector(l), SVector(p)) for l in landmarks, p in points]
-    return (SVector.(landmarks), dists)
+function _landmarks_and_radius(points, landmarks, metric)
+    radius = 0.0
+    for p in points
+        nearest = minimum(metric(SVector(l), SVector(p)) for l in landmarks)
+        radius = max(nearest, radius)
+    end
+    return SVector.(landmarks), radius
 end
 
 ###
@@ -69,7 +70,7 @@ function _zero_coboundary_matrix(filtration::AbstractFiltration, time)
     return sparse(is, js, vs, n * (n - 1), n)
 end
 
-function _cocycle_to_vector(filtration::AbstractFiltration, cocycle::Chain{Int}, time)
+function _to_vector(filtration::AbstractFiltration, cocycle::Chain{Int}, time)
     n = nv(filtration)
     vector = zeros(n * (n - 1))
     for (sx, c) in cocycle
@@ -85,16 +86,16 @@ function _mod_z(t)
     return t < 0 ? 1 + t : t
 end
 
-function _harmonic_smoothing(filtration, chain; time, check_cocycle=true)
+function _harmonic_smoothing(filtration, chain; time)
     integral_cocycle = _to_integer_coefficients(chain)
-    if check_cocycle && !is_cocycle(filtration, integral_cocycle, time)
+    if !is_cocycle(filtration, integral_cocycle, time)
         error(
             "the cocycle cannot be converted to `Int` coefficients. ",
             "Try using a different `modulus`.",
         )
     end
     coboundary = _zero_coboundary_matrix(filtration, time)
-    real_cocycle = _cocycle_to_vector(filtration, integral_cocycle, time)
+    real_cocycle = _to_vector(filtration, integral_cocycle, time)
 
     minimizer = _mod_z.(coboundary \ real_cocycle)
     harmonic_cocycle = real_cocycle - coboundary * minimizer
@@ -124,41 +125,49 @@ function CircularCoordinates(args...; kwargs...)
     return CircularCoordinates(Rips, args...; kwargs...)
 end
 function CircularCoordinates(
-    ::Type{F}, points, landmarks;
+    ::Type{F}, points::AbstractVector, landmarks=eachindex(points);
     out_dim=1,
     modulus=23,
     metric=Euclidean(),
     threshold=nothing,
     coverage=1,
     partition=Partition.gauss,
+    progress=false,
     kwargs...,
 ) where {F<:AbstractFiltration}
-    landmarks, dists_to_landmarks = _landmarks_and_distances(points, landmarks, metric)
+    @prog_print progress "Determining radius... "
+    landmarks, min_radius = _landmarks_and_radius(points, landmarks, metric)
+    @prog_println progress "done."
 
     # TODO: new ripserer interface, extract filtration from diagram
     flt_kwargs = metric == Euclidean() ? NamedTuple() : (metric=Euclidean())
     flt_kwargs = isnothing(threshold) ? flt_kwargs : (; threshold=threshold, flt_kwargs...)
 
     # compute cohomology
+    @prog_print progress "Computing cohomology... "
     filtration = F(landmarks; flt_kwargs...)
     diagram = ripserer(filtration; modulus=modulus, reps=true, kwargs...)[2]
+    @prog_println progress "done."
     if length(diagram) < out_dim
         error("diagram has $(length(diagram)) intervals")
     end
 
-    min_radius = maximum(minimum(dists_to_landmarks; dims=1))
-
+    @prog_print progress "Massaging cocycles... "
     coord_data = map(1:out_dim) do d
         interval = diagram[end + 1 - d]
         birth, death = interval
-        if max(birth, min_radius) ≥ death / 2
-            error(
-                "landmarks do not cover the points well enough.\n",
-                "interval: $interval\n",
-                "max distance to landmarks: $min_radius",
-            )
+        if !isfinite(death)
+            radius = 2 * birth
+        elseif max(birth, min_radius) ≥ death / 2
+           @warn(
+               "landmarks do not cover the points well enough.\n",
+               "interval: $interval\n",
+               "max distance to landmarks: $min_radius",
+           )
+           radius = death / 2
+        else
+            radius = coverage * max(birth, min_radius) + (1 - coverage) * death / 2
         end
-        radius = coverage * max(birth, min_radius) + (1 - coverage) * death / 2
 
         # Smoothen the cocycle.
         coords, cocycle = _harmonic_smoothing(
@@ -166,6 +175,7 @@ function CircularCoordinates(
         )
         CircularCoordinateData(radius, coords, cocycle)
     end
+    @prog_println progress "done."
 
     meta = (
         diagram=diagram,
@@ -225,15 +235,15 @@ function _transform(cc::CircularCoordinates, point, dim)
     return _mod_z(coord)
 end
 
-function (cc::CircularCoordinates)(points)
-    if cc.out_dim > 1
+function (cc::CircularCoordinates)(points, dims=1:cc.out_dim)
+    if length(dims) > 1
         result = zeros(length(points), cc.out_dim)
     else
         result = zeros(length(points))
     end
-    for dim in 1:cc.out_dim
+    for (j, dim) in enumerate(dims)
         for (i, p) in enumerate(points)
-            result[i, dim] = _transform(cc, SVector(p), dim)
+            result[i, j] = _transform(cc, SVector(p), dim)
         end
     end
     return result
