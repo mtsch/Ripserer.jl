@@ -21,7 +21,7 @@ quadratic(r, d) = (max(r - d, 0.0))^2
 """
     Partition.exponential(r, d) = r - d > 0 ? exp(r^2/(d^2 - r^2)) : 0.0
 """
-exponential(r, d) = r - d > 0 ? exp(r^2/(d^2 - r^2)) : 0.0
+exponential(r, d) = r - d > 0 ? exp(r^2 / (d^2 - r^2)) : 0.0
 end
 
 ###
@@ -116,7 +116,7 @@ function _harmonic_smoothing(filtration, chain; time)
     coboundary = _zero_coboundary_matrix(filtration, time)
     real_cocycle = _to_vector(filtration, integral_cocycle, time)
 
-    minimizer =  coboundary \ real_cocycle
+    minimizer = coboundary \ real_cocycle
     real_cocycle .-= coboundary * minimizer
     return minimizer, real_cocycle
 end
@@ -196,7 +196,7 @@ CircularCoordinates(
 )
 
 julia> cc(data)
-100-element Vector{Union{Missing, Float64}}:
+100-element Array{Union{Missing, Float64},1}:
  0.6999999999999997
  0.707685021454284
  0.7159890084191375
@@ -206,7 +206,9 @@ julia> cc(data)
  0.7653537105420934
  0.7750406705245008
  0.7840109915808623
+ 0.7923149785457156
  ⋮
+ 0.6076850214542839
  0.6159890084191375
  0.6249593294754989
  0.6346462894579062
@@ -224,7 +226,7 @@ Perea, J. A. (2020, June). Sparse circular coordinates via principal Z-bundles. 
 Topological Data Analysis: The Abel Symposium 2018 (Vol. 15, p. 435). Springer Nature.
 
 """
-struct CircularCoordinates{F, P<:SVector, M}
+struct CircularCoordinates{F,P<:SVector,M}
     out_dim::Int
     landmarks::Vector{P}
     partition::F
@@ -240,7 +242,9 @@ function CircularCoordinates(args...; kwargs...)
     return CircularCoordinates(Rips, args...; kwargs...)
 end
 function CircularCoordinates(
-    ::Type{F}, points::AbstractVector, landmarks;
+    ::Type{F},
+    points::AbstractVector,
+    landmarks;
     out_dim=1,
     partition=Partition.linear,
     metric=Euclidean(),
@@ -256,7 +260,7 @@ function CircularCoordinates(
     @prog_println progress "done."
 
     # TODO with new ripserer interface, change this.
-    flt_kwargs = metric == Euclidean() ? NamedTuple() : (metric=Euclidean())
+    flt_kwargs = metric == Euclidean() ? NamedTuple() : (metric = Euclidean())
     flt_kwargs = isnothing(threshold) ? flt_kwargs : (; threshold=threshold, flt_kwargs...)
 
     # compute cohomology
@@ -302,13 +306,7 @@ function CircularCoordinates(
         modulus=modulus,
     )
     return CircularCoordinates(
-        n_success,
-        landmarks,
-        partition,
-        metric,
-        coord_data,
-        meta,
-        zeros(length(landmarks)),
+        n_success, landmarks, partition, metric, coord_data, meta, zeros(length(landmarks))
     )
 end
 
@@ -363,11 +361,11 @@ function _transform(cc::CircularCoordinates, point, dim)
     return _mod_z(coord)
 end
 
-function (cc::CircularCoordinates)(points, dims=1:cc.out_dim)
-    if length(dims) > 1
-        result = zeros(Union{Missing, Float64}, length(points), cc.out_dim)
+function (cc::CircularCoordinates)(points, dims=1:(cc.out_dim))
+    if dims isa Integer
+        result = zeros(Union{Missing,Float64}, length(points))
     else
-        result = zeros(Union{Missing, Float64}, length(points))
+        result = zeros(Union{Missing,Float64}, length(points), cc.out_dim)
     end
     for (j, dim) in enumerate(dims)
         for (i, p) in enumerate(points)
