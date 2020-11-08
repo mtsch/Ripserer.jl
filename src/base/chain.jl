@@ -34,7 +34,7 @@ function Base.summary(io::IO, chain::Chain{F,S}) where {F,S}
 end
 
 simplex_type(chain::Chain) = simplex_type(eltype(chain))
-field_type(chain::Chain) = field_type(eltype(chain))
+coefficient_type(chain::Chain) = coefficient_type(eltype(chain))
 
 # Array overloads
 function Base.size(chain::Chain)
@@ -163,4 +163,21 @@ function clean!(chain::Chain{F}, ordering::Base.Ordering, factor=one(F)) where {
         resize!(chain, i)
     end
     return chain
+end
+
+"""
+    is_cocycle(filtration, chain::Chain, time)
+
+Check whether a `chain` is a cocycle in `filtration` at specified `time`.
+"""
+function is_cocycle(filtration, chain::Chain{F,S}, time) where {F,S}
+    buffer = Chain{F,simplex_type(filtration, dim(S) + 1)}()
+    for (simplex, coefficient) in chain
+        for cofacet in coboundary(filtration, simplex)
+            if birth(cofacet) < time
+                heappush!(buffer, (cofacet, coefficient), Base.Order.Forward)
+            end
+        end
+    end
+    return isnothing(heappop!(buffer, Base.Order.Forward))
 end

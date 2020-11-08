@@ -2,7 +2,7 @@ using Test
 using DataStructures
 using Ripserer
 
-using Ripserer: Chain, ChainElement, field_type, simplex_type, heapmove!, clean!
+using Ripserer: Chain, ChainElement, coefficient_type, simplex_type, heapmove!, clean!
 
 for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
     @testset "Chain with $F" begin
@@ -33,7 +33,7 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
             @test sprint(summary, chain1) == "2-element Chain{$F,$S}"
 
             @test simplex_type(chain1) ≡ S
-            @test field_type(chain2) ≡ F
+            @test coefficient_type(chain2) ≡ F
         end
 
         @testset "Internal eltypes" begin

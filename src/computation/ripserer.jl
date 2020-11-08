@@ -85,6 +85,9 @@ function ripserer(
     reps=alg == :cohomology ? false : 1:dim_max,
     implicit=alg != :homology,
 )
+    if field_type <: Union{Signed,Unsigned,AbstractFloat}
+        error("$field_type is not a field! Please try a differnet field type")
+    end
     start_time = time_ns()
     index_overflow_check(filtration, field_type, dim_max)
     result = _ripserer(
