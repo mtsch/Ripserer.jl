@@ -94,8 +94,8 @@ end
     @testset "landmark selection" begin
         points = torus_points(1024)
 
-        cc1 = CircularCoordinates(points, 100)
-        @test length(cc1.landmarks) == 100
+        cc1 = CircularCoordinates(points, 200)
+        @test length(cc1.landmarks) == 200
         @test allunique(cc1.landmarks)
 
         cc2 = CircularCoordinates(points, 1:100)
