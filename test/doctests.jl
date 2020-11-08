@@ -1,7 +1,6 @@
 using Documenter
 using Distances
 using Ripserer
-using Test
 
 if Sys.iswindows()
     @warn "Skipping doctests due to problems with `Alpha` on Windows"
