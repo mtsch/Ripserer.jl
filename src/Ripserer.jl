@@ -50,6 +50,7 @@ export Mod,
     EdgeCollapsedRips,
     ripserer,
     reconstruct_cycle,
+    Partition,
     CircularCoordinates
 
 include("base/primefield.jl")
