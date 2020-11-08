@@ -122,13 +122,13 @@ function _find_max_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K - 1)) where {I,K}
     return lo
 end
 
-function _find_max_vertex(index::I, ::Val{1}, ::I=0, ::I=0) where {I}
+function _find_max_vertex(index::I, ::Val{1}, ::I=I(0), ::I=I(0)) where {I}
     return index
 end
 
-function _find_max_vertex(index::I, ::Val{2}, ::I=0, ::I=0) where {I}
+function _find_max_vertex(index::I, ::Val{2}, ::I=I(0), ::I=I(0)) where {I}
     # This is https://oeis.org/A002024
-    return floor(Int, (√(8 * index + 1) + 1)/2)
+    return floor(I, (√(8 * index + 1) + 1)/2)
 end
 
 """
