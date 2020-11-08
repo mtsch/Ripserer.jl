@@ -122,6 +122,15 @@ function _find_max_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K - 1)) where {I,K}
     return lo
 end
 
+function _find_max_vertex(index::I, ::Val{1}, ::I=0, ::I=0) where {I}
+    return index
+end
+
+function _find_max_vertex(index::I, ::Val{2}, ::I=0, ::I=0) where {I}
+    # This is https://oeis.org/A002024
+    return floor(Int, (√(8 * index + 1) + 1)/2)
+end
+
 """
     _vertices(index::I, ::Val{N})
 
@@ -134,8 +143,8 @@ For regular simplices, `N` should be equal to `dim+1`.
     # vk   = _find_max_vertex(index, Val(k))
     # vk-1 = _find_max_vertex(index, Val(k-1), vk)
     # ...
-    # v1 = _find_max_vertex(index, Val(3), v2)
-    # v0 = _find_max_vertex(index, Val(3), v1)
+    # v1 = _find_max_vertex(index, Val(2), v2)
+    # v0 = _find_max_vertex(index, Val(1), v1)
     # (vk, ..., v0) .+ 1
     vars = Symbol[Symbol("v", k) for k in (N - 1):-1:0]
     expr = quote
