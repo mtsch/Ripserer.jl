@@ -121,7 +121,7 @@ function _harmonic_smoothing(filtration, chain; time)
     return minimizer, real_cocycle
 end
 
-const PRIMES = (7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79)
+const PRIMES = [7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79]
 
 struct CircularCoordinateData
     radius::Float64
