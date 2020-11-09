@@ -201,7 +201,6 @@ end
 =#
 
 vertices(sx::AbstractSimplex) = _vertices(index(sx), Val(length(sx)))
-Base.length(sx::AbstractSimplex) = length(typeof(sx))
 Base.length(::Type{<:AbstractSimplex{D}}) where {D} = D + 1
 
 ###

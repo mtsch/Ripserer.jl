@@ -29,6 +29,9 @@ end
 
 _one_hot(i, ::Val{N}) where {N} = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
 
+@inline _map(_, ::Tuple{}) = ()
+@inline _map(f, t) = tuple(f(t[1]), _map(f, TupleTools.tail(t))...)
+
 # Convenience functions from converting cubemap index to vertices and back.
 @inline function _from_cubemap(root::CartesianIndex{K}, ::Val{N}) where {K,N}
     2^count(iseven, Tuple(root)) == N || throw(ArgumentError("invalid N"))
@@ -41,8 +44,8 @@ _one_hot(i, ::Val{N}) where {N} = CartesianIndex{N}(ntuple(isequal(i), Val(N)))
         end
         result = TupleTools.sort(result; by=Base.Fix2(getindex, i))
     end
-    result = SVector(TupleTools.sort(result))
-    return map(result) do c
+    result = TupleTools.sort(result)
+    return _map(result) do c
         CartesianIndex{K}((Tuple(c) .+ 1) .÷ 2)
     end
 end

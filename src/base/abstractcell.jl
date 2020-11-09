@@ -104,6 +104,8 @@ julia> vertices(Simplex{2}((3, 2, 1), 3.2))
 """
 vertices
 
+Base.length(σ::AbstractCell) = length(typeof(σ))
+
 """
     sign(σ::AbstractCell)
 

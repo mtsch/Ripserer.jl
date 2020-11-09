@@ -32,7 +32,7 @@ using Ripserer:
     end
 
     @testset "from/to_cubemap" begin
-        @test _from_cubemap(CartesianIndex(2, 2, 2), Val(8)) == SVector(
+        @test _from_cubemap(CartesianIndex(2, 2, 2), Val(8)) == (
             CartesianIndex(1, 1, 1),
             CartesianIndex(2, 1, 1),
             CartesianIndex(1, 2, 1),
@@ -58,7 +58,7 @@ using Ripserer:
             ),
         )
             @test _from_cubemap(_to_cubemap(vertices), Val(length(vertices))) ==
-                  sort(SVector(vertices))
+                  TupleTools.sort(vertices)
             root = _to_cubemap(vertices)
             @test begin
                 _from_cubemap(root, Val(length(vertices)))
@@ -117,16 +117,14 @@ end
                     @test c > Cube{D}(root + 2_one_hot(rand(1:K), Val(K)), d)
                 end
 
-                @testset "Array interface, vertices" begin
+                @testset "Vertices, iteration, indexing" begin
                     verts = vertices(c)
 
                     @test eltype(c) == eltype(verts)
                     @test length(c) == length(verts) == 2^D
-                    @test size(c) == (2^D,)
-                    @test firstindex(c) == 1
-                    @test lastindex(c) == 2^D
-
                     @test Cube{D}(verts, birth(c)) == c
+                    @test tuple(verts...) == verts
+                    @test Base.to_index(c) == SVector(verts)
 
                     for (i, v) in enumerate(c)
                         @test v == verts[i]
@@ -142,27 +140,30 @@ end
     end
 
     @testset "Vertices" begin
-        @test vertices(Cube{0}(((1, 1),), 1)) == [CartesianIndex(1, 1)]
-        @test vertices(Cube{1}(((1, 1), (1, 2)), 1)) == CartesianIndex.([(1, 1), (1, 2)])
+        @test vertices(Cube{0}(((1, 1),), 1)) == (CartesianIndex(1, 1),)
+        @test vertices(Cube{1}(((1, 1), (1, 2)), 1)) == (
+            CartesianIndex(1, 1),
+            CartesianIndex(1, 2),
+        )
         @test vertices(Cube{4}(CartesianIndex(10, 14, 15, 22, 2), 1)) ==
-              CartesianIndex.([
-            (5, 7, 8, 11, 1),
-            (6, 7, 8, 11, 1),
-            (5, 8, 8, 11, 1),
-            (6, 8, 8, 11, 1),
-            (5, 7, 8, 12, 1),
-            (6, 7, 8, 12, 1),
-            (5, 8, 8, 12, 1),
-            (6, 8, 8, 12, 1),
-            (5, 7, 8, 11, 2),
-            (6, 7, 8, 11, 2),
-            (5, 8, 8, 11, 2),
-            (6, 8, 8, 11, 2),
-            (5, 7, 8, 12, 2),
-            (6, 7, 8, 12, 2),
-            (5, 8, 8, 12, 2),
-            (6, 8, 8, 12, 2),
-        ])
+              map(CartesianIndex, (
+                  (5, 7, 8, 11, 1),
+                  (6, 7, 8, 11, 1),
+                  (5, 8, 8, 11, 1),
+                  (6, 8, 8, 11, 1),
+                  (5, 7, 8, 12, 1),
+                  (6, 7, 8, 12, 1),
+                  (5, 8, 8, 12, 1),
+                  (6, 8, 8, 12, 1),
+                  (5, 7, 8, 11, 2),
+                  (6, 7, 8, 11, 2),
+                  (5, 8, 8, 11, 2),
+                  (6, 8, 8, 11, 2),
+                  (5, 7, 8, 12, 2),
+                  (6, 7, 8, 12, 2),
+                  (5, 8, 8, 12, 2),
+                  (6, 8, 8, 12, 2),
+              ))
     end
 end
 
@@ -349,9 +350,9 @@ end
         @test d1 == [(0, 2)]
         @test d2 == []
 
-        @test vertices(only(representative(d0[1]))) == SVector(CartesianIndex(3, 3))
+        @test vertices(only(representative(d0[1]))) == (CartesianIndex(3, 3),)
         @test sort(vertices.(representative(d0[2]))) ==
-              sort(SVector.(vec(CartesianIndices(data))))
+              sort(tuple.(vec(CartesianIndices(data))))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.
