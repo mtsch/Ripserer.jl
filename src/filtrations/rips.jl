@@ -41,7 +41,7 @@ end
 function _full_edges(rips::AbstractRipsFiltration)
     result = edge_type(rips)[]
     @inbounds for u in 1:nv(rips), v in (u + 1):nv(rips)
-        sx = unsafe_simplex(rips, Val(1), (v, u), 1)
+        sx = unsafe_simplex(rips, Val(1), (v, u))
         !isnothing(sx) && push!(result, sx)
     end
     return result
@@ -55,7 +55,7 @@ function _sparse_edges(rips::AbstractRipsFiltration)
         for i in nzrange(adj, u)
             v = rows[i]
             if v > u
-                sx = unsafe_simplex(rips, Val(1), (v, u), 1)
+                sx = unsafe_simplex(rips, Val(1), (v, u))
                 !isnothing(sx) && push!(result, sx)
             end
         end
@@ -64,10 +64,10 @@ function _sparse_edges(rips::AbstractRipsFiltration)
 end
 
 @inline @propagate_inbounds function unsafe_simplex(
-    ::Type{S}, rips::AbstractRipsFiltration{I,T}, vertices, sign
+    ::Type{S}, rips::AbstractRipsFiltration{I,T}, vertices
 ) where {I,T,S<:Simplex}
     if dim(S) == 0
-        return S(I(sign) * vertices[1], births(rips)[vertices[1]])
+        return S(vertices[1], births(rips)[vertices[1]])
     else
         adj = adjacency_matrix(rips)
         n = length(vertices)
@@ -77,17 +77,12 @@ end
             (iszero(e) || e > threshold(rips)) && return nothing
             diameter = ifelse(e > diameter, e, diameter)
         end
-        return S(I(sign) * index(vertices), diameter)
+        return S(index(vertices), diameter)
     end
 end
 
 @inline @propagate_inbounds function unsafe_cofacet(
-    ::Type{S},
-    rips::AbstractRipsFiltration{I,T},
-    simplex,
-    cofacet_vertices,
-    new_vertex,
-    sign,
+    ::Type{S}, rips::AbstractRipsFiltration{I,T}, simplex, cofacet_vertices, new_vertex
 ) where {I,T,S<:Simplex}
     diameter = birth(simplex)
     adj = adjacency_matrix(rips)
@@ -99,25 +94,19 @@ end
         (iszero(e) || e > threshold(rips)) && return nothing
         diameter = ifelse(e > diameter, e, diameter)
     end
-    return S(I(sign) * index(cofacet_vertices), diameter)
+    return S(index(cofacet_vertices), diameter)
 end
 
 # This definition is used in SparseCoboundary
 @inline @propagate_inbounds function unsafe_cofacet(
-    ::Type{S},
-    rips::AbstractRipsFiltration{I},
-    simplex,
-    cofacet_vertices,
-    _,
-    sign,
-    new_edges,
+    ::Type{S}, rips::AbstractRipsFiltration{I}, simplex, cofacet_vertices, _, new_edges
 ) where {I,S<:Simplex}
     diameter = birth(simplex)
     for e in new_edges
         e > threshold(rips) && return nothing
         diameter = ifelse(e > diameter, e, diameter)
     end
-    return S(I(sign) * index(cofacet_vertices), diameter)
+    return S(index(cofacet_vertices), diameter)
 end
 
 function coboundary(

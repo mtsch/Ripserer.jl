@@ -14,7 +14,7 @@ If a type implements the interface below, default implementations of [`boundary`
 * [`birth(::AbstractSimplex)`](@ref)
 * [`index(::AbstractSimplex)`](@ref)
 * [`sign(::AbstractSimplex)`](@ref)
-* `Base.:-(::AbstractSimplex)`
+* [`Base.:-(::AbstractSimplex)`](@ref)
 * [`unsafe_simplex`](@ref)
 * [`unsafe_cofacet`](@ref)
 
@@ -92,7 +92,7 @@ end
 
 function _first_vertex(index::I, ::Val{2}, ::I=I(0), ::I=I(0)) where {I}
     # This is https://oeis.org/A002024
-    return floor(I, (√(8 * index + 1) + 1)/2)
+    return floor(I, (√(8 * index + 1) + 1) / 2)
 end
 
 #=
@@ -181,7 +181,6 @@ julia> index((6,2,1))
     return expr
 end
 
-#=
 """
     index_overflow_check(vertices[, message])
 
@@ -198,7 +197,6 @@ function index_overflow_check(
         throw(OverflowError(message))
     end
 end
-=#
 
 vertices(sx::AbstractSimplex) = _vertices(index(sx), Val(length(sx)))
 Base.length(::Type{<:AbstractSimplex{D}}) where {D} = D + 1
@@ -236,11 +234,13 @@ function Base.iterate(
             k -= 1
         end
         v > 0 || return nothing
-        sign = ifelse(iseven(k), one(I), -one(I))
         new_vertices = TupleTools.insertafter(ci.vertices, D - k, (v,))
-        sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v, sign)
+        sx = unsafe_cofacet(ci.filtration, ci.simplex, new_vertices, v)
         if !isnothing(sx)
             _sx::simplex_type(ci.filtration, D) = sx
+            if isodd(k)
+                _sx = -_sx
+            end
             return _sx, (v, k)
         end
     end
@@ -268,22 +268,22 @@ struct SparseCoboundary{A,D,I,F,S}
 end
 
 @propagate_inbounds @inline function _next_common(
-    ptrs::SVector{D}, ptrs_end::SVector{D}, rowval
-) where {D}
-    ptrs = ptrs .- 1
+    ptrs::SVector{D,I}, ptrs_end::SVector{D,I}, rowval
+) where {D,I}
+    ptrs = ptrs .- one(I)
     for i in 1:D
         ptrs[i] < ptrs_end[i] && return zero(ptrs), 0
     end
-    m = rowval[ptrs[2]]
+    m = I(rowval[ptrs[2]])
     i = 1
     while true
         ptrs_i = ptrs[i]
-        row = rowval[ptrs_i]
+        row = I(rowval[ptrs_i])
         while row > m
             ptrs -= SVector(ntuple(isequal(i), Val(D)))
-            ptrs_i -= 1
+            ptrs_i -= one(I)
             ptrs_i < ptrs_end[i] && return zero(ptrs), zero(eltype(rowval))
-            row = rowval[ptrs_i]
+            row = I(rowval[ptrs_i])
         end
         i = ifelse(row == m, i + 1, 1)
         i > D && return ptrs, m
@@ -309,12 +309,14 @@ function Base.iterate(
             end
             !A && k ≠ D && return nothing
 
-            sign = ifelse(iseven(k), 1, -1)
             new_vertices = TupleTools.insertafter(it.vertices, D - k, (v,))
             new_edges = nzval[ptrs]
-            sx = unsafe_cofacet(it.filtration, it.simplex, new_vertices, v, sign, new_edges)
+            sx = unsafe_cofacet(it.filtration, it.simplex, new_vertices, v, new_edges)
             if !isnothing(sx)
                 _sx::simplex_type(it.filtration, D) = sx
+                if isodd(k)
+                    _sx = -sx
+                end
                 return _sx, (ptrs, k)
             end
         end
@@ -343,10 +345,12 @@ function Base.iterate(bi::Boundary{D,I}, k=1) where {D,I}
     while k ≤ D
         facet_vertices = TupleTools.deleteat(bi.vertices, k)
         k += 1
-        sign = ifelse(iseven(k), one(I), -one(I))
-        sx = unsafe_simplex(bi.filtration, Val(D - 2), facet_vertices, sign)
+        sx = unsafe_simplex(bi.filtration, Val(D - 2), facet_vertices)
         if !isnothing(sx)
             _sx::simplex_type(bi.filtration, D - 2) = sx
+            if isodd(k)
+                _sx = -_sx
+            end
             return _sx, k
         end
     end

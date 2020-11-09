@@ -15,15 +15,15 @@ time of type `T`.
 ```jldoctest
 julia> Simplex{2}(2, 1)
 2-dimensional Simplex(index=2, birth=1):
-  +[4, 2, 1]
+  +(4, 2, 1)
 
 julia> Simplex{10}(Int128(-10), 1.0)
 10-dimensional Simplex(index=10, birth=1.0):
-  -Int128[12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1]
+  -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
 
 julia> Simplex{2}((5, 2, 1), 1)
 2-dimensional Simplex(index=5, birth=1):
-  +[5, 2, 1]
+  +(5, 2, 1)
 
 ```
 """

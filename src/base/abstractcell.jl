@@ -54,9 +54,9 @@ dim(σ::AbstractCell) = dim(typeof(σ))
 dim(::Type{<:AbstractCell{D}}) where {D} = D
 
 index_type(σ) = index_type(typeof(σ))
-index_type(::Type{<:AbstractCell{<:Any,<:Any,I}}) where I = I
+index_type(::Type{<:AbstractCell{<:Any,<:Any,I}}) where {I} = I
 birth_type(σ) = birth_type(typeof(σ))
-birth_type(::Type{<:AbstractCell{<:Any,T}}) where T = T
+birth_type(::Type{<:AbstractCell{<:Any,T}}) where {T} = T
 
 """
     index(σ::AbstractCell)
@@ -95,10 +95,7 @@ Get the vertices of `σ`.
 
 ```jldoctest
 julia> vertices(Simplex{2}((3, 2, 1), 3.2))
-3-element StaticArrays.SArray{Tuple{3},Int64,1,3} with indices SOneTo(3):
- 3
- 2
- 1
+(3, 2, 1)
 
 ```
 """
@@ -133,7 +130,7 @@ Reverse the cell orientation.
 ```jldoctest
 julia> -Simplex{2}((3, 2, 1), 3.2)
 2-dimensional Simplex(index=1, birth=3.2):
-  -[3, 2, 1]
+  -(3, 2, 1)
 
 ```
 """
@@ -153,7 +150,7 @@ end
 # Iteration and indexing
 Base.to_index(σ::AbstractCell) = SVector(vertices(σ))
 Base.eltype(::Type{S}) where {S<:AbstractCell} = index_type(S)
-function Base.iterate(σ::AbstractCell, (vs,i)=(vertices(σ), 1))
+function Base.iterate(σ::AbstractCell, (vs, i)=(vertices(σ), 1))
     if i > length(vs)
         return nothing
     else
@@ -189,8 +186,8 @@ end
 
 # output
 
-+Simplex{2}([4, 3, 1], 1)
--Simplex{2}([3, 2, 1], 1)
++Simplex{2}((4, 3, 1), 1)
+-Simplex{2}((3, 2, 1), 1)
 ```
 
 ```jldoctest coboundary
@@ -200,7 +197,7 @@ end
 
 # output
 
-+Simplex{2}([4, 3, 1], 1)
++Simplex{2}((4, 3, 1), 1)
 ```
 """
 coboundary
@@ -229,9 +226,9 @@ end
 
 # output
 
-+Simplex{1}([2, 1], 1)
--Simplex{1}([4, 1], 1)
-+Simplex{1}([4, 2], 1)
++Simplex{1}((2, 1), 1)
+-Simplex{1}((4, 1), 1)
++Simplex{1}((4, 2), 1)
 ```
 """
 boundary

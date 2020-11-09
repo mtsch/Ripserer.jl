@@ -180,13 +180,13 @@ julia> length(Ripserer.edges(rips))
 
 julia> sort(ripserer(alpha)[2], by=persistence)[end]
 [0.375, 2.01) with:
- birth_simplex: 2-element Ripserer.Simplex{1,Float64,Int64}
- death_simplex: 3-element Ripserer.Simplex{2,Float64,Int64}
+ birth_simplex: Ripserer.Simplex{1,Float64,Int64}
+ death_simplex: Ripserer.Simplex{2,Float64,Int64}
 
 julia> sort(ripserer(rips)[2], by=persistence)[end]
 [0.375, 2.01) with:
- birth_simplex: 2-element Ripserer.Simplex{1,Float64,Int64}
- death_simplex: 3-element Ripserer.Simplex{2,Float64,Int64}
+ birth_simplex: Ripserer.Simplex{1,Float64,Int64}
+ death_simplex: Ripserer.Simplex{2,Float64,Int64}
 ```
 """
 struct Alpha{I,P<:SVector} <: AbstractCustomFiltration{I,Float64}

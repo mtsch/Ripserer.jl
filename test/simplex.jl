@@ -6,21 +6,21 @@ using Ripserer: _binomial, _vertices, coboundary, boundary
 
 struct FakeFiltration <: Ripserer.AbstractFiltration{Int,Int} end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D,Int,Int}}, ::FakeFiltration, vertices, sign
+    ::Type{Simplex{D,Int,Int}}, ::FakeFiltration, vertices
 ) where {D}
-    return Simplex{D,Int,Int}(sign * index(vertices), 1)
+    return Simplex{D,Int,Int}(index(vertices), 1)
 end
 Ripserer.nv(::FakeFiltration) = 20
 Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D,Int,Int}
 
 struct FakeFiltrationWithThreshold <: Ripserer.AbstractFiltration{Int,Int} end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D,Int,Int}}, ::FakeFiltrationWithThreshold, vertices, sign
+    ::Type{Simplex{D,Int,Int}}, ::FakeFiltrationWithThreshold, vertices
 ) where {D}
     if maximum(vertices) > 10
         return nothing
     else
-        return Simplex{D,Int,Int}(sign * index(vertices), 1)
+        return Simplex{D,Int,Int}(index(vertices), 1)
     end
 end
 Ripserer.nv(::FakeFiltrationWithThreshold) = 20

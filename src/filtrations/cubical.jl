@@ -83,8 +83,7 @@ vertices are of type `CartesianIndex{K}`.
 
 ```jldoctest
 julia> Cube{1}(CartesianIndex(1, 2), 1.0)
-1-dimensional Cube(index=CartesianIndex(1, 2), birth=1.0):
-  +CartesianIndex{2}[CartesianIndex(1, 1), CartesianIndex(1, 2)]
+Cube{1,Float64,2}((1, 2), 1.0)
 
 ```
 """

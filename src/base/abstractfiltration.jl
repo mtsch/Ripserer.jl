@@ -10,9 +10,9 @@ A filtration is used to find the edges in filtration and to create simplices. An
 * [`nv(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
-* [`simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
-* [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices, sign)`](@ref)
-* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex, sign[, edges])`
+* [`simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
+* [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
+* [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges])`
 * [`births(::AbstractFiltration)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration, ::Any)`](@ref)
@@ -85,9 +85,9 @@ julia> Ripserer.edges(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2))
 edges(::AbstractFiltration)
 
 """
-     simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
+     simplex(::AbstractFiltration, ::Val{D}, vertices)
 
-Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+Return `D`-simplex constructed from `vertices`. Return `nothing`
 if simplex is not in filtration. This function is safe to call with vertices that are out of
 order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref).
 
@@ -100,35 +100,35 @@ julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
 
 ```
 """
-function simplex(flt::AbstractFiltration, ::Val{D}, vertices, sign=1) where {D}
+function simplex(flt::AbstractFiltration, ::Val{D}, vertices) where {D}
     if D == 0 && length(vertices) == 1 && vertices[1] > 0
         # No need to run allunique in this case.
-        return unsafe_simplex(flt, Val(0), vertices, sign)
+        return unsafe_simplex(flt, Val(0), vertices)
     else
         vs = TupleTools.sort(Tuple(vertices); rev=true)
         if allunique(vs) &&
            all(x -> x > 0, vs) &&
            length(vs) == length(simplex_type(flt, D))
-            return unsafe_simplex(flt, Val(D), vs, sign)
+            return unsafe_simplex(flt, Val(D), vs)
         end
     end
     return throw(ArgumentError("invalid vertices $(vertices)"))
 end
 
 """
-    unsafe_simplex(::AbstractFiltration, ::Val{D}, vertices, sign=1)
+    unsafe_simplex(::AbstractFiltration, ::Val{D}, vertices)
 
-Return `D`-simplex constructed from `vertices` with sign equal to `sign`. Return `nothing`
+Return `D`-simplex constructed from `vertices`. Return `nothing`
 if simplex is not in filtration. The unsafe in the name implies that it's up to the caller
 to ensure vertices are sorted and unique.
 """
-function unsafe_simplex(flt, ::Val{D}, vertices, sign=1) where {D}
-    return unsafe_simplex(simplex_type(typeof(flt), D), flt, vertices, sign)
+function unsafe_simplex(flt, ::Val{D}, vertices) where {D}
+    return unsafe_simplex(simplex_type(typeof(flt), D), flt, vertices)
 end
 
 """
-    unsafe_cofacet(filtration, simplex, cofacet_vertices, v, sign[, edges])
-    unsafe_cofacet(::Type{S}, filtration, simplex, cofacet_vertices, v, sign[, edges])
+    unsafe_cofacet(filtration, simplex, cofacet_vertices, v[, edges])
+    unsafe_cofacet(::Type{S}, filtration, simplex, cofacet_vertices, v[, edges])
 
 Return cofacet of `simplex` with vertices equal to `cofacet_vertices`. `v` is the
 vertex that was added to construct the cofacet. In the case of sparse rips filtrations, an
@@ -144,8 +144,8 @@ Default implementation uses [`unsafe_simplex`](@ref).
 @inline @propagate_inbounds function unsafe_cofacet(flt, sx, args...)
     return unsafe_cofacet(simplex_type(typeof(flt), dim(sx) + 1), flt, sx, args...)
 end
-function unsafe_cofacet(::Type{S}, flt, _, vertices, _, sign, args...) where {S}
-    return unsafe_simplex(flt, Val(dim(S)), vertices, sign)::Union{S,Nothing}
+function unsafe_cofacet(::Type{S}, flt, _, vertices, _, args...) where {S}
+    return unsafe_simplex(flt, Val(dim(S)), vertices)::Union{S,Nothing}
 end
 
 """
@@ -252,7 +252,7 @@ julia> flt = Rips([0 1 1; 1 0 1; 1 1 0]);
 
 julia> Ripserer.columns_to_reduce(flt, Ripserer.edges(flt)) |> collect
 1-element Array{Simplex{2,Int64,Int64},1}:
- +Simplex{2}([3, 2, 1], 1)
+ +Simplex{2}((3, 2, 1), 1)
 
 ```
 """

@@ -31,7 +31,7 @@ function Base.getindex(cf::AbstractCustomFiltration, ::Val{D}) where {D}
 end
 
 function unsafe_simplex(
-    ::Type{S}, cf::AbstractCustomFiltration, vertices, sign
+    ::Type{S}, cf::AbstractCustomFiltration, vertices
 ) where {D,S<:Simplex{D}}
     if D > dim(cf)
         return nothing
@@ -41,7 +41,7 @@ function unsafe_simplex(
         if isnothing(birth) || birth > threshold(cf)
             return nothing
         else
-            return simplex_type(cf, D)(sign * idx, birth)
+            return simplex_type(cf, D)(idx, birth)
         end
     end
 end
@@ -76,10 +76,10 @@ Custom{Int64, Int64}(nv=4)
 
 julia> flt[0] # Can be indexed with dimension to list simplices
 4-element Array{Simplex{0,Int64,Int64},1}:
- +Simplex{0}([4], 0)
- +Simplex{0}([2], 1)
- +Simplex{0}([3], 2)
- +Simplex{0}([1], 0)
+ +Simplex{0}((4,), 0)
+ +Simplex{0}((2,), 1)
+ +Simplex{0}((3,), 2)
+ +Simplex{0}((1,), 0)
 
 julia> ripserer(flt)[1]
 2-element 0-dimensional PersistenceDiagram:
