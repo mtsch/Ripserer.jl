@@ -73,7 +73,6 @@ function _first_vertex(index::I, ::Val{K}) where {I,K}
     end
     return _first_vertex(index, Val(K), hi + one(I), lo)
 end
-
 function _first_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K - 1)) where {I,K}
     while lo < hi - one(I)
         m = lo + ((hi - lo) >>> 0x01)
@@ -85,67 +84,33 @@ function _first_vertex(index::I, ::Val{K}, hi::I, lo::I=I(K - 1)) where {I,K}
     end
     return lo
 end
-
 function _first_vertex(index::I, ::Val{1}, ::I=I(0), ::I=I(0)) where {I}
     return index
 end
-
 function _first_vertex(index::I, ::Val{2}, ::I=I(0), ::I=I(0)) where {I}
     # This is https://oeis.org/A002024
     return floor(I, (√(8 * index + 1) + 1) / 2)
 end
 
+"""
+    _vertices(index::I, ::Val{N})::NTuple{N,I}
+
+Get the vertices of simplex represented by index.
+"""
 @inline function _vertices(index::I, ::Val{K}) where {I,K}
     index -= one(I)
     vk = _first_vertex(index, Val(K))
     index -= _binomial(vk, Val(K))
-    return tuple(vk + 1, _vertices(index, Val(K - 1), vk)...)
+    return tuple(vk + one(I), _vertices(index, Val(K - 1), vk)...)
 end
 @inline function _vertices(index::I, ::Val{K}, prev) where {I,K}
     vk = _first_vertex(index, Val(K), prev)
     index -= _binomial(vk, Val(K))
-    return tuple(vk + 1, _vertices(index, Val(K - 1), vk)...)
+    return tuple(vk + one(I), _vertices(index, Val(K - 1), vk)...)
 end
-@inline _vertices(index, ::Val{1}, _) = (index + 1,)
+@inline _vertices(index::I, ::Val{1}, _) where I = (index + one(I),)
 @inline _vertices(index, ::Val{1}) = (index,)
 
-#=
-"""
-    _vertices(index::I, ::Val{N})
-
-Get the vertices of simplex represented by index. Returns `SVector{N, I}`.
-For regular simplices, `N` should be equal to `dim+1`.
-"""
-@generated function _vertices(index::I, ::Val{N})::SVector{N,I} where {I,N}
-    # Generate code of the form
-    # index = abs(index) - 1
-    # vk   = _first_vertex(index, Val(k))
-    # vk-1 = _first_vertex(index, Val(k-1), vk)
-    # ...
-    # v1 = _first_vertex(index, Val(2), v2)
-    # v0 = _first_vertex(index, Val(1), v1)
-    # (vk, ..., v0) .+ 1
-    vars = Symbol[Symbol("v", k) for k in (N - 1):-1:0]
-    expr = quote
-        index = abs(index) - one(I)
-        $(vars[1]) = _first_vertex(index, Val($N))
-        index -= _binomial($(vars[1]), Val($N))
-    end
-
-    for (i, k) in enumerate((N - 1):-1:1)
-        expr = quote
-            $expr
-            $(vars[i + 1]) = _first_vertex(index, Val($k), $(vars[i]))
-            index -= _binomial($(vars[i + 1]), Val($k))
-        end
-    end
-    return quote
-        $expr
-        tuple($(vars...)) .+ I(1)
-    end
-end
-
-# TODO: use lispy recursion
 """
     index(vertices)
 
@@ -162,29 +127,11 @@ julia> index((6,2,1))
 11
 ```
 """
-@generated function index(vertices::Union{NTuple{K},SVector{K}}) where {K}
-    # generate code of the form
-    # 1 + _binomial(vertices[1] - 1, Val(K))
-    #   + _binomial(vertices[2] - 1, Val(K-1))
-    #   ...
-    #   + _binomial(vertices[K] - 1, Val(1))
-    I = eltype(vertices)
-    expr = quote
-        one($I) + _binomial(vertices[1] - one($I), Val($K))
-    end
-    for i in 2:K
-        expr = quote
-            $expr + _binomial(vertices[$i] - one($I), Val($(K - i + 1)))
-        end
-    end
-    return expr
-end
-=#
 index(vertices::SVector) = index(Tuple(vertices))
-index(vertices::NTuple{<:Any, I}) where I = _index(vertices, one(I))
+index(vertices::NTuple) = _index(vertices, one(eltype(vertices)))
 
 @inline _index(::NTuple{0}, acc) = acc
-@inline function _index(vertices::NTuple{N, I}, acc::I) where {N,I}
+@inline function _index(vertices::NTuple{N,I}, acc::I) where {N,I}
     acc += _binomial(first(vertices) - one(I), Val(N))
     return _index(TupleTools.tail(vertices), acc)
 end
