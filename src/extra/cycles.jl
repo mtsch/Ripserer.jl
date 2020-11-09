@@ -1,4 +1,4 @@
-struct OneSkeleton{T,F<:AbstractFiltration,S<:AbstractSimplex{1},A} <: AbstractGraph{Int}
+struct OneSkeleton{T,F<:AbstractFiltration,S<:AbstractCell{1},A} <: AbstractGraph{Int}
     filtration::F
     threshold::T
     weights::A
@@ -15,7 +15,7 @@ function OneSkeleton(
     return OneSkeleton{T,F,S,typeof(weights)}(filtration, thresh, weights, removed)
 end
 
-_birth_or_value(σ::AbstractSimplex) = birth(σ)
+_birth_or_value(σ::AbstractCell) = birth(σ)
 _birth_or_value(σ) = σ
 _in(σ::S, g::OneSkeleton{S}) where {S} = !isnothing(σ) && σ ≤ g.threshold && σ ∉ g.removed
 _in(σ, g::OneSkeleton) = !isnothing(σ) && birth(σ) ≤ g.threshold && σ ∉ g.removed
@@ -136,7 +136,7 @@ function reconstruct_cycle(
 ) where {T}
     if !hasproperty(interval, :representative)
         throw(ArgumentError("interval has no representative! Run `ripserer` with `reps=true`"))
-    elseif !(eltype(interval.representative) <: AbstractChainElement{<:AbstractSimplex{1}})
+    elseif !(eltype(interval.representative) <: AbstractChainElement{<:AbstractCell{1}})
         throw(ArgumentError("cycles can only be reconstructed for 1-dimensional intervals."))
     elseif !(birth(interval) ≤ _birth_or_value(r) < death(interval))
         return simplex_type(filtration, 1)[]

@@ -1,5 +1,5 @@
 """
-    abstract type AbstractChainElement{S<:AbstractSimplex, F}
+    abstract type AbstractChainElement{S<:AbstractCell, F}
 
 Abstract type for representing an element of a chain. Create subtypes of this if there is a
 more efficient way to store a simplex and coefficient than as two fields.
@@ -19,7 +19,7 @@ Coefficient values must be in a field - they must support `+`, `-`, `*`, `/`, `i
 * `simplex(::ChainElement)`
 * `coefficient(::ChainElement)`
 """
-abstract type AbstractChainElement{S<:AbstractSimplex,F<:Number} end
+abstract type AbstractChainElement{S<:AbstractCell,F<:Number} end
 
 for op in (:+, :-)
     @eval function (Base.$op)(ce1::C, ce2::C) where {C<:AbstractChainElement}
@@ -88,7 +88,7 @@ end
 function Base.convert(::Type{C}, simplex::S) where {S,C<:AbstractChainElement{S}}
     return C(simplex)
 end
-function Base.convert(::Type{S}, elem::AbstractChainElement{S}) where {S<:AbstractSimplex}
+function Base.convert(::Type{S}, elem::AbstractChainElement{S}) where {S<:AbstractCell}
     return simplex(elem)
 end
 function Base.convert(
@@ -107,11 +107,11 @@ pairs.
 chain_element_type(::S, ::F) where {S,F} = chain_element_type(S, F)
 
 """
-    ChainElement{S<:AbstractSimplex, F} <: AbstractChainElement{S, F}
+    ChainElement{S<:AbstractCell, F} <: AbstractChainElement{S, F}
 
 The default, basic subtype of [`AbstractChainElement`](@ref).
 """
-struct ChainElement{S<:AbstractSimplex,F} <: AbstractChainElement{S,F}
+struct ChainElement{S<:AbstractCell,F} <: AbstractChainElement{S,F}
     simplex::S
     coefficient::F
 
@@ -172,8 +172,8 @@ function chain_element_type(
 end
 
 function index_overflow_check(
-    ::Type{S}, ::Type{F}, nv, message=""
-) where {T,I,F,S<:Simplex{<:Any,T,I}}
+    ::Type{S}, ::Type{F}, nv, message
+) where {T,I,F<:Mod,S<:Simplex{<:Any,T,I}}
     vertices = ntuple(i -> I(nv - i + 1), length(S))
     element = chain_element_type(S, F)(S(index(I.(vertices)), zero(T)))
 
@@ -184,6 +184,7 @@ function index_overflow_check(
         throw(OverflowError(message))
     end
 end
-function index_overflow_check(::Type{<:AbstractSimplex}, F, nv, message="")
+
+function index_overflow_check(::Type{<:AbstractCell}, _, _, _)
     return nothing
 end

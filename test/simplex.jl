@@ -110,20 +110,14 @@ end
                     @test sx > Simplex{D}(I(i + 1), b)
                 end
 
-                @testset "Array interface, vertices" begin
+                @testset "vertices, iteration, indexing" begin
                     verts = vertices(sx)
 
                     @test eltype(sx) == eltype(verts)
                     @test length(sx) == length(verts) == D + 1
-                    @test size(sx) == (D + 1,)
-                    @test firstindex(sx) == 1
-                    @test lastindex(sx) == D + 1
-
                     @test Simplex{D}(verts, birth(sx)) ≡ sx
-
-                    for (i, v) in enumerate(sx)
-                        @test v == verts[i]
-                    end
+                    @test tuple(sx...) == verts
+                    @test (1:1000)[sx] == SVector(verts)
 
                     @test begin
                         @inferred vertices(sx)

@@ -17,6 +17,7 @@ simplex_name(::Type{<:Simplex{1}}) = "edges"
 simplex_name(::Type{<:Simplex{2}}) = "triangles"
 simplex_name(::Type{<:Simplex{3}}) = "tetrahedra"
 simplex_name(::Type{<:AbstractSimplex{D}}) where {D} = "$D-simplices"
+simplex_name(::Type{<:AbstractCell{D}}) where {D} = "$D-cells"
 
 function fmt_number(i)
     # Stolen from Humanize.jl

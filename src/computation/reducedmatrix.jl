@@ -1,5 +1,5 @@
 """
-    ReducedMatrix{I<:AbstractSimplex, C<:Chain}
+    ReducedMatrix{I<:AbstractCell,C<:Chain}
 
 Representation of the reduced part of the matrix. Is indexed by `I`, indexing returns views
 into a `Chain` of type `C`.
@@ -8,7 +8,7 @@ into a `Chain` of type `C`.
     This type does no input validation. Doing things like adding columns that already exist
     is undefined.
 """
-struct ReducedMatrix{I<:AbstractSimplex,F,S,C<:Chain{F,S}}
+struct ReducedMatrix{I<:AbstractCell,F,S,C<:Chain{F,S}}
     column_index::Dict{I,Int}
     indices::Vector{Int}
     values::C

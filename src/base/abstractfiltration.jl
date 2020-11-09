@@ -1,9 +1,9 @@
 """
-    AbstractFiltration{I, T}
+    AbstractFiltration{I,T}
 
 A filtration is used to find the edges in filtration and to create simplices. An
-`AbstractFiltration{I, T}`'s simplex type is expected to return simplices of type
-`<:AbstractSimplex{_, T, I}`.
+`AbstractFiltration{I,T}`'s simplex type is expected to return simplices of type
+`<:AbstractCell{_,T,I}`.
 
 # Interface
 
@@ -35,10 +35,10 @@ needs to be overloaded.
 # Examples
 
 ```jldoctest
-julia> Ripserer.simplex_type(Rips{Int, Float64}, 1)
+julia> Ripserer.simplex_type(Rips{Int,Float64}, 1)
 Simplex{1,Float64,Int64}
 
-julia> Ripserer.simplex_type(Cubical{2, Float16}, 2)
+julia> Ripserer.simplex_type(Cubical{2,Float16}, 2)
 Cube{2,Float16,2}
 
 ```

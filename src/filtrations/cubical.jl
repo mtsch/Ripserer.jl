@@ -70,7 +70,7 @@ function _is_valid(vertices::NTuple{N}) where {N}
 end
 
 """
-    Cube{D, T, K} <: AbstractSimplex{D, T, CartesianIndex{K}}
+    Cube{D, T, K} <: AbstractCell{D, T, CartesianIndex{K}}
 
 A `Cube` is similar to a `Simplex`, but it has `2^D` vertices instead of `D+1`. The vertices
 are encoded as the position in the CubeMap (see reference in [`Cubical`](@ref)). A `Cube`'s
@@ -85,7 +85,7 @@ julia> Cube{1}(CartesianIndex(1, 2), 1.0)
 
 ```
 """
-struct Cube{D,T,K} <: AbstractSimplex{D,T,CartesianIndex{K}}
+struct Cube{D,T,K} <: AbstractCell{D,T,CartesianIndex{K}}
     root::NTuple{K,Int32}
     birth::T
 
