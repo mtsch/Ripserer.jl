@@ -95,9 +95,8 @@ function _first_vertex(index::I, ::Val{2}, ::I=I(0), ::I=I(0)) where {I}
     return floor(I, (√(8 * index + 1) + 1) / 2)
 end
 
-#=
 @inline function _vertices(index::I, ::Val{K}) where {I,K}
-    index -= 1
+    index -= one(I)
     vk = _first_vertex(index, Val(K))
     index -= _binomial(vk, Val(K))
     return tuple(vk + 1, _vertices(index, Val(K - 1), vk)...)
@@ -107,10 +106,10 @@ end
     index -= _binomial(vk, Val(K))
     return tuple(vk + 1, _vertices(index, Val(K - 1), vk)...)
 end
-@inline function _vertices(index, ::Val{1}, _)
-    return (index + 1,)
-end
-=#
+@inline _vertices(index, ::Val{1}, _) = (index + 1,)
+@inline _vertices(index, ::Val{1}) = (index,)
+
+#=
 """
     _vertices(index::I, ::Val{N})
 
@@ -179,6 +178,15 @@ julia> index((6,2,1))
         end
     end
     return expr
+end
+=#
+index(vertices::SVector) = index(Tuple(vertices))
+index(vertices::NTuple{<:Any, I}) where I = _index(vertices, one(I))
+
+@inline _index(::NTuple{0}, acc) = acc
+@inline function _index(vertices::NTuple{N, I}, acc::I) where {N,I}
+    acc += _binomial(first(vertices) - one(I), Val(N))
+    return _index(TupleTools.tail(vertices), acc)
 end
 
 """
