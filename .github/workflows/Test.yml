@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: MiniQHull deps
         run: sudo apt-get install gcc libqhull-r7 libqhull-dev
+        if: ${{ matrix.julia-version == '1.0' }}
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.julia-version }}
