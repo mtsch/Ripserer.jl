@@ -28,14 +28,14 @@ function index_data(indices, x, y, z)
 end
 
 """
-    plottable(sx::AbstractSimplex, args...)
+    plottable(sx::AbstractCell, args...)
     plottable(sx::PersistenceInterval, args...)
-    plottable(sx::Vector{<:AbstractSimplex}, args...)
+    plottable(sx::Vector{<:AbstractCell}, args...)
 
 Turn `sx` into a series that can be plotted. `args...`, should contain the data which tells
 the plot where to place simplex vertices.
 """
-function plottable(sx::AbstractSimplex, args...)
+function plottable(sx::AbstractCell, args...)
     return plottable([sx], args...)
 end
 function plottable(int::PersistenceInterval, args...)
@@ -47,17 +47,17 @@ end
 function plottable(element::AbstractChainElement, args...)
     return plottable(simplex(element), args...)
 end
-function plottable(sxs::AbstractVector{<:AbstractSimplex{0}}, args...)
+function plottable(sxs::AbstractVector{<:AbstractCell{0}}, args...)
     indices = sort(only.(vertices.(sxs)))
     return index_data(indices, args...), [:seriestype => :scatter], 0
 end
-function plottable(sxs::AbstractVector{<:AbstractSimplex{1}}, args...)
+function plottable(sxs::AbstractVector{<:AbstractCell{1}}, args...)
     indices = mapreduce(vcat, vertices.(sxs)) do (u, v)
         [u, v, 0]
     end
     return index_data(indices, args...), [:seriestype => :path], 1
 end
-function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where {D}
+function plottable(sxs::AbstractVector{<:AbstractCell{D}}, args...) where {D}
     indices = mapreduce(vcat, vertices.(sxs)) do vs
         idxs = Int[]
         for (u, v, w) in subsets(vs, Val(3))
@@ -69,10 +69,10 @@ function plottable(sxs::AbstractVector{<:AbstractSimplex{D}}, args...) where {D}
     return index_data(indices, args...), [:seriestype => :path], D
 end
 
-function apply_threshold(sx::AbstractSimplex, thresh, thresh_strict)
+function apply_threshold(sx::AbstractCell, thresh, thresh_strict)
     return birth(sx) ≤ thresh && birth(sx) < thresh_strict ? sx : nothing
 end
-function apply_threshold(sxs::AbstractVector{<:AbstractSimplex}, thresh, thresh_strict)
+function apply_threshold(sxs::AbstractVector{<:AbstractCell}, thresh, thresh_strict)
     return filter(sx -> birth(sx) ≤ thresh && birth(sx) < thresh_strict, sxs)
 end
 function apply_threshold(els::AbstractVector{<:AbstractChainElement}, thresh, thresh_strict)
@@ -88,9 +88,9 @@ end
 
 @recipe function f(
     sx::Union{
-        AbstractSimplex,
+        AbstractCell,
         AbstractChainElement,
-        AbstractVector{<:AbstractSimplex},
+        AbstractVector{<:AbstractCell},
         AbstractVector{<:AbstractChainElement},
         PersistenceInterval,
     },

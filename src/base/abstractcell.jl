@@ -99,7 +99,7 @@ julia> vertices(Simplex{2}((3, 2, 1), 3.2))
 
 ```
 """
-vertices
+vertices(::AbstractCell)
 
 Base.length(σ::AbstractCell) = length(typeof(σ))
 

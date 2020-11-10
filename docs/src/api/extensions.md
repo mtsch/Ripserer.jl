@@ -77,21 +77,21 @@ Ripserer.AbstractSimplex
 ```
 
 ```@docs
-index(::Ripserer.AbstractSimplex)
+index(::Ripserer.AbstractCell)
 ```
 
 ```@docs
-Base.sign(::Ripserer.AbstractSimplex)
+Base.sign(::Ripserer.AbstractCell)
 ```
 
 ```@docs
-Base.:-(::Ripserer.AbstractSimplex)
+Base.:-(::Ripserer.AbstractCell)
 ```
 
 ```@docs
-Ripserer.coboundary(::Any, ::Ripserer.AbstractSimplex)
+Ripserer.coboundary
 ```
 
 ```@docs
-Ripserer.boundary(::Any, ::Ripserer.AbstractSimplex)
+Ripserer.boundary
 ```

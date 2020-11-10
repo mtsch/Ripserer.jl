@@ -39,15 +39,15 @@ Cube
 ```
 
 ```@docs
-Ripserer.vertices(::Ripserer.AbstractSimplex)
+Ripserer.vertices(::Ripserer.AbstractCell)
 ```
 
 ```@docs
-Ripserer.birth(::Ripserer.AbstractSimplex)
+Ripserer.birth(::Ripserer.AbstractCell)
 ```
 
 ```@docs
-Ripserer.dim(::Ripserer.AbstractSimplex)
+Ripserer.dim(::Ripserer.AbstractCell)
 ```
 
 ## Fields
