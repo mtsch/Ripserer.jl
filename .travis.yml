@@ -27,10 +27,6 @@ jobs:
       julia: nightly
       after_success: skip
 
-    - os: osx
-      julia: 1
-      after_success: skip
-
     - os: windows
       julia: 1
       after_success: skip
