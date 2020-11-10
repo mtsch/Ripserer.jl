@@ -10,11 +10,7 @@ full_benchmarks = [
     (file="fract-r.dist", dim_max=2, threshold=nothing),
     (file="dragon2000.pts", dim_max=1, threshold=nothing),
 ]
-sparse_benchmarks = [
-    (file="alpha_3_sphere_3000.spdist", dim_max=3),
-    (file="alpha_4_sphere_2000.spdist", dim_max=4),
-    (file="alpha_5_sphere_1000.spdist", dim_max=5),
-]
+sparse_benchmarks = [(file="alpha_4_sphere_2000.spdist", dim_max=4)]
 
 suite = BenchmarkGroup()
 suite["sparse"] = BenchmarkGroup()

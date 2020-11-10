@@ -1,19 +1,18 @@
 name: Benchmarks
 
-on:
-  pull_request:
+on: pull_request
 
 jobs:
-  Benchmark:
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 1.5
+          version: 1
+      - uses: julia-actions/julia-buildpkg@latest
       - name: Install dependencies
         run: julia -e 'using Pkg; pkg"add PkgBenchmark BenchmarkTools BenchmarkCI@0.1"'
-             apt-get install make
       - name: Run benchmarks
         run: julia -e 'using BenchmarkCI; BenchmarkCI.judge()'
       - name: Post results

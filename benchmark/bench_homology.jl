@@ -9,7 +9,6 @@ benchmarks = [
     (file="klein200.pts", dim_max=1, threshold=1.7, filtration=Rips),
     (file="sphere100.pts", dim_max=2, threshold=nothing, filtration=Rips),
     (file="lena1024.dipha", dim_max=2, threshold=nothing, filtration=Cubical),
-    (file="bonsai64.dipha", dim_max=3, threshold=nothing, filtration=Cubical),
 ]
 
 suite = BenchmarkGroup()
