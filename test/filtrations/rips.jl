@@ -41,7 +41,7 @@ for sparse in (true, false)
         @test adjacency_matrix(filtration) == filtration.adj
 
         @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0}(1, 0.0)
-        @test unsafe_simplex(filtration, Val(1), (2, 1), -1) === -Simplex{1}(1, 1.0)
+        @test unsafe_simplex(filtration, Val(1), (2, 1)) === Simplex{1}(1, 1.0)
         @test simplex(filtration, Val(2), (1, 3, 2)) === Simplex{2}(1, 3.0)
         @test_throws ArgumentError simplex(filtration, Val(2), (1, 1, 2))
     end
@@ -65,7 +65,7 @@ for sparse in (true, false)
 
         @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0,Int,Int128}(1, 1)
         @test unsafe_simplex(filtration, Val(2), (3, 2, 1)) === nothing
-        @test simplex(filtration, Val(1), (1, 2), -1) === -Simplex{1,Int,Int128}(1, 2)
+        @test simplex(filtration, Val(1), (1, 2)) === Simplex{1,Int,Int128}(1, 2)
         @test_throws ArgumentError simplex(filtration, Val(2), (0, 1, 2))
     end
 end
@@ -395,7 +395,7 @@ end
         @testset "Representative cycle" begin
             res_hom = ripserer(cycle; alg=:homology, reps=true, dim_max=3)
             @test vertices.(simplex.(representative(res_hom[2][1]))) ==
-                  sort!(vcat([SVector(i + 1, i) for i in 1:17], [SVector(18, 1)]))
+                  sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
         end
         @testset "Infinite intervals" begin
             @test_broken ripserer(cycle; alg=:homology, threshold=2, implicit=true)[2][1] ==

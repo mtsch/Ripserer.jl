@@ -130,13 +130,13 @@ end
 # The main idea of this test is to test postprocess_diagrams
 struct NoRepsFiltration <: Ripserer.AbstractFiltration{Int,Int} end
 
-function Ripserer.unsafe_simplex(::Type{Simplex{0,Int,Int}}, ::NoRepsFiltration, (v,), sign)
-    return Simplex{0}(sign * v, 0)
+function Ripserer.unsafe_simplex(::Type{Simplex{0,Int,Int}}, ::NoRepsFiltration, (v,))
+    return Simplex{0}(v, 0)
 end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D,Int,Int}}, ::NoRepsFiltration, vertices, sign
+    ::Type{Simplex{D,Int,Int}}, ::NoRepsFiltration, vertices
 ) where {D}
-    return Simplex{D}(sign * index(vertices), 1)
+    return Simplex{D}(index(vertices), 1)
 end
 Ripserer.nv(::NoRepsFiltration) = 10
 Ripserer.simplex_type(::Type{NoRepsFiltration}, D) = Simplex{D,Int,Int}

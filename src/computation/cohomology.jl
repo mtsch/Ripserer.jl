@@ -5,7 +5,7 @@ This `struct` is used to compute cohomology. The `I` parameter sets whether the 
 algoritm is used or not.
 """
 struct CoboundaryMatrix{
-    I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
+    I,T<:Number,F,S<:AbstractCell,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
 }
     filtration::F
     reduced::R
@@ -44,7 +44,7 @@ is_implicit(::CoboundaryMatrix{I}) where {I} = I
 is_cohomology(::CoboundaryMatrix) = true
 ordering(::CoboundaryMatrix) = Base.Order.Forward
 
-function coboundary(matrix::CoboundaryMatrix, simplex::AbstractSimplex)
+function coboundary(matrix::CoboundaryMatrix, simplex::AbstractCell)
     return coboundary(matrix.filtration, simplex)
 end
 
@@ -87,7 +87,7 @@ This `struct` is used to compute homology. The `I` parameter sets whether the im
 algoritm is used or not.
 """
 struct BoundaryMatrix{
-    I,T<:Number,F,S<:AbstractSimplex,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
+    I,T<:Number,F,S<:AbstractCell,R<:ReducedMatrix,B<:Chain{T},C<:Chain{T}
 }
     filtration::F
     reduced::R
@@ -134,7 +134,7 @@ is_implicit(::BoundaryMatrix{I}) where {I} = I
 is_cohomology(::BoundaryMatrix) = false
 
 # The naming here is not ideal...
-function coboundary(matrix::BoundaryMatrix, simplex::AbstractSimplex)
+function coboundary(matrix::BoundaryMatrix, simplex::AbstractCell)
     return boundary(matrix.filtration, simplex)
 end
 

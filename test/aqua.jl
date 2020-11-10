@@ -1,5 +1,5 @@
-using Ripserer
 using Aqua
+using Ripserer
 
 Aqua.test_ambiguities([Ripserer, Base]; exclude=[convert, all, in])
 Aqua.test_unbound_args(Ripserer)

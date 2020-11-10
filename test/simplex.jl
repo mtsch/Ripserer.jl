@@ -6,21 +6,21 @@ using Ripserer: _binomial, _vertices, coboundary, boundary
 
 struct FakeFiltration <: Ripserer.AbstractFiltration{Int,Int} end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D,Int,Int}}, ::FakeFiltration, vertices, sign
+    ::Type{Simplex{D,Int,Int}}, ::FakeFiltration, vertices
 ) where {D}
-    return Simplex{D,Int,Int}(sign * index(vertices), 1)
+    return Simplex{D,Int,Int}(index(vertices), 1)
 end
 Ripserer.nv(::FakeFiltration) = 20
 Ripserer.simplex_type(::Type{FakeFiltration}, D) = Simplex{D,Int,Int}
 
 struct FakeFiltrationWithThreshold <: Ripserer.AbstractFiltration{Int,Int} end
 function Ripserer.unsafe_simplex(
-    ::Type{Simplex{D,Int,Int}}, ::FakeFiltrationWithThreshold, vertices, sign
+    ::Type{Simplex{D,Int,Int}}, ::FakeFiltrationWithThreshold, vertices
 ) where {D}
     if maximum(vertices) > 10
         return nothing
     else
-        return Simplex{D,Int,Int}(sign * index(vertices), 1)
+        return Simplex{D,Int,Int}(index(vertices), 1)
     end
 end
 Ripserer.nv(::FakeFiltrationWithThreshold) = 20
@@ -110,20 +110,14 @@ end
                     @test sx > Simplex{D}(I(i + 1), b)
                 end
 
-                @testset "Array interface, vertices" begin
+                @testset "vertices, iteration, indexing" begin
                     verts = vertices(sx)
 
                     @test eltype(sx) == eltype(verts)
                     @test length(sx) == length(verts) == D + 1
-                    @test size(sx) == (D + 1,)
-                    @test firstindex(sx) == 1
-                    @test lastindex(sx) == D + 1
-
                     @test Simplex{D}(verts, birth(sx)) ≡ sx
-
-                    for (i, v) in enumerate(sx)
-                        @test v == verts[i]
-                    end
+                    @test tuple(sx...) == verts
+                    @test (1:1000)[sx] == SVector(verts)
 
                     @test begin
                         @inferred vertices(sx)

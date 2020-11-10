@@ -121,27 +121,27 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
 
     @testset "Overflow" begin
         @test begin
-            index_overflow_check(Simplex{2,Float64,Int}, Mod{2}, 1000)
+            index_overflow_check(Simplex{2,Float64,Int}, Mod{2}, 1000, "")
             true
         end
         @test begin
-            index_overflow_check(Cube{3,Float32,4}, Mod{2}, 2_000_000_000)
+            index_overflow_check(Cube{3,Float32,4}, Mod{2}, 2_000_000_000, "")
             true
         end
         @test_throws OverflowError index_overflow_check(
-            Simplex{5,Float64,Int}, Mod{2}, 10000
+            Simplex{5,Float64,Int}, Mod{2}, 10000, ""
         )
 
         big_index = typemax(Int) >> 7
         n = Ripserer._vertices(big_index, Val(3))[1]
         @test begin
-            index_overflow_check(Simplex{2,Int,Int}, Mod{2}, n)
+            index_overflow_check(Simplex{2,Int,Int}, Mod{2}, n, "")
             true
         end
-        @test_throws OverflowError index_overflow_check(Simplex{2,Int,Int}, Mod{251}, n)
+        @test_throws OverflowError index_overflow_check(Simplex{2,Int,Int}, Mod{251}, n, "")
         # mod 257 doesn't pack, so there is no overflow.
         @test begin
-            index_overflow_check(Simplex{2,Int,Int}, Mod{257}, n)
+            index_overflow_check(Simplex{2,Int,Int}, Mod{257}, n, "")
             true
         end
     end

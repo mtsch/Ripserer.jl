@@ -43,7 +43,6 @@ export Mod,
     simplex,
     coefficient,
     Rips,
-    SparseRips,
     Cubical,
     Custom,
     Alpha,
@@ -54,8 +53,10 @@ export Mod,
     CircularCoordinates
 
 include("base/primefield.jl")
-include("base/simplex.jl")
+include("base/abstractcell.jl")
 include("base/abstractfiltration.jl")
+include("base/abstractsimplex.jl")
+include("base/simplex.jl")
 include("base/chainelement.jl")
 include("base/chain.jl")
 include("base/simplexrecipes.jl")
