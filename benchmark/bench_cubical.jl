@@ -5,10 +5,7 @@ using Ripserer
 
 include(joinpath(@__DIR__, "utils.jl"))
 
-benchmarks = [
-    (file="bonsai64.dipha", dim_max=3),
-    (file="lena2048.dipha", dim_max=2),
-]
+benchmarks = [(file="bonsai64.dipha", dim_max=3), (file="lena2048.dipha", dim_max=2)]
 
 suite = BenchmarkGroup()
 

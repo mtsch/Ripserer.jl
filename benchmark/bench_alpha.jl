@@ -5,10 +5,7 @@ using Ripserer
 
 include(joinpath(@__DIR__, "utils.jl"))
 
-benchmarks = [
-    (file="torus10k.pts", dim_max=2),
-    (file="klein500.pts", dim_max=3),
-]
+benchmarks = [(file="torus10k.pts", dim_max=2), (file="klein500.pts", dim_max=3)]
 
 suite = BenchmarkGroup()
 
