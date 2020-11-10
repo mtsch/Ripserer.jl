@@ -232,5 +232,3 @@ end
 
 threshold(rips::Rips) = rips.threshold
 adjacency_matrix(rips::Rips) = rips.adj
-
-@deprecate SparseRips(args...; kwargs...) Rips(args...; sparse=true, kwargs...)

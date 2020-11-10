@@ -45,8 +45,8 @@ Cube{2,Float16,2}
 """
 simplex_type(flt::AbstractFiltration, dim) = simplex_type(typeof(flt), dim)
 
-vertex_type(flt::AbstractFiltration) = simplex_type(flt, 0)
-edge_type(flt::AbstractFiltration) = simplex_type(flt, 1)
+vertex_type(flt::AbstractFiltration) = simplex_type(typeof(flt), 0)
+edge_type(flt::AbstractFiltration) = simplex_type(typeof(flt), 1)
 
 """
     nv(::AbstractFiltration)
@@ -62,8 +62,6 @@ julia> Ripserer.nv(Rips([1 1; 1 1]))
 ```
 """
 nv(::AbstractFiltration)
-
-@deprecate n_vertices nv
 
 """
     edges(::AbstractFiltration)

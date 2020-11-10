@@ -43,7 +43,6 @@ export Mod,
     simplex,
     coefficient,
     Rips,
-    SparseRips,
     Cubical,
     Custom,
     Alpha,
@@ -53,20 +52,11 @@ export Mod,
     Partition,
     CircularCoordinates
 
-#export Mod
 include("base/primefield.jl")
-
-#export AbstractCell, dim, index_type, birth_type, index, birth
 include("base/abstractcell.jl")
-
 include("base/abstractfiltration.jl")
-
-#export AbstractSimplex, index_overflow_check, vertices, coboundary, boundary, Simplex
 include("base/abstractsimplex.jl")
-
-#export Simplex
 include("base/simplex.jl")
-
 include("base/chainelement.jl")
 include("base/chain.jl")
 include("base/simplexrecipes.jl")
