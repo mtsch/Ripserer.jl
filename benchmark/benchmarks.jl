@@ -2,7 +2,7 @@ using Ripserer
 using BenchmarkTools
 
 const SUITE = BenchmarkGroup()
-const SKIP = ["bench_alpha.jl"]
+const SKIP = []
 
 for file in readdir(@__DIR__)
     if file in SKIP

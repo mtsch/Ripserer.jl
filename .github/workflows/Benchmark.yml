@@ -1,7 +1,6 @@
 name: Benchmarks
 
-on:
-  pull_request:
+on: pull_request
 
 jobs:
   Benchmark:
@@ -10,10 +9,11 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 1.5
+          version: 1
+      - name: MiniQHull deps
+        run: sudo apt-get install gcc libqhull-r7 libqhull-dev
       - name: Install dependencies
         run: julia -e 'using Pkg; pkg"add PkgBenchmark BenchmarkTools BenchmarkCI@0.1"'
-             apt-get install make
       - name: Run benchmarks
         run: julia -e 'using BenchmarkCI; BenchmarkCI.judge()'
       - name: Post results
