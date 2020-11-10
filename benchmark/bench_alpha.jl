@@ -6,7 +6,6 @@ using Ripserer
 include(joinpath(@__DIR__, "utils.jl"))
 
 benchmarks = [
-    (file="annulus10k.pts", dim_max=2),
     (file="torus10k.pts", dim_max=2),
     (file="klein500.pts", dim_max=3),
 ]
