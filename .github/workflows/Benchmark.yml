@@ -3,7 +3,7 @@ name: Benchmarks
 on: pull_request
 
 jobs:
-  benchmark:
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
