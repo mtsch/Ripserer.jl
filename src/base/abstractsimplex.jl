@@ -108,7 +108,7 @@ end
     index -= _binomial(vk, Val(K))
     return tuple(vk + one(I), _vertices(index, Val(K - 1), vk)...)
 end
-@inline _vertices(index::I, ::Val{1}, _) where I = (index + one(I),)
+@inline _vertices(index::I, ::Val{1}, _) where {I} = (index + one(I),)
 @inline _vertices(index, ::Val{1}) = (index,)
 
 """
