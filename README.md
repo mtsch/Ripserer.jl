@@ -3,7 +3,7 @@
 _Flexible and efficient persistent homology computation._
 
 [![Coverage Status](https://coveralls.io/repos/github/mtsch/Ripserer.jl/badge.svg?branch=master)](https://coveralls.io/github/mtsch/Ripserer.jl?branch=master)
-[![Build Status](https://travis-ci.com/mtsch/Ripserer.jl.svg?branch=master)](https://travis-ci.com/mtsch/Ripserer.jl)
+[![Build Status](https://github.com/mtsch/Ripserer.jl/workflows/Test/badge.svg)](https://github.com/mtsch/Ripserer.jl/actions?query=workflow%3ATest)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://mtsch.github.io/Ripserer.jl/dev)
 [![status](https://joss.theoj.org/papers/0c8b6abead759ba068ee178fedc998a9/status.svg)](https://joss.theoj.org/papers/0c8b6abead759ba068ee178fedc998a9)
 
