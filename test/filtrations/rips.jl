@@ -147,7 +147,7 @@ end
             @test d2 == [(1.0, 2.0)]
         end
         @testset "Cycle with various fields" begin
-            d0_2, d1_2, d2_2, d3_2 = ripserer(Rips{Int32}(cycle); dim_max=3)
+            d0_2, d1_2, d2_2, d3_2 = ripserer(Rips{Int32}, cycle; dim_max=3)
             d0_7, d1_7, d2_7, d3_7 = ripserer(Rips(cycle); dim_max=3, modulus=7)
             d0_r, d1_r, d2_r, d3_r = ripserer(cycle; dim_max=3, field_type=Rational{Int})
 
@@ -157,8 +157,8 @@ end
             @test d3_2 == d3_7 == d3_r == [(7, 8)]
         end
         @testset "RP2 with various fields" begin
-            _, d1_2, d2_2 = ripserer(projective_plane; dim_max=2)
-            _, d1_3, d2_3 = ripserer(projective_plane; dim_max=2, modulus=3)
+            _, d1_2, d2_2 = ripserer(Rips(projective_plane); dim_max=2)
+            _, d1_3, d2_3 = ripserer(Rips, projective_plane; dim_max=2, modulus=3)
             _, d1_331, d2_331 = ripserer(projective_plane; dim_max=2, field_type=Mod{5})
             _, d1_r, d2_r = ripserer(projective_plane; dim_max=2, field_type=Rational{Int})
             @test d1_2 == [(1, 2)]
@@ -179,7 +179,7 @@ end
             @test d2 == []
         end
         @testset "RP2 with various fields, threshold=1" begin
-            _, d1_2, d2_2 = ripserer(projective_plane; dim_max=2, threshold=1)
+            _, d1_2, d2_2 = ripserer(Rips, projective_plane; dim_max=2, threshold=1)
             _, d1_3, d2_3 = ripserer(projective_plane; dim_max=2, modulus=3, threshold=1)
             _, d1_331, d2_331 = ripserer(
                 projective_plane; dim_max=2, field_type=Mod{5}, threshold=1
@@ -218,10 +218,15 @@ end
                 Rips(projective_plane; threshold=1, sparse=true); dim_max=2, modulus=3
             )
             _, d1_331, d2_331 = ripserer(
-                sparse(projective_plane); dim_max=2, field_type=Mod{5}, threshold=1
+                Rips, sparse(projective_plane); dim_max=2, field_type=Mod{5}, threshold=1
             )
             _, d1_r, d2_r = ripserer(
-                sparse(projective_plane); dim_max=2, field_type=Rational{Int}, threshold=1
+                Rips,
+                projective_plane;
+                sparse=true,
+                dim_max=2,
+                field_type=Rational{Int},
+                threshold=1,
             )
             @test d1_2 == [(1, Inf)]
             @test d2_2 == [(1, Inf)]
@@ -232,7 +237,7 @@ end
             for thresh in (nothing, 1, 0.5, 0.126)
                 data = torus_points(100)
                 r_res = ripserer(data; threshold=thresh, dim_max=2)
-                s_res_1 = ripserer(data; threshold=thresh, sparse=true, dim_max=2)
+                s_res_1 = ripserer(Rips, data; threshold=thresh, sparse=true, dim_max=2)
 
                 # Add zeros to diagonal. Adding ones first actually changes the structure of
                 # the matrix.
@@ -398,10 +403,12 @@ end
                   sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
         end
         @testset "Infinite intervals" begin
-            @test_broken ripserer(cycle; alg=:homology, threshold=2, implicit=true)[2][1] ==
-                         (1.0, Inf)
-            @test_broken ripserer(cycle; alg=:homology, threshold=2, implicit=false)[2][1] ==
-                         (1.0, Inf)
+            @test_broken ripserer(
+                Rips(cycle; threshold=2); alg=:homology, implicit=true
+            )[2][1] == (1.0, Inf)
+            @test_broken ripserer(
+                Rips, cycle; alg=:homology, threshold=2, implicit=false
+            )[2][1] == (1.0, Inf)
             @test ripserer(cycle; alg=:involuted, threshold=2)[2][1] == (1.0, Inf)
         end
     end

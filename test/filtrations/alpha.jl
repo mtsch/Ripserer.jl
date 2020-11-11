@@ -77,8 +77,8 @@ end
             true
         end
     else
-        d0, d1, d2 = ripserer(Alpha(points); dim_max=2)
-        d0_t, d1_t, d2_t = ripserer(Alpha(points; threshold=1.8); dim_max=2)
+        d0, d1, d2 = ripserer(Alpha, points; dim_max=2)
+        d0_t, d1_t, d2_t = ripserer(Alpha, points; threshold=1.8, dim_max=2)
         @test d0_t == d0
         @test d1_t == d1[[1:2; 4]]
         @test isempty(d2_t)

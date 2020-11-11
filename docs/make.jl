@@ -25,6 +25,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "API" => ["Public" => "api/ripserer.md", "Interfaces" => "api/extensions.md"],
         "Examples" => [
             "generated/basics.md",
             "generated/stability.md",
@@ -33,7 +34,6 @@ makedocs(;
             "generated/malaria.md",
         ],
         "Benchmarks" => "benchmarks.md",
-        "API" => ["Public" => "api/ripserer.md", "Interfaces" => "api/extensions.md"],
         "Related Julia Packages" => "related-work.md",
         "Acknowledgements and References" => "references.md",
     ],

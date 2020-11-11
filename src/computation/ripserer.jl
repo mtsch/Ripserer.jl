@@ -76,7 +76,8 @@ julia> ripserer(Rips(X; threshold=1); alg=:involuted)
 
 """
 function ripserer(
-    F::Type, args...;
+    F::Type,
+    args...;
     dim_max=1,
     cutoff=0,
     modulus=2,

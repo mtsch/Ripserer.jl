@@ -315,7 +315,7 @@ end
 @testset "ripserer" begin
     @testset "1D" begin
         data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; dim_max=2)
 
         @test d0 == [(2, 3), (1, 4), (0, Inf)]
         @test d1 == []
@@ -326,7 +326,7 @@ end
         x = range(0, 1; length=n)
         curve = sin.(2π * 5x) .* x
 
-        d0, _ = ripserer(Cubical(curve); reps=true)
+        d0, _ = ripserer(Cubical, curve; reps=true)
 
         for int in d0
             birth_sx = birth_simplex(int)
@@ -344,7 +344,7 @@ end
             0 0 0 0 0
         ]
 
-        d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; reps=true, dim_max=2)
 
         @test d0 == [(1, 2), (0, Inf)]
         @test d1 == [(0, 2)]
@@ -361,7 +361,7 @@ end
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; dim_max=2)
 
         @test d0 == [(0, 1), (0, Inf)]
         @test d1 == []
@@ -373,7 +373,7 @@ end
             1 2 1
             1 1 1
         ]
-        d0, d1 = ripserer(Cubical(data; threshold=1))
+        d0, d1 = ripserer(Cubical, data; threshold=1)
         @test d0 == [(1, Inf)]
         @test d1 == [(1, Inf)]
     end
