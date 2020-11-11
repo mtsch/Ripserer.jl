@@ -1,15 +1,10 @@
 """
-    ripserer(dists::AbstractMatrix; kwargs...)
-    ripserer(points; metric=Distances.Euclidean(1e-12), births, kwargs...)
+    ripserer(Type{<:AbstractFiltration}, args...; kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists`, `points` and
-`metric`, or a [`Ripserer.AbstractFiltration`](@ref).
-
-If `dists` or `points` are given, the `Rips` filtration is used.
-
-If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
-`SVector`s.
+Compute the persistent homology of a filtration. The filtration can be given as an
+[`AbstractFiltration`](@ref) type, followed by its arguments, or as an initialized object
+(see examples below). If only data is given, `Rips` is used by default.
 
 # Keyword Arguments
 
@@ -37,10 +32,6 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 
 * `progress`: If `true`, show a progress bar. Defaults to `false`.
 
-* `metric`: when calculating persistent homology from points, any metric from
-  [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
-  `Distances.Euclidean(1e-12)`.
-
 * `alg`: select the algorithm used in computation. The options are:
 
   - `:cohomology`: Default and fastest algorithm. When `reps` is set, intervals are equipped
@@ -57,22 +48,60 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   :cohomology and `:involuted`, and `false` for `:homology`. `implicit=false` is not
   recommended for `:cohomology` because it disables the emergent pairs optimization.
 
-"""
-function ripserer(dists::AbstractMatrix; threshold=nothing, sparse=false, kwargs...)
-    filtration = Rips(dists; threshold=threshold, sparse=sparse)
-    return ripserer(filtration; kwargs...)
-end
+Other `kwargs...` are passed to the filtration.
 
+# Examples
+
+```jldoctest
+julia> ts = range(0, 2π; length=20)[1:(end - 1)];
+
+julia> X = [((2 + cos(θ)) * cos(φ), (2 + cos(θ)) * sin(φ), sin(θ)) for θ in ts for φ in ts];
+
+julia> ripserer(X)
+2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(EdgeCollapsedRips, X; modulus=7, threshold=2)
+2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(Rips(X; threshold=1); alg=:involuted)
+2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+```
+
+"""
 function ripserer(
-    points::AbstractVector;
-    metric=Euclidean(1e-12),
-    threshold=nothing,
-    sparse=false,
+    F::Type, args...;
+    dim_max=1,
+    cutoff=0,
+    modulus=2,
+    field_type=Mod{modulus},
+    progress=false,
+    alg=:cohomology,
+    reps=alg == :cohomology ? false : 1:dim_max,
+    implicit=alg != :homology,
     kwargs...,
 )
-    filtration = Rips(points; metric=metric, threshold=threshold, sparse=sparse)
-    return ripserer(filtration; kwargs...)
+    filtration = F(args...; kwargs...)
+    return ripserer(
+        filtration;
+        dim_max=dim_max,
+        cutoff=cutoff,
+        field_type=field_type,
+        progress=progress,
+        alg=alg,
+        reps=reps,
+        implicit=implicit,
+    )
 end
+
+# Default: Rips
+ripserer(dist; kwargs...) = ripserer(Rips, dist; kwargs...)
 
 function ripserer(
     filtration::AbstractFiltration;
