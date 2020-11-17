@@ -148,7 +148,7 @@ function Custom{I,T}(simplices, dim_max::Int, threshold::T) where {I,T}
 end
 
 # TODO: hot mess. Simplex sorting and index conversion could be done here.
-function Custom{I}(simplices; threshold=nothing) where {I}
+function Custom{I}(simplices; threshold=nothing, verbose=false) where {I}
     # Promote birth types and find dim and threshold.
     T = Union{}
     dim = 0

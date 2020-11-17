@@ -200,7 +200,9 @@ struct Rips{I,T,A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I,T}
     threshold::T
 end
 
-function Rips{I}(dists::AbstractMatrix{T}; threshold=nothing, sparse=false) where {I,T}
+function Rips{I}(
+    dists::AbstractMatrix{T}; threshold=nothing, sparse=false, verbose=false
+) where {I,T}
     _check_distance_matrix(dists)
     thresh = isnothing(threshold) ? radius(dists) : T(threshold)
     if sparse

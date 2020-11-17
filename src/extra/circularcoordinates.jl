@@ -234,25 +234,25 @@ function CircularCoordinates(
     coverage=1,
     modulus=rand(PRIMES),
     threshold=nothing,
-    progress=false,
+    verbose=false,
     warn=true,
     kwargs...,
 ) where {F<:AbstractFiltration}
-    @prog_print progress "Determining radius...   "
+    @prog_print verbose "Determining radius...   "
     landmarks, min_radius = _landmarks_and_radius(points, landmarks, metric)
-    @prog_println progress "done."
+    @prog_println verbose "done."
 
     # TODO with new ripserer interface, change this.
     flt_kwargs = metric == Euclidean() ? NamedTuple() : (metric = Euclidean())
     flt_kwargs = isnothing(threshold) ? flt_kwargs : (; threshold=threshold, flt_kwargs...)
 
     # compute cohomology
-    @prog_print progress "Computing cohomology... "
+    @prog_print verbose "Computing cohomology... "
     filtration = F(landmarks; flt_kwargs...)
     diagram = ripserer(filtration; modulus=modulus, reps=true, kwargs...)[2]
-    @prog_println progress "done."
+    @prog_println verbose "done."
 
-    @prog_print progress "Smoothing cocycles...   "
+    @prog_print verbose "Smoothing cocycles...   "
     coord_data = CircularCoordinateData[]
     for d in 1:out_dim
         if length(diagram) < d
@@ -273,7 +273,7 @@ function CircularCoordinates(
         )
         push!(coord_data, CircularCoordinateData(radius, coords, cocycle))
     end
-    @prog_println progress "done."
+    @prog_println verbose "done."
     n_success = length(coord_data)
     if n_success == 0
         error("no interval is persistent enough to cover the data")

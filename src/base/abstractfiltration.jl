@@ -5,6 +5,8 @@ A filtration is used to find the edges in filtration and to create simplices. An
 `AbstractFiltration{I,T}`'s simplex type is expected to return simplices of type
 `<:AbstractCell{_,T,I}`.
 
+An `AbstractFiltration` constructor must accept the `verbose` keyword argument.
+
 # Interface
 
 * [`nv(::AbstractFiltration)`](@ref)
@@ -276,7 +278,7 @@ computed. Defaults to not doing anything.
 postprocess_diagram(::AbstractFiltration, diagram) = diagram
 
 """
-    find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, progress)
+    find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, verbose)
 
 Find apparent pairs in filtration. Columns are the initial columns that are being reduced.
 Should return a tuple of:

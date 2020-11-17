@@ -38,8 +38,8 @@ function circumcenter_radius2(pts)
 end
 
 # TODO: could be faster, takes a long time to compile
-function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where {D}
-    if progress
+function _build_dims!(dicts, triangulation, points, ::Val{D}, verbose) where {D}
+    if verbose
         progbar = Progress(size(triangulation, 2); desc="Collecting $D-simplcies... ")
     end
     for face in eachcol(triangulation)
@@ -69,11 +69,11 @@ function _build_dims!(dicts, triangulation, points, ::Val{D}, progress) where {D
                 end
             end
         end
-        progress && next!(progbar)
+        verbose && next!(progbar)
     end
 end
 
-function _fix_dim!(dicts, threshold, ::Val{D}, progress) where {D}
+function _fix_dim!(dicts, threshold, ::Val{D}, verbose) where {D}
     for (idx, birth) in dicts[D + 1]
         σ = Tuple(_vertices(idx, Val(D + 1)))
         σ_idx = index(σ)
@@ -90,17 +90,17 @@ function _fix_dim!(dicts, threshold, ::Val{D}, progress) where {D}
 end
 
 """
-    alpha_simplices(points[, progress])
+    alpha_simplices(points[, verbose])
 
 Collect all simplices and their birth times in alpha filtration.
 
 Based on https://github.com/scikit-tda/cechmate/blob/master/cechmate/filtrations/alpha.py
 """
-function alpha_simplices(points, threshold, progress, ::Type{I}) where {I}
-    progress && printstyled(stderr, "Building triangulation... "; color=:green)
+function alpha_simplices(points, threshold, verbose, ::Type{I}) where {I}
+    @prog_print verbose "Building triangulation... "
     triangulation = I.(delaunay(to_matrix(points)))
     sort!.(eachcol(triangulation), rev=true, alg=InsertionSort)
-    progress && printstyled(stderr, "done.\n"; color=:green)
+    @prog_println verbose "done."
 
     largest_face = tuple(maximum(eachcol(triangulation))...)
     index_overflow_check(largest_face)
@@ -110,18 +110,18 @@ function alpha_simplices(points, threshold, progress, ::Type{I}) where {I}
 
     # Build the filtration
     for d in dim:-1:1
-        _build_dims!(dicts, triangulation, points, Val(d), progress)
+        _build_dims!(dicts, triangulation, points, Val(d), verbose)
     end
     for i in 1:length(points)
         dicts[1][i] = 0.0
     end
-    if progress
+    if verbose
         progbar = Progress(dim; desc="Fixing birth times...     ")
     end
     # Make sure all simplices are born after their facets and sqrt the birth times.
     for d in dim:-1:1
-        _fix_dim!(dicts, threshold, Val(d), progress)
-        progress && next!(progbar)
+        _fix_dim!(dicts, threshold, Val(d), verbose)
+        verbose && next!(progbar)
     end
 
     return dicts
@@ -150,7 +150,7 @@ may take a long time.
 
 # Constructors
 
-* `Alpha(points; threshold, progress)`: `points` should be a vector of `Tuple`s, `SVector`s
+* `Alpha(points; threshold, verbose)`: `points` should be a vector of `Tuple`s, `SVector`s
   or similar.
 * `Alpha{I}(args...)`: `I` sets the size of integer used to represent simplices. Try using
   `I=Int128` if construction complains about overflow.
@@ -195,10 +195,10 @@ struct Alpha{I,P<:SVector} <: AbstractCustomFiltration{I,Float64}
     threshold::Float64
     points::Vector{P}
 end
-function Alpha{I}(points; threshold=nothing, progress=false) where {I}
+function Alpha{I}(points; threshold=nothing, verbose=false) where {I}
     pts = SVector.(points)
     threshold = isnothing(threshold) ? 2radius(pts) : threshold
-    dicts = alpha_simplices(pts, threshold, progress, I)
+    dicts = alpha_simplices(pts, threshold, verbose, I)
     adj = _adjacency_matrix(dicts)
     return Alpha{I,eltype(pts)}(dicts, adj, threshold, pts)
 end

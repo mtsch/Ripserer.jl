@@ -78,7 +78,7 @@ function _in(edgeset, edge::Edge)
     return edgeset[src(edge), dst(edge)]
 end
 
-function _core_graph(filtration::Rips{<:Any,T}; progress=false) where {T}
+function _core_graph(filtration::Rips{<:Any,T}; verbose=false) where {T}
     filtration_edges = Tuple{Edge{Int},T}[]
     for e in sort!(edges(filtration))
         v, u = vertices(e)
@@ -96,7 +96,7 @@ function _core_graph(filtration::Rips{<:Any,T}; progress=false) where {T}
     end
 
     prev_time = filtration_edges[1][2]
-    if progress
+    if verbose
         progbar = Progress(length(filtration_edges); desc="Collapsing edges...")
     end
     for (i, (curr_edge, curr_time)) in enumerate(filtration_edges)
@@ -120,7 +120,7 @@ function _core_graph(filtration::Rips{<:Any,T}; progress=false) where {T}
                 end
             end
         end
-        progress && next!(progbar)
+        verbose && next!(progbar)
     end
     return sparse(core)
 end
@@ -141,10 +141,10 @@ See the reference below for a description of the algorithm.
 
 # Constructors
 
-* `EdgeCollapsedRips(::AbstractRipsFiltration; progress=false, threshold=nothing )`:
-  Collapse a given filtration. Setting `progress` shows a progress bar.
+* `EdgeCollapsedRips(::AbstractRipsFiltration; verbose=false, threshold=nothing )`:
+  Collapse a given filtration. Setting `verbose` shows a progress bar.
 
-* `EdgeCollapsedRips(::EdgeCollapsedRips; progress=false, threshold=nothing)`: Allows
+* `EdgeCollapsedRips(::EdgeCollapsedRips; verbose=false, threshold=nothing)`: Allows
   changing `I` or `threshold` without recomputing.
 
 * `EdgeCollapsedRips(arg; kwargs...)`: Use `arg` and `kwargs` to construct a `Rips`
@@ -196,16 +196,16 @@ struct EdgeCollapsedRips{I,T} <: AbstractRipsFiltration{I,T}
 end
 
 function EdgeCollapsedRips(
-    rips::AbstractRipsFiltration{I,T}; progress=false, threshold=nothing
+    rips::AbstractRipsFiltration{I,T}; verbose=false, threshold=nothing
 ) where {I,T}
-    adj = _core_graph(rips; progress=progress)
+    adj = _core_graph(rips; verbose=verbose)
     if isnothing(threshold)
         threshold = maximum(adj)
     end
     return EdgeCollapsedRips{I,T}(adj, T(threshold))
 end
-function EdgeCollapsedRips{I}(dist_or_points; progress=false, kwargs...) where {I}
-    return EdgeCollapsedRips(Rips{I}(dist_or_points; kwargs...); progress=progress)
+function EdgeCollapsedRips{I}(dist_or_points; verbose=false, kwargs...) where {I}
+    return EdgeCollapsedRips(Rips{I}(dist_or_points; kwargs...); verbose=verbose)
 end
 function EdgeCollapsedRips{I}(
     rips::EdgeCollapsedRips{<:Any,T}; threshold=rips.threshold

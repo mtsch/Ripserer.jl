@@ -1,3 +1,21 @@
+# v0.16.0
+
+External changes:
+
+* `progress` keyword argument renamed to `verbose`, `field_type` keyword argument renamed to
+  `field`
+* New interface: `ripserer(::Type{AbstractFiltration}, args...; kwargs...)`
+* Added `CircularCoordinates`.
+
+Interface changes:
+
+* All filtration constructors should now have to take `verbose` as a keyword argument.
+* Replaced vectors of `ChainElement`s with `Chain`.
+* Added `AbstractCell`s.
+* `Cube` is now an `AbstractCell`, `AbstractSimplex` is reserved for actual simplices.
+* Simplices are no longer `Array`s.
+* `simplex`, `unsafe_simplex`, and `unsafe_cofacet` no longer take a `sign` argument.
+
 # v0.15.4
 
 * Use `PersistenceDiagrams` v0.8.

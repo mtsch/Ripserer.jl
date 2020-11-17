@@ -48,13 +48,13 @@ function coboundary(matrix::CoboundaryMatrix, simplex::AbstractCell)
     return coboundary(matrix.filtration, simplex)
 end
 
-function next_matrix(matrix::CoboundaryMatrix{I}, progress) where {I}
+function next_matrix(matrix::CoboundaryMatrix{I}, verbose) where {I}
     C = simplex_type(matrix.filtration, dim(matrix) + 1)
     new_to_reduce = C[]
     new_to_skip = C[]
     sizehint!(new_to_skip, length(matrix.reduced))
 
-    if progress
+    if verbose
         progbar = ProgressUnknown("Assembling columns:")
     end
     for simplex in columns_to_reduce(
@@ -66,14 +66,14 @@ function next_matrix(matrix::CoboundaryMatrix{I}, progress) where {I}
         else
             push!(new_to_reduce, abs(simplex))
         end
-        progress && next!(
+        verbose && next!(
             progbar;
             showvalues=(
                 ("cleared", length(new_to_skip)), ("to reduce", length(new_to_reduce))
             ),
         )
     end
-    @prog_print progress '\r'
+    @prog_print verbose '\r'
 
     return CoboundaryMatrix{I}(
         field_type(matrix), matrix.filtration, new_to_reduce, new_to_skip
@@ -316,22 +316,22 @@ function interval(matrix, column, pivot, cutoff, reps)
 end
 
 """
-    handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
+    handle_apparent_pairs!(matrix, intervals, cutoff, verbose, reps)
 
 Handle apparent pair precomputation, if defined for `matrix.filtration`. Only does anything
 for implicit cohomology. Resulting intervals (if any) are `push!`ed to `intervals`.
 """
-function handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
+function handle_apparent_pairs!(matrix, intervals, cutoff, verbose, reps)
     coho = Val(is_cohomology(matrix))
     impl = Val(is_implicit(matrix))
-    return handle_apparent_pairs!(coho, impl, matrix, intervals, cutoff, progress, reps)
+    return handle_apparent_pairs!(coho, impl, matrix, intervals, cutoff, verbose, reps)
 end
 # Implicit cohomology version
 function handle_apparent_pairs!(
-    ::Val{true}, ::Val{true}, matrix, intervals, cutoff, progress, reps
+    ::Val{true}, ::Val{true}, matrix, intervals, cutoff, verbose, reps
 )
     columns, apparent = find_apparent_pairs(
-        matrix.filtration, matrix.columns_to_reduce, progress
+        matrix.filtration, matrix.columns_to_reduce, verbose
     )
     bulk_insert!(matrix.reduced, apparent)
     for (σ, τ) in apparent
@@ -347,11 +347,11 @@ function handle_apparent_pairs!(::Val, ::Val, matrix, _, _, _, _)
 end
 
 """
-    compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
+    compute_intervals!(matrix, cutoff, verbose, reps)
 
 Compute all intervals by fully reducing `matrix`.
 """
-function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
+function compute_intervals!(matrix, cutoff, verbose, reps)
     ###
     ### Set up output.
     ###
@@ -360,13 +360,13 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
     ###
     ### Apparent pair stuff.
     ###
-    columns = handle_apparent_pairs!(matrix, intervals, cutoff, progress, reps)
+    columns = handle_apparent_pairs!(matrix, intervals, cutoff, verbose, reps)
 
     ###
     ### Interval computation.
     ###
     @prog_print(
-        progress,
+        verbose,
         fmt_number(length(columns)),
         " ",
         simplex_name(eltype(columns)),
@@ -377,12 +377,12 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
         sort_t = time_ns()
         sort!(columns; rev=is_cohomology(matrix))
         elapsed = round((time_ns() - sort_t) / 1e9; digits=3)
-        @prog_println progress " Sorted in " elapsed "s."
+        @prog_println verbose " Sorted in " elapsed "s."
     else
-        @prog_println progress
+        @prog_println verbose
     end
 
-    if progress
+    if verbose
         progbar = Progress(length(columns); desc="Computing $(dim(matrix))d intervals... ")
     end
     for column in columns
@@ -390,32 +390,30 @@ function compute_intervals!(matrix, cutoff, progress, reps, sortres=true)
         int = interval(matrix, column, pivot, cutoff, reps)
         !isnothing(int) && push!(intervals, int)
 
-        progress && next!(progbar; showvalues=((:intervals, length(intervals)),))
+        verbose && next!(progbar; showvalues=((:intervals, length(intervals)),))
     end
 
-    return postprocess_diagram(
-        matrix.filtration,
-        PersistenceDiagram(
-            sortres ? sort!(intervals; by=persistence) : intervals;
-            threshold=Float64(threshold(matrix.filtration)),
-            dim=dim(matrix),
-            field_type=field_type(matrix),
-            filtration=matrix.filtration,
-        ),
+    diagram = PersistenceDiagram(
+        sort!(intervals; by=persistence);
+        threshold=Float64(threshold(matrix.filtration)),
+        dim=dim(matrix),
+        field=field_type(matrix),
+        filtration=matrix.filtration,
     )
+    return postprocess_diagram(matrix.filtration, diagram)
 end
 
 """
-    compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
+    compute_death_simplices!(matrix::CoboundaryMatrix{true}, verbose, cutoff)
 
 Fully reduce `matrix`, but only compute (homological) death simplices. Return all death
 simplices up to the last that produces an interval with persistence greater than `cutoff`.
 
 Used for assisted homology.
 """
-function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cutoff)
+function compute_death_simplices!(matrix::CoboundaryMatrix{true}, verbose, cutoff)
     columns, apparent = find_apparent_pairs(
-        matrix.filtration, matrix.columns_to_reduce, progress
+        matrix.filtration, matrix.columns_to_reduce, verbose
     )
     bulk_insert!(matrix.reduced, apparent)
     deaths = simplex_type(matrix.filtration, dim(matrix) + 1)[]
@@ -431,7 +429,7 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
             end
             push!(deaths, pair[2])
         end
-        if progress
+        if verbose
             progbar = Progress(length(columns); desc="Precomputing columns...   ")
         end
         for column in columns
@@ -444,7 +442,7 @@ function compute_death_simplices!(matrix::CoboundaryMatrix{true}, progress, cuto
             else
                 push!(inf_births, column)
             end
-            progress && next!(progbar; showvalues=((:simplices, length(deaths)),))
+            verbose && next!(progbar; showvalues=((:simplices, length(deaths)),))
         end
         return filter!(x -> birth(x) ≤ thresh, deaths), inf_births
     end

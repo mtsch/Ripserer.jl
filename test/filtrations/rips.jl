@@ -149,7 +149,7 @@ end
         @testset "Cycle with various fields" begin
             d0_2, d1_2, d2_2, d3_2 = ripserer(Rips{Int32}, cycle; dim_max=3)
             d0_7, d1_7, d2_7, d3_7 = ripserer(Rips(cycle); dim_max=3, modulus=7)
-            d0_r, d1_r, d2_r, d3_r = ripserer(cycle; dim_max=3, field_type=Rational{Int})
+            d0_r, d1_r, d2_r, d3_r = ripserer(cycle; dim_max=3, field=Rational{Int})
 
             @test d0_2 == d0_7 == d0_r == [fill((0, 1), size(cycle, 1) - 1); (0, Inf)]
             @test d1_2 == d1_7 == d1_r == [(1, 6)]
@@ -159,8 +159,8 @@ end
         @testset "RP2 with various fields" begin
             _, d1_2, d2_2 = ripserer(Rips(projective_plane); dim_max=2)
             _, d1_3, d2_3 = ripserer(Rips, projective_plane; dim_max=2, modulus=3)
-            _, d1_331, d2_331 = ripserer(projective_plane; dim_max=2, field_type=Mod{5})
-            _, d1_r, d2_r = ripserer(projective_plane; dim_max=2, field_type=Rational{Int})
+            _, d1_331, d2_331 = ripserer(projective_plane; dim_max=2, field=Mod{5})
+            _, d1_r, d2_r = ripserer(projective_plane; dim_max=2, field=Rational{Int})
             @test d1_2 == [(1, 2)]
             @test d2_2 == [(1, 2)]
             @test d1_3 == d1_331 == d1_r == []
@@ -182,10 +182,10 @@ end
             _, d1_2, d2_2 = ripserer(Rips, projective_plane; dim_max=2, threshold=1)
             _, d1_3, d2_3 = ripserer(projective_plane; dim_max=2, modulus=3, threshold=1)
             _, d1_331, d2_331 = ripserer(
-                projective_plane; dim_max=2, field_type=Mod{5}, threshold=1
+                projective_plane; dim_max=2, field=Mod{5}, threshold=1
             )
             _, d1_r, d2_r = ripserer(
-                projective_plane; dim_max=2, field_type=Rational{Int}, threshold=1
+                projective_plane; dim_max=2, field=Rational{Int}, threshold=1
             )
             @test d1_2 == [(1, Inf)]
             @test d2_2 == [(1, Inf)]
@@ -218,14 +218,14 @@ end
                 Rips(projective_plane; threshold=1, sparse=true); dim_max=2, modulus=3
             )
             _, d1_331, d2_331 = ripserer(
-                Rips, sparse(projective_plane); dim_max=2, field_type=Mod{5}, threshold=1
+                Rips, sparse(projective_plane); dim_max=2, field=Mod{5}, threshold=1
             )
             _, d1_r, d2_r = ripserer(
                 Rips,
                 projective_plane;
                 sparse=true,
                 dim_max=2,
-                field_type=Rational{Int},
+                field=Rational{Int},
                 threshold=1,
             )
             @test d1_2 == [(1, Inf)]
@@ -277,12 +277,12 @@ end
             d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true)
             @test d1[1].representative isa Chain
 
-            d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true, field_type=Rational{Int})
+            d0, d1, d2, d3 = ripserer(cycle; dim_max=3, reps=true, field=Rational{Int})
             @test d3[1].representative isa Chain
         end
         @testset "Infinite interval very low threshold" begin
             _, d1 = ripserer(
-                cycle; dim_max=1, reps=true, threshold=1, field_type=Rational{Int}
+                cycle; dim_max=1, reps=true, threshold=1, field=Rational{Int}
             )
             rep = representative(only(d1))
             @test simplex(only(rep)) == birth_simplex(only(d1))
@@ -290,7 +290,7 @@ end
         end
         @testset "Infinite interval higher threshold" begin
             _, d1 = ripserer(
-                cycle; dim_max=1, reps=true, threshold=3, field_type=Rational{Int}
+                cycle; dim_max=1, reps=true, threshold=3, field=Rational{Int}
             )
             rep = representative(only(d1))
             @test !isempty(rep)
@@ -311,7 +311,7 @@ end
     @testset "Diagram metadata" begin
         filtration = Rips(cycle)
         d0, d1, d2, d3 = ripserer(
-            filtration; dim_max=3, reps=true, field_type=Rational{Int}
+            filtration; dim_max=3, reps=true, field=Rational{Int}
         )
         @test d0.dim == 0
         @test d1.dim == 1
@@ -322,11 +322,11 @@ end
         @test d1.threshold ≡ thresh
         @test d2.threshold ≡ thresh
         @test d3.threshold ≡ thresh
-        field_type = Rational{Int}
-        @test d0.field_type ≡ field_type
-        @test d1.field_type ≡ field_type
-        @test d2.field_type ≡ field_type
-        @test d3.field_type ≡ field_type
+        field = Rational{Int}
+        @test d0.field ≡ field
+        @test d1.field ≡ field
+        @test d2.field ≡ field
+        @test d3.field ≡ field
         @test d0.filtration == filtration
         @test d1.filtration == filtration
         @test d2.filtration == filtration
@@ -413,13 +413,13 @@ end
         end
     end
 
-    @testset "Only print to stderr and only when progress is enabled" begin
+    @testset "Only print to stderr and only when verbose is set" begin
         @suppress begin
             @test (@capture_out ripserer(torus(16); dim_max=5)) == ""
-            @test (@capture_out ripserer(torus(16); dim_max=5, progress=true)) == ""
+            @test (@capture_out ripserer(torus(16); dim_max=5, verbose=true)) == ""
 
             @test (@capture_err ripserer(torus(16); dim_max=5)) == ""
-            @test (@capture_err ripserer(torus(16); dim_max=5, progress=true)) != ""
+            @test (@capture_err ripserer(torus(16); dim_max=5, verbose=true)) != ""
         end
     end
 
@@ -431,9 +431,9 @@ end
             @test_throws ArgumentError ripserer(ones(5, 5); alg=:something)
         end
         @testset "Int or Float64 field type" begin
-            @test_throws ErrorException ripserer(ones(5, 5); field_type=Int)
-            @test_throws ErrorException ripserer(ones(5, 5); field_type=Float64)
-            @test_throws ErrorException ripserer(ones(5, 5); field_type=UInt8)
+            @test_throws ErrorException ripserer(ones(5, 5); field=Int)
+            @test_throws ErrorException ripserer(ones(5, 5); field=Float64)
+            @test_throws ErrorException ripserer(ones(5, 5); field=UInt8)
         end
     end
 end

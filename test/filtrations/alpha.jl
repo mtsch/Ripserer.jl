@@ -1,5 +1,6 @@
 using Test
 using Ripserer
+using Suppressor
 using StaticArrays
 
 using Ripserer: circumcenter_radius2
@@ -82,6 +83,18 @@ end
         @test d0_t == d0
         @test d1_t == d1[[1:2; 4]]
         @test isempty(d2_t)
+    end
+end
+
+@testset "verbose" begin
+    points = [(t * sinpi(t), t * cospi(t)) for t in range(0, 2; length=20)]
+
+    @suppress begin
+        @test (@capture_out ripserer(Alpha, points; dim_max=5)) == ""
+        @test (@capture_out ripserer(Alpha, points; dim_max=5, verbose=true)) == ""
+
+        @test (@capture_err ripserer(Alpha, points; dim_max=5)) == ""
+        @test (@capture_err ripserer(Alpha, points; dim_max=5, verbose=true)) != ""
     end
 end
 

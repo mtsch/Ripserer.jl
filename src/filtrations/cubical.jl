@@ -154,7 +154,9 @@ struct Cubical{K,T,A<:AbstractArray{T,K}} <: AbstractFiltration{CartesianIndex{K
     threshold::T
 end
 
-function Cubical(data::AbstractArray{T,K}; threshold=maximum(data)) where {T,K}
+function Cubical(
+    data::AbstractArray{T,K}; threshold=maximum(data), verbose=false
+) where {T,K}
     return Cubical{K,T,typeof(data)}(data, _cubemap(data), T(threshold))
 end
 
