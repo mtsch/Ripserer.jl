@@ -22,14 +22,14 @@ for b in full_benchmarks
         data = load_data(joinpath(@__DIR__, "data", b.file))
         suite[sparse ? "sparse" : "dense"][name] = @benchmarkable ripserer(
             $data; dim_max=$(b.dim_max), threshold=$(b.threshold), sparse=$sparse
-        ) samples = 1
+        ) samples = 2
     end
 end
 
 for b in sparse_benchmarks
     name = b.file
     data = load_data(joinpath(@__DIR__, "data", b.file))
-    suite["sparse"][name] = @benchmarkable ripserer($data; dim_max=$(b.dim_max)) samples = 1
+    suite["sparse"][name] = @benchmarkable ripserer($data; dim_max=$(b.dim_max)) samples = 2
 end
 
 end
