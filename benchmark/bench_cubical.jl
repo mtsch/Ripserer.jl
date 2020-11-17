@@ -12,7 +12,7 @@ suite = BenchmarkGroup()
 for b in benchmarks
     name = b.file
     data = load_data(joinpath(@__DIR__, "data", b.file))
-    suite[name] = @benchmarkable ripserer(Cubical($data); dim_max=$(b.dim_max)) samples = 1
+    suite[name] = @benchmarkable ripserer(Cubical($data); dim_max=$(b.dim_max)) samples = 2
 end
 
 end
