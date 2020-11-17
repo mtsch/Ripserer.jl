@@ -29,7 +29,7 @@ end
 for b in sparse_benchmarks
     name = b.file
     data = load_data(joinpath(@__DIR__, "data", b.file))
-    suite["sparse"][name] = @benchmarkable ripserer($data; dim_max=$(b.dim_max)) samples = 1
+    suite["sparse"][name] = @benchmarkable ripserer($data; dim_max=$(b.dim_max)) samples = 2
 end
 
 end
