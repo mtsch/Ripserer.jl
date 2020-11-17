@@ -1,5 +1,4 @@
-function _unpack_kwargs(
-    ;
+function _unpack_kwargs(;
     dim_max=1,
     cutoff=0,
     modulus=2,
@@ -12,15 +11,15 @@ function _unpack_kwargs(
     progress=nothing,
     field_type=nothing,
     #
-    filtration_kwargs...
+    filtration_kwargs...,
 )
     if !isnothing(progress)
-        @warn "`progress` is deprecated. Use `verbose` instead" maxlog=1
-        verbose=progress
+        @warn "`progress` is deprecated. Use `verbose` instead" maxlog = 1
+        verbose = progress
     end
     if !isnothing(field_type)
-        @warn "`field_type` is deprecated. Use `field` instead" maxlog=1
-        field=field_type
+        @warn "`field_type` is deprecated. Use `field` instead" maxlog = 1
+        field = field_type
     end
     ripserer_kwargs = (
         dim_max=dim_max,
@@ -29,7 +28,7 @@ function _unpack_kwargs(
         verbose=verbose,
         alg=alg,
         reps=reps,
-        implicit=implicit
+        implicit=implicit,
     )
 
     return ripserer_kwargs, filtration_kwargs
@@ -132,15 +131,7 @@ _reps(reps::Bool, _) = reps
 _reps(reps, dim) = dim in reps
 
 function _ripserer(
-    filtration,
-    start_time;
-    dim_max,
-    cutoff,
-    field,
-    verbose,
-    alg,
-    reps,
-    implicit,
+    filtration, start_time; dim_max, cutoff, field, verbose, alg, reps, implicit
 )
     if field <: Union{Signed,Unsigned,AbstractFloat}
         error("$field is not a field! Please try a differnet field type")

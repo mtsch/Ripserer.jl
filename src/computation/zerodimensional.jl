@@ -150,11 +150,11 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps) where {F
 
     thresh = Float64(threshold(filtration))
     diagram = PersistenceDiagram(
-                sort!(intervals; by=persistence);
-                threshold=thresh,
-                dim=0,
-                field=F,
-                filtration=filtration,
-            )
+        sort!(intervals; by=persistence);
+        threshold=thresh,
+        dim=0,
+        field=F,
+        filtration=filtration,
+    )
     return (postprocess_diagram(filtration, diagram), to_reduce, to_skip)
 end

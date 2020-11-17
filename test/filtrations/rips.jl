@@ -281,17 +281,13 @@ end
             @test d3[1].representative isa Chain
         end
         @testset "Infinite interval very low threshold" begin
-            _, d1 = ripserer(
-                cycle; dim_max=1, reps=true, threshold=1, field=Rational{Int}
-            )
+            _, d1 = ripserer(cycle; dim_max=1, reps=true, threshold=1, field=Rational{Int})
             rep = representative(only(d1))
             @test simplex(only(rep)) == birth_simplex(only(d1))
             @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
         end
         @testset "Infinite interval higher threshold" begin
-            _, d1 = ripserer(
-                cycle; dim_max=1, reps=true, threshold=3, field=Rational{Int}
-            )
+            _, d1 = ripserer(cycle; dim_max=1, reps=true, threshold=3, field=Rational{Int})
             rep = representative(only(d1))
             @test !isempty(rep)
             @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
@@ -310,9 +306,7 @@ end
 
     @testset "Diagram metadata" begin
         filtration = Rips(cycle)
-        d0, d1, d2, d3 = ripserer(
-            filtration; dim_max=3, reps=true, field=Rational{Int}
-        )
+        d0, d1, d2, d3 = ripserer(filtration; dim_max=3, reps=true, field=Rational{Int})
         @test d0.dim == 0
         @test d1.dim == 1
         @test d2.dim == 2
