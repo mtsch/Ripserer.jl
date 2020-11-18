@@ -115,7 +115,7 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
 
                 chain′ = copy(chain)
                 for e in sort(uniques[2:2:end]; order=fwd)
-                    @test heappop!(chain) == e
+                    @test heappop!(chain, fwd) == e
                 end
                 @test heappop!(chain, fwd) ≡ nothing
                 @test heapmove!(chain′, fwd) == sort(uniques[2:2:end]; order=fwd)
@@ -133,6 +133,15 @@ for F in (Mod{2}, Mod{3}, Mod{257}, Rational{Int})
                 @test chain_fwd == reverse!(chain_rev)
                 @test allunique(chain_fwd)
                 @test all(!iszero, chain_fwd)
+            end
+
+            @testset "ordering should be given" begin
+                chain = Chain{F,S}(elements)
+                @test_throws ErrorException heapify!(chain)
+                @test_throws ErrorException heappush!(chain, elements[1])
+                @test_throws ErrorException heappop!(chain)
+                @test_throws ErrorException heapmove!(chain)
+                @test_throws ErrorException heapmove!(chain, chain)
             end
         end
     end

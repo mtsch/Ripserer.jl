@@ -140,6 +140,13 @@ function heapmove!(chain::Chain{F,S}, ordering::Base.Ordering) where {F,S}
     return heapmove!(Chain{F,S}(), chain, ordering)
 end
 
+_no_ordering_error() = error("no ordering given")
+DataStructures.heapify!(::Chain) = _no_ordering_error()
+DataStructures.heappop!(::Chain) = _no_ordering_error()
+DataStructures.heappush!(::Chain, _) = _no_ordering_error()
+heapmove!(::Chain) = _no_ordering_error()
+heapmove!(::Chain, ::Chain) = _no_ordering_error()
+
 # Other stuff
 function clean!(chain::Chain{F}, ordering::Base.Ordering, factor=one(F)) where {F}
     @inbounds if !isempty(chain)
