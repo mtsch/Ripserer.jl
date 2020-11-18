@@ -46,7 +46,7 @@ end
     include("filtrations/edgecollapse.jl")
 end
 @safetestset "new filtrations" begin
-    include("filtrations/new-filtrations.jl")
+    include("filtrations/newfiltrations.jl")
 end
 
 ###

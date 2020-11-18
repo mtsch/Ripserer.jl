@@ -257,21 +257,13 @@ Collect the representative (co)cycle.
 """
 function collect_cocycle!(matrix, column, pivot)
     if is_cohomology(matrix)
-        if isnothing(pivot)
+        if !is_implicit(matrix)
+            error("representative cocycles for explicit cohomology not supported")
+        elseif isnothing(pivot)
             push!(matrix.buffer, column)
             return copy(clean!(matrix.buffer, ordering(matrix)))
-        elseif is_implicit(matrix)
+        else is_implicit(matrix)
             return Chain(matrix.reduced[pivot])
-        else
-            tmp_chain = Chain{
-                field_type(matrix),simplex_type(matrix.filtration, dim(matrix))
-            }()
-            for elem in matrix.reduced[pivot]
-                for facet in boundary(matrix.filtration, simplex(elem))
-                    heappush!(tmp_chain, (facet, coefficient(elem)), ordering(matrix))
-                end
-            end
-            return heapmove!(tmp_chain, ordering(matrix))
         end
     else
         if is_implicit(matrix)

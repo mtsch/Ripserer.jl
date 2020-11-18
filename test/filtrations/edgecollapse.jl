@@ -2,6 +2,7 @@ using Ripserer
 using Test
 
 include("test-datasets.jl")
+include("interfacetest.jl")
 
 @testset "Result equal to Rips" begin
     for m in (2, 3)
@@ -29,4 +30,8 @@ include("test-datasets.jl")
             end
         end
     end
+end
+
+@testset "Interface" begin
+    test_filtration(EdgeCollapsedRips, projective_plane; modulus=3)
 end

@@ -131,7 +131,8 @@ _reps(reps::Bool, _) = reps
 _reps(reps, dim) = dim in reps
 
 function _ripserer(
-    filtration, start_time; dim_max, cutoff, field, verbose, alg, reps, implicit
+    filtration::AbstractFiltration, start_time;
+    dim_max, cutoff, field, verbose, alg, reps, implicit,
 )
     if field <: Union{Signed,Unsigned,AbstractFloat}
         error("$field is not a field! Please try a differnet field type")

@@ -11,6 +11,7 @@ using Ripserer:
     distances, births, adjacency_matrix, edges, nv, unsafe_simplex, ChainElement, Chain
 
 include("test-datasets.jl")
+include("interfacetest.jl")
 
 @testset "distances" begin
     for points in (
@@ -19,54 +20,6 @@ include("test-datasets.jl")
     )
         @test distances(points) ≈ [0 1 √2 1; 1 0 1 √2; √2 1 0 1; 1 √2 1 0]
         @test distances(points, Cityblock()) == [0 1 2 1; 1 0 1 2; 2 1 0 1; 1 2 1 0]
-    end
-end
-
-for sparse in (true, false)
-    @testset "With no threshold, sparse=$sparse" begin
-        filtration = Rips(Float64[0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0]; sparse=sparse)
-
-        @test sprint(show, filtration) == "Rips{Int64, Float64}(nv=4, sparse=$sparse)"
-
-        @test nv(filtration) == 4
-        if issparse(adjacency_matrix(filtration))
-            @test adjacency_matrix(filtration) == [0 1 2 0; 1 0 3 0; 2 3 0 4; 0 0 4 0]
-        else
-            @test adjacency_matrix(filtration) == [0 1 2 9; 1 0 3 9; 2 3 0 4; 9 9 4 0]
-        end
-
-        @test threshold(filtration) == 4.0
-        @test births(filtration) == zeros(4)
-
-        @test adjacency_matrix(filtration) == filtration.adj
-
-        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0}(1, 0.0)
-        @test unsafe_simplex(filtration, Val(1), (2, 1)) === Simplex{1}(1, 1.0)
-        @test simplex(filtration, Val(2), (1, 3, 2)) === Simplex{2}(1, 3.0)
-        @test_throws ArgumentError simplex(filtration, Val(2), (1, 1, 2))
-    end
-    @testset "With threshold and index type, sparse=$sparse" begin
-        filtration = Rips{Int128}([1 2 2; 2 2 3; 2 3 2]; threshold=2, sparse=sparse)
-
-        @test sprint(show, filtration) == "Rips{Int128, Int64}(nv=3, sparse=$sparse)"
-
-        @test nv(filtration) == 3
-        @test threshold(filtration) == 2
-        if sparse
-            @test adjacency_matrix(filtration) == [1 2 2; 2 2 0; 2 0 2]
-        else
-            @test adjacency_matrix(filtration) == [1 2 2; 2 2 3; 2 3 2]
-        end
-        @test threshold(filtration) == 2
-
-        @test births(filtration) == [1, 2, 2]
-
-        @test adjacency_matrix(filtration) == filtration.adj
-
-        @test unsafe_simplex(filtration, Val(0), (1,)) === Simplex{0,Int,Int128}(1, 1)
-        @test unsafe_simplex(filtration, Val(2), (3, 2, 1)) === nothing
-        @test simplex(filtration, Val(1), (1, 2)) === Simplex{1,Int,Int128}(1, 2)
-        @test_throws ArgumentError simplex(filtration, Val(2), (0, 1, 2))
     end
 end
 
@@ -139,7 +92,7 @@ end
 end
 
 @testset "ripserer" begin
-    @testset "Rips" begin
+    @testset "Dense" begin
         @testset "Icosahedron" begin
             d0, d1, d2 = ripserer(icosahedron; dim_max=2)
             @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
@@ -205,7 +158,7 @@ end
         end
     end
 
-    @testset "sparse" begin
+    @testset "Sparse" begin
         @testset "Icosahedron" begin
             d0, d1, d2 = ripserer(sparse(icosahedron); dim_max=2)
             @test d0 == [fill((0.0, 1.0), 11); (0.0, Inf)]
@@ -365,32 +318,6 @@ end
     end
 
     @testset "Homology and explicit cohomology" begin
-        for m in (2, 17)
-            @testset "Same for projective plane with modulus=$m" begin
-                r = Rips(projective_plane)
-                _, hom_imp1, hom_imp2 = ripserer(
-                    r; alg=:homology, implicit=true, dim_max=2, modulus=m
-                )
-                _, hom_exp1, hom_exp2 = ripserer(
-                    r; alg=:homology, implicit=false, dim_max=2, modulus=m
-                )
-                _, hom_ass1, hom_ass2 = ripserer(r; alg=:involuted, dim_max=2, modulus=m)
-                _, coh_imp1, coh_imp2 = ripserer(
-                    r; implicit=true, reps=true, dim_max=2, modulus=m
-                )
-                _, coh_exp1, coh_exp2 = ripserer(
-                    r; implicit=true, reps=true, dim_max=2, modulus=m
-                )
-                @test hom_imp1 == hom_exp1 == hom_ass1 == coh_imp1 == coh_exp1
-                @test hom_imp2 == hom_exp2 == hom_ass2 == coh_imp2 == coh_exp2
-                @test representative.(hom_imp1) == representative.(hom_exp1)
-                @test representative.(hom_imp1) == representative.(hom_ass1)
-                @test representative.(hom_imp2) == representative.(hom_exp2)
-                @test representative.(hom_imp2) == representative.(hom_ass2)
-                @test representative.(coh_imp1) == representative.(coh_exp1)
-                @test representative.(coh_imp2) == representative.(coh_exp2)
-            end
-        end
         @testset "Representative cycle" begin
             res_hom = ripserer(cycle; alg=:homology, reps=true, dim_max=3)
             @test vertices.(simplex.(representative(res_hom[2][1]))) ==
@@ -407,14 +334,8 @@ end
         end
     end
 
-    @testset "Only print to stderr and only when verbose is set" begin
-        @suppress begin
-            @test (@capture_out ripserer(torus(16); dim_max=5)) == ""
-            @test (@capture_out ripserer(torus(16); dim_max=5, verbose=true)) == ""
-
-            @test (@capture_err ripserer(torus(16); dim_max=5)) == ""
-            @test (@capture_err ripserer(torus(16); dim_max=5, verbose=true)) != ""
-        end
+    @testset "Interface" begin
+        test_filtration(Rips, cycle, modulus=3, dim_max=2)
     end
 
     @testset "Errors" begin
@@ -428,6 +349,9 @@ end
             @test_throws ErrorException ripserer(ones(5, 5); field=Int)
             @test_throws ErrorException ripserer(ones(5, 5); field=Float64)
             @test_throws ErrorException ripserer(ones(5, 5); field=UInt8)
+        end
+        @testset "Explicit cohomology reperesentatives unsupported" begin
+            @test_throws ErrorException ripserer(cycle; implicit=false, reps=true)
         end
     end
 end

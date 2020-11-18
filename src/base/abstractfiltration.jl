@@ -10,12 +10,13 @@ An `AbstractFiltration` constructor must accept the `verbose` keyword argument.
 # Interface
 
 * [`nv(::AbstractFiltration)`](@ref)
+* [`births(::AbstractFiltration)`](@ref)
+* [`vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges])`
-* [`births(::AbstractFiltration)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration, ::Any)`](@ref)
 * [`emergent_pairs(::AbstractFiltration)`](@ref)

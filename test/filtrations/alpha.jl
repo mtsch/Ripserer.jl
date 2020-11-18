@@ -5,6 +5,8 @@ using StaticArrays
 
 using Ripserer: circumcenter_radius2
 
+include("interfacetest.jl")
+
 @static if Sys.iswindows()
     @test_broken begin
         Alpha(points)
@@ -67,38 +69,8 @@ else
         @test isempty(d2)
     end
 
-    @testset "Threshold" begin
+    @testset "Interface" begin
         points = [(t * sinpi(t), t * cospi(t)) for t in range(0, 2; length=20)]
-        d0, d1, d2 = ripserer(Alpha, points; dim_max=2)
-        d0_t, d1_t, d2_t = ripserer(Alpha, points; threshold=1.8, dim_max=2)
-        @test d0_t == d0
-        @test d1_t == d1[[1:2; 4]]
-        @test isempty(d2_t)
-    end
-
-    @testset "verbose" begin
-        points = [(t * sinpi(t), t * cospi(t)) for t in range(0, 2; length=20)]
-        @suppress begin
-            @test (@capture_out ripserer(Alpha, points; dim_max=5)) == ""
-            @test (@capture_out ripserer(Alpha, points; dim_max=5, verbose=true)) == ""
-
-            @test (@capture_err ripserer(Alpha, points; dim_max=5)) == ""
-            @test (@capture_err ripserer(Alpha, points; dim_max=5, verbose=true)) != ""
-        end
-    end
-
-    @testset "Homology" begin
-        points = [(t * sinpi(t), t * cospi(t), cospi(2t)) for t in range(0, 2; length=20)]
-        a = Alpha(points)
-        _, hom_imp = ripserer(a; alg=:homology, implicit=true)
-        _, hom_exp = ripserer(a; alg=:homology, implicit=false)
-        _, hom_ass = ripserer(a; alg=:involuted)
-        _, coh_imp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
-        _, coh_exp = ripserer(a; alg=:cohomology, implicit=true, reps=true)
-
-        @test hom_imp == hom_exp == hom_ass == coh_imp == coh_exp
-        @test representative.(hom_imp) == representative.(hom_exp)
-        @test representative.(hom_exp) == representative.(hom_ass)
-        @test representative.(coh_imp) == representative.(coh_exp)
+        test_filtration(Alpha, points)
     end
 end
