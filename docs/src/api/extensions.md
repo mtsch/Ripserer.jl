@@ -11,15 +11,15 @@ Ripserer.nv(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-Ripserer.edges(::Ripserer.AbstractFiltration)
-```
-
-```@docs
 Ripserer.births(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
-Ripserer.threshold(::Ripserer.AbstractFiltration)
+Ripserer.vertices(::Ripserer.AbstractFiltration)
+```
+
+```@docs
+Ripserer.edges(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
@@ -36,6 +36,10 @@ Ripserer.unsafe_simplex
 
 ```@docs
 Ripserer.unsafe_cofacet
+```
+
+```@docs
+Ripserer.threshold(::Ripserer.AbstractFiltration)
 ```
 
 ```@docs
@@ -59,6 +63,10 @@ Ripserer.AbstractRipsFiltration
 ```
 
 ```@docs
+Ripserer.adjacency_matrix(::Ripserer.AbstractFiltration)
+```
+
+```@docs
 Ripserer.AbstractCustomFiltration
 ```
 
@@ -66,18 +74,30 @@ Ripserer.AbstractCustomFiltration
 Ripserer.simplex_dicts
 ```
 
-```@docs
-Ripserer.adjacency_matrix(::Ripserer.AbstractFiltration)
-```
-
 ## Simplex Interface
+
+```@docs
+Ripserer.AbstractCell
+```
 
 ```@docs
 Ripserer.AbstractSimplex
 ```
 
 ```@docs
-index(::Ripserer.AbstractCell)
+Ripserer.dim(::Ripserer.AbstractCell)
+```
+
+```@docs
+Ripserer.birth(::Ripserer.AbstractCell)
+```
+
+```@docs
+Ripserer.index(::Ripserer.AbstractCell)
+```
+
+```@docs
+Ripserer.vertices(::Ripserer.AbstractCell)
 ```
 
 ```@docs
@@ -94,4 +114,12 @@ Ripserer.coboundary
 
 ```@docs
 Ripserer.boundary
+```
+
+```@docs
+Ripserer.Simplex
+```
+
+```@docs
+Ripserer.Cube
 ```

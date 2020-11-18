@@ -1,35 +1,29 @@
 using SafeTestsets
 using Test
 
-###
-### Basic stuff
-###
 @safetestset "primefield" begin
-    include("primefield.jl")
+    include("base/primefield.jl")
 end
 @safetestset "simplex" begin
-    include("simplex.jl")
+    include("base/simplex.jl")
 end
 @safetestset "chainelement" begin
-    include("chainelement.jl")
+    include("base/chainelement.jl")
 end
 @safetestset "chain" begin
-    include("chain.jl")
+    include("base/chain.jl")
+end
+@safetestset "plotting" begin
+    include("base/plotting.jl")
 end
 
-###
-### Computation structs
-###
 @safetestset "reducedmatrix" begin
-    include("reducedmatrix.jl")
+    include("computation/reducedmatrix.jl")
 end
 @safetestset "zerodimensional" begin
-    include("zerodimensional.jl")
+    include("computation/zerodimensional.jl")
 end
 
-###
-### Main tests
-###
 @safetestset "rips" begin
     include("filtrations/rips.jl")
 end
@@ -46,25 +40,16 @@ end
     include("filtrations/edgecollapse.jl")
 end
 @safetestset "new filtrations" begin
-    include("filtrations/new-filtrations.jl")
+    include("filtrations/newfiltrations.jl")
 end
 
-###
-### Extra features
-###
 @safetestset "cycles" begin
-    include("cycles.jl")
+    include("extra/cycles.jl")
 end
 @safetestset "circularcoordinates" begin
-    include("circularcoordinates.jl")
-end
-@safetestset "plotting" begin
-    include("plotting.jl")
+    include("extra/circularcoordinates.jl")
 end
 
-###
-### Sanity checks
-###
 @safetestset "aqua" begin
     include("aqua.jl")
 end

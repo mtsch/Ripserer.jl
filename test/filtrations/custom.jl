@@ -5,6 +5,8 @@ using TupleTools
 
 using Ripserer: adjacency_matrix, births
 
+include("interfacetest.jl")
+
 @testset "Custom filtration 1" begin
     flt = Custom(
         [
@@ -105,4 +107,21 @@ end
         Custom{Int128}([big_simplex => 1])
         true
     end
+end
+
+@testset "Interface" begin
+    data = [
+        (1,) => 0,
+        (4,) => 0,
+        (1, 3) => 2,
+        (1, 4) => 3,
+        (3, 4) => 6.0,
+        (1, 2, 3) => 7,
+        (1, 2, 4) => 8,
+        (1, 3, 4) => 9,
+        (1, 2, 3, 4) => 9,
+        (3,) => 10_000,
+    ]
+
+    test_filtration(Custom, data; flt_kwargs=(; threshold=9), dim_max=2)
 end

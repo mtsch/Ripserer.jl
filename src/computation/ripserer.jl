@@ -1,15 +1,46 @@
+function _unpack_kwargs(;
+    dim_max=1,
+    cutoff=0,
+    modulus=2,
+    field=Mod{modulus},
+    verbose=false,
+    alg=:cohomology,
+    reps=alg == :cohomology ? false : 1:dim_max,
+    implicit=alg != :homology,
+    # deprecated
+    progress=nothing,
+    field_type=nothing,
+    #
+    filtration_kwargs...,
+)
+    if !isnothing(progress)
+        @warn "`progress` is deprecated. Use `verbose` instead" maxlog = 1
+        verbose = progress
+    end
+    if !isnothing(field_type)
+        @warn "`field_type` is deprecated. Use `field` instead" maxlog = 1
+        field = field_type
+    end
+    ripserer_kwargs = (
+        dim_max=dim_max,
+        cutoff=cutoff,
+        field=field,
+        verbose=verbose,
+        alg=alg,
+        reps=reps,
+        implicit=implicit,
+    )
+
+    return ripserer_kwargs, filtration_kwargs
+end
+
 """
-    ripserer(dists::AbstractMatrix; kwargs...)
-    ripserer(points; metric=Distances.Euclidean(1e-12), births, kwargs...)
+    ripserer(Type{<:AbstractFiltration}, args...; kwargs...)
     ripserer(filtration::AbstractFiltration; kwargs...)
 
-Compute the persistent homology of metric space represented by `dists`, `points` and
-`metric`, or a [`Ripserer.AbstractFiltration`](@ref).
-
-If `dists` or `points` are given, the `Rips` filtration is used.
-
-If using points, `points` must be an array of `isbits` types, such as `NTuple`s or
-`SVector`s.
+Compute the persistent homology of a filtration. The filtration can be given as an
+[`AbstractFiltration`](@ref) type, followed by its arguments, or as an initialized object
+(see examples below). If only data is given, `Rips` is used by default.
 
 # Keyword Arguments
 
@@ -18,7 +49,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
 * `modulus`: compute persistent homology with coefficients in the prime field of integers
   mod `modulus`. Defaults to `2`.
 
-* `field_type`: use this type of field of coefficients. Defaults to
+* `field`: use this type of field of coefficients. Defaults to
   [`Ripserer.Mod`](@ref)`{modulus}`.
 
 * `threshold`: compute persistent homology up to diameter smaller than threshold. This
@@ -35,11 +66,7 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   large filtrations (such as cubical) where calculating zero-dimensional representatives can
   be very slow.  Defaults to `false` for cohomology and `1:dim_max` for homology.
 
-* `progress`: If `true`, show a progress bar. Defaults to `false`.
-
-* `metric`: when calculating persistent homology from points, any metric from
-  [`Distances.jl`](https://github.com/JuliaStats/Distances.jl) can be used. Defaults to
-  `Distances.Euclidean(1e-12)`.
+* `verbose`: If `true`, show a verbose bar. Defaults to `false`.
 
 * `alg`: select the algorithm used in computation. The options are:
 
@@ -57,65 +84,90 @@ If using points, `points` must be an array of `isbits` types, such as `NTuple`s 
   :cohomology and `:involuted`, and `false` for `:homology`. `implicit=false` is not
   recommended for `:cohomology` because it disables the emergent pairs optimization.
 
+Other `kwargs...` are passed to the filtration.
+
+# Examples
+
+```jldoctest
+julia> ts = range(0, 2π; length=20)[1:(end - 1)];
+
+julia> X = [((2 + cos(θ)) * cos(φ), (2 + cos(θ)) * sin(φ), sin(θ)) for θ in ts for φ in ts];
+
+julia> ripserer(X)
+2-element Array{PersistenceDiagramsBase.PersistenceDiagram,1}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(EdgeCollapsedRips, X; modulus=7, threshold=2)
+2-element Array{PersistenceDiagramsBase.PersistenceDiagram,1}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+julia> ripserer(Rips(X; threshold=1); alg=:involuted)
+2-element Array{PersistenceDiagramsBase.PersistenceDiagram,1}:
+ 361-element 0-dimensional PersistenceDiagram
+ 362-element 1-dimensional PersistenceDiagram
+
+```
+
 """
-function ripserer(dists::AbstractMatrix; threshold=nothing, sparse=false, kwargs...)
-    filtration = Rips(dists; threshold=threshold, sparse=sparse)
-    return ripserer(filtration; kwargs...)
-end
-
-function ripserer(
-    points::AbstractVector;
-    metric=Euclidean(1e-12),
-    threshold=nothing,
-    sparse=false,
-    kwargs...,
-)
-    filtration = Rips(points; metric=metric, threshold=threshold, sparse=sparse)
-    return ripserer(filtration; kwargs...)
-end
-
-function ripserer(
-    filtration::AbstractFiltration;
-    dim_max=1,
-    cutoff=0,
-    modulus=2,
-    field_type=Mod{modulus},
-    progress=false,
-    alg=:cohomology,
-    reps=alg == :cohomology ? false : 1:dim_max,
-    implicit=alg != :homology,
-)
-    if field_type <: Union{Signed,Unsigned,AbstractFloat}
-        error("$field_type is not a field! Please try a differnet field type")
-    end
+function ripserer(F::Type, args...; kwargs...)
+    ripserer_kwargs, filtration_kwargs = _unpack_kwargs(; kwargs...)
     start_time = time_ns()
-    index_overflow_check(filtration, field_type, dim_max)
-    result = _ripserer(
-        Val(alg), filtration, cutoff, progress, field_type, dim_max, reps, implicit
-    )
-    elapsed = round((time_ns() - start_time) / 1e9; digits=3)
-    @prog_println progress "Done. Time: " ProgressMeter.durationstring(elapsed)
+    filtration = F(args...; verbose=ripserer_kwargs.verbose, filtration_kwargs...)
+    return _ripserer(filtration, start_time; ripserer_kwargs...)
+end
 
-    return result
+# Default: Rips
+ripserer(dist; kwargs...) = ripserer(Rips, dist; kwargs...)
+
+function ripserer(filtration::AbstractFiltration; kwargs...)
+    ripserer_kwargs, other_kwargs = _unpack_kwargs(; kwargs...)
+    start_time = time_ns()
+    return _ripserer(filtration, start_time; ripserer_kwargs..., other_kwargs...)
 end
 
 _reps(reps::Bool, _) = reps
 _reps(reps, dim) = dim in reps
 
 function _ripserer(
-    ::Val{:cohomology}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+    filtration::AbstractFiltration,
+    start_time;
+    dim_max,
+    cutoff,
+    field,
+    verbose,
+    alg,
+    reps,
+    implicit,
+)
+    if field <: Union{Signed,Unsigned,AbstractFloat}
+        error("$field is not a field! Please try a differnet field type")
+    end
+    index_overflow_check(filtration, field, dim_max)
+    result = _ripserer(
+        Val(alg), filtration, cutoff, verbose, field, dim_max, reps, implicit
+    )
+    elapsed = round((time_ns() - start_time) / 1e9; digits=3)
+    @prog_println verbose "Done. Time: " ProgressMeter.durationstring(elapsed)
+
+    return result
+end
+
+function _ripserer(
+    ::Val{:cohomology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
-        matrix = CoboundaryMatrix{implicit}(field_type, filtration, to_reduce, to_skip)
+        matrix = CoboundaryMatrix{implicit}(field, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
+            push!(result, compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim)))
             if dim < dim_max
-                matrix = next_matrix(matrix, progress)
+                matrix = next_matrix(matrix, verbose)
             end
         end
     end
@@ -123,18 +175,18 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:homology}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+    ::Val{:homology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
         simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
         for dim in 1:dim_max
-            matrix = BoundaryMatrix{implicit}(field_type, filtration, simplices)
-            push!(result, compute_intervals!(matrix, cutoff, progress, _reps(reps, dim)))
+            matrix = BoundaryMatrix{implicit}(field, filtration, simplices)
+            push!(result, compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim)))
             if dim < dim_max
                 simplices = columns_to_reduce(filtration, simplices)
             end
@@ -144,19 +196,19 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:involuted}, filtration, cutoff, progress, field_type, dim_max, reps, implicit
+    ::Val{:involuted}, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, progress, field_type, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0)
     )
     push!(result, zeroth)
     if dim_max > 0
-        comatrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
+        comatrix = CoboundaryMatrix{true}(field, filtration, to_reduce, to_skip)
         for dim in 1:dim_max
-            columns, inf_births = compute_death_simplices!(comatrix, progress, cutoff)
-            matrix = BoundaryMatrix{implicit}(field_type, filtration, columns)
-            diagram = compute_intervals!(matrix, cutoff, progress, _reps(reps, dim))
+            columns, inf_births = compute_death_simplices!(comatrix, verbose, cutoff)
+            matrix = BoundaryMatrix{implicit}(field, filtration, columns)
+            diagram = compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim))
             for birth_simplex in inf_births
                 push!(
                     diagram.intervals,
@@ -165,7 +217,7 @@ function _ripserer(
             end
             push!(result, diagram)
             if dim < dim_max
-                comatrix = next_matrix(comatrix, progress)
+                comatrix = next_matrix(comatrix, verbose)
             end
         end
     end

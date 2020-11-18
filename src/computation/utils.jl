@@ -1,13 +1,13 @@
-macro prog_print(progress, args...)
+macro prog_print(verbose, args...)
     quote
-        if $(esc(progress))
+        if $(esc(verbose))
             printstyled(stderr, $(esc.(args)...); color=:green)
         end
     end
 end
-macro prog_println(progress, args...)
+macro prog_println(verbose, args...)
     quote
-        if $(esc(progress))
+        if $(esc(verbose))
             printstyled(stderr, $(esc.(args)...), '\n'; color=:green)
         end
     end

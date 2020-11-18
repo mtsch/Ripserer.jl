@@ -99,15 +99,15 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
 end
 
 """
-    zeroth_intervals(filtration, cutoff, progress, field_type, reps)
+    zeroth_intervals(filtration, cutoff, verbose, field_type, reps)
 
 Compute 0-dimensional persistent homology using Kruskal's Algorithm.
 
 Only keep intervals with desired birth/death `cutoff`. Compute homology with coefficients in
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
-`progress` is set.
+`verbose` is set.
 """
-function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where {F}
+function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps) where {F}
     V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
@@ -117,7 +117,7 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where {
     to_skip = simplex_type(filtration, 1)[]
     to_reduce = simplex_type(filtration, 1)[]
     simplices = sort!(edges(filtration))
-    if progress
+    if verbose
         progbar = Progress(
             length(simplices) + nv(filtration); desc="Computing 0d intervals... "
         )
@@ -137,30 +137,24 @@ function zeroth_intervals(filtration, cutoff, progress, ::Type{F}, reps) where {
         else
             push!(to_reduce, edge)
         end
-        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
+        verbose && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,)))
             int = interval(dset, filtration, v, nothing, cutoff, reps)
             push!(intervals, int)
         end
-        progress && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
+        verbose && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
     end
     reverse!(to_reduce)
 
     thresh = Float64(threshold(filtration))
-    return (
-        postprocess_diagram(
-            filtration,
-            PersistenceDiagram(
-                sort!(intervals; by=persistence);
-                threshold=thresh,
-                dim=0,
-                field_type=F,
-                filtration=filtration,
-            ),
-        ),
-        to_reduce,
-        to_skip,
+    diagram = PersistenceDiagram(
+        sort!(intervals; by=persistence);
+        threshold=thresh,
+        dim=0,
+        field=F,
+        filtration=filtration,
     )
+    return (postprocess_diagram(filtration, diagram), to_reduce, to_skip)
 end

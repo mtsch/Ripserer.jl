@@ -8,6 +8,8 @@ using TupleTools
 using Ripserer:
     _one_hot, _cubemap, _from_cubemap, _to_cubemap, nv, coboundary, boundary, edges, births
 
+include("interfacetest.jl")
+
 @testset "CubeMap" begin
     @testset "cubemap" begin
         @testset "1d" begin
@@ -315,7 +317,7 @@ end
 @testset "ripserer" begin
     @testset "1D" begin
         data = [1, 0, 1, 2, 3, 4, 3, 2, 3, 2, 1, 2]
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; dim_max=2)
 
         @test d0 == [(2, 3), (1, 4), (0, Inf)]
         @test d1 == []
@@ -326,7 +328,7 @@ end
         x = range(0, 1; length=n)
         curve = sin.(2π * 5x) .* x
 
-        d0, _ = ripserer(Cubical(curve); reps=true)
+        d0, _ = ripserer(Cubical, curve; reps=true)
 
         for int in d0
             birth_sx = birth_simplex(int)
@@ -344,7 +346,7 @@ end
             0 0 0 0 0
         ]
 
-        d0, d1, d2 = ripserer(Cubical(data); reps=true, dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; reps=true, dim_max=2)
 
         @test d0 == [(1, 2), (0, Inf)]
         @test d1 == [(0, 2)]
@@ -361,7 +363,7 @@ end
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        d0, d1, d2 = ripserer(Cubical(data); dim_max=2)
+        d0, d1, d2 = ripserer(Cubical, data; dim_max=2)
 
         @test d0 == [(0, 1), (0, Inf)]
         @test d1 == []
@@ -373,7 +375,7 @@ end
             1 2 1
             1 1 1
         ]
-        d0, d1 = ripserer(Cubical(data; threshold=1))
+        d0, d1 = ripserer(Cubical, data; threshold=1)
         @test d0 == [(1, Inf)]
         @test d1 == [(1, Inf)]
     end
@@ -383,20 +385,6 @@ end
         data[3, :, :] .= [0 0 0 0 0; 0 1 1 1 0; 0 1 0 1 0; 0 1 1 1 0; 0 0 0 0 0]
         data[4, 2:4, 2:4] .= 1
 
-        c = Cubical(data)
-        _, hom_imp1, hom_imp2 = ripserer(c; alg=:homology, implicit=true, dim_max=2)
-        _, hom_exp1, hom_exp2 = ripserer(c; alg=:homology, implicit=false, dim_max=2)
-        _, hom_ass1, hom_ass2 = ripserer(c; alg=:involuted, implicit=false, dim_max=2)
-        _, coh_imp1, coh_imp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
-        _, coh_exp1, coh_exp2 = ripserer(c; implicit=true, reps=true, dim_max=2)
-
-        @test hom_imp1 == hom_exp1 == hom_ass1 == coh_imp1 == coh_exp1
-        @test hom_imp2 == hom_exp2 == hom_ass2 == coh_imp2 == coh_exp2
-        @test representative.(hom_imp1) == representative.(hom_exp1)
-        @test representative.(hom_imp1) == representative.(hom_ass1)
-        @test representative.(hom_imp2) == representative.(hom_exp2)
-        @test representative.(hom_imp2) == representative.(hom_ass2)
-        @test representative.(coh_imp1) == representative.(coh_exp1)
-        @test representative.(coh_imp2) == representative.(coh_exp2)
+        test_filtration(Cubical, data; dim_max=2)
     end
 end

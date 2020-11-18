@@ -5,15 +5,18 @@ A filtration is used to find the edges in filtration and to create simplices. An
 `AbstractFiltration{I,T}`'s simplex type is expected to return simplices of type
 `<:AbstractCell{_,T,I}`.
 
+An `AbstractFiltration` constructor must accept the `verbose` keyword argument.
+
 # Interface
 
 * [`nv(::AbstractFiltration)`](@ref)
+* [`births(::AbstractFiltration)`](@ref)
+* [`vertices(::AbstractFiltration)`](@ref)
 * [`edges(::AbstractFiltration)`](@ref)
 * [`simplex_type(::Type{AbstractFiltration}, dim)`](@ref)
 * [`simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
 * [`unsafe_simplex(::AbstractFiltration, ::Val{dim}, vertices)`](@ref)
 * [`unsafe_cofacet`](@ref)`(::AbstractFiltration, simplex, vertices, vertex[, edges])`
-* [`births(::AbstractFiltration)`](@ref)
 * [`threshold(::AbstractFiltration)`](@ref)
 * [`columns_to_reduce(::AbstractFiltration, ::Any)`](@ref)
 * [`emergent_pairs(::AbstractFiltration)`](@ref)
@@ -92,9 +95,9 @@ order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref
 # Example
 
 ```
-julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
+julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2))
 1-dimensional Simplex(index=1, birth=2):
-  -[2, 1]
+  +[2, 1]
 
 ```
 """
@@ -149,14 +152,20 @@ end
 """
     vertices(::AbstractFiltration)
 
-Return the vertices in filtration. Defaults to `1:n`. The `eltype` of the result can be
-anything as long as `result[result[i]] == result[i]` holds.
+Return the vertices in filtration. Defaults to `1:n`. The `shape` and `eltype` of the result
+can be anything as long as `result[result[i]] == result[i]` holds.
 
 # Example
 
 ```jldoctest
 julia> vertices(Rips([0 1 1; 1 0 1; 1 1 0]))
 Base.OneTo(3)
+
+julia> vertices(Cubical([0 1 1; 1 0 1; 1 1 0]))
+3×3 CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}}:
+ CartesianIndex(1, 1)  CartesianIndex(1, 2)  CartesianIndex(1, 3)
+ CartesianIndex(2, 1)  CartesianIndex(2, 2)  CartesianIndex(2, 3)
+ CartesianIndex(3, 1)  CartesianIndex(3, 2)  CartesianIndex(3, 3)
 
 ```
 """
@@ -276,7 +285,7 @@ computed. Defaults to not doing anything.
 postprocess_diagram(::AbstractFiltration, diagram) = diagram
 
 """
-    find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, progress)
+    find_apparent_pairs(::AbstractFiltration, columns, is_cohomology, verbose)
 
 Find apparent pairs in filtration. Columns are the initial columns that are being reduced.
 Should return a tuple of:

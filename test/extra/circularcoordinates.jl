@@ -13,7 +13,7 @@ using Ripserer:
     is_cocycle,
     ChainElement
 
-include("filtrations/test-datasets.jl")
+include("../testdatasets.jl")
 
 @testset "Helpers" begin
     @testset "Partition functions" begin

@@ -26,9 +26,9 @@ is determined by the following.
 * [`vertices(σ::AbstractCell)`](@ref)::NTuple{length(σ),I}
 * length(::Type{AbstractCell})
 * [`sign(::AbstractCell)`](@ref)
+* [`Base.:-(::AbstractCell)`](@ref)
 * [`coboundary(::Any, ::AbstractCell)`](@ref)
 * [`boundary(::Any, ::AbstractCell)`](@ref)
-* [`Base.:-(::AbstractCell)`](@ref)
 
 """
 abstract type AbstractCell{D,T,I} end

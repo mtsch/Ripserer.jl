@@ -28,28 +28,6 @@ Alpha
 EdgeCollapsedRips
 ```
 
-## Simplices
-
-```@docs
-Simplex
-```
-
-```@docs
-Cube
-```
-
-```@docs
-Ripserer.vertices(::Ripserer.AbstractCell)
-```
-
-```@docs
-Ripserer.birth(::Ripserer.AbstractCell)
-```
-
-```@docs
-Ripserer.dim(::Ripserer.AbstractCell)
-```
-
 ## Fields
 
 ```@docs
@@ -93,5 +71,13 @@ barcode
 ## Experimental Features
 
 ```@docs
-reconstruct_cycle
+Ripserer.reconstruct_cycle
+```
+
+```@docs
+Ripserer.Partition
+```
+
+```@docs
+Ripserer.CircularCoordinates
 ```
