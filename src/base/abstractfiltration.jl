@@ -95,9 +95,9 @@ order. Default implementation sorts `vertices` and calls [`unsafe_simplex`](@ref
 # Example
 
 ```
-julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2), -1)
+julia> simplex(Rips([0 2 1; 2 0 1; 1 1 0], threshold=2), Val(1), (1, 2))
 1-dimensional Simplex(index=1, birth=2):
-  -[2, 1]
+  +[2, 1]
 
 ```
 """
@@ -152,14 +152,20 @@ end
 """
     vertices(::AbstractFiltration)
 
-Return the vertices in filtration. Defaults to `1:n`. The `eltype` of the result can be
-anything as long as `result[result[i]] == result[i]` holds.
+Return the vertices in filtration. Defaults to `1:n`. The `shape` and `eltype` of the result
+can be anything as long as `result[result[i]] == result[i]` holds.
 
 # Example
 
 ```jldoctest
 julia> vertices(Rips([0 1 1; 1 0 1; 1 1 0]))
 Base.OneTo(3)
+
+julia> vertices(Cubical([0 1 1; 1 0 1; 1 1 0]))
+3×3 CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}}:
+ CartesianIndex(1, 1)  CartesianIndex(1, 2)  CartesianIndex(1, 3)
+ CartesianIndex(2, 1)  CartesianIndex(2, 2)  CartesianIndex(2, 3)
+ CartesianIndex(3, 1)  CartesianIndex(3, 2)  CartesianIndex(3, 3)
 
 ```
 """

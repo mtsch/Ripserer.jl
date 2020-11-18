@@ -1,6 +1,6 @@
 # Interfaces
 
-## Filtrations
+## Filtration Interface
 
 ```@docs
 Ripserer.AbstractFiltration
@@ -74,7 +74,7 @@ Ripserer.AbstractCustomFiltration
 Ripserer.simplex_dicts
 ```
 
-## Simplices
+## Simplex Interface
 
 ```@docs
 Ripserer.AbstractCell
@@ -82,6 +82,10 @@ Ripserer.AbstractCell
 
 ```@docs
 Ripserer.AbstractSimplex
+```
+
+```@docs
+Ripserer.dim(::Ripserer.AbstractCell)
 ```
 
 ```@docs

@@ -1,8 +1,8 @@
 """
     module Partition
 
-This submodule contains the following partition functions to be used with
-[`CircularCoordinates`](@ref):
+This submodule contains the following partition functions to be used with circular
+coordinates.
 
 * `Partition.linear(r, d) = max(r - d, 0.0)`
 * `Partition.quadratic(r, d) = (max(r - d, 0.0))^2`

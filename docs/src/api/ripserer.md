@@ -71,9 +71,13 @@ barcode
 ## Experimental Features
 
 ```@docs
-reconstruct_cycle
+Ripserer.reconstruct_cycle
 ```
 
 ```@docs
-CircularCoordinates
+Ripserer.Partition
+```
+
+```@docs
+Ripserer.CircularCoordinates
 ```
