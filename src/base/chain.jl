@@ -130,12 +130,14 @@ function DataStructures.heappop!(chain::Chain, ordering::Base.Ordering)
         return iszero(top) ? nothing : top
     end
 end
-function heapmove!(chain::Chain{F,S}, ordering::Base.Ordering) where {F,S}
-    result = Chain{F,S}()
+function heapmove!(dst::Chain{F,S}, chain::Chain{F,S}, ordering::Base.Ordering) where {F,S}
     while (pivot = heappop!(chain, ordering)) ≢ nothing
-        push!(result, pivot)
+        push!(dst, pivot)
     end
-    return result
+    return dst
+end
+function heapmove!(chain::Chain{F,S}, ordering::Base.Ordering) where {F,S}
+    return heapmove!(Chain{F,S}(), chain, ordering)
 end
 
 # Other stuff
