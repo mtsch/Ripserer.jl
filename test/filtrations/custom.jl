@@ -123,5 +123,5 @@ end
         (3,) => 10_000,
     ]
 
-    test_filtration(Custom, data; flt_kwargs=(;threshold=9), dim_max=2)
+    test_filtration(Custom, data; flt_kwargs=(; threshold=9), dim_max=2)
 end

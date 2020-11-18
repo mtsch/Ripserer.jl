@@ -262,7 +262,7 @@ function collect_cocycle!(matrix, column, pivot)
         elseif isnothing(pivot)
             push!(matrix.buffer, column)
             return copy(clean!(matrix.buffer, ordering(matrix)))
-        else is_implicit(matrix)
+        else
             return Chain(matrix.reduced[pivot])
         end
     else

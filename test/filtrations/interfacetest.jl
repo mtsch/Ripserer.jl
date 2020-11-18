@@ -10,7 +10,7 @@ function test_filtration(F, args...; test_verbose=true, flt_kwargs=(), kwargs...
     else
         desc = "$F with $(summary.(args))"
     end
-    all_kw = (;flt_kwargs..., kwargs...)
+    all_kw = (; flt_kwargs..., kwargs...)
     @testset "$desc" begin
         flt = F(args...; flt_kwargs...)
 

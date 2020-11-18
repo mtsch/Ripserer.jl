@@ -6,7 +6,7 @@ using SparseArrays
 using StaticArrays
 using Test
 
-include("test-datasets.jl")
+include("../testdatasets.jl")
 include("interfacetest.jl")
 using Ripserer: nv, edges
 
@@ -72,8 +72,8 @@ end
     end
 
     @testset "Interface" begin
-        test_filtration(ApparentPairsRips, projective_plane, modulus=2)
-        test_filtration(ApparentPairsRips, projective_plane, modulus=3)
+        test_filtration(ApparentPairsRips, projective_plane; modulus=2)
+        test_filtration(ApparentPairsRips, projective_plane; modulus=3)
     end
 end
 

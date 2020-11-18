@@ -10,7 +10,7 @@ using Test
 using Ripserer:
     distances, births, adjacency_matrix, edges, nv, unsafe_simplex, ChainElement, Chain
 
-include("test-datasets.jl")
+include("../testdatasets.jl")
 include("interfacetest.jl")
 
 @testset "distances" begin
@@ -335,7 +335,7 @@ end
     end
 
     @testset "Interface" begin
-        test_filtration(Rips, cycle, modulus=3, dim_max=2)
+        test_filtration(Rips, cycle; modulus=3, dim_max=2)
     end
 
     @testset "Errors" begin

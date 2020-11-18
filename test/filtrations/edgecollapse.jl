@@ -1,7 +1,7 @@
 using Ripserer
 using Test
 
-include("test-datasets.jl")
+include("../testdatasets.jl")
 include("interfacetest.jl")
 
 @testset "Result equal to Rips" begin
