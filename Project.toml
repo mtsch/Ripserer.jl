@@ -29,7 +29,7 @@ MiniQhull = "0.2"
 PersistenceDiagrams = "0.8"
 ProgressMeter = "1"
 RecipesBase = "1"
-StaticArrays = "0.12, 1.0"
+StaticArrays = "0.12, 1"
 TupleTools = "1"
 julia = "1"
 
