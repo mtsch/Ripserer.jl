@@ -45,11 +45,9 @@ matrices.
 
 ```julia
 julia> ripserer(data)
-```
-```
-2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
- 200-element 0-dimensional PersistenceDiagram
- 84-element 1-dimensional PersistenceDiagram
+# 2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+#  200-element 0-dimensional PersistenceDiagram
+#  84-element 1-dimensional PersistenceDiagram
 ```
 
 [Several other filtration
@@ -58,29 +56,23 @@ tell `ripserer` to use them by passing them as the first argument.
 
 ```julia
 julia> ripserer(EdgeCollapsedRips, data)
-```
-```
-2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
- 200-element 0-dimensional PersistenceDiagram
- 84-element 1-dimensional PersistenceDiagram
+# 2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+#  200-element 0-dimensional PersistenceDiagram
+#  84-element 1-dimensional PersistenceDiagram
 ```
 
 Sometimes you may want to initialize a filtration in advance.
 
 ```julia
 julia> rips = EdgeCollapsedRips(data, threshold=1)
+# EdgeCollapsedRips{Int64, Float64}(nv=200)
 ```
-```
-EdgeCollapsedRips{Int64, Float64}(nv=200)
-```
-```
+```julia
 julia> ripserer(rips, dim_max=2)
-```
-```
-3-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
- 200-element 0-dimensional PersistenceDiagram
- 84-element 1-dimensional PersistenceDiagram
- 16-element 2-dimensional PersistenceDiagram
+# 3-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+#  200-element 0-dimensional PersistenceDiagram
+#  84-element 1-dimensional PersistenceDiagram
+#  16-element 2-dimensional PersistenceDiagram
 ```
 
 Ripserer supports plotting with
@@ -88,12 +80,12 @@ Ripserer supports plotting with
 [Makie.jl](https://github.com/JuliaPlots/Makie.jl) support is also available
 [here](https://github.com/mtsch/MakieRipserer.jl).
 
-Plotting a persistence diagram is straightforward:
+Plotting persistence diagrams and barcodes is straightforward:
 
 ```julia
 using Plots
 result = ripserer(data, dim_max=2)
-plot(result)
+plot(plot(result), barcode(result)
 ```
 ![](docs/src/assets/readme-plot-1.svg)
 

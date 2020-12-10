@@ -1,10 +1,8 @@
-# Ripserer.jl
+![](assets/logo-title.svg)
 
 _Flexible and efficient persistent homology computation._
 
 Author: Matija Čufar ([@mtsch](https://github.com/mtsch/))
-
-![](assets/title_plot.svg)
 
 ## Introduction
 
