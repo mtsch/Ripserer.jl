@@ -59,6 +59,9 @@ function _to_cubemap(vertices::NTuple{N}) where {N}
 end
 
 function _is_valid(vertices::Tuple{})
+    return false
+end
+function _is_valid(vertices::NTuple{1})
     return true
 end
 function _is_valid(vertices::NTuple{N}) where {N}

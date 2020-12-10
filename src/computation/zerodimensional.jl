@@ -90,9 +90,8 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
         else
             rep = NamedTuple()
         end
-        return PersistenceInterval(
-            birth_time, death_time; birth_simplex=birth_simplex, death_simplex=edge, rep...
-        )
+        meta = (; birth_simplex=birth_simplex, death_simplex=edge, rep...)
+        return PersistenceInterval(birth_time, death_time, meta)
     else
         return nothing
     end
