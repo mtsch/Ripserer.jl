@@ -6,22 +6,14 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="360.9841mm"
    height="118.85373mm"
    viewBox="0 0 360.98409 118.85372"
    version="1.1"
-   id="svg8"
-   inkscape:export-filename="/home/m/fasta.png"
-   inkscape:export-xdpi="96"
-   inkscape:export-ydpi="96"
-   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
-   sodipodi:docname="logo-b.svg">
+   id="svg8">
   <defs
      id="defs2">
     <linearGradient
-       inkscape:collect="always"
        id="linearGradient5835">
       <stop
          style="stop-color:#ff0000;stop-opacity:1;"
@@ -33,7 +25,6 @@
          id="stop5839" />
     </linearGradient>
     <linearGradient
-       inkscape:collect="always"
        xlink:href="#linearGradient5835"
        id="linearGradient5841"
        x1="-221.82062"
@@ -177,25 +168,6 @@
          id="rect1943" />
     </clipPath>
   </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="0.58785578"
-     inkscape:cx="839.46268"
-     inkscape:cy="268.82459"
-     inkscape:document-units="mm"
-     inkscape:current-layer="g298716"
-     inkscape:document-rotation="0"
-     showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1055"
-     inkscape:window-x="0"
-     inkscape:window-y="25"
-     inkscape:window-maximized="1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -204,33 +176,19 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
      id="layer1"
      transform="translate(41.497075,94.776215)">
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.5833px;line-height:1.25;font-family:'Dassault Laser Italic';-inkscape-font-specification:'Dassault Laser Italic, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;white-space:pre;inline-size:96.359;stroke-width:0.264583"
-       x="42.123222"
-       y="32.64114"
-       id="text835"><tspan
-         style="visibility:hidden"
-         x="42.123222"
-         y="32.64114"><tspan
-           dx="0 37.18552 19.456371 37.033104 37.033104 37.033112 37.185516 37.033112 37.185516 17.729156 37.083984"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:50.8px;font-family:'Dassault Laser Italic';-inkscape-font-specification:'Dassault Laser Italic, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583">Ripserer.jl</tspan></tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:50.8px;line-height:1.25;font-family:'Dassault Laser Italic';-inkscape-font-specification:'Dassault Laser Italic, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;stroke-width:0.264583"
        x="-43.427475"
        y="24.077515"
        id="text843"><tspan
-         sodipodi:role="line"
          id="tspan841"
          x="-43.427475"
          y="24.077515"
@@ -240,10 +198,7 @@
        transform="matrix(0.06614583,0,0,0.06614583,121.02083,-101.34055)">
       <g
          id="g6390"
-         transform="matrix(1.3204623,0,0,1.3204623,-1318.1471,-241.51846)"
-         inkscape:export-filename="/home/m/fast2.png"
-         inkscape:export-xdpi="96"
-         inkscape:export-ydpi="96">
+         transform="matrix(1.3204623,0,0,1.3204623,-1318.1471,-241.51846)">
         <g
            id="g7198"
            transform="matrix(0.98350734,0,0,0.98350734,21.858562,-49.793582)">
@@ -1543,17 +1498,6 @@
              stroke-width="3.2"
              id="circle7036"
              transform="translate(-29.634354,83.641067)" />
-          <text
-             xml:space="preserve"
-             style="font-size:123.202px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;stroke-width:3.08004"
-             x="-1338.2437"
-             y="2370.2932"
-             id="text1016"><tspan
-               sodipodi:role="line"
-               id="tspan1014"
-               x="-1338.2437"
-               y="2370.2932"
-               style="stroke-width:3.08004" /></text>
         </g>
       </g>
     </g>
