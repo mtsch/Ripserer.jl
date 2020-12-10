@@ -1,4 +1,6 @@
-![](docs/src/assets/logo-title.svg)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/mtsch/Ripserer.jl/new-logo/docs/src/assets/logo-title.svg" alt="Ripserer.jl" width="480">
+</div>
 
 _Flexible and efficient persistent homology computation._
 
