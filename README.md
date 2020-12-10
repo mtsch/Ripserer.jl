@@ -12,7 +12,7 @@ _Flexible and efficient persistent homology computation._
 
 ## Introduction
 
-Ripserer is a pure Julia implementation of the [ripser](https://github.com/Ripser/ripser)
+Ripserer is a pure Julia implementation of the [Ripser](https://github.com/Ripser/ripser)
 algorithm for computing persistent homology. Its aims are to be easy to use, generic, and
 fast.
 

@@ -6,11 +6,35 @@
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="360.9841mm"
-   height="118.85373mm"
-   viewBox="0 0 360.98409 118.85372"
+   height="125.13194mm"
+   viewBox="0 0 360.98409 125.13193"
    version="1.1"
-   id="svg8">
+   id="svg8"
+   sodipodi:docname="logo-title.svg"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1055"
+     id="namedview201"
+     showgrid="false"
+     inkscape:zoom="0.97922134"
+     inkscape:cx="496.13491"
+     inkscape:cy="306.96995"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
   <defs
      id="defs2">
     <linearGradient
@@ -176,13 +200,13 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <g
      id="layer1"
-     transform="translate(41.497075,94.776215)">
+     transform="translate(41.497075,101.05442)">
     <g
        aria-label="Ripserer.jl"
        id="text843"
@@ -234,7 +258,7 @@
     </g>
     <g
        id="g298716"
-       transform="matrix(0.06614583,0,0,0.06614583,121.02083,-101.34055)">
+       transform="matrix(0.06614583,0,0,0.06614583,121.02083,-110.33644)">
       <g
          id="g6390"
          transform="matrix(1.3204623,0,0,1.3204623,-1318.1471,-241.51846)">
