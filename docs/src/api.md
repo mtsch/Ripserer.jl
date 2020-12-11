@@ -61,6 +61,10 @@ persistence(::PersistenceDiagrams.PersistenceInterval)
 ```
 
 ```@docs
+midlife
+```
+
+```@docs
 representative(::PersistenceDiagrams.PersistenceInterval)
 ```
 
