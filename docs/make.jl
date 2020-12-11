@@ -25,7 +25,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "API" => ["Public" => "api/ripserer.md", "Interfaces" => "api/extensions.md"],
+        "API" => "api.md",
         "Examples" => [
             "generated/basics.md",
             "generated/stability.md",

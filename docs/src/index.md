@@ -70,11 +70,10 @@ Cubical Ripser, it also supports computations on images of dimensions higher tha
 
 See the [Benchmarks](@ref) section for more detailed benchmarks.
 
-## Extensibility
+## Extending
 
 Ripserer is designed to be easily extended with new simplex or filtration types. See the
-[Filtration Interface](@ref) and [Simplex Interface](@ref) API sections for more
-information.
+[Abstract Types and Interfaces](@ref) API section for more information.
 
 If you have written an extension or are having trouble implementing one, please feel free to
 open a pull request or an issue, or contact me directly.
