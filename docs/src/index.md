@@ -54,9 +54,9 @@ To access some of the features, you need to use the PersistenceDiagrams.jl packa
 ## Performance
 
 Much like Ripser, Ripserer uses several computational tricks to achieve its speed. Among
-others, these include implicit simplicial complex and reduction matrix representations, and
-the clearing optimization. For a more detailed overview of these optimizations, check out
-[Ulrich Bauer's article on Ripser](https://arxiv.org/abs/1908.02518).
+others, these include an implicit simplicial complex representation and the clearing
+optimization. For a more detailed overview of these optimizations, check out [Ulrich Bauer's
+article on Ripser](https://arxiv.org/abs/1908.02518).
 
 In general, the performance of Ripserer is very close to
 [Ripser](https://github.com/Ripser/ripser), usually within around 30%. Ripserer's strength
@@ -76,7 +76,7 @@ Ripserer is designed to be easily extended with new simplex or filtration types.
 [Abstract Types and Interfaces](@ref) API section for more information.
 
 If you have written an extension or are having trouble implementing one, please feel free to
-open a pull request or an issue, or contact me directly.
+open a pull request or an issue. You may also contact me directly.
 
 ## Contributing
 
