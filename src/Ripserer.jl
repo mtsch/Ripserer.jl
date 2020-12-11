@@ -32,13 +32,7 @@ import LightGraphs: vertices, edges, nv, adjacency_matrix
 # Reexporting basics makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold, dim
 export birth,
-    death,
-    persistence,
-    midlife,
-    representative,
-    birth_simplex,
-    death_simplex,
-    barcode
+    death, persistence, midlife, representative, birth_simplex, death_simplex, barcode
 
 export Mod,
     Simplex,
