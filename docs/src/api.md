@@ -30,9 +30,15 @@ EdgeCollapsedRips
 
 ## Persistence Diagrams
 
-See also: [PersistenceDiagrams.jl
-API](https://mtsch.github.io/PersistenceDiagrams.jl/dev/api/). For convenience, Ripserer
-reexports the following:
+Persistence diagrams live in a separate package,
+[PersistenceDiagrams.jl](https://github.com/mtsch/PersistenceDiagrams.jl). The package is
+documented in detail [here](https://mtsch.github.io/PersistenceDiagrams.jl/dev/).
+
+If you are looking for
+Wasserstein or bottleneck distances, persistence images, betti curves, landscapes, and
+similar, you will need to run `using PersistenceDiagrams`.
+
+For convenience, the following basic functionality is reexported by Ripserer:
 
 ```@docs
 PersistenceDiagrams.PersistenceDiagram
@@ -94,6 +100,10 @@ Ripserer.index(::Ripserer.AbstractCell)
 
 ```@docs
 Ripserer.vertices(::Ripserer.AbstractCell)
+```
+
+```@docs
+Ripserer.Chain
 ```
 
 ```@docs

@@ -1,13 +1,51 @@
+# A chain should behave exactly like an array of `ChainElements`. Internally, it may store
+# its elements in a more efficient way.
+
+# It can be used as a heap with `heapify!`, `heappush!`, and `heapop!`. When used this way,
+# it will only return unique elements, summing elements with the same simplex together.
+
+# `clean!` can be used to sum duplicates together and sort the chain.
 """
     Chain{F,S,E} <: AbstractVector{ChainElement{S,F}}
 
-A chain should behave exactly like an array of `ChainElements`. Internally, it may store its
-elements in a more efficient way.
+An internal representation of a chain. Behaves like an array of pairs `S => F`, where `S` is
+the simplex type, and `F` is the coefficient type (probably a subtype of [`Mod`](@ref)).
 
-It can be used as a heap with `heapify!`, `heappush!`, and `heapop!`. When used this way, it
-will only return unique elements, summing elements with the same simplex together.
+# Examples
 
-`clean!` can be used to sum duplicates together and sort the chain.
+```jldoctest; setup=(using Random; Random.seed!(1337))
+julia> data = [(rand(), rand(), rand()) for _ in 1:100];
+
+julia> result = ripserer(data; reps=true, modulus=7);
+
+julia> chain = result[end][end].representative
+6-element Chain{Mod{7},Simplex{1,Float64,Int64}}:
+ +Simplex{1}((87, 59), 0.23148225999797645) => 6 mod 7
+ +Simplex{1}((59, 46), 0.3054281021426286) => 1 mod 7
+ +Simplex{1}((87, 14), 0.32453294355760326) => 6 mod 7
+ +Simplex{1}((87, 1), 0.34642558062390577) => 6 mod 7
+ +Simplex{1}((100, 87), 0.3480194268484163) => 1 mod 7
+ +Simplex{1}((79, 1), 0.36519064466525686) => 6 mod 7
+
+julia> vertices.(chain)
+6-element Array{Tuple{Int64,Int64},1}:
+ (87, 59)
+ (59, 46)
+ (87, 14)
+ (87, 1)
+ (100, 87)
+ (79, 1)
+
+julia> coefficient.(chain)
+6-element Array{Mod{7},1}:
+ 6 mod 7
+ 1 mod 7
+ 6 mod 7
+ 6 mod 7
+ 1 mod 7
+ 6 mod 7
+
+```
 """
 struct Chain{F,S,E} <: AbstractVector{ChainElement{S,F}}
     elements::Vector{E}
