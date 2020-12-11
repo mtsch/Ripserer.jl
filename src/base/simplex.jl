@@ -18,13 +18,13 @@ julia> sx = Simplex{2}(2, 1)
   +(4, 2, 1)
 
 julia> index(sx)
-  2
+2
 
 julia> vertices(sx)
-  (4, 2, 1)
+(4, 2, 1)
 
 julia> birth(sx)
-  1
+1
 
 ```
 """
