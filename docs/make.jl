@@ -25,9 +25,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Usage Guide" => "generated/basics.md",
         "API" => "api.md",
         "Examples" => [
-            "generated/basics.md",
             "generated/stability.md",
             "generated/cocycles.md",
             "generated/cubical.md",

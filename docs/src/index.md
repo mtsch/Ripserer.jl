@@ -12,7 +12,9 @@ detects the global topological and local geometric structure of data in a noise-
 stable way. If you are unfamiliar with persistent homology, I recommend reading this
 [excellent
 introduction](https://towardsdatascience.com/persistent-homology-with-examples-1974d4b9c3d0).
-See the Examples for further info and usage.
+
+Please see the [Usage Guide](@ref) for a quick introduction, and the [API](@ref) page for
+detailed descriptions of Ripserer's functionality.
 
 While this package is fully functional, it is still in development and should not be
 considered stable. I try to disrupt the public interface as little as possible, but breaking
