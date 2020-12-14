@@ -1,4 +1,5 @@
 [deps]
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GLMNet = "8d5ece8b-de18-5317-b113-243142960cc6"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"

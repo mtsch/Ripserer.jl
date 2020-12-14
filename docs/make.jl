@@ -1,5 +1,6 @@
 @info "build started."
 using Documenter
+using Distances
 using Literate
 using Ripserer
 using PersistenceDiagrams
