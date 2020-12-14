@@ -47,7 +47,7 @@ ripserer(circ_100)
 # You can use the `dim_max` argument to set the maximum dimension persistent homology is
 # computed in.
 
-result_rips = ripserer(circ_100, dim_max=3)
+result_rips = ripserer(circ_100; dim_max=3)
 
 # The result can be plotted as a persistence diagram or as a barcode.
 
@@ -66,7 +66,7 @@ plot(plot(result_rips[2]), barcode(result_rips[2:end]; linewidth=2)) # hide
 # Plotting can be further customized using the standard attributes from
 # [Plots.jl](http://docs.juliaplots.org/latest/).
 
-plot(result_rips, markeralpha=1, markershape=:star, color=[:red, :blue, :green, :purple])
+plot(result_rips; markeralpha=1, markershape=:star, color=[:red, :blue, :green, :purple])
 
 # ## Changing Filtrations
 
@@ -272,8 +272,6 @@ index(simplex), dim(simplex), birth(simplex)
 # * [`vertices`](@ref) are always sorted in descending order.
 # * [`index`](@ref) and [`dim`](@ref) can be used to uniquely identify a given simplex.
 # * [`birth`](@ref) determines when a simplex is added to a filtration.
-
-# ## Conclusion
 
 # This concludes the basic usage of Ripserer. For more detailed information, please check
 # out the [API](@ref) page, as well as other examples.
