@@ -1,18 +1,19 @@
-# # Basics
+# # Usage Guide
 
-# In this example, we will present the usage of Ripserer. We start by loading some packages.
+# In this example, we will present the basics of using Ripserer. We start by loading some
+# packages.
 
-using Ripserer
+using Distances
 using Plots
+using Ripserer
 using Random # hide
 Random.seed!(1337) # hide
 gr() # hide
 nothing # hide
 
-# ## Basic Usage
+# ## Using Ripserer With Point Cloud Data
 
-# Let's start with a basic example, points randomly sampled from a noisy circle.
-# We start by defining our sampling function.
+# Let's start with generating some points, randomly sampled from a noisy circle.
 
 function noisy_circle(n; r=1, noise=0.1)
     points = NTuple{2,Float64}[]
@@ -23,54 +24,75 @@ function noisy_circle(n; r=1, noise=0.1)
     return points
 end
 
-# Next, we sample 100 points from the circle.
-
 circ_100 = noisy_circle(100)
 scatter(circ_100; aspect_ratio=1, legend=false, title="Noisy Circle")
 
-# To compute the persistent homology, simply run the following. The `dim_max` argument sets
-# the maximum dimension persistent homology is computed in.
+# !!! tip "Point-like data types"
+#     Ripserer can interpret various kinds of data as point clouds. The limitation is that
+#     the data set should be an `AbstractVector` with elements with the following
+#     properties:
+#     * all elements are collections numbers;
+#     * all elements have the same length.
+#     Examples of element types that work are `Tuple`s,
+#     [`SVector`](https://github.com/JuliaArrays/StaticArrays.jl)s, and
+#     [`Point`](https://github.com/JuliaGeometry/GeometryBasics.jl)s.
 
-result_circ = ripserer(circ_100; dim_max=3)
+# To compute the Vietoris-Rips persistent homology of this data set, run the
+# following.
 
-# !!! warning "Warning"
-#     Computing Vietoris-Rips persistent homology in high dimensions for large numbers of
-#     points is computationally expensive and requires a large amount of memory. Be careful
-#     or you **will** run out of memory. On an ordinary laptop, you can expect to compute
-#     one-dimensional persistent homology for datasets of a few thousand points and higher
-#     (2-3) dimensional persistent homology for datasets of a few hundred points. This, of
-#     course, depends on the data set itself.
+ripserer(circ_100)
 
-# The result can be plotted as a persistence diagram.
+# You can use the `dim_max` argument to set the maximum dimension persistent homology is
+# computed in.
 
-plot(result_circ)
+result_rips = ripserer(circ_100; dim_max=3)
 
-# Or as a barcode.
+# The result can be plotted as a persistence diagram or as a barcode.
 
-barcode(result_circ)
+plot(result_rips)
+barcode(result_rips)
+plot(plot(result_rips), barcode(result_rips)) # hide
 
-# ``H_1``, ``H_2``, and ``H_3`` in this plot are hard to see because we have too many
-# ``H_0`` bars. We can plot only some of the diagrams.
+# We can also plot a single diagram or a subset of all diagrams in the same manner. Keep in
+# mind that the result is just a vector of [`PersistenceDiagram`](@ref)s. The
+# zero-dimensional diagram is found at index 1.
 
-# !!! note "Note"
-#     `result` is just an array of persistence diagrams, so the zero-dimensional diagram is
-#     found at index 1.
+plot(result_rips[2])
+barcode(result_rips[2:end]; linewidth=2)
+plot(plot(result_rips[2]), barcode(result_rips[2:end]; linewidth=2)) # hide
 
-barcode(result_circ[2:end]; linewidth=2)
+# Plotting can be further customized using the standard attributes from
+# [Plots.jl](http://docs.juliaplots.org/latest/).
 
-# We can plot a single diagram in the same manner.
+plot(result_rips; markeralpha=1, markershape=:star, color=[:red, :blue, :green, :purple])
 
-barcode(result_circ[3]; linewidth=3)
+# ## Changing Filtrations
+
+# By default, calling [`ripserer`](@ref) will compute persistent homology with the
+# [`Rips`](@ref) filtration. To use a different filtration, we have two options.
+
+# The first option is to pass the filtration constructor as the first argument. Any keyword
+# arguments the filtration accepts can be passed to [`ripserer`](@ref) and it will be
+# forwarded to the constructor.
+
+ripserer(EdgeCollapsedRips, circ_100; threshold=1, dim_max=3, metric=Euclidean())
+
+# The second option is to initialize the filtration object first and use that as an argument
+# to [`ripserer`](@ref). This can be useful in cases where constructing the filtration takes
+# a long time.
+
+collapsed_rips = EdgeCollapsedRips(circ_100; threshold=1, metric=Euclidean())
+ripserer(collapsed_rips; dim_max=3)
 
 # ## Distance Matrix Inputs
 
 # In the previous example, we got our result by passing a collection of points to
-# `ripserer`.  Under the hood, the algorithm actually works with distance matrices. Let's
-# define a distance matrix of the shortest paths on a [regular
-# icosahedron](https://en.wikipedia.org/wiki/Regular_icosahedron) graph.
+# [`ripserer`](@ref). Under the hood, [`Rips`](@ref) and [`EdgeCollapsedRips`](@ref)
+# actually work with distance matrices. Let's define a distance matrix of the shortest
+# paths on a [regular icosahedron](https://en.wikipedia.org/wiki/Regular_icosahedron) graph.
 
 # ```@raw html
-# <img src="https://upload.wikimedia.org/wikipedia/commons/8/83/Icosahedron_graph.svg" height="250" width="250">
+# <img src="https://upload.wikimedia.org/wikipedia/commons/8/83/Icosahedron_graph.svg" height="200" width="200">
 # ```
 
 icosahedron = [
@@ -89,14 +111,9 @@ icosahedron = [
 ]
 nothing # hide
 
-# To compute the persistent homology, simply feed the distance matrix to `ripserer`.
+# To compute the persistent homology, simply feed the distance matrix to [`ripserer`](@ref).
 
 result_icosa = ripserer(icosahedron; dim_max=2)
-
-# Because an icosahedron is topologically equivalent to a sphere, we got a single class in
-# the second dimension.
-
-result_icosa[3]
 
 # ## Thresholding
 
@@ -130,14 +147,14 @@ nothing # hide
 plot(result_cut)
 
 # Notice that while there are many 1-dimensional classes, one of them stands out. This class
-# represents the hole in the middle of our square. We can extract this interval by doing the
-# following.
+# represents the hole in the middle of our square. Since the intervals are sorted by
+# persistence, we know the last interval in the diagram will be the most persistent.
 
-most_persistent = sort(result_cut[2]; by=persistence)[end]
+most_persistent = result_cut[2][end]
 
 # Notice the death time of this interval is around 1.83 and that no intervals occur after
 # that time. This means that we could stop computing when we reach this time and the result
-# should not change. Let's try it out!
+# should not change. Let's try it out.
 
 @time result_cut_thresh_2 = ripserer(cutout_2000; threshold=2)
 nothing # hide
@@ -149,6 +166,7 @@ plot(result_cut_thresh_2; title="Persistence Diagram, threshold=2")
 # Indeed, the result is exactly the same, but it took less than a third of the time to
 # compute.
 
+@assert result_cut_thresh_2 == result_cut # hide
 result_cut_thresh_2 == result_cut
 
 # If we pick a threshold that is too low, we still detect the interval, but its death time
@@ -159,4 +177,101 @@ nothing # hide
 
 #
 
-plot(result_cut_thresh_1; title="Persistence Diagram, threshold=1")
+result_cut_thresh_1[2][end]
+
+# ## Persistence Diagrams
+
+# The result of a computation is returned as a vector of
+# [`PersistenceDiagram`](@ref)s. Let's take a closer look at one of those.
+
+diagram = result_cut[2]
+
+# The diagram is a structure that acts as a vector of
+# [`PersistenceInterval`](@ref)s. As such, you can use standard Julia
+# functions on the diagram.
+
+# For example, to extract the last three intervals by birth time, you can do
+# something like this.
+
+sort(diagram; by=birth, rev=true)[1:3]
+
+# To find the [`persistence`](@ref)s of all the intervals, you can use broadcasting.
+
+persistence.(diagram)
+
+# Unlike regular vectors, a [`PersistenceDiagram`](@ref) has additional metadata attached
+# to it. To see all metadata, use
+# [`propertynames`](https://docs.julialang.org/en/v1/base/base/#Base.propertynames).
+
+propertynames(diagram)
+
+# You can access the properties with the dot syntax.
+
+diagram.field
+
+# The attributes `dim` and `threshold` are given special treatment and can be extracted
+# with appropriately named functions.
+
+dim(diagram), threshold(diagram)
+
+# Now, let's take a closer look at one of the intervals.
+
+interval = diagram[end]
+
+# An interval is very similar to a tuple of two `Float64`s, but also has some metadata
+# associated with it.
+
+interval[1], interval[2]
+
+# [`birth`](@ref), [`death`](@ref), [`persistence`](@ref), and [`midlife`](@ref) can be used
+# to query commonly used values.
+
+birth(interval), death(interval), persistence(interval), midlife(interval)
+
+# Accessing metadata works in a similar manner as with diagrams.
+
+propertynames(interval)
+
+#
+
+interval.birth_simplex
+
+#
+
+interval.death_simplex
+
+# ## Simplices
+
+# In the previous section, we saw each interval has an associated [`birth_simplex`](@ref)
+# and [`death_simplex`](@ref). These values are of the type [`Simplex`](@ref). Let's take a
+# closer look at simplices.
+
+simplex = interval.death_simplex
+
+# [`Simplex`](@ref) is an internal data structure that uses some tricks to increase
+# efficiency. For example, if we were to
+# [`dump`](https://docs.julialang.org/en/v1/base/io-network/#Base.dump) it, we notice the
+# vertices are not actually stored in the simplex itself.
+
+dump(simplex)
+
+# To access the vertices, we use [`vertices`](@ref).
+
+vertices(simplex)
+
+# Other useful attributes a simplex has are [`index`](@ref), [`dim`](@ref), and
+# [`birth`](@ref).
+
+index(simplex), dim(simplex), birth(simplex)
+
+# A few additional notes on simplex properties.
+
+# * A `D`-dimensional simplex is of type `Simplex{D}` and has `D + 1` vertices.
+# * [`vertices`](@ref) are always sorted in descending order.
+# * [`index`](@ref) and [`dim`](@ref) can be used to uniquely identify a given simplex.
+# * [`birth`](@ref) determines when a simplex is added to a filtration.
+
+# ## Conclusion
+
+# This concludes the basic usage of Ripserer. For more detailed information, please check
+# out the [API](@ref) page, as well as other examples.
