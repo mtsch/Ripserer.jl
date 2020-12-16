@@ -1,5 +1,6 @@
 @info "build started."
 using Documenter
+using Distances
 using Literate
 using Ripserer
 using PersistenceDiagrams
@@ -25,9 +26,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "API" => ["Public" => "api/ripserer.md", "Interfaces" => "api/extensions.md"],
+        "Usage Guide" => "generated/basics.md",
+        "API" => "api.md",
         "Examples" => [
-            "generated/basics.md",
             "generated/stability.md",
             "generated/cocycles.md",
             "generated/cubical.md",

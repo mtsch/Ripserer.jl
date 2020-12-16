@@ -13,17 +13,18 @@ time of type `T`.
 # Examples
 
 ```jldoctest
-julia> Simplex{2}(2, 1)
+julia> sx = Simplex{2}(2, 1)
 2-dimensional Simplex(index=2, birth=1):
   +(4, 2, 1)
 
-julia> Simplex{10}(Int128(-10), 1.0)
-10-dimensional Simplex(index=10, birth=1.0):
-  -(12, 11, 10, 9, 8, 7, 6, 5, 4, 2, 1)
+julia> index(sx)
+2
 
-julia> Simplex{2}((5, 2, 1), 1)
-2-dimensional Simplex(index=5, birth=1):
-  +(5, 2, 1)
+julia> vertices(sx)
+(4, 2, 1)
+
+julia> birth(sx)
+1
 
 ```
 """

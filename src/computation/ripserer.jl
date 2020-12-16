@@ -42,6 +42,10 @@ Compute the persistent homology of a filtration. The filtration can be given as 
 [`AbstractFiltration`](@ref) type, followed by its arguments, or as an initialized object
 (see examples below). If only data is given, `Rips` is used by default.
 
+Returns a `Vector` of [`PersistenceDiagram`](@ref)s with (`dim_max` + 1) elements. The
+diagrams are sorted by dimension; the first element of the result is the 0-dimensional
+diagram, and the last is the (`dim_max`)-dimensional diagram.
+
 # Keyword Arguments
 
 * `dim_max`: compute persistent homology up to this dimension. Defaults to `1`.
@@ -52,19 +56,19 @@ Compute the persistent homology of a filtration. The filtration can be given as 
 * `field`: use this type of field of coefficients. Defaults to
   [`Ripserer.Mod`](@ref)`{modulus}`.
 
-* `threshold`: compute persistent homology up to diameter smaller than threshold. This
-  parameter is only applicable when using distance matrices or points as input. When using
-  filtrations, threshold must be passed to the filtration constructor. Defaults to the
-  radius of the input space. When using low thresholds with points or distance matrices,
-  consider using `sparse=true`.
+* `threshold`: compute persistent homology up to diameter smaller than threshold. Note that
+  this parameter is passed to the filtration constructor. When using low thresholds with
+  Rips filtrations, consider setting `sparse=true` for optimal performance.
 
-* `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`.
+* `cutoff`: only keep intervals with `persistence(interval) > cutoff`. Defaults to `0`. When
+  `cutoff < 0`, the result will also contain zero-length intervals.
 
 * `reps`: if `true`, attach representative (co)cycles to persistence intervals. Can also be
   set to collection of integers to only find representatives in specified dimensions,
   e.g. `reps=1:2` will only find representatives in dimensions 1 and 2. This is useful for
   large filtrations (such as cubical) where calculating zero-dimensional representatives can
-  be very slow.  Defaults to `false` for cohomology and `1:dim_max` for homology.
+  be very slow. Defaults to `false` for cohomology and `1:dim_max` for homology.
+  Representatives are wrapped in a [`Chain`](@ref).
 
 * `verbose`: If `true`, show a verbose bar. Defaults to `false`.
 

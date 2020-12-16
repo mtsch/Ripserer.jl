@@ -1,3 +1,7 @@
+# v0.16.3
+
+New function: `midlife`.
+
 # v0.16.0
 
 External changes:
