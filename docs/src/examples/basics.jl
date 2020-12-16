@@ -1,7 +1,5 @@
 # # Usage Guide
 
-# ## Introduction
-
 # In this example, we will present the basics of using Ripserer. We start by loading some
 # packages.
 
@@ -272,6 +270,8 @@ index(simplex), dim(simplex), birth(simplex)
 # * [`vertices`](@ref) are always sorted in descending order.
 # * [`index`](@ref) and [`dim`](@ref) can be used to uniquely identify a given simplex.
 # * [`birth`](@ref) determines when a simplex is added to a filtration.
+
+# ## Conclusion
 
 # This concludes the basic usage of Ripserer. For more detailed information, please check
 # out the [API](@ref) page, as well as other examples.
