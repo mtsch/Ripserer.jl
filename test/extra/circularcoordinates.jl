@@ -43,13 +43,15 @@ include("../testdatasets.jl")
     end
 
     @testset "Cocycles" begin
-        rips = Rips([
-            0.0 1.1 2.0 2.0 1.2
-            1.1 0.0 1.0 2.0 2.0
-            2.0 1.0 0.0 1.0 2.0
-            2.0 2.0 1.0 0.0 1.0
-            1.2 2.0 2.0 1.0 0.0
-        ])
+        rips = Rips(
+            [
+                0.0 1.1 2.0 2.0 1.2
+                1.1 0.0 1.0 2.0 2.0
+                2.0 1.0 0.0 1.0 2.0
+                2.0 2.0 1.0 0.0 1.0
+                1.2 2.0 2.0 1.0 0.0
+            ],
+        )
 
         cocycle = ripserer(rips; modulus=17, reps=true)[2][1].representative
         integral = _to_integer_coefficients(cocycle)

@@ -56,14 +56,16 @@ end
         1 2 1 0
     ]
 
-    cf = Custom([
-        [(i,) => 0 for i in 1:4]
-        [(i, j) => dist[i, j] for i in 1:4 for j in (i + 1):4]
+    cf = Custom(
         [
-            (i, j, k) => max(dist[i, j], dist[i, k], dist[j, k]) for i in 1:4
-            for j in (i + 1):4 for k in (j + 1):4
-        ]
-    ])
+            [(i,) => 0 for i in 1:4]
+            [(i, j) => dist[i, j] for i in 1:4 for j in (i + 1):4]
+            [
+                (i, j, k) => max(dist[i, j], dist[i, k], dist[j, k]) for i in 1:4 for
+                j in (i + 1):4 for k in (j + 1):4
+            ]
+        ],
+    )
     @test simplex(cf, Val(3), (4, 3, 2, 1)) == nothing
     @test births(cf) == zeros(4)
 
@@ -71,14 +73,16 @@ end
 end
 
 @testset "Custom filtration vs sparse Rips" begin
-    spdist = sparse([
-        0 1 0 0 0 1
-        1 0 1 0 0 0
-        0 1 0 1 0 0
-        0 0 1 0 1 0
-        0 0 0 1 0 1
-        1 0 0 0 1 0
-    ])
+    spdist = sparse(
+        [
+            0 1 0 0 0 1
+            1 0 1 0 0 0
+            0 1 0 1 0 0
+            0 0 1 0 1 0
+            0 0 0 1 0 1
+            1 0 0 0 1 0
+        ]
+    )
     cf = Custom([
         (1,) => 0,
         (2,) => 0,

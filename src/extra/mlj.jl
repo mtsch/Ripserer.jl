@@ -90,9 +90,9 @@ end
 
 function _filtration(model::RipsPersistentHomology, x)
     if isnothing(model.threshold)
-        kwargs = (;threshold=model.threshold, sparse=model.sparse)
+        kwargs = (; threshold=model.threshold, sparse=model.sparse)
     else
-        kwargs = (;sparse=model.sparse)
+        kwargs = (; sparse=model.sparse)
     end
     if model.collapse
         return EdgeCollapsedRips(x; kwargs...)

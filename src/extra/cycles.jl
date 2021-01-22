@@ -135,9 +135,13 @@ function reconstruct_cycle(
     distances=distance_matrix(filtration),
 ) where {T}
     if !hasproperty(interval, :representative)
-        throw(ArgumentError("interval has no representative! Run `ripserer` with `reps=true`"))
+        throw(
+            ArgumentError("interval has no representative! Run `ripserer` with `reps=true`")
+        )
     elseif !(eltype(interval.representative) <: AbstractChainElement{<:AbstractCell{1}})
-        throw(ArgumentError("cycles can only be reconstructed for 1-dimensional intervals."))
+        throw(
+            ArgumentError("cycles can only be reconstructed for 1-dimensional intervals.")
+        )
     elseif !(birth(interval) ≤ _birth_or_value(r) < death(interval))
         return simplex_type(filtration, 1)[]
     else

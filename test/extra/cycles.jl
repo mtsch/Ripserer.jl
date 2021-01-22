@@ -6,14 +6,16 @@ using Ripserer: distance_matrix, OneSkeleton
 
 @testset "OneSkeleton respects the LightGraphs interface" begin
     @testset "no threshold or removed simplices" begin
-        flt = Rips([
-            0 1 2 3 2 1
-            1 0 1 2 3 2
-            2 1 0 1 2 3
-            3 2 1 0 1 2
-            2 3 2 1 0 1
-            1 2 3 2 1 0
-        ])
+        flt = Rips(
+            [
+                0 1 2 3 2 1
+                1 0 1 2 3 2
+                2 1 0 1 2 3
+                3 2 1 0 1 2
+                2 3 2 1 0 1
+                1 2 3 2 1 0
+            ]
+        )
 
         g = OneSkeleton(flt)
         @test eltype(g) ≡ Int
@@ -53,8 +55,8 @@ using Ripserer: distance_matrix, OneSkeleton
         @test !has_vertex(g, 7)
         @test !has_vertex(g, 0)
         @test edges(g) == [
-            Edge(j, i) for i in 1:5
-            for j in (i + 1):6 if dists[i, j] ≠ 3 && (j, i) ∉ [(2, 1), (3, 1)]
+            Edge(j, i) for i in 1:5 for
+            j in (i + 1):6 if dists[i, j] ≠ 3 && (j, i) ∉ [(2, 1), (3, 1)]
         ]
         @test vertices(g) == 1:6
         @test is_directed(g) == is_directed(typeof(g)) == false
@@ -125,14 +127,16 @@ end
 
 @testset "Cycle reconstruction" begin
     @testset "small cycle" begin
-        flt = Rips([
-            0 1 2 3 2 1
-            1 0 1 2 3 2
-            2 1 0 1 2 3
-            3 2 1 0 1 2
-            2 3 2 1 0 1
-            1 2 3 2 1 0
-        ])
+        flt = Rips(
+            [
+                0 1 2 3 2 1
+                1 0 1 2 3 2
+                2 1 0 1 2 3
+                3 2 1 0 1 2
+                2 3 2 1 0 1
+                1 2 3 2 1 0
+            ]
+        )
 
         interval = ripserer(flt; reps=true)[2][1]
         cyc1 = reconstruct_cycle(flt, interval)
@@ -174,14 +178,15 @@ end
     @testset "circle points over a grid with a hole" begin
         # The idea here is that at birth time, the cycle is a circle and at time 1, the
         # cycle is a square surrounding the hole.
-        pts = unique!(vcat(
-            [(3sin(t), 3cos(t)) for t in range(0, 2π; length=22)[1:(end - 1)]],
-            vec([
-                (i - 5, j - 5)
-                for
-                (i, j) in Iterators.product(0.0:10.0, 0.0:10.0) if !(i ∈ 4:6 && j ∈ 4:6)
-            ]),
-        ))
+        pts = unique!(
+            vcat(
+                [(3sin(t), 3cos(t)) for t in range(0, 2π; length=22)[1:(end - 1)]],
+                vec([
+                    (i - 5, j - 5) for
+                    (i, j) in Iterators.product(0.0:10.0, 0.0:10.0) if !(i ∈ 4:6 && j ∈ 4:6)
+                ]),
+            ),
+        )
 
         flt = Rips(pts)
         interval = sort!(ripserer(flt; reps=true)[2]; by=persistence)[end]
@@ -277,14 +282,16 @@ end
     end
 
     @testset "Errors" begin
-        flt = Rips([
-            0 1 2 3 2 1
-            1 0 1 2 3 2
-            2 1 0 1 2 3
-            3 2 1 0 1 2
-            2 3 2 1 0 1
-            1 2 3 2 1 0
-        ])
+        flt = Rips(
+            [
+                0 1 2 3 2 1
+                1 0 1 2 3 2
+                2 1 0 1 2 3
+                3 2 1 0 1 2
+                2 3 2 1 0 1
+                1 2 3 2 1 0
+            ]
+        )
         _, d1, d2 = ripserer(flt; reps=2, dim_max=2)
 
         @test_throws ArgumentError reconstruct_cycle(flt, d1[1])

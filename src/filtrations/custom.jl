@@ -22,8 +22,8 @@ Base.getindex(cf::AbstractCustomFiltration, d) = cf[Val(d)]
 function Base.getindex(cf::AbstractCustomFiltration, ::Val{D}) where {D}
     if D ≤ dim(cf)
         return [
-            simplex_type(cf, D)(i, b)
-            for (i, b) in simplex_dicts(cf)[D + 1] if b ≤ threshold(cf)
+            simplex_type(cf, D)(i, b) for
+            (i, b) in simplex_dicts(cf)[D + 1] if b ≤ threshold(cf)
         ]
     else
         return simplex_type(cf, D)[]
