@@ -9,7 +9,7 @@ abstract type RipsererModel <: MMI.Unsupervised end
 
 const PointLike{N} = AbstractVector{NTuple{N,MMI.Continuous}}
 const DistanceMatrix = AbstractMatrix{MMI.Continuous}
-const ImageLike{N} = Union{AbstractArray{MMI.Continuous,N},MMI.Image}
+const ImageLike{N} = AbstractArray{MMI.Continuous,N}
 
 function _transform(model::RipsererModel, verbosity::Int, X)
     result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max))
@@ -107,9 +107,11 @@ end
 
 function MMI.input_scitype(::Type{<:RipsPersistentHomology})
     return Union{
-        MMI.Table(Union{PointLike{N},DistanceMatrix}),
-        AbstractVector{Union{PointLike{N},DistanceMatrix}},
-    } where {N}
+        MMI.Table(PointLike{N}) where {N},
+        MMI.Table(DistanceMatrix),
+        AbstractVector{PointLike{N}} where {N},
+        AbstractVector{DistanceMatrix},
+    }
 end
 
 """
@@ -217,7 +219,12 @@ function _ripserer_args(model::CubicalPersistentHomology)
 end
 
 function MMI.input_scitype(::Type{<:CubicalPersistentHomology})
-    return Union{MMI.Table(ImageLike{N}),AbstractVector{ImageLike{N}}} where {N}
+    return Union{
+        MMI.Table(ImageLike{N}) where {N},
+        MMI.Table(MMI.Image),
+        AbstractVector{ImageLike{N}} where {N},
+        MMI.AbstractVector{MMI.Image},
+    }
 end
 
 MMI.metadata_pkg.(
