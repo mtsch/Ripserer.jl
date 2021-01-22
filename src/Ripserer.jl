@@ -77,5 +77,6 @@ include("filtrations/edgecollapse.jl")
 
 include("extra/cycles.jl")
 include("extra/circularcoordinates.jl")
+include("extra/mlj.jl")
 
 end
