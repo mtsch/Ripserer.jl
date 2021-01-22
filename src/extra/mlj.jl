@@ -7,9 +7,9 @@ export RipsPersistentHomology, AlphaPersistentHomology, CubicalPersistentHomolog
 
 abstract type RipsererModel <: MMI.Unsupervised end
 
-PointLike{N} = AbstractVector{NTuple{N,MMI.Continuous}}
-DistanceMatrix{N} = AbstractMatrix{MMI.Continuous,N}
-ImageLike{N} = Union{AbstractArray{MMI.Continuous,N},MMI.Image}
+const PointLike{N} = AbstractVector{NTuple{N,MMI.Continuous}}
+const DistanceMatrix = AbstractMatrix{MMI.Continuous}
+const ImageLike{N} = Union{AbstractArray{MMI.Continuous,N},MMI.Image}
 
 function _transform(model::RipsererModel, verbosity::Int, X)
     result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max))
