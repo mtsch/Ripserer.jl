@@ -57,8 +57,15 @@ end
 end
 
 @testset "Alpha" begin
-    X = [torus_points(500), torus_points(400), torus_points(300)]
-    test_mlj_model(AlphaPersistentHomology(), X)
+    @static if Sys.iswindows()
+        @test_broken begin
+            Alpha(points)
+            true
+        end
+    else
+        X = [torus_points(500), torus_points(400), torus_points(300)]
+        test_mlj_model(AlphaPersistentHomology(), X)
+    end
 end
 
 @testset "Cubical" begin

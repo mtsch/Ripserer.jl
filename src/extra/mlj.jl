@@ -12,7 +12,7 @@ const DistanceMatrix = AbstractMatrix{MMI.Continuous}
 const ImageLike{N} = AbstractArray{MMI.Continuous,N}
 
 function _transform(model::RipsererModel, verbosity::Int, X)
-    result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max))
+    result = (; [Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max)]...)
     if verbosity > 0
         progbar = Progress(MMI.nrows(X); desc="Computing persistent homology...")
     end
@@ -123,6 +123,12 @@ values.
 !!! warning Warning
     Using high-dimensional data with this model may be computationaly expensive. Consider
     using [`RipsPersistentHomology`](@ref).
+
+!!! warning
+    This model uses [MiniQhull.jl](https://github.com/gridap/MiniQhull.jl). Please see
+    the installation instructions if fitting causes errors. MiniQhull currently has
+    problems running on Windows. See [this
+    issue](https://github.com/gridap/MiniQhull.jl/issues/5) for more info.
 
 # Hyperparameters
 
