@@ -49,6 +49,9 @@ end
 @safetestset "circularcoordinates" begin
     include("extra/circularcoordinates.jl")
 end
+@safetestset "mlj" begin
+    include("extra/mlj.jl")
+end
 
 @safetestset "aqua" begin
     include("aqua.jl")

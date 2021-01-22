@@ -7,9 +7,9 @@ export RipsPersistentHomology, AlphaPersistentHomology, CubicalPersistentHomolog
 
 abstract type RipsererModel <: MMI.Unsupervised end
 
-PointLike = AbstractVector{Tuple{Vararg{MMI.Continuous}}}
-DistanceMatrix = AbstractMatrix{MMI.Continuous}
-ImageLike = Union{AbstractArray{MMI.Continuous,N} where N,MMI.Image}
+PointLike{N} = AbstractVector{NTuple{N,MMI.Continuous}}
+DistanceMatrix{N} = AbstractMatrix{MMI.Continuous,N}
+ImageLike{N} = Union{AbstractArray{MMI.Continuous,N},MMI.Image}
 
 function _transform(model::RipsererModel, verbosity::Int, X)
     result = NamedTuple(Symbol(:dim_, i) => PersistenceDiagram[] for i in 0:(model.dim_max))
@@ -107,9 +107,9 @@ end
 
 function MMI.input_scitype(::Type{<:RipsPersistentHomology})
     return Union{
-        MMI.Table(Union{PointLike,DistanceMatrix}),
-        AbstractVector{Union{PointLike,DistanceMatrix}},
-    }
+        MMI.Table(Union{PointLike{N},DistanceMatrix}),
+        AbstractVector{Union{PointLike{N},DistanceMatrix}},
+    } where {N}
 end
 
 """
@@ -165,7 +165,7 @@ function _ripserer_args(model::AlphaPersistentHomology)
 end
 
 function MMI.input_scitype(::Type{<:AlphaPersistentHomology})
-    return Union{MMI.Table(PointLike),AbstractVector{PointLike}}
+    return Union{MMI.Table(PointLike{N}),AbstractVector{PointLike{N}}} where {N}
 end
 
 """
@@ -217,5 +217,15 @@ function _ripserer_args(model::CubicalPersistentHomology)
 end
 
 function MMI.input_scitype(::Type{<:CubicalPersistentHomology})
-    return Union{MMI.Table(ImageLike),AbstractVector{ImageLike}}
+    return Union{MMI.Table(ImageLike{N}),AbstractVector{ImageLike{N}}} where {N}
 end
+
+MMI.metadata_pkg.(
+    (RipsPersistentHomology, AlphaPersistentHomology, CubicalPersistentHomology),
+    name="Ripserer",
+    uuid="aa79e827-bd0b-42a8-9f10-2b302677a641",
+    url="https://github.com/mtsch/Ripserer.jl",
+    license="MIT",
+    julia=true,
+    is_wrapper=false,
+)
