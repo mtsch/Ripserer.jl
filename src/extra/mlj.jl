@@ -1,9 +1,6 @@
-import MLJModelInterface
 const MMI = MLJModelInterface
 
-using PersistenceDiagrams.MLJPersistenceDiagrams
 using PersistenceDiagrams: AbstractVectorizer
-export RipsPersistentHomology, AlphaPersistentHomology, CubicalPersistentHomology
 
 abstract type RipsererModel <: MMI.Unsupervised end
 

@@ -25,6 +25,8 @@ using RecipesBase
 using StaticArrays
 using TupleTools
 
+import MLJModelInterface
+
 # This functionality is imported to avoid having to deal with name clashes. There is no
 # piracy involved here.
 import LightGraphs: vertices, edges, nv, adjacency_matrix
@@ -51,7 +53,10 @@ export Mod,
     ripserer,
     reconstruct_cycle,
     Partition,
-    CircularCoordinates
+    CircularCoordinates,
+    RipsPersistentHomology,
+    AlphaPersistentHomology,
+    CubicalPersistentHomology
 
 include("base/primefield.jl")
 include("base/abstractcell.jl")
