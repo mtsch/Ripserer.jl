@@ -114,6 +114,20 @@ Ripserer.Chain
 Mod
 ```
 
+## MLJ.jl Interface
+
+```@docs
+Ripserer.RipsPersistentHomology
+```
+
+```@docs
+Ripserer.AlphaPersistentHomology
+```
+
+```@docs
+Ripserer.CubicalPersistentHomology
+```
+
 ## Experimental Features
 
 ```@docs
