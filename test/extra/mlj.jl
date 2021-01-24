@@ -2,7 +2,6 @@ using Ripserer
 using Test
 using MLJBase
 using PersistenceDiagrams
-using PersistenceDiagrams.MLJPersistenceDiagrams
 
 include("../testdatasets.jl")
 
