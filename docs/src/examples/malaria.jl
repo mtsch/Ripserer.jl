@@ -169,8 +169,8 @@ plot(
 # [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) integration. We will use a
 # random forest classifier for this example.
 
-# We start by loading MLJ and the classifier. Not that the
-# [DecisionTree.jl](https://github.com/bensadeghi/DecisionTree.jl) package needs to be
+# We start by loading MLJ and the classifier. Not that
+# [MLJDecisionTreeInterface.jl](https://github.com/bensadeghi/DecisionTree.jl) needs to be
 # installed for this to work.
 
 using MLJ
