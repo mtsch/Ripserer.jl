@@ -174,24 +174,21 @@ plot(
 # installed for this to work.
 
 using MLJ
-tree = @load RandomForestClassifier pkg="DecisionTree" verbosity=0
+tree = @load RandomForestClassifier pkg = "DecisionTree" verbosity = 0
 
 # We create a pipeline of `CubicalPersistentHomology` followed by the classifier. In this
 # case, `CubicalPersistentHomology` takes care of both the homology computation and the
 # conversion to persistence images.
 
-pipe = @pipeline(
-    CubicalPersistentHomology(),
-    tree,
-)
+pipe = @pipeline(CubicalPersistentHomology(), tree)
 
 # We train the pipeline the same way you would fit any other MLJ model. Remember, we need to
 # use grayscale versions of images stored in `inputs`.
 
 classes = coerce(classes, Binary)
-train, test = partition(eachindex(classes), 0.7, shuffle=true, rng=1337)
+train, test = partition(eachindex(classes), 0.7; shuffle=true, rng=1337)
 mach = machine(pipe, inputs, classes)
-MLJ.fit!(mach, rows=train)
+fit!(mach; rows=train)
 
 # Next, we predict the classes on the test data and print out the classification accuracy.
 
@@ -203,11 +200,14 @@ accuracy(yhat, classes[test])
 
 pipe.cubical_persistent_homology.vectorizer = PersistenceCurveVectorizer()
 mach = machine(pipe, inputs, classes)
-fit!(mach, rows=train)
+fit!(mach; rows=train)
 
 yhat = predict_mode(mach, inputs[test])
 accuracy(yhat, classes[test])
 
-# The result could be improved further, but this is just a short introduction. Please see
-# the [MLJ documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/) for more
-# information on model tuning and selection.
+# The result could be improved further by choosing a different model and
+# vectorizer. However, this is just a short introduction. Please see the [MLJ.jl
+# documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/) for more information
+# on model tuning and selection, and the [PersistenceDiagrams.jl
+# documentation](https://mtsch.github.io/PersistenceDiagrams.jl/dev/mlj/) for a list of
+# vectorizers and their options.
