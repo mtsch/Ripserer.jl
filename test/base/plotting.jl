@@ -46,16 +46,18 @@ series(args...; kwargs...) = apply_recipe(Dict{Symbol,Any}(kwargs), args...)
             @test length(series(sx, data)) == 1
             @test length(series([sx], data)) == 1
             @test length(series([sx], data)) == 1
-            @test length(series(
-                PersistenceInterval(
-                    1.0,
-                    1.0;
-                    birth_simplex=sx,
-                    death_simplex=fsx,
-                    representative=[ChainElement{typeof(sx),typeof(1//1)}(sx, 1//1)],
+            @test length(
+                series(
+                    PersistenceInterval(
+                        1.0,
+                        1.0;
+                        birth_simplex=sx,
+                        death_simplex=fsx,
+                        representative=[ChainElement{typeof(sx),typeof(1//1)}(sx, 1//1)],
+                    ),
+                    data,
                 ),
-                data,
-            )) == 1
+            ) == 1
             @test_throws ErrorException series(PersistenceInterval(1.0, 1.0), data)
         end
     end

@@ -1,8 +1,10 @@
-# # Image Classification With Cubical Filtrations and Persistence Images
+# # Image Classification With Cubical Persistent Homology
 
 # In this example, we will show how to use Ripserer in an image classification
 # context. Persistent homology is not a predictive algorithm, but it can be used to extract
 # useful features from data.
+
+# ## Setting up
 
 using Ripserer
 using PersistenceDiagrams
@@ -104,6 +106,8 @@ plot(plot(dim_1[end]; persistence=true), heatmap(image_1(dim_1[end]); aspect_rat
 
 persims = [[vec(image_0(dim_0[i])); vec(image_1(dim_1[i]))] for i in 1:length(diagrams)]
 
+# ## Fitting A Model
+
 # Now it's time to fit our model. We will use
 # [GLMNet.jl](https://github.com/JuliaStats/GLMNet.jl) to fit a regularized linear model.
 
@@ -137,7 +141,7 @@ nothing; # hide
 
 # Get the classification accuracy.
 
-accuracy = count(predictions .== test_y) / length(test_y)
+count(predictions .== test_y) / length(test_y)
 
 # Not half bad considering we haven't touched the images and we left pretty much all
 # settings on default.
@@ -158,3 +162,52 @@ plot(
 
 # These correspond to the area we identified at the beginning. Also note that in this case,
 # the classifier does not care about ``H_1`` at all.
+
+# ## Using MLJ
+
+# Another, more straightforward way to execute a similar pipeline is to use Ripserer's
+# [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) integration. We will use a
+# random forest classifier for this example.
+
+# We start by loading MLJ and the classifier. Not that
+# [MLJDecisionTreeInterface.jl](https://github.com/bensadeghi/DecisionTree.jl) needs to be
+# installed for this to work.
+
+using MLJ
+tree = @load RandomForestClassifier pkg = "DecisionTree" verbosity = 0
+
+# We create a pipeline of `CubicalPersistentHomology` followed by the classifier. In this
+# case, `CubicalPersistentHomology` takes care of both the homology computation and the
+# conversion to persistence images.
+
+pipe = @pipeline(CubicalPersistentHomology(), tree)
+
+# We train the pipeline the same way you would fit any other MLJ model. Remember, we need to
+# use grayscale versions of images stored in `inputs`.
+
+classes = coerce(classes, Binary)
+train, test = partition(eachindex(classes), 0.7; shuffle=true, rng=1337)
+mach = machine(pipe, inputs, classes)
+fit!(mach; rows=train)
+
+# Next, we predict the classes on the test data and print out the classification accuracy.
+
+yhat = predict_mode(mach, inputs[test])
+accuracy(yhat, classes[test])
+
+# The result is quite a bit worse than before. We can try mitigating that by using a
+# different vectorizer.
+
+pipe.cubical_persistent_homology.vectorizer = PersistenceCurveVectorizer()
+mach = machine(pipe, inputs, classes)
+fit!(mach; rows=train)
+
+yhat = predict_mode(mach, inputs[test])
+accuracy(yhat, classes[test])
+
+# The result could be improved further by choosing a different model and
+# vectorizer. However, this is just a short introduction. Please see the [MLJ.jl
+# documentation](https://alan-turing-institute.github.io/MLJ.jl/dev/) for more information
+# on model tuning and selection, and the [PersistenceDiagrams.jl
+# documentation](https://mtsch.github.io/PersistenceDiagrams.jl/dev/mlj/) for a list of
+# vectorizers and their options.

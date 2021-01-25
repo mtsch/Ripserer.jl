@@ -48,6 +48,7 @@ Ripserer and its companion package
 * Various persistence diagram vectorization functions, implemented with persistence images
   and persistence curves.
 * Easy extensibility through a documented API.
+* Integration with [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl).
 * Experimental shortest representative cycle computation.
 * Experimental sparse circular coordinate computation.
 

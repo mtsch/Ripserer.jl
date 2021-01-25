@@ -1,3 +1,7 @@
+# v0.16.4
+
+Add [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) support.
+
 # v0.16.3
 
 New function: `midlife`.

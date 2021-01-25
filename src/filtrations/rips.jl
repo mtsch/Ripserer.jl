@@ -131,8 +131,11 @@ function _check_distance_matrix(dist::SparseMatrixCSC)
             i == rows[j] && continue
             edge_birth = vals[j]
             iszero(edge_birth) && throw(ArgumentError("zero edges in input matrix"))
-            edge_birth < vertex_birth &&
-                throw(ArgumentError("edges with birth value lower than vertex births in input matrix"))
+            edge_birth < vertex_birth && throw(
+                ArgumentError(
+                    "edges with birth value lower than vertex births in input matrix"
+                ),
+            )
             edge_birth ≠ dist[i, rows[j]] &&
                 throw(ArgumentError("input matrix not symmetric"))
         end
@@ -146,8 +149,11 @@ function _check_distance_matrix(dist::AbstractMatrix)
             vertex_birth = max(dist[j, j], dist[i, i])
             edge_birth = dist[j, i]
             iszero(edge_birth) && throw(ArgumentError("zero edges in input matrix"))
-            edge_birth < vertex_birth &&
-                throw(ArgumentError("edges with birth value lower than vertex births in input matrix"))
+            edge_birth < vertex_birth && throw(
+                ArgumentError(
+                    "edges with birth value lower than vertex births in input matrix"
+                ),
+            )
             edge_birth ≠ dist[i, j] && throw(ArgumentError("input matrix not symmetric"))
         end
     end
