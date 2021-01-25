@@ -24,9 +24,9 @@ curve_plot = plot(curve; legend=false, title="Curve")
 # will use a small, 240×240 pixel version of the image. Ripserer should have no problems
 # with processing larger images, but this will work well enough for this tutorial.
 
-blackhole_image = load(joinpath(
-    @__DIR__, "../assets/data/240px-Black_hole_-_Messier_87_crop_max_res.jpg"
-))
+blackhole_image = load(
+    joinpath(@__DIR__, "../assets/data/240px-Black_hole_-_Messier_87_crop_max_res.jpg")
+)
 blackhole_plot = plot(blackhole_image; title="Black Hole")
 
 # To use the image with Ripserer, we have to convert it to grayscale.
