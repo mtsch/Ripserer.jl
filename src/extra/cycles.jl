@@ -1,3 +1,11 @@
+"""
+    OneSkeleton
+
+A realization of the one-skeleton of a filtered simplicial complex at time t as an
+`AbstractGraph`. Some edges of the graph may be removed by placing them into the `removed`
+set. This will ignore said edges when looking for neighbours or shortest paths.
+Weights are usually simplex birth times, but can be customized.
+"""
 struct OneSkeleton{T,F<:AbstractFiltration,S<:AbstractCell{1},A} <: AbstractGraph{Int}
     filtration::F
     threshold::T
@@ -19,6 +27,11 @@ _birth_or_value(σ::AbstractCell) = birth(σ)
 _birth_or_value(σ) = σ
 _in(σ::S, g::OneSkeleton{S}) where {S} = !isnothing(σ) && σ ≤ g.threshold && σ ∉ g.removed
 _in(σ, g::OneSkeleton) = !isnothing(σ) && birth(σ) ≤ g.threshold && σ ∉ g.removed
+
+# Convert linear indices to filtration indices. Applicable to Cubical because it has
+# vertices of type CartesianIndex.
+_linear(g, i) = LinearIndices(vertices(g.filtration))[i]
+_inv_linear(g, i) = vertices(g.filtration)[i]
 
 LightGraphs.edgetype(::OneSkeleton) = Edge{Int}
 
@@ -79,11 +92,18 @@ function _path_length(dists, cyc)
     return result
 end
 
-# Convert linear indices to filtration indices. Applicable to Cubical.
-_linear(g, i) = LinearIndices(vertices(g.filtration))[i]
-_inv_linear(g, i) = vertices(g.filtration)[i]
+"""
+    _find_cycle(g, dists)
 
+Find the shortest cycle in `g` that has exactly one edge from `g.removed`.
+"""
 function _find_cycle(g, dists)
+    # Idea:
+    # best_weight is the current best length of shortest cycle.
+    # best_path is the current best candidate for shortest cycle.
+    # best_simplex completes best_path to a cycle.
+    # We go through all edges in g.removed and find the shortest path through its
+    # endpoints. The shortest among those is the shortest cycle.
     best_weight = missing
     best_path = edgetype(g)[]
     best_sx = first(g.removed)
@@ -101,6 +121,7 @@ function _find_cycle(g, dists)
         error("no cycle found!")
     else
         result = [best_sx]
+        # Convert the type of best_path from `Edge`s to the simplex type of the filtration.
         for e in best_path
             u, v = _inv_linear.(Ref(g), (src(e), dst(e)))
             push!(result, simplex(g.filtration, Val(1), (u, v)))
@@ -121,9 +142,12 @@ simplex or a number.
 The optional `distances` keyword argument can be used to change the distance matrix used for
 determining edge lengths.
 
-This method uses the representative cocycle to compute the cycle. As such, the interval must
-include a representative. To get such an interval, run `ripserer` with the keyword argument
-`reps=true` or `reps=1`.
+This method uses the representative _co_cycle to compute the cycle. As such, the interval
+must be computed with the default cohomology algorithm and must include a representative. To
+get such an interval, run `ripserer` with the keyword argument `reps=true` or `reps=1`.
+
+Note that this method only works in the first dimension, as it is based on finding shortest
+paths in a graph.
 
 !!! warning
     This feature is still experimental.
