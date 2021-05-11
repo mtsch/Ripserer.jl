@@ -81,8 +81,8 @@ diagram, and the last is the (`dim_max`)-dimensional diagram.
     cycles. Does not find infinite intervals beyond dimension 0.
 
   - `:involuted`: Use cohomology result to compute representative cycles. Can be extremely
-    efficient compared to `:homology`, especially with `Rips` filtrations. Unlike
-    `:homology`, this algorithm finds infinite intervals.
+    efficient compared to `:homology`, especially with `Rips` filtrations. See [this
+    paper](https://arxiv.org/abs/2105.03629) for more information.
 
 * `implicit`: If `true`, an implicit reduction algorithm is used. Defaults to `true` for
   :cohomology and `:involuted`, and `false` for `:homology`. `implicit=false` is not
