@@ -104,7 +104,7 @@ plot!(cocycle, data; label="cocycle")
 # this increases the running time somewhat, it is still usually much more efficient than
 # computing persistent homology directly. The difference is especially large for filtrations
 # where the number of simplices increases quickly with dimension, such as Vietoris-Rips
-# filtrations.
+# filtrations. See [this paper](https://arxiv.org/abs/2105.03629) for more information.
 
 # Involuted homology is computed by passing the argument `alg=:involuted` to `ripserer`. If
 # we wanted direct homology computation, we would use `alg=:homology`. The results for both

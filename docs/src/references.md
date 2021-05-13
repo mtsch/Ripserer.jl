@@ -33,3 +33,7 @@ Computational Geometry, 33(2), 249-274.
 
 Edelsbrunner, H. (1993, July). The union of balls and its dual shape. In Proceedings of the
 ninth annual symposium on Computational geometry (pp. 218-231).
+
+Čufar, M. & Virk, Ž. (2021). Fast computation of persistent homology representatives with
+involuted persistent homology. arXiv preprint
+[arxiv:2105.03629](https://arxiv.org/abs/2105.03629)
