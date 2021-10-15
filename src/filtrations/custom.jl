@@ -75,7 +75,7 @@ julia> flt = Custom([(1,) => 0, (4,) => 0, (1, 2) => 1, (1, 3) => 2, (1, 4) => 3
 Custom{Int64, Int64}(nv=4)
 
 julia> flt[0] # Can be indexed with dimension to list simplices
-4-element Array{Simplex{0,Int64,Int64},1}:
+4-element Vector{Simplex{0, Int64, Int64}}:
  +Simplex{0}((4,), 0)
  +Simplex{0}((2,), 1)
  +Simplex{0}((3,), 2)

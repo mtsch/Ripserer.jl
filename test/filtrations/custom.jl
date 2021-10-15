@@ -27,7 +27,7 @@ include("interfacetest.jl")
     @test flt isa Custom{Int,Float64}
     @test dim(flt) == 3
     @test sort(flt[0]; by=index) ==
-          [Simplex{0}(1, 0.0), Simplex{0}(2, 7.0), Simplex{0}(3, 2.0), Simplex{0}(4, 0.0)]
+        [Simplex{0}(1, 0.0), Simplex{0}(2, 7.0), Simplex{0}(3, 2.0), Simplex{0}(4, 0.0)]
     @test isempty(flt[10])
     @test simplex(flt, Val(2), (1, 2, 4)) === Simplex{2}((4, 2, 1), 8.0)
     @test simplex(flt, Val(2), (4, 3, 1)) === nothing
