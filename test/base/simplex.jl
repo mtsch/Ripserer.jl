@@ -35,7 +35,7 @@ Ripserer.simplex_type(::Type{FakeFiltrationWithThreshold}, D) = Simplex{D,Int,In
         @test index((3, 2, 1)) === 1
         @test index(Int32.((4, 3, 2, 1))) === Int32(1)
         @test index(SVector(101, 100, 20, 15, 3)) ==
-              1 +
+            1 +
               binomial(101 - 1, 5) +
               binomial(100 - 1, 4) +
               binomial(20 - 1, 3) +
@@ -129,7 +129,7 @@ end
                     @test sprint(show, sx) == "+Simplex{$D}($(vertices(sx)), $(b))"
                     @test sprint(show, -sx) == "-Simplex{$D}($(vertices(sx)), $(b))"
                     @test sprint((i, s) -> show(i, MIME"text/plain"(), s), sx) ==
-                          "$D-dimensional Simplex(index=$i, birth=$b):\n  +$(vertices(sx))"
+                        "$D-dimensional Simplex(index=$i, birth=$b):\n  +$(vertices(sx))"
                 end
             end
         end
