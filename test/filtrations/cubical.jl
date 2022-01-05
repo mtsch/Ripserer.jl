@@ -60,7 +60,7 @@ include("interfacetest.jl")
             ),
         )
             @test _from_cubemap(_to_cubemap(vertices), Val(length(vertices))) ==
-                  TupleTools.sort(vertices)
+                TupleTools.sort(vertices)
             root = _to_cubemap(vertices)
             @test begin
                 _from_cubemap(root, Val(length(vertices)))
@@ -75,11 +75,11 @@ end
 @testset "Cube" begin
     @testset "Constructors" begin
         @test Cube{1}([CartesianIndex(1, 1), CartesianIndex(1, 2)], 1) ==
-              Cube{1}(CartesianIndex(1, 2), 1)
+            Cube{1}(CartesianIndex(1, 2), 1)
         @test Cube{1}((CartesianIndex(2, 1), CartesianIndex(1, 1)), 1) ==
-              Cube{1}(CartesianIndex(2, 1), 1)
+            Cube{1}(CartesianIndex(2, 1), 1)
         @test Cube{2}([(1, 1), (1, 2), (2, 2), (2, 1)], 1) ==
-              Cube{2}(CartesianIndex(2, 2), 1)
+            Cube{2}(CartesianIndex(2, 2), 1)
     end
 
     @testset "Randomized tests for AbstractSimplex interface" begin
@@ -144,7 +144,7 @@ end
     @testset "Vertices" begin
         @test vertices(Cube{0}(((1, 1),), 1)) == (CartesianIndex(1, 1),)
         @test vertices(Cube{1}(((1, 1), (1, 2)), 1)) ==
-              (CartesianIndex(1, 1), CartesianIndex(1, 2))
+            (CartesianIndex(1, 1), CartesianIndex(1, 2))
         @test vertices(Cube{4}(CartesianIndex(10, 14, 15, 22, 2), 1)) == map(
             CartesianIndex,
             (
@@ -335,7 +335,7 @@ end
             @test curve[only(birth_sx)] == birth(int) == birth(birth_sx)
         end
         @test sort!(only.(birth_simplex.(d0))) ==
-              CartesianIndex.([1, 157, 354, 552, 752, 951])
+            CartesianIndex.([1, 157, 354, 552, 752, 951])
     end
     @testset "2D image" begin
         data = [
@@ -354,7 +354,7 @@ end
 
         @test vertices(only(representative(d0[1]))) == (CartesianIndex(3, 3),)
         @test sort(vertices.(representative(d0[2]))) ==
-              sort(tuple.(vec(CartesianIndices(data))))
+            sort(tuple.(vec(CartesianIndices(data))))
     end
     @testset "3D image" begin
         # Cube with hole in the middle.

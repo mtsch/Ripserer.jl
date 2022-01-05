@@ -35,7 +35,7 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
             @testset "Printing" begin
                 @test sprint(show, Element(simplex_1)) == "$(simplex_1) => $(one(F))"
                 @test sprint(show, Element(simplex_2, coef_1)) ==
-                      "$(simplex_2) => $(coef_1)"
+                    "$(simplex_2) => $(coef_1)"
             end
             @testset "Simplex, coefficient, birth, index and iteration" begin
                 a = Element(-simplex_1, coef_3)
@@ -111,10 +111,10 @@ for S in (Simplex{2,Float64,Int}, Simplex{3,Float64,Int32})
             for S in (Simplex{2,Float64,Int}, Simplex{3,Int,Int128})
                 @test @inferred(chain_element_type(S, Mod{2})) <: PackedElement{S,Mod{2}}
                 @test @inferred(chain_element_type(S, Mod{251})) <:
-                      PackedElement{S,Mod{251}}
+                    PackedElement{S,Mod{251}}
                 @test @inferred(chain_element_type(S, Mod{257})) == ChainElement{S,Mod{257}}
                 @test @inferred(chain_element_type(S, Rational{Int})) ==
-                      ChainElement{S,Rational{Int}}
+                    ChainElement{S,Rational{Int}}
             end
         end
     end

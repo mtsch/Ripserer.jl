@@ -108,8 +108,8 @@ function simplex(flt::AbstractFiltration, ::Val{D}, vertices) where {D}
     else
         vs = TupleTools.sort(Tuple(vertices); rev=true)
         if allunique(vs) &&
-           all(x -> x > 0, vs) &&
-           length(vs) == length(simplex_type(flt, D))
+            all(x -> x > 0, vs) &&
+            length(vs) == length(simplex_type(flt, D))
             return unsafe_simplex(flt, Val(D), vs)
         end
     end

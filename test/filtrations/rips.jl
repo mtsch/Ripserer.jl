@@ -321,7 +321,7 @@ end
         @testset "Representative cycle" begin
             res_hom = ripserer(cycle; alg=:homology, reps=true, dim_max=3)
             @test vertices.(simplex.(representative(res_hom[2][1]))) ==
-                  sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
+                sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
         end
         @testset "Infinite intervals" begin
             @test_broken ripserer(
