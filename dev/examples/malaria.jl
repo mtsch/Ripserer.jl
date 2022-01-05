@@ -23,8 +23,8 @@ nothing # hide
 # pretend we were only given 200 images to work with. We have chosen the 200 images
 # randomly.
 
-uninfected = shuffle!(load.(readdir(joinpath(data_dir, "uninfected"); join=true)))
-infected = shuffle!(load.(readdir(joinpath(data_dir, "infected"); join=true)))
+uninfected = shuffle!(Images.load.(readdir(joinpath(data_dir, "uninfected"); join=true)))
+infected = shuffle!(Images.load.(readdir(joinpath(data_dir, "infected"); join=true)))
 
 images = [uninfected; infected]
 classes = [fill(false, length(uninfected)); fill(true, length(infected))]
