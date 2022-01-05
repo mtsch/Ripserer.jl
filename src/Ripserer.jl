@@ -17,7 +17,7 @@ using SparseArrays
 using DataStructures
 using Distances
 using IterTools
-using LightGraphs
+using Graphs
 using MiniQhull
 using PersistenceDiagrams
 using ProgressMeter
@@ -29,7 +29,7 @@ import MLJModelInterface
 
 # This functionality is imported to avoid having to deal with name clashes. There is no
 # piracy involved here.
-import LightGraphs: vertices, edges, nv, adjacency_matrix
+import Graphs: vertices, edges, nv, adjacency_matrix
 
 # Reexporting basics makes Ripserer usable without having to import another package.
 import PersistenceDiagrams: birth, threshold, dim

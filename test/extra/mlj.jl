@@ -11,26 +11,26 @@ function test_mlj_model(model, X)
     Xt = transform(mach, X)
 
     @test nrows(Xt) == length(X)
-    @test length(first(Xt)) ≥ 30
+    @test length(propertynames(Xt)) ≥ 30
 
     model.vectorizer = PersistenceCurveVectorizer()
     fit!(mach; verbosity=0)
     Xt = transform(mach, X)
 
     @test nrows(Xt) == length(X)
-    @test length(first(Xt)) == 20
+    @test length(propertynames(Xt)) == 20
 
     model.vectorizer.length = 100
     fit!(mach; verbosity=0)
     Xt = transform(mach, X)
     @test nrows(Xt) == length(X)
-    @test length(first(Xt)) == 200
+    @test length(propertynames(Xt)) == 200
 
     model.dim_max = 2
     fit!(mach; verbosity=0)
     Xt = transform(mach, X)
     @test nrows(Xt) == length(X)
-    @test length(first(Xt)) == 300
+    @test length(propertynames(Xt)) == 300
 end
 
 @testset "Rips" begin

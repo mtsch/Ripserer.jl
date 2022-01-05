@@ -3,7 +3,7 @@ using SparseArrays
 
 function load_points(filename)
     # ripser uses Float32
-    table = CSV.File(filename; header=0, type=Float32, delim=' ')
+    table = CSV.File(filename; header=0, types=Float32, delim=' ')
     nrow = length(table)
     dim = length(table[1])
     result = Vector{NTuple{dim,Float32}}(undef, nrow)
