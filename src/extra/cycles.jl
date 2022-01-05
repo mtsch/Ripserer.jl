@@ -33,9 +33,9 @@ _in(σ, g::OneSkeleton) = !isnothing(σ) && birth(σ) ≤ g.threshold && σ ∉ 
 _linear(g, i) = LinearIndices(vertices(g.filtration))[i]
 _inv_linear(g, i) = vertices(g.filtration)[i]
 
-LightGraphs.edgetype(::OneSkeleton) = Edge{Int}
+Graphs.edgetype(::OneSkeleton) = Edge{Int}
 
-function LightGraphs.has_edge(g::OneSkeleton, u::Integer, v::Integer)
+function Graphs.has_edge(g::OneSkeleton, u::Integer, v::Integer)
     if u ∉ vertices(g) || v ∉ vertices(g)
         return false
     else
@@ -44,7 +44,7 @@ function LightGraphs.has_edge(g::OneSkeleton, u::Integer, v::Integer)
     end
 end
 
-function LightGraphs.edges(g::OneSkeleton)
+function Graphs.edges(g::OneSkeleton)
     result = edgetype(g)[]
     for sx in Ripserer.edges(g.filtration)
         if _in(sx, g)
@@ -54,7 +54,7 @@ function LightGraphs.edges(g::OneSkeleton)
     end
     return result
 end
-function LightGraphs.outneighbors(g::OneSkeleton, u::Integer)
+function Graphs.outneighbors(g::OneSkeleton, u::Integer)
     root = simplex(g.filtration, Val(0), (_inv_linear(g, u),))
     neighbors = Int[]
     for sx in Ripserer.coboundary(g.filtration, root)
@@ -69,18 +69,18 @@ function LightGraphs.outneighbors(g::OneSkeleton, u::Integer)
     end
     return neighbors
 end
-LightGraphs.inneighbors(g::OneSkeleton, u::Integer) = outneighbors(g, u)
+Graphs.inneighbors(g::OneSkeleton, u::Integer) = outneighbors(g, u)
 
 Base.eltype(::OneSkeleton) = Int
-LightGraphs.has_vertex(g::OneSkeleton, u) = 1 ≤ u ≤ nv(g)
-LightGraphs.ne(g::OneSkeleton) = length(edges(g))
-LightGraphs.nv(g::OneSkeleton) = nv(g.filtration)
-LightGraphs.vertices(g::OneSkeleton) = Base.OneTo(nv(g))
-LightGraphs.is_directed(::OneSkeleton) = false
-LightGraphs.is_directed(::Type{<:OneSkeleton}) = false
+Graphs.has_vertex(g::OneSkeleton, u) = 1 ≤ u ≤ nv(g)
+Graphs.ne(g::OneSkeleton) = length(edges(g))
+Graphs.nv(g::OneSkeleton) = nv(g.filtration)
+Graphs.vertices(g::OneSkeleton) = Base.OneTo(nv(g))
+Graphs.is_directed(::OneSkeleton) = false
+Graphs.is_directed(::Type{<:OneSkeleton}) = false
 
 # need default dist for filtrations...
-LightGraphs.weights(g::OneSkeleton) = g.weights
+Graphs.weights(g::OneSkeleton) = g.weights
 
 _heuristic(filtration, src, distances) = dst -> distances[dst, src]
 function _path_length(dists, cyc)
