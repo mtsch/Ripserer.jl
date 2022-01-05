@@ -1,3 +1,7 @@
+# v0.16.9
+
+Replace LightGraps with Graphs.
+
 # v0.16.4
 
 Add [MLJ.jl](https://github.com/alan-turing-institute/MLJ.jl) support.
@@ -17,7 +21,7 @@ External changes:
 
 Interface changes:
 
-* All filtration constructors should now have to take `verbose` as a keyword argument.
+* All filtration constructors now have to take `verbose` as a keyword argument.
 * Replaced vectors of `ChainElement`s with `Chain`s.
 * Added `AbstractCell`.
 * `Cube` is now an `AbstractCell`, `AbstractSimplex` is reserved for actual simplices.
