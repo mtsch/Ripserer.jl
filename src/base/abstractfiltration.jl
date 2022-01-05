@@ -39,10 +39,10 @@ needs to be overloaded.
 
 ```jldoctest
 julia> Ripserer.simplex_type(Rips{Int,Float64}, 1)
-Simplex{1,Float64,Int64}
+Simplex{1, Float64, Int64}
 
 julia> Ripserer.simplex_type(Cubical{2,Float16}, 2)
-Cube{2,Float16,2}
+Cube{2, Float16, 2}
 
 ```
 """
@@ -162,7 +162,7 @@ julia> vertices(Rips([0 1 1; 1 0 1; 1 1 0]))
 Base.OneTo(3)
 
 julia> vertices(Cubical([0 1 1; 1 0 1; 1 1 0]))
-3×3 CartesianIndices{2,Tuple{Base.OneTo{Int64},Base.OneTo{Int64}}}:
+3×3 CartesianIndices{2, Tuple{Base.OneTo{Int64}, Base.OneTo{Int64}}}:
  CartesianIndex(1, 1)  CartesianIndex(1, 2)  CartesianIndex(1, 3)
  CartesianIndex(2, 1)  CartesianIndex(2, 2)  CartesianIndex(2, 3)
  CartesianIndex(3, 1)  CartesianIndex(3, 2)  CartesianIndex(3, 3)
@@ -183,7 +183,7 @@ array of the same shape as the filtration's `vertices`.
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
 julia> Ripserer.births(flt)
-3-element view(::Array{Int64,1}, 1:4:9) with eltype Int64:
+3-element view(::Vector{Int64}, 1:4:9) with eltype Int64:
  1
  0
  0
@@ -220,26 +220,24 @@ Return the adjacency matrix. For sparse filtrations, this should return a `Spars
 
 ```jldoctest
 julia> Ripserer.adjacency_matrix(Rips([0 2 1; 2 0 1; 1 1 0]))
-3×3 Array{Int64,2}:
+3×3 Matrix{Int64}:
  0  2  1
  2  0  1
  1  1  0
 
 julia> Ripserer.adjacency_matrix(Rips([0 10 2; 10 0 1; 2 1 0]; sparse=true))
-3×3 SparseArrays.SparseMatrixCSC{Int64,Int64} with 4 stored entries:
-  [3, 1]  =  2
-  [3, 2]  =  1
-  [1, 3]  =  2
-  [2, 3]  =  1
+3×3 SparseArrays.SparseMatrixCSC{Int64, Int64} with 4 stored entries:
+ ⋅  ⋅  2
+ ⋅  ⋅  1
+ 2  1  ⋅
 
 julia> Ripserer.adjacency_matrix(Custom([(2, 1) => 1, (5, 1) => 2, (3, 4) => 3]))
-5×5 SparseArrays.SparseMatrixCSC{Bool,Int64} with 6 stored entries:
-  [2, 1]  =  1
-  [5, 1]  =  1
-  [1, 2]  =  1
-  [4, 3]  =  1
-  [3, 4]  =  1
-  [1, 5]  =  1
+5×5 SparseArrays.SparseMatrixCSC{Bool, Int64} with 6 stored entries:
+ ⋅  1  ⋅  ⋅  1
+ 1  ⋅  ⋅  ⋅  ⋅
+ ⋅  ⋅  ⋅  1  ⋅
+ ⋅  ⋅  1  ⋅  ⋅
+ 1  ⋅  ⋅  ⋅  ⋅
 
 ```
 """
@@ -258,7 +256,7 @@ set to `Val(false)`.
 julia> flt = Rips([0 1 1; 1 0 1; 1 1 0]);
 
 julia> Ripserer.columns_to_reduce(flt, Ripserer.edges(flt)) |> collect
-1-element Array{Simplex{2,Int64,Int64},1}:
+1-element Vector{Simplex{2, Int64, Int64}}:
  +Simplex{2}((3, 2, 1), 1)
 
 ```
@@ -332,7 +330,7 @@ Defaults to all distances being 1.
 julia> flt = Rips([1 1 2; 1 0 1; 2 1 0]);
 
 julia> Ripserer.distance_matrix(flt)
-3×3 Array{Int64,2}:
+3×3 Matrix{Int64}:
  1  1  2
  1  0  1
  2  1  0

@@ -22,7 +22,7 @@ julia> data = [(rand(), rand(), rand()) for _ in 1:100];
 julia> result = ripserer(data; reps=true, modulus=7);
 
 julia> chain = result[end][end].representative
-6-element Chain{Ripserer.Mod{7},Ripserer.Simplex{1,Float64,Int64}}:
+6-element Chain{Mod{7},Simplex{1, Float64, Int64}}:
  +Simplex{1}((87, 59), 0.23148225999797645) => 6 mod 7
  +Simplex{1}((59, 46), 0.3054281021426286) => 1 mod 7
  +Simplex{1}((87, 14), 0.32453294355760326) => 6 mod 7
@@ -31,7 +31,7 @@ julia> chain = result[end][end].representative
  +Simplex{1}((79, 1), 0.36519064466525686) => 6 mod 7
 
 julia> simplex.(chain)
-6-element Array{Simplex{1,Float64,Int64},1}:
+6-element Vector{Simplex{1, Float64, Int64}}:
  +Simplex{1}((87, 59), 0.23148225999797645)
  +Simplex{1}((59, 46), 0.3054281021426286)
  +Simplex{1}((87, 14), 0.32453294355760326)
@@ -40,7 +40,7 @@ julia> simplex.(chain)
  +Simplex{1}((79, 1), 0.36519064466525686)
 
 julia> vertices.(chain)
-6-element Array{Tuple{Int64,Int64},1}:
+6-element Vector{Tuple{Int64, Int64}}:
  (87, 59)
  (59, 46)
  (87, 14)
@@ -49,7 +49,7 @@ julia> vertices.(chain)
  (79, 1)
 
 julia> coefficient.(chain)
-6-element Array{Mod{7},1}:
+6-element Vector{Mod{7}}:
  6 mod 7
  1 mod 7
  6 mod 7

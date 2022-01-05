@@ -176,7 +176,7 @@ julia> ripserer(rips) == ripserer(collapsed)
 true
 
 julia> ripserer(collapsed; dim_max=4)
-5-element Array{PersistenceDiagramsBase.PersistenceDiagram,1}:
+5-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
  100-element 0-dimensional PersistenceDiagram
  75-element 1-dimensional PersistenceDiagram
  37-element 2-dimensional PersistenceDiagram

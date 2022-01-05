@@ -192,14 +192,14 @@ CircularCoordinates(
   radius=(0.9510565162951535,),
   n_landmarks=10,
   partition=linear,
-  metric=Distances.Euclidean(0.0),
+  metric=Euclidean(0.0),
 )
 
 julia> summary(cc(data))
-"100×1 Array{Union{Missing, Float64},2}"
+"100×1 Matrix{Union{Missing, Float64}}"
 
 julia> summary(cc(data, 1))
-"100-element Array{Union{Missing, Float64},1}"
+"100-element Vector{Union{Missing, Float64}}"
 
 ```
 
