@@ -1,4 +1,7 @@
 using Aqua
 using Ripserer
 
-Aqua.test_all(Ripserer; ambiguities=false)
+if VERSION < v"1.8-DEV"
+    # Note: will have to change Project.toml for 1.8
+    Aqua.test_all(Ripserer; ambiguities=false)
+end

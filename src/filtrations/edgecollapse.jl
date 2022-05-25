@@ -164,24 +164,24 @@ julia> rips = Rips(data)
 Rips{Int64, Float64}(nv=100, sparse=false)
 
 julia> length(Ripserer.edges(rips))
-3906
+3934
 
 julia> collapsed = EdgeCollapsedRips(data) # or EdgeCollapsedRips(rips)
 EdgeCollapsedRips{Int64, Float64}(nv=100)
 
 julia> length(Ripserer.edges(collapsed))
-1419
+1324
 
 julia> ripserer(rips) == ripserer(collapsed)
 true
 
 julia> ripserer(collapsed; dim_max=4)
-5-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+5-element Vector{PersistenceDiagrams.PersistenceDiagram}:
  100-element 0-dimensional PersistenceDiagram
- 75-element 1-dimensional PersistenceDiagram
- 37-element 2-dimensional PersistenceDiagram
- 14-element 3-dimensional PersistenceDiagram
- 1-element 4-dimensional PersistenceDiagram
+ 58-element 1-dimensional PersistenceDiagram
+ 35-element 2-dimensional PersistenceDiagram
+ 10-element 3-dimensional PersistenceDiagram
+ 4-element 4-dimensional PersistenceDiagram
 
 ```
 
