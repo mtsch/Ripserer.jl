@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        julia-version: ['1.6', '1.7', 'nightly']
+        julia-version: ['1', '1.6', 'nightly']
     name: ${{ matrix.julia-version }}
     steps:
       - uses: actions/checkout@v2
