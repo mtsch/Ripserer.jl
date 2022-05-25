@@ -45,7 +45,7 @@ matrices.
 
 ```julia
 julia> ripserer(data)
-# 2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+# 2-element Vector{PersistenceDiagrams.PersistenceDiagram}:
 #  200-element 0-dimensional PersistenceDiagram
 #  84-element 1-dimensional PersistenceDiagram
 ```
@@ -56,7 +56,7 @@ tell `ripserer` to use them by passing them as the first argument.
 
 ```julia
 julia> ripserer(EdgeCollapsedRips, data)
-# 2-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+# 2-element Vector{PersistenceDiagrams.PersistenceDiagram}:
 #  200-element 0-dimensional PersistenceDiagram
 #  84-element 1-dimensional PersistenceDiagram
 ```
@@ -69,7 +69,7 @@ julia> rips = EdgeCollapsedRips(data, threshold=1)
 ```
 ```julia
 julia> ripserer(rips, dim_max=2)
-# 3-element Vector{PersistenceDiagramsBase.PersistenceDiagram}:
+# 3-element Vector{PersistenceDiagrams.PersistenceDiagram}:
 #  200-element 0-dimensional PersistenceDiagram
 #  84-element 1-dimensional PersistenceDiagram
 #  16-element 2-dimensional PersistenceDiagram
