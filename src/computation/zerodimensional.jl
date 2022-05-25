@@ -85,7 +85,7 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
             rep = (;
                 representative=sort!([
                     simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)
-                ]),
+                ])
             )
         else
             rep = NamedTuple()
