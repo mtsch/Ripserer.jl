@@ -6,16 +6,14 @@ using Ripserer: distance_matrix, OneSkeleton
 
 @testset "OneSkeleton respects the Graphs interface" begin
     @testset "no threshold or removed simplices" begin
-        flt = Rips(
-            [
-                0 1 2 3 2 1
-                1 0 1 2 3 2
-                2 1 0 1 2 3
-                3 2 1 0 1 2
-                2 3 2 1 0 1
-                1 2 3 2 1 0
-            ]
-        )
+        flt = Rips([
+            0 1 2 3 2 1
+            1 0 1 2 3 2
+            2 1 0 1 2 3
+            3 2 1 0 1 2
+            2 3 2 1 0 1
+            1 2 3 2 1 0
+        ])
 
         g = OneSkeleton(flt)
         @test eltype(g) ≡ Int
@@ -127,16 +125,14 @@ end
 
 @testset "Cycle reconstruction" begin
     @testset "small cycle" begin
-        flt = Rips(
-            [
-                0 1 2 3 2 1
-                1 0 1 2 3 2
-                2 1 0 1 2 3
-                3 2 1 0 1 2
-                2 3 2 1 0 1
-                1 2 3 2 1 0
-            ]
-        )
+        flt = Rips([
+            0 1 2 3 2 1
+            1 0 1 2 3 2
+            2 1 0 1 2 3
+            3 2 1 0 1 2
+            2 3 2 1 0 1
+            1 2 3 2 1 0
+        ])
 
         interval = ripserer(flt; reps=true)[2][1]
         cyc1 = reconstruct_cycle(flt, interval)
@@ -282,16 +278,14 @@ end
     end
 
     @testset "Errors" begin
-        flt = Rips(
-            [
-                0 1 2 3 2 1
-                1 0 1 2 3 2
-                2 1 0 1 2 3
-                3 2 1 0 1 2
-                2 3 2 1 0 1
-                1 2 3 2 1 0
-            ]
-        )
+        flt = Rips([
+            0 1 2 3 2 1
+            1 0 1 2 3 2
+            2 1 0 1 2 3
+            3 2 1 0 1 2
+            2 3 2 1 0 1
+            1 2 3 2 1 0
+        ])
         _, d1, d2 = ripserer(flt; reps=2, dim_max=2)
 
         @test_throws ArgumentError reconstruct_cycle(flt, d1[1])

@@ -20,7 +20,7 @@ on my (limited) experience with these packages.
 * [Ripser.jl](https://github.com/mtsch/Ripser.jl) my deprecated wrapper of the original
   C++ program. Very bare-bones and outdated. Runs a bit slower than Ripserer.
 
-* [Sparips.jl](https://github.com/mtsch/Ripser.jl) this is a preprocessor that comes with
+* [Sparips.jl](https://github.com/bbrehm/Sparips.jl) this is a preprocessor that comes with
   a different wrapper of Ripser. The preprocessor allows you to compute persistent homology
   of very large datasets. Integrating it with Ripserer is on my TODO list.
 
