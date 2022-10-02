@@ -1,7 +1,7 @@
 name = "Ripserer"
 uuid = "aa79e827-bd0b-42a8-9f10-2b302677a641"
 authors = ["mtsch <matijacufar@gmail.com>"]
-version = "0.16.10"
+version = "0.16.11"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
@@ -27,7 +27,7 @@ Distances = "0.8, 0.9, 0.10"
 Graphs = "1"
 IterTools = "1"
 MLJModelInterface = "^0.3.5, 0.4, 1"
-MiniQhull = "0.2, 0.3"
+MiniQhull = "0.2, 0.3, 0.4"
 PersistenceDiagrams = "0.9"
 ProgressMeter = "1"
 RecipesBase = "1"
