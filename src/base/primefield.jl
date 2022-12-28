@@ -4,7 +4,7 @@
 
 Return `true` if `n` is a prime number.
 """
-Base.@pure function is_prime(n::Int)
+function is_prime(n::Int)
     if iseven(n) || n < 2
         return n == 2
     else
@@ -81,10 +81,13 @@ Base.zero(::Type{Mod{M}}) where {M} = Mod{M}(0, false)
 Base.one(::Type{Mod{M}}) where {M} = Mod{M}(1, false)
 Base.sign(i::M) where {M<:Mod} = ifelse(iszero(i), zero(M), one(M))
 
-Base.promote_rule(::Type{Mod{M}}, ::Type{<:Integer}) where {M} = Mod{M}
 Base.promote_rule(::Type{Mod{M}}, ::Type{<:Mod}) where {M} = Union{}
-function Base.promote_rule(::Type{Mod{M}}, ::Type{N}) where {M,N<:Integer}
-    return Base.promote_type(N, Int) === Int ? Mod{M} : Union{}
+function Base.promote_rule(::Type{Mod{M}}, ::Type{I}) where {M,I<:Integer}
+    if Base.promote_type(I, Int128) === Int128 || Base.promote_type(I, Int128) === UInt128
+        return Mod{M}
+    else
+        return Union{}
+    end
 end
 
 Base.inv(i::Mod{M}) where {M} = Mod{M}(invmod(Int(i), M), false)
