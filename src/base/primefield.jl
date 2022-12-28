@@ -82,5 +82,9 @@ Base.one(::Type{Mod{M}}) where {M} = Mod{M}(1, false)
 Base.sign(i::M) where {M<:Mod} = ifelse(iszero(i), zero(M), one(M))
 
 Base.promote_rule(::Type{Mod{M}}, ::Type{<:Integer}) where {M} = Mod{M}
+Base.promote_rule(::Type{Mod{M}}, ::Type{<:Mod}) where {M} = Union{}
+function Base.promote_rule(::Type{Mod{M}}, ::Type{N}) where {M,N<:Integer}
+    return Base.promote_type(N, Int) === Int ? Mod{M} : Union{}
+end
 
 Base.inv(i::Mod{M}) where {M} = Mod{M}(invmod(Int(i), M), false)
