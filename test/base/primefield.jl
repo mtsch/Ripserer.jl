@@ -53,7 +53,7 @@ end
         @test_throws ErrorException Mod{3}(1) < Mod{3}(2)
         @test_throws ErrorException Mod{3}(1) ≥ Mod{3}(2)
 
-        @test_throws StackOverflowError Mod{3}(1) + Mod{2}(1)
+        @test_throws ErrorException Mod{3}(1) + Mod{2}(1)
     end
 
     @testset "Printing" begin
