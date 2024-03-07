@@ -82,6 +82,7 @@ include("filtrations/cubical.jl")
 include("filtrations/custom.jl")
 include("filtrations/alpha.jl")
 include("filtrations/edgecollapse.jl")
+include("filtrations/image.jl")
 
 include("extra/cycles.jl")
 include("extra/circularcoordinates.jl")
