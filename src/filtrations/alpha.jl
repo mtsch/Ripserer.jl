@@ -220,3 +220,7 @@ function Base.getindex(ad::AlphaDist, i::Integer, j::Integer)
 end
 
 distance_matrix(alpha::Alpha) = AlphaDist(alpha)
+
+function subset(alpha::Alpha{I}, n) where {I}
+    return Alpha{I}(alpha.points[1:n]; threshold=alpha.threshold)
+end

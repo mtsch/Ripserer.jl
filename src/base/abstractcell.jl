@@ -206,7 +206,7 @@ coboundary
     boundary(filtration, simplex[, Val{all_cofacets}])
 
 Iterate over the boundary of `simplex` by increasing `index`. Use the `filtration` to
-determine the diameters and validity of cofacets.
+determine the diameters and validity of facets.
 
 Comes with a default implementation.
 

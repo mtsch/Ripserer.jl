@@ -150,7 +150,7 @@ function _ripserer(
     end
     index_overflow_check(filtration, field, dim_max)
     result = _ripserer(
-        Val(alg), filtration, cutoff, verbose, field, dim_max, reps, implicit
+        alg isa Symbol ? Val(alg) : alg, filtration, cutoff, verbose, field, dim_max, reps, implicit
     )
     elapsed = round((time_ns() - start_time) / 1e9; digits=3)
     @prog_println verbose "Done. Time: " ProgressMeter.durationstring(elapsed)

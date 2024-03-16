@@ -247,7 +247,7 @@ end
 threshold(rips::Rips) = rips.threshold
 adjacency_matrix(rips::Rips) = rips.adj
 
-function subset(rips::Rips{I,T,A}, indices) where {I,T,A}
-    new_adj = rips.adj[indices, indices]
+function subset(rips::Rips{I,T,A}, n) where {I,T,A}
+    new_adj = rips.adj[1:n, 1:n]
     return Rips{I,T,A}(new_adj, rips.threshold)
 end
