@@ -78,7 +78,7 @@ diagram, and the last is the (`dim_max`)-dimensional diagram.
     with representative _co_cycles.
 
   - `:homology`: Significantly slower than `:cohomology`, but finds representative
-    cycles. Does not find infinite intervals beyond dimension 0.
+    cycles.
 
   - `:involuted`: Use cohomology result to compute representative cycles. Can be extremely
     efficient compared to `:homology`, especially with `Rips` filtrations. See [this

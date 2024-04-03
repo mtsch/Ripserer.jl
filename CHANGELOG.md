@@ -1,3 +1,7 @@
+# v0.17
+
+The homology algorithm can now find infinite intervals and is a bit more efficient.
+
 # v0.16.9
 
 Replace LightGraps with Graphs.
