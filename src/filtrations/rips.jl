@@ -219,7 +219,7 @@ function Rips{I}(
     if issparse(adj)
         adj isa SparseMatrixCSC ||
             throw(ArgumentError("only SparseMatrixCSC sparse matrices supported"))
-        SparseArrays.fkeep!((_, _, v) -> v ≤ thresh, adj)
+        SparseArrays.fkeep!(adj, (_, _, v) -> v ≤ thresh)
     end
     return Rips{I,T,typeof(adj)}(adj, thresh)
 end
