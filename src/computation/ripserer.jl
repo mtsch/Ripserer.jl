@@ -78,7 +78,7 @@ diagram, and the last is the (`dim_max`)-dimensional diagram.
     with representative _co_cycles.
 
   - `:homology`: Significantly slower than `:cohomology`, but finds representative
-    cycles. Does not find infinite intervals beyond dimension 0.
+    cycles.
 
   - `:involuted`: Use cohomology result to compute representative cycles. Can be extremely
     efficient compared to `:homology`, especially with `Rips` filtrations. See [this
@@ -155,76 +155,6 @@ function _ripserer(
     elapsed = round((time_ns() - start_time) / 1e9; digits=3)
     @prog_println verbose "Done. Time: " ProgressMeter.durationstring(elapsed)
 
-    return result
-end
-
-function _ripserer(
-    ::Val{:cohomology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
-)
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
-    )
-    push!(result, zeroth)
-    if dim_max > 0
-        matrix = CoboundaryMatrix{implicit}(field, filtration, to_reduce, to_skip)
-        for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim)))
-            if dim < dim_max
-                matrix = next_matrix(matrix, verbose)
-            end
-        end
-    end
-    return result
-end
-
-function _ripserer(
-    ::Val{:homology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
-)
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
-    )
-    push!(result, zeroth)
-    if dim_max > 0
-        simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
-        for dim in 1:dim_max
-            matrix = BoundaryMatrix{implicit}(field, filtration, simplices)
-            push!(result, compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim)))
-            if dim < dim_max
-                simplices = columns_to_reduce(filtration, simplices)
-            end
-        end
-    end
-    return result
-end
-
-function _ripserer(
-    ::Val{:involuted}, filtration, cutoff, verbose, field, dim_max, reps, implicit
-)
-    result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
-    )
-    push!(result, zeroth)
-    if dim_max > 0
-        comatrix = CoboundaryMatrix{true}(field, filtration, to_reduce, to_skip)
-        for dim in 1:dim_max
-            columns, inf_births = compute_death_simplices!(comatrix, verbose, cutoff)
-            matrix = BoundaryMatrix{implicit}(field, filtration, columns)
-            diagram = compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim))
-            for birth_simplex in inf_births
-                push!(
-                    diagram.intervals,
-                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim)),
-                )
-            end
-            push!(result, diagram)
-            if dim < dim_max
-                comatrix = next_matrix(comatrix, verbose)
-            end
-        end
-    end
     return result
 end
 
