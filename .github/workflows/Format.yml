@@ -8,5 +8,3 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - uses: julia-actions/julia-format@master
-      with:
-        args: -v .
