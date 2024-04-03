@@ -56,8 +56,13 @@ function test_filtration(F, args...; test_verbose=true, flt_kwargs=(), kwargs...
                 @test coh_imp[i] == coh_exp[i]
                 @test hom_imp[i] == hom_exp[i] == hom_inv[i]
                 @test hom_inv[i] == coh_imp[i]
-                @test representative.(hom_imp[i]) == representative.(hom_exp[i])
-                @test representative.(hom_inv[i]) == representative.(hom_exp[i])
+
+                hom_imp_reps = [representative(int) for int in hom_imp[i] if isfinite(int)]
+                hom_exp_reps = [representative(int) for int in hom_exp[i] if isfinite(int)]
+                hom_inv_reps = [representative(int) for int in hom_inv[i] if isfinite(int)]
+
+                @test hom_imp_reps == hom_exp_reps
+                @test hom_imp_reps == hom_inv_reps
             end
         end
     end

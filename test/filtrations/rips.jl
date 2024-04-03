@@ -324,12 +324,15 @@ end
                 sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
         end
         @testset "Infinite intervals" begin
-            @test_broken ripserer(
+            @test ripserer(
                 Rips(cycle; threshold=2); alg=:homology, implicit=true
             )[2][1] == (1.0, Inf)
-            @test_broken ripserer(
+            @test ripserer(
                 Rips, cycle; alg=:homology, threshold=2, implicit=false
             )[2][1] == (1.0, Inf)
+            @test ripserer(
+                Rips, projective_plane; alg=:homology, threshold=1, dim_max=3
+            )[3][1] == (1.0, Inf)
             @test ripserer(cycle; alg=:involuted, threshold=2)[2][1] == (1.0, Inf)
         end
     end
