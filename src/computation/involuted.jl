@@ -57,8 +57,7 @@ function _ripserer(
             columns, inf_births = compute_death_simplices!(comatrix, verbose, cutoff)
             birth_candidates = comatrix.columns_to_reduce
             matrix = BoundaryMatrix{implicit}(
-                field, filtration, birth_candidates, columns;
-                infinite_intervals=false,
+                field, filtration, birth_candidates, columns; infinite_intervals=false
             )
             diagram = compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim))
             for birth_simplex in inf_births

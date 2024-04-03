@@ -4,7 +4,7 @@ Write a blurb here.
 struct Homology
     implicit::Bool
 
-    Homology(;implicit=true) = new(implicit)
+    Homology(; implicit=true) = new(implicit)
 end
 
 """
@@ -45,8 +45,14 @@ function BoundaryMatrix{I}(
     return BoundaryMatrix{
         I,T,typeof(filtration),S1,S2,typeof(reduced),typeof(buffer),typeof(chain)
     }(
-        filtration, reduced, buffer, chain,
-        birth_candidates, columns_to_reduce, Set{S1}(), infinite_intervals
+        filtration,
+        reduced,
+        buffer,
+        chain,
+        birth_candidates,
+        columns_to_reduce,
+        Set{S1}(),
+        infinite_intervals,
     )
 end
 
@@ -86,9 +92,14 @@ function append_infinite_intervals!(intervals, matrix::BoundaryMatrix)
     if matrix.infinite_intervals && length(matrix.birth_candidates) ≠ length(intervals)
         for simplex in matrix.birth_candidates
             if !haskey(matrix.reduced, simplex)
-                push!(intervals, PersistenceInterval(
-                    birth(simplex), Inf, (; birth_simplex=simplex, death_simplex=nothing)
-                ))
+                push!(
+                    intervals,
+                    PersistenceInterval(
+                        birth(simplex),
+                        Inf,
+                        (; birth_simplex=simplex, death_simplex=nothing),
+                    ),
+                )
             end
         end
     end
