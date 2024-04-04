@@ -255,6 +255,7 @@ function compute_intervals!(matrix, cutoff, verbose, reps)
 
         verbose && next!(progbar; showvalues=((:intervals, length(intervals)),))
     end
+    verbose && finish!(progbar)
     if !is_cohomology(matrix)
         append_infinite_intervals!(intervals, matrix)
     end
