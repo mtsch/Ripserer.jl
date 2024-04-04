@@ -11,81 +11,127 @@ function _max_index(subset::Int, ::Val{D}) where {D}
     return acc
 end
 
+function _add_image_birth(simplex::Simplex{D}, subset) where {D}
+    idx = index(simplex)
+    return Simplex{D}(idx, (idx > _max_index(subset, Val(D)), birth(simplex)))
+end
+
+
 """
 
 """
 struct ImageBoundaryMatrix{
-    Implicit,
     T<:Number,
-    IndexT<:Signed,
     F,
-    ColIndex<:Simplex{<:Any,<:Any,IndexT},
+    S1<:Simplex,
+    S2<:Simplex,
     R<:ReducedMatrix,
     B<:Chain{T},
     C<:Chain{T},
+    I<:Integer
 }
     filtration::F
     reduced::R
     buffer::B
     chain::C
-    columns_to_reduce::Vector{ColIndex}
-    subset::IndexT
-    birth_simplices::Dict{IndexT,PersistenceInterval}
-    death_simplices::Dict{IndexT,PersistenceInterval}
+    birth_candidates::Vector{S1}
+    columns_to_reduce::Vector{S2}
+    zeroed::Set{S2}
+    subset::Int
+    birth_intervals::Dict{I,PersistenceInterval}
 end
 
-function ImageBoundaryMatrix{I}(
-    ::Type{T}, filtration, columns_to_reduce, subset,
-    birth_simplices::Dict{IndexT}, death_simplices::Dict{IndexT}
-) where {I,T,IndexT}
-    if eltype(columns_to_reduce) === Any
-        ColIndex = typeof(first(columns_to_reduce))
-    else
-        ColIndex = eltype(columns_to_reduce)
-    end
-    @assert index_type(ColIndex) ≡ IndexT
-    BirthT = birth_type(ColIndex)
-    RowIndex = Simplex{dim(ColIndex) - 1,Tuple{Bool,BirthT},IndexT}
+function ImageBoundaryMatrix(
+    ::Type{T}, filtration, birth_candidates, columns_to_reduce, subset, intervals
+) where {T}
+    S2 = eltype(columns_to_reduce)
+    I = index_type(S2)
+    B = birth_type(S2)
+    S1 = Simplex{dim(S2) - 1, Tuple{Bool,B}, I}
 
-    columns = ColIndex[]
-    foreach(columns_to_reduce) do c
-        push!(columns, abs(c))
-    end
+    reduced = ReducedMatrix{S1,T,S1}()
+    sizehint!(reduced, length(columns_to_reduce))
 
-    if !I
-        reduced = ReducedMatrix{RowIndex,T,RowIndex}()
-        buffer = Chain{T,RowIndex}()
-    else
-        error("not implemented yet")
-    end
-    sizehint!(reduced, length(columns))
-    chain = Chain{T,RowIndex}()
+    buffer = Chain{T,S1}()
+    chain = Chain{T,S1}()
+
+    birth_intervals = Dict(index(birth_simplex(int)) => int for int in intervals)
 
     return ImageBoundaryMatrix{
-        I,T,IndexT,typeof(filtration),ColIndex,typeof(reduced),typeof(buffer),typeof(chain)
+        T,typeof(filtration),S1,S2,typeof(reduced),typeof(buffer),typeof(chain),I
     }(
-        filtration, reduced, buffer, chain, columns, IndexT(subset),
-        birth_simplices, death_simplices,
+        filtration, reduced, buffer, chain,
+        birth_candidates, columns_to_reduce, Set{S2}(), subset, birth_intervals,
     )
 end
 
-field_type(::ImageBoundaryMatrix{<:Any,T}) where {T} = T
-dim(::ImageBoundaryMatrix{<:Any,<:Any,<:Any,<:Any,S}) where {S} = dim(S) - 1
+field_type(::ImageBoundaryMatrix{T}) where {T} = T
+dim(::ImageBoundaryMatrix{<:Any,<:Any,S}) where {S} = dim(S)
 ordering(::ImageBoundaryMatrix) = Base.Order.Reverse
 
-is_implicit(::ImageBoundaryMatrix{I}) where {I} = I
+is_implicit(::ImageBoundaryMatrix) = false
 is_cohomology(::ImageBoundaryMatrix) = false
 
-# The naming here is not ideal...
+function attempt_early_stop!(matrix::ImageBoundaryMatrix, i, columns)
+    if length(matrix.reduced.column_index) ≥ length(matrix.birth_candidates)
+        # At this point, all potential births have been found. The rest of the columns
+        # should be marked as zeroed.
+        for j in i:length(columns)
+            push!(matrix.zeroed, columns[j])
+        end
+        return true
+    else
+        return false
+    end
+end
+
 function coboundary(matrix::ImageBoundaryMatrix, simplex::AbstractCell)
     return ImageBoundary(boundary(matrix.filtration, simplex), matrix.subset)
 end
 
-<<<<<<< Updated upstream
-=======
-append_infinite_intervals!(_, ::ImageBoundaryMatrix) = nothing
+function append_infinite_intervals!(intervals, matrix::ImageBoundaryMatrix)
+    if length(matrix.birth_candidates) ≠ length(intervals)
+        for simplex in matrix.birth_candidates
+            if !haskey(matrix.reduced, simplex)
+                connection = get(matrix.birth_intervals, index(simplex), nothing)
+                if isnothing(connection)
+                    continue
+                end
+                push!(
+                    intervals,
+                    PersistenceInterval(
+                        birth(simplex)[2],
+                        Inf,
+                        (; birth_simplex=simplex, death_simplex=nothing, mixup=connection),
+                    ),
+                )
+            end
+        end
+    end
+    return intervals
+end
 
->>>>>>> Stashed changes
+function mark_zero_column!(matrix::ImageBoundaryMatrix, column_index)
+    push!(matrix.zeroed, column_index)
+    return nothing
+end
+
+function next_matrix(matrix::ImageBoundaryMatrix, intervals)
+    birth_candidates = filter(matrix.columns_to_reduce) do sx
+        sx in matrix.zeroed
+    end
+    birth_candidates = map(σ -> _add_image_birth(σ, matrix.subset), birth_candidates)
+    columns = simplex_type(matrix.filtration, dim(matrix) + 2)[]
+    for col in columns_to_reduce(matrix.filtration, matrix.columns_to_reduce)
+        push!(columns, abs(col))
+    end
+
+    return ImageBoundaryMatrix(
+        field_type(matrix), matrix.filtration, birth_candidates, columns,
+        matrix.subset, intervals
+    )
+end
+
 """
     ImageBoundary
 
@@ -101,8 +147,7 @@ function Base.iterate(ib::ImageBoundary{D}, k=1) where {D}
     next = iterate(ib.boundary, k)
     if !isnothing(next)
         sx, k = next
-        idx = index(sx)
-        modified_sx = Simplex{D-2}(idx, (idx > _max_index(ib.subset, Val(D-2)), birth(sx)))
+        modified_sx = _add_image_birth(sx, ib.subset)
         return modified_sx, k
     else
         return nothing
@@ -124,42 +169,11 @@ function interval(matrix::ImageBoundaryMatrix, column, pivot, cutoff, reps)
 
     birth_time = Float64(birth(birth_simplex)[2])
     death_time = isnothing(death_simplex) ? Inf : Float64(birth(death_simplex))
-<<<<<<< Updated upstream
-    if death_time - birth_time > cutoff
-        # Image interval only if birth simplex is also a birth simplex in the subfiltration
-        # Record the intervals they are connected to.
-        sub_connection = get(matrix.birth_simplices, index(birth_simplex), nothing)
-        full_connection = get(matrix.death_simplices, index(death_simplex), nothing)
-        if isnothing(full_connection)
-            @warn "lol"
-        end
-        if isnothing(sub_connection) #|| isnothing(full_connection)
-            return nothing
-        end
-
-        if reps
-            rep = (; representative=collect_cocycle!(matrix, column, pivot))
-        else
-            rep = NamedTuple()
-        end
-        meta = (
-            ;
-            birth_simplex=birth_simplex,
-            death_simplex=death_simplex,
-            mixup_birth=sub_connection,
-            mixup_death=full_connection,
-            rep...,
-        )
-        return PersistenceInterval(birth_time, death_time, meta)
-    else
-        return nothing
-    end
-=======
 
     # Image interval only if birth simplex is also a birth simplex in the subfiltration
     # Record the intervals they are connected to.
-    subfiltration_interval = get(matrix.birth_simplices, index(birth_simplex), nothing)
-    if isnothing(subfiltration_interval)
+    connection = get(matrix.birth_intervals, index(birth_simplex), nothing)
+    if isnothing(connection)
         return nothing
     end
 
@@ -172,34 +186,73 @@ function interval(matrix::ImageBoundaryMatrix, column, pivot, cutoff, reps)
         ;
         birth_simplex=birth_simplex,
         death_simplex=death_simplex,
-        mixup_birth=subfiltration_interval,
+        mixup=connection,
         rep...,
     )
     return PersistenceInterval(birth_time, death_time, meta)
->>>>>>> Stashed changes
 end
 
 
 ###
 ### Actual computation
 ###
-struct ImagePersistence
+export ImageHomology
+
+struct ImageHomology
     subset::Int
 end
 
-<<<<<<< Updated upstream
-function _ripserer(
-    ip::ImagePersistence, filtration, cutoff, verbose, field, dim_max, reps, implicit
-)
-=======
-function _sx_vertices(filtration)
-    return collect(simplex(filtration, Val(0), (i,)) for i in vertices(filtration))
+function _sx_vertices(filtration, subset)
+    vs = vertices(filtration)
+    if subset > 0
+        return collect(
+            _add_image_birth(simplex(filtration, Val(0), (i,)), subset) for i in vs
+        )
+    else
+        return collect(simplex(filtration, Val(0), (i,)) for i in vs)
+    end
 end
 
 function _ripserer(
-    ip::ImagePersistence, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ip::ImageHomology, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
-    D = Dict{Int,PersistenceInterval}
+    sub_result = PersistenceDiagram[]
+    img_result = PersistenceDiagram[]
+
+    @prog_println verbose "Subset:"
+    subfiltration = subset(filtration, ip.subset)
+    sub_edges = edges(subfiltration)
+    sub_matrix = BoundaryMatrix{false}(
+        field, subfiltration, _sx_vertices(subfiltration, 0), edges(subfiltration)
+    )
+    sub_intervals = compute_intervals!(sub_matrix, 0, verbose, _reps(reps, dim))
+
+    # Image
+    @prog_println verbose "Image:"
+    img_matrix = ImageBoundaryMatrix(
+        field, filtration, _sx_vertices(filtration, ip.subset), edges(filtration),
+        ip.subset, sub_intervals,
+    )
+    img_intervals = compute_intervals!(img_matrix, cutoff, verbose, _reps(reps, dim))
+
+    push!(sub_result, sub_intervals)
+    push!(img_result, img_intervals)
+
+    for dim in 1:dim_max
+        @prog_println verbose "Subset:"
+        sub_matrix = next_matrix(sub_matrix)
+        sub_intervals = compute_intervals!(sub_matrix, cutoff, verbose, _reps(reps, dim))
+
+        @prog_println verbose "Image:"
+        img_matrix = next_matrix(img_matrix, sub_intervals)
+        img_intervals = compute_intervals!(img_matrix, cutoff, verbose, _reps(reps, dim))
+
+        push!(sub_result, sub_intervals)
+        push!(img_result, img_intervals)
+    end
+    return sub_result, img_result
+end
+#=
 
 >>>>>>> Stashed changes
     subfiltration = subset(filtration, ip.subset)
@@ -333,85 +386,6 @@ end
 <<<<<<< Updated upstream
 =======
 
-struct InvolutedImage
-    subset::Int
-end
-
-function _ripserer(
-    ip::InvolutedImage, filtration, cutoff, verbose, field, dim_max, reps, implicit
-)
-    I = index_type(simplex_type(filtration, 1))
-    death_simplices = Dict{I,PersistenceInterval}() # not needed
-
-    subfiltration = subset(filtration, ip.subset)
-
-    result = PersistenceDiagram[]
-
-    # Subfiltration
-    sub_zeroth, sub_to_reduce, sub_to_skip = zeroth_intervals(
-        subfiltration, cutoff, verbose, field, _reps(reps, 0)
-    )
-    birth_simplices = Dict{I,PersistenceInterval}(
-        index(birth_simplex(i)) => i for i in sub_zeroth
-    )
-
-    # Full filtration
-    full_zeroth, full_to_reduce, full_to_skip = zeroth_intervals(
-        filtration, -1, verbose, field, _reps(reps, 0)
-    )
-
-    # Image - need to do subfiltration as homology
-    sub_matrix = BoundaryMatrix{false}(
-        field, subfiltration, _sx_vertices(subfiltration), edges(subfiltration)
-    )
-    sub_intervals = compute_intervals!(sub_matrix, cutoff, verbose, false)
-    #birth_simplices = Dict{I,PersistenceInterval}(
-    #    index(birth_simplex(i)) => i for i in sub_intervals
-    #)
-
-    image_matrix = ImageBoundaryMatrix{false}(
-        field, filtration, edges(filtration), ip.subset,
-        birth_simplices, death_simplices,
-    )
-    image_zeroth = compute_intervals!(
-        image_matrix, cutoff, verbose, _reps(reps, dim)
-    )
-    push!(result, image_zeroth)
-
-    if dim_max > 0
-        sub_comatrix = CoboundaryMatrix{true}(
-            field, subfiltration, sub_to_reduce, sub_to_skip
-        )
-        full_comatrix = CoboundaryMatrix{true}(
-            field, filtration, full_to_reduce, full_to_skip
-        )
-        for dim in 1:dim_max
-            # Subfiltration
-            sub_intervals = compute_intervals!(
-                sub_comatrix, cutoff, verbose, _reps(reps, dim)
-            )
-            birth_simplices = Dict{I,PersistenceInterval}(
-                index(birth_simplex(i)) => i for i in sub_intervals
-            )
-
-            # Get nonzero columns in full filtration
-            columns, inf_births = compute_death_simplices!(full_comatrix, verbose, cutoff)
-
-            # Image homology only using these columns.
-            image_matrix = ImageBoundaryMatrix{false}(
-                field, filtration, columns, ip.subset, birth_simplices, death_simplices
-            )
-            image_intervals = compute_intervals!(
-                image_matrix, cutoff, verbose, _reps(reps, dim)
-            )
-            push!(result, image_intervals)
-
-            if dim < dim_max
-                sub_comatrix = next_matrix(sub_comatrix, verbose)
-                full_comatrix = next_matrix(full_comatrix, verbose)
-            end
-        end
-    end
-    return result
-end
 >>>>>>> Stashed changes
+
+=#

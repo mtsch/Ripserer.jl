@@ -51,7 +51,7 @@ function BoundaryMatrix{I}(
         chain,
         birth_candidates,
         columns_to_reduce,
-        Set{S1}(),
+        Set{S2}(),
         infinite_intervals,
     )
 end
@@ -110,6 +110,7 @@ function next_matrix(matrix::BoundaryMatrix{I}) where {I}
     birth_candidates = filter(matrix.columns_to_reduce) do sx
         sx in matrix.zeroed
     end
+    display(birth_candidates)
     columns = simplex_type(matrix.filtration, dim(matrix) + 2)[]
     for col in columns_to_reduce(matrix.filtration, matrix.columns_to_reduce)
         push!(columns, abs(col))
