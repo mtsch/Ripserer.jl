@@ -76,6 +76,7 @@ include("computation/homology.jl")
 include("computation/involuted.jl")
 include("computation/ripserer.jl")
 include("computation/image.jl")
+include("computation/imagecohomology.jl")
 
 include("filtrations/utils.jl")
 include("filtrations/rips.jl")

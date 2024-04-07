@@ -63,6 +63,10 @@ ordering(::BoundaryMatrix) = Base.Order.Reverse
 is_implicit(::BoundaryMatrix{I}) where {I} = I
 is_cohomology(::BoundaryMatrix) = false
 
+function sort_columns!(matrix::BoundaryMatrix)
+    sort!(matrix.columns_to_reduce)
+end
+
 function attempt_early_stop!(matrix::BoundaryMatrix, i, columns)
     if length(matrix.reduced.column_index) ≥ length(matrix.birth_candidates)
         # At this point, all potential births have been found. The rest of the columns
@@ -110,7 +114,6 @@ function next_matrix(matrix::BoundaryMatrix{I}) where {I}
     birth_candidates = filter(matrix.columns_to_reduce) do sx
         sx in matrix.zeroed
     end
-    display(birth_candidates)
     columns = simplex_type(matrix.filtration, dim(matrix) + 2)[]
     for col in columns_to_reduce(matrix.filtration, matrix.columns_to_reduce)
         push!(columns, abs(col))
@@ -137,8 +140,12 @@ function _ripserer(
         end
         matrix = BoundaryMatrix{implicit}(field, filtration, birth_candidates, columns)
         for dim in 1:dim_max
-            push!(result, compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim)))
-
+            push!(
+                result,
+                compute_intervals!(
+                    matrix, cutoff, verbose, _reps(reps, dim) ;sort_columns=true
+                ),
+            )
             if dim < dim_max
                 matrix = next_matrix(matrix)
             end

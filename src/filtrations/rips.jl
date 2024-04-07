@@ -204,6 +204,7 @@ julia> ripserer(Rips(data, metric=Cityblock()))[2]
 struct Rips{I,T,A<:AbstractMatrix{T}} <: AbstractRipsFiltration{I,T}
     adj::A
     threshold::T
+    set_threshold::Bool # signals whether threshold was set manually
 end
 
 function Rips{I}(
@@ -227,7 +228,7 @@ function Rips{I}(
             SparseArrays.fkeep!(adj, (_, _, v) -> v ≤ thresh)
         end
     end
-    return Rips{I,T,typeof(adj)}(adj, thresh)
+    return Rips{I,T,typeof(adj)}(adj, thresh, !isnothing(threshold))
 end
 function Rips{I}(points::AbstractVector; metric=Euclidean(1e-12), kwargs...) where {I}
     if !allunique(points)
@@ -248,6 +249,11 @@ threshold(rips::Rips) = rips.threshold
 adjacency_matrix(rips::Rips) = rips.adj
 
 function subset(rips::Rips{I,T,A}, n) where {I,T,A}
+    # TODO: figure out the thresholding here. This is probably fine.
     new_adj = rips.adj[1:n, 1:n]
-    return Rips{I,T,A}(new_adj, rips.threshold)
+    if rips.set_threshold
+        return Rips{I,T,A}(new_adj, rips.threshold, true)
+    else
+        return Rips{I}(new_adj)
+    end
 end

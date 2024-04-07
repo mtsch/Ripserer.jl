@@ -59,7 +59,9 @@ function _ripserer(
             matrix = BoundaryMatrix{implicit}(
                 field, filtration, birth_candidates, columns; infinite_intervals=false
             )
-            diagram = compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim))
+            diagram = compute_intervals!(
+                matrix, cutoff, verbose, _reps(reps, dim); sort_columns=true
+            )
             for birth_simplex in inf_births
                 push!(
                     diagram.intervals,

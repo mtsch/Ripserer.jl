@@ -220,9 +220,10 @@ end
 
 Compute all intervals by fully reducing `matrix`.
 """
-function compute_intervals!(matrix, cutoff, verbose, reps)
+function compute_intervals!(matrix, cutoff, verbose, reps; sort_columns=true)
     intervals = PersistenceInterval[]
 
+    #TODO: remove this feature
     columns = handle_apparent_pairs!(matrix, intervals, cutoff, verbose, reps)
 
     @prog_print(
@@ -232,10 +233,9 @@ function compute_intervals!(matrix, cutoff, verbose, reps)
         simplex_name(eltype(columns)),
         " to reduce.",
     )
-    # One-dimensional columns in cohomology are already sorted.
-    if !is_cohomology(matrix) || dim(matrix) > 1
+    if sort_columns
         sort_t = time_ns()
-        sort!(columns; rev=is_cohomology(matrix))
+        sort_columns!(matrix)
         elapsed = round((time_ns() - sort_t) / 1e9; digits=3)
         @prog_println verbose " Sorted in " elapsed "s."
     else
@@ -261,7 +261,7 @@ function compute_intervals!(matrix, cutoff, verbose, reps)
     end
 
     diagram = PersistenceDiagram(
-        sort!(intervals; by=persistence);
+        sort!(intervals; by=i -> (persistence(i), birth(i)));
         threshold=Float64(threshold(matrix.filtration)),
         dim=dim(matrix),
         field=field_type(matrix),
