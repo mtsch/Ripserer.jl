@@ -1,10 +1,10 @@
-export ImageCohomology
-struct ImageCohomology
+export ImageCohomologyNoClearing
+struct ImageCohomologyNoClearing
     subset::Int
 end
 
-export ImageCohomology2
-struct ImageCohomology2
+export ImageCohomology
+struct ImageCohomology
     subset::Int
 end
 
@@ -144,7 +144,7 @@ end
 
 ###########################################################################################
 function _ripserer(
-    ip::ImageCohomology, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ip::ImageCohomologyNoClearing, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
     img_result = PersistenceDiagram[]
 
@@ -185,7 +185,7 @@ function _ripserer(
 end
 
 function _ripserer(
-    ip::ImageCohomology2, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ip::ImageCohomology, filtration, cutoff, verbose, field, dim_max, reps, implicit
 )
     img_result = PersistenceDiagram[]
 
