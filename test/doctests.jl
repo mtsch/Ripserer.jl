@@ -8,5 +8,5 @@ else
     DocMeta.setdocmeta!(
         Ripserer, :DocTestSetup, :(using Ripserer; using Distances); recursive=true
     )
-    doctest(Ripserer; fix=true)
+    doctest(Ripserer)
 end
