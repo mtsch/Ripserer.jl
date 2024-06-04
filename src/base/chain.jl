@@ -22,7 +22,7 @@ julia> data = [(rand(), rand(), rand()) for _ in 1:100];
 julia> result = ripserer(data; reps=true, modulus=7);
 
 julia> chain = result[end][end].representative
-28-element Chain{Ripserer.Mod{7},Ripserer.Simplex{1, Float64, Int64}}:
+28-element Chain{Mod{7},Simplex{1, Float64, Int64}}:
  +Simplex{1}((68, 54), 0.25178097927369875) => 6 mod 7
  +Simplex{1}((54, 46), 0.2575262844682746) => 1 mod 7
  +Simplex{1}((88, 56), 0.25936896586973557) => 1 mod 7
