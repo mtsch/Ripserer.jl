@@ -100,8 +100,7 @@ struct Custom{I,T} <: AbstractCustomFiltration{I,T}
     threshold::T
 end
 
-@inline insert_simplex!(::Vector{Dict{I,T}}, ::Tuple{}, _, _) where {I,T} = nothing
-@inline function insert_simplex!(
+function insert_simplex!(
     dicts::Vector{Dict{I,T}}, vertices::NTuple{N,I}, birth, threshold
 ) where {N,T,I}
     if birth > threshold
@@ -111,11 +110,19 @@ end
         dim = N - 1
         d_dict = dicts[dim + 1]
         d_dict[idx] = min(birth, get(d_dict, idx, typemax(T)))
-        for vs in IterTools.subsets(vertices, Val(N - 1))
-            # Some extra work is being done here, but this tends to be type stable.
-            insert_simplex!(dicts, vs, birth, threshold)
-        end
+        _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
     end
+end
+@inline _insert_simplex_facets!(_, _, _, ::Val{0}) = nothing
+@inline function _insert_simplex_facets!(dicts, vertices, birth, ::Val{N}) where {N}
+    dim = N - 1
+    d_dict = dicts[dim + 1]
+    T = valtype(d_dict)
+    for vs in IterTools.subsets(vertices, Val(N))
+        idx = index(vs)
+        d_dict[idx] = min(birth, get(d_dict, idx, typemax(T)))
+    end
+    return _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
 end
 
 function _adjacency_matrix(dicts)

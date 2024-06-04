@@ -65,7 +65,11 @@ Use binary search to find index of first vertex in `(K - 1)`-dimensional simplex
 """
 function _first_vertex(index::I, ::Val{K}) where {I,K}
     lo = I(K - 1)
-    hi = I(K + 100)
+    if K < 3
+        hi = I(K + 100)
+    else
+        hi = I(K)
+    end
     while _binomial(hi, Val(K)) ≤ index
         lo = hi
         hi <<= 0x01

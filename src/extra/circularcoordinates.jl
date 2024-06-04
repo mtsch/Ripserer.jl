@@ -192,7 +192,7 @@ CircularCoordinates(
   radius=(0.9510565162951535,),
   n_landmarks=10,
   partition=linear,
-  metric=Distances.Euclidean(0.0),
+  metric=Euclidean(0.0),
 )
 
 julia> summary(cc(data))
