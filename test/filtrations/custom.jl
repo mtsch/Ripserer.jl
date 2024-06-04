@@ -73,16 +73,14 @@ end
 end
 
 @testset "Custom filtration vs sparse Rips" begin
-    spdist = sparse(
-        [
-            0 1 0 0 0 1
-            1 0 1 0 0 0
-            0 1 0 1 0 0
-            0 0 1 0 1 0
-            0 0 0 1 0 1
-            1 0 0 0 1 0
-        ]
-    )
+    spdist = sparse([
+        0 1 0 0 0 1
+        1 0 1 0 0 0
+        0 1 0 1 0 0
+        0 0 1 0 1 0
+        0 0 0 1 0 1
+        1 0 0 0 1 0
+    ])
     cf = Custom([
         (1,) => 0,
         (2,) => 0,
