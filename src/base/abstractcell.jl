@@ -13,9 +13,8 @@ is determined by the following.
 * The `birth` of type `T` determines when the cell enters the filtration. Note that two
   cells with the same `index` should also have the same `birth`.
 
-* `vertices` should return the cell's vertices as a tuple. For 0-cells (vertices), the
-  `vertices` are also used to index into a filtration's
-  [`vertices`](vertices(::AbstractFiltration)).
+* `vertices` should return the cell's vertices as a tuple. For 0-cells, these are also used
+  to index into a filtration's [`vertices`](@ref vertices(::AbstractFiltration)).
 
 * The `sign` determens its orientation. Note that `cell == -cell`.
 

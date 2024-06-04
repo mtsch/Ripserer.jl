@@ -30,7 +30,7 @@ function mod_prime(i, ::Val{M}) where {M}
     if !is_prime(M)
         throw(DomainError(M, "modulus must be a prime number"))
     end
-    if 1 < M ≤ 3037000499
+    if !(1 < M ≤ 3037000499)
         throw(DomainError(M, "modulus must be smaller than √(typemax(Int))"))
     end
     i = i % M

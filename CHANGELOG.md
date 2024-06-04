@@ -1,4 +1,4 @@
-# v0.16.10
+# v0.16.13
 
 Fix performance issues with high-dimensional `Custom` filtrations.
 

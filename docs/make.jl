@@ -32,7 +32,6 @@ makedocs(;
             "generated/stability.md",
             "generated/cocycles.md",
             "generated/cubical.md",
-            "generated/malaria.md",
         ],
         "Benchmarks" => "benchmarks.md",
         "Related Julia Packages" => "related-work.md",
