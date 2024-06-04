@@ -122,7 +122,7 @@ end
         idx = index(vs)
         d_dict[idx] = min(birth, get(d_dict, idx, typemax(T)))
     end
-    _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
+    return _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
 end
 
 function _adjacency_matrix(dicts)
