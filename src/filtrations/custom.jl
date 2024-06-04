@@ -113,7 +113,7 @@ function insert_simplex!(
         _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
     end
 end
-@inline _insert_simplex_facets!(_, _, _, ::Val{0}) where {I,T} = nothing
+@inline _insert_simplex_facets!(_, _, _, ::Val{0}) = nothing
 @inline function _insert_simplex_facets!(dicts, vertices, birth, ::Val{N}) where {N}
     dim = N - 1
     d_dict = dicts[dim + 1]
