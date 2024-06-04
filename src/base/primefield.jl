@@ -27,7 +27,12 @@ is_prime(::Any) = false
 Like `mod`, but with prime `M`.
 """
 function mod_prime(i, ::Val{M}) where {M}
-    is_prime(M) || throw(DomainError(M, "modulus must be a prime number"))
+    if !is_prime(M)
+        throw(DomainError(M, "modulus must be a prime number"))
+    end
+    if 1 < M ≤ 3037000499
+        throw(DomainError(M, "modulus must be smaller than √(typemax(Int))"))
+    end
     i = i % M
     return i + ifelse(signbit(i), M, 0)
 end
