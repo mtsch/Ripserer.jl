@@ -24,7 +24,7 @@ function OneSkeleton(
 end
 
 function Graphs.SimpleGraph(g::OneSkeleton)
-    SimpleGraph(edges(g))
+    return SimpleGraph(edges(g))
 end
 
 _birth_or_value(σ::AbstractCell) = birth(σ)
