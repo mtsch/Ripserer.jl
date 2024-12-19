@@ -28,12 +28,8 @@ makedocs(;
         "Home" => "index.md",
         "Usage Guide" => "generated/basics.md",
         "API" => "api.md",
-        "Examples" => [
-            "generated/stability.md",
-            "generated/cocycles.md",
-            "generated/cubical.md",
-            "generated/malaria.md",
-        ],
+        "Examples" =>
+            ["generated/stability.md", "generated/cocycles.md", "generated/cubical.md"],
         "Benchmarks" => "benchmarks.md",
         "Related Julia Packages" => "related-work.md",
         "Acknowledgements and References" => "references.md",

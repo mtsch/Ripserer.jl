@@ -1,3 +1,7 @@
+# v0.16.13
+
+Fix performance issues with high-dimensional `Custom` filtrations.
+
 # v0.16.9
 
 Replace LightGraps with Graphs.

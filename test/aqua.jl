@@ -1,7 +1,6 @@
 using Aqua
 using Ripserer
+using PersistenceDiagrams
 
-if VERSION < v"1.8-DEV"
-    # Note: will have to change Project.toml for 1.8
-    Aqua.test_all(Ripserer; ambiguities=false)
-end
+Aqua.test_all(Ripserer; ambiguities=false, piracies=false)
+Aqua.test_piracies(Ripserer; treat_as_own=[PersistenceDiagram, PersistenceInterval])
