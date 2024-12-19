@@ -23,6 +23,10 @@ function OneSkeleton(
     return OneSkeleton{T,F,S,typeof(weights)}(filtration, thresh, weights, removed)
 end
 
+function Graphs.SimpleGraph(g::OneSkeleton)
+    SimpleGraph(edges(g))
+end
+
 _birth_or_value(σ::AbstractCell) = birth(σ)
 _birth_or_value(σ) = σ
 _in(σ::S, g::OneSkeleton{S}) where {S} = !isnothing(σ) && σ ≤ g.threshold && σ ∉ g.removed
@@ -97,19 +101,21 @@ end
 
 Find the shortest cycle in `g` that has exactly one edge from `g.removed`.
 """
-function _find_cycle(g, dists)
+function _find_cycle(skeleton, dists)
     # Idea:
     # best_weight is the current best length of shortest cycle.
     # best_path is the current best candidate for shortest cycle.
     # best_simplex completes best_path to a cycle.
-    # We go through all edges in g.removed and find the shortest path through its
+    # We go through all edges in skeleton.removed and find the shortest path through its
     # endpoints. The shortest among those is the shortest cycle.
+    graph = SimpleGraph(skeleton)
+
     best_weight = missing
-    best_path = edgetype(g)[]
-    best_sx = first(g.removed)
-    for sx in g.removed
-        u, v = _linear.(Ref(g), sx)
-        path = a_star(g, u, v, dists, _heuristic(g.filtration, v, dists))
+    best_path = edgetype(skeleton)[]
+    best_sx = first(skeleton.removed)
+    for sx in skeleton.removed
+        u, v = _linear.(Ref(skeleton), sx)
+        path = a_star(graph, u, v, dists, _heuristic(skeleton.filtration, v, dists))
         weight = _path_length(dists, path) + dists[u, v]
         if !isempty(path) && isless(weight, best_weight)
             best_weight = weight
@@ -123,8 +129,8 @@ function _find_cycle(g, dists)
         result = [best_sx]
         # Convert the type of best_path from `Edge`s to the simplex type of the filtration.
         for e in best_path
-            u, v = _inv_linear.(Ref(g), (src(e), dst(e)))
-            push!(result, simplex(g.filtration, Val(1), (u, v)))
+            u, v = _inv_linear.(Ref(skeleton), (src(e), dst(e)))
+            push!(result, simplex(skeleton.filtration, Val(1), (u, v)))
         end
         return result
     end
