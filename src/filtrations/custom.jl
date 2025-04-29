@@ -110,7 +110,7 @@ function insert_simplex!(
         dim = N - 1
         d_dict = dicts[dim + 1]
         d_dict[idx] = min(birth, get(d_dict, idx, typemax(T)))
-        _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
+        return _insert_simplex_facets!(dicts, vertices, birth, Val(N - 1))
     end
 end
 @inline _insert_simplex_facets!(_, _, _, ::Val{0}) = nothing
@@ -139,7 +139,7 @@ function _adjacency_matrix(dicts)
     return sparse(adj_is, adj_js, adj_vs, nv, nv)
 end
 
-function Custom{I,T}(simplices, dim_max::Int, threshold::T) where {I,T}
+function Custom{I,T}(simplices, dim_max::Int, threshold::T) where {I<:Signed,T}
     dicts = [Dict{I,T}() for _ in 0:dim_max]
     threshold = T(threshold)
 
@@ -155,7 +155,7 @@ function Custom{I,T}(simplices, dim_max::Int, threshold::T) where {I,T}
 end
 
 # TODO: hot mess. Simplex sorting and index conversion could be done here.
-function Custom{I}(simplices; threshold=nothing, verbose=false) where {I}
+function Custom{I}(simplices; threshold=nothing, verbose=false) where {I<:Signed}
     # Promote birth types and find dim and threshold.
     T = Union{}
     dim = 0
@@ -177,6 +177,9 @@ function Custom{I}(simplices; threshold=nothing, verbose=false) where {I}
     index_overflow_check(I.(largest_simplex))
     return Custom{I,T}(simplices, dim, T(threshold))
 end
+
+# already checked for overflow in constructor
+index_overflow_check(::Custom, ::Type{F}, args...) where {F} = nothing
 
 Custom(args...; kwargs...) = Custom{Int}(args...; kwargs...)
 
