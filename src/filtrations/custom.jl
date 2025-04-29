@@ -94,7 +94,7 @@ julia> ripserer(flt)[2]
 
 ```
 """
-struct Custom{I,T} <: AbstractCustomFiltration{I,T}
+struct Custom{I<:Signed,T} <: AbstractCustomFiltration{I,T}
     adj::SparseMatrixCSC{Bool,Int} # adjacency matrix for sparse coboundary
     dicts::Vector{Dict{I,T}}
     threshold::T
