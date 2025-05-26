@@ -96,9 +96,9 @@ Collect all simplices and their birth times in alpha filtration.
 
 Based on https://github.com/scikit-tda/cechmate/blob/master/cechmate/filtrations/alpha.py
 """
-function alpha_simplices(points, threshold, verbose, ::Type{I}) where {I}
+function alpha_simplices(points, threshold, verbose, ::Type{I}, flags=nothing) where {I}
     @prog_print verbose "Building triangulation... "
-    triangulation = I.(delaunay(to_matrix(points)))
+    triangulation = I.(delaunay(to_matrix(points), flags))
     sort!.(eachcol(triangulation), rev=true, alg=InsertionSort)
     @prog_println verbose "done."
 
@@ -150,8 +150,8 @@ may take a long time.
 
 # Constructors
 
-* `Alpha(points; threshold, verbose)`: `points` should be a vector of `Tuple`s, `SVector`s
-  or similar.
+* `Alpha(points; threshold, verbose, flags)`: `points` should be a vector of `Tuple`s,
+  `SVector`s or similar. `flags` are passed to MiniQHull.
 * `Alpha{I}(args...)`: `I` sets the size of integer used to represent simplices. Try using
   `I=Int128` if construction complains about overflow.
 
@@ -195,10 +195,10 @@ struct Alpha{I,P<:SVector} <: AbstractCustomFiltration{I,Float64}
     threshold::Float64
     points::Vector{P}
 end
-function Alpha{I}(points; threshold=nothing, verbose=false) where {I}
+function Alpha{I}(points; threshold=nothing, verbose=false, flags=nothing) where {I}
     pts = SVector.(points)
     threshold = isnothing(threshold) ? 2radius(pts) : threshold
-    dicts = alpha_simplices(pts, threshold, verbose, I)
+    dicts = alpha_simplices(pts, threshold, verbose, I, flags)
     adj = _adjacency_matrix(dicts)
     return Alpha{I,eltype(pts)}(dicts, adj, threshold, pts)
 end
