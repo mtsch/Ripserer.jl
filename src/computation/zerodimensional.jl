@@ -106,12 +106,17 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
 `verbose` is set.
 """
-function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps) where {F}
+function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tree) where {F}
     V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
 
     intervals = PersistenceInterval[]
+
+    if merge_tree
+        I = eltype(vertices(filtration))
+        unions = Pair{I,I}[]
+    end
 
     to_skip = simplex_type(filtration, 1)[]
     to_reduce = simplex_type(filtration, 1)[]
@@ -127,11 +132,20 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps) where {F
         j = find_root!(dset, v)
         if i ≠ j
             # According to the elder rule, the vertex with the higer birth will die first.
-            last_vertex = birth(dset, i) > birth(dset, j) ? i : j
+            if birth(dset, i) > birth(dset, j)
+                parent_vertex = j
+                last_vertex = i
+            else
+                parent_vertex = i
+                last_vertex = j
+            end
             int = interval(dset, filtration, last_vertex, edge, cutoff, reps)
             !isnothing(int) && push!(intervals, int)
 
             union!(dset, i, j)
+            if merge_tree
+                push!(unions, last_vertex => parent_vertex)
+            end
             push!(to_skip, edge)
         else
             push!(to_reduce, edge)
@@ -148,12 +162,18 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps) where {F
     reverse!(to_reduce)
 
     thresh = Float64(threshold(filtration))
+    if merge_tree
+        mt = (; merge_tree=unions)
+    else
+        mt = (;)
+    end
     diagram = PersistenceDiagram(
         sort!(intervals; by=persistence);
         threshold=thresh,
         dim=0,
         field=F,
         filtration=filtration,
+        mt...
     )
     return (postprocess_diagram(filtration, diagram), to_reduce, to_skip)
 end
