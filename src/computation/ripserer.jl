@@ -72,6 +72,10 @@ diagram, and the last is the (`dim_max`)-dimensional diagram.
   be very slow. Defaults to `false` for cohomology and `1:dim_max` for homology.
   Representatives are wrapped in a [`Chain`](@ref).
 
+* `merge_tree`: if `true`, attach `parent` and `children` to each interval. When an interval
+  died, it merged into `parent`. `children` contains a list of all intervals that merged
+  into the interval.
+
 * `verbose`: If `true`, show a verbose bar. Defaults to `false`.
 
 * `alg`: select the algorithm used in computation. The options are:
