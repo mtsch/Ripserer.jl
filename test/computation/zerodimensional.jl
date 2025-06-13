@@ -38,8 +38,3 @@ for arr in (1:10, CartesianIndices([1 2 3 4 5; 1 2 3 4 5]))
         end
     end
 end
-
-@testset "merge tree" begin
-    for data in
-    end
-end
