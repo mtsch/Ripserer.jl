@@ -165,7 +165,7 @@ function zeroth_intervals(
         )
     end
     for edge in simplices
-        u, v = vertices(edge)
+        v, u = vertices(edge)
         i = find_root!(dset, u)
         j = find_root!(dset, v)
         if i ≠ j
