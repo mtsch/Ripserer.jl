@@ -162,7 +162,15 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:cohomology}, filtration, cutoff, verbose, field, dim_max, reps, implicit, merge_tree,
+    ::Val{:cohomology},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
@@ -182,7 +190,15 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:homology}, filtration, cutoff, verbose, field, dim_max, reps, implicit, merge_tree,
+    ::Val{:homology},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
@@ -203,7 +219,15 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:involuted}, filtration, cutoff, verbose, field, dim_max, reps, implicit, merge_tree,
+    ::Val{:involuted},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(

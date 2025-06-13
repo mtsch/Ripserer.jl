@@ -80,9 +80,7 @@ function interval(
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
     if merge_tree || death_time - birth_time > cutoff
-        birth_simplex = simplex(
-            filtration, Val(0), (birth_vertex,)
-        )
+        birth_simplex = simplex(filtration, Val(0), (birth_vertex,))
         if reps
             rep = (;
                 representative=sort!([
@@ -149,7 +147,9 @@ Only keep intervals with desired birth/death `cutoff`. Compute homology with coe
 `field_type`. If `reps` is `true`, compute representative cocycles. Show a progress bar if
 `verbose` is set.
 """
-function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tree) where {F}
+function zeroth_intervals(
+    filtration, cutoff, verbose, ::Type{F}, reps, merge_tree
+) where {F}
     V = simplex_type(filtration, 0)
     CE = chain_element_type(V, F)
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
@@ -177,7 +177,9 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
                 parent_vertex = i
                 last_vertex = j
             end
-            int = interval(dset, filtration, last_vertex, parent_vertex, edge, cutoff, reps, merge_tree)
+            int = interval(
+                dset, filtration, last_vertex, parent_vertex, edge, cutoff, reps, merge_tree
+            )
             !isnothing(int) && push!(intervals, int)
 
             union!(dset, i, j)
@@ -199,11 +201,7 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
     thresh = Float64(threshold(filtration))
     if merge_tree
         diagram = PersistenceDiagram(
-            intervals,
-            threshold=thresh,
-            dim=0,
-            field=F,
-            filtration=filtration,
+            intervals; threshold=thresh, dim=0, field=F, filtration=filtration
         )
         _build_merge_tree!(diagram, cutoff)
     else
