@@ -74,11 +74,13 @@ end
 
 birth(dset::DisjointSetsWithBirth, i) = dset.births[i]
 
-function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff, reps)
+function interval(
+    dset::DisjointSetsWithBirth, filtration, vertex, parent, edge, cutoff, reps, merge_tree
+)
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
-    if death_time - birth_time > cutoff
-        birth_simplex::simplex_type(filtration, 0) = simplex(
+    if merge_tree || death_time - birth_time > cutoff
+        birth_simplex = simplex(
             filtration, Val(0), (birth_vertex,)
         )
         if reps
@@ -90,11 +92,52 @@ function interval(dset::DisjointSetsWithBirth, filtration, vertex, edge, cutoff,
         else
             rep = NamedTuple()
         end
-        meta = (; birth_simplex=birth_simplex, death_simplex=edge, rep...)
+        if merge_tree
+            if isnothing(parent)
+                parent_simplex = nothing
+            else
+                parent_simplex = simplex(filtration, Val(0), (parent,))
+            end
+            children = (; parent_simplex, children=PersistenceInterval[])
+        else
+            children = NamedTuple()
+        end
+        meta = (; birth_simplex, death_simplex=edge, rep..., children...)
         return PersistenceInterval(birth_time, death_time, meta)
     else
         return nothing
     end
+end
+
+function _build_merge_tree!(diagram, cutoff)
+    filtration = diagram.filtration
+    interval_map = Dict(birth_simplex(int) => int for int in diagram)
+
+    curr_i = 0
+    for i in eachindex(diagram)
+        int = diagram[i]
+        if persistence(int) ≤ cutoff
+            continue
+        end
+        if !isnothing(int.parent_simplex)
+            parent = interval_map[int.parent_simplex]
+
+            while persistence(parent) ≤ cutoff
+                parent = interval_map[parent.parent_simplex]
+            end
+
+            int = PersistenceInterval(int.birth, int.death, (; int.meta..., parent))
+            push!(parent.children, int)
+            interval_map[int.birth_simplex] = int
+        else
+            int = PersistenceInterval(int.birth, int.death, (; int.meta..., parent=nothing))
+            interval_map[int.birth_simplex] = int
+        end
+        curr_i += 1
+        diagram[curr_i] = int
+    end
+    resize!(diagram.intervals, curr_i)
+    return diagram
 end
 
 """
@@ -112,11 +155,6 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
     dset = DisjointSetsWithBirth(vertices(filtration), births(filtration))
 
     intervals = PersistenceInterval[]
-
-    if merge_tree
-        I = eltype(vertices(filtration))
-        unions = Pair{I,I}[]
-    end
 
     to_skip = simplex_type(filtration, 1)[]
     to_reduce = simplex_type(filtration, 1)[]
@@ -139,13 +177,10 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
                 parent_vertex = i
                 last_vertex = j
             end
-            int = interval(dset, filtration, last_vertex, edge, cutoff, reps)
+            int = interval(dset, filtration, last_vertex, parent_vertex, edge, cutoff, reps, merge_tree)
             !isnothing(int) && push!(intervals, int)
 
             union!(dset, i, j)
-            if merge_tree
-                push!(unions, last_vertex => parent_vertex)
-            end
             push!(to_skip, edge)
         else
             push!(to_reduce, edge)
@@ -154,7 +189,7 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
     end
     for v in vertices(filtration)
         if find_root!(dset, v) == v && !isnothing(simplex(filtration, Val(0), (v,)))
-            int = interval(dset, filtration, v, nothing, cutoff, reps)
+            int = interval(dset, filtration, v, nothing, nothing, cutoff, reps, merge_tree)
             push!(intervals, int)
         end
         verbose && next!(progbar; showvalues=((:n_intervals, length(intervals)),))
@@ -163,17 +198,22 @@ function zeroth_intervals(filtration, cutoff, verbose, ::Type{F}, reps, merge_tr
 
     thresh = Float64(threshold(filtration))
     if merge_tree
-        mt = (; merge_tree=unions)
+        diagram = PersistenceDiagram(
+            intervals,
+            threshold=thresh,
+            dim=0,
+            field=F,
+            filtration=filtration,
+        )
+        _build_merge_tree!(diagram, cutoff)
     else
-        mt = (;)
+        diagram = PersistenceDiagram(
+            sort!(intervals; by=persistence);
+            threshold=thresh,
+            dim=0,
+            field=F,
+            filtration=filtration,
+        )
     end
-    diagram = PersistenceDiagram(
-        sort!(intervals; by=persistence);
-        threshold=thresh,
-        dim=0,
-        field=F,
-        filtration=filtration,
-        mt...
-    )
     return (postprocess_diagram(filtration, diagram), to_reduce, to_skip)
 end
