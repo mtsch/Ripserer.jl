@@ -6,20 +6,17 @@ and birth vertices.
 Has no `num_groups` method.
 """
 struct DisjointSetsWithBirth{
-    I<:AbstractArray,A<:AbstractArray,B<:AbstractArray,C<:AbstractArray
+    I<:AbstractArray,A<:AbstractArray,B<:AbstractArray
 }
     vertices::I
     parents::A
-    ranks::B
-    births::C
+    births::B
 
     function DisjointSetsWithBirth(vertices, births)
         parents = collect(vertices)
-        ranks = similar(parents, Int)
-        ranks .= 0
         births = collect(zip(births, vertices))
-        return new{typeof(vertices),typeof(parents),typeof(ranks),typeof(births)}(
-            vertices, parents, ranks, births
+        return new{typeof(vertices),typeof(parents),typeof(births)}(
+            vertices, parents, births
         )
     end
 end
@@ -57,18 +54,14 @@ end
 
 function DataStructures.root_union!(s::DisjointSetsWithBirth, x, y)
     parents = s.parents
-    ranks = s.ranks
     births = s.births
-    @inbounds xrank = ranks[x]
-    @inbounds yrank = ranks[y]
 
-    if xrank < yrank
+    if births[x] > births[y]
         x, y = y, x
-    elseif xrank == yrank
-        ranks[x] += 1
     end
     @inbounds parents[y] = x
-    @inbounds births[x] = min(births[x], births[y])
+    @inbounds births[y] = births[x]
+
     return x
 end
 
@@ -79,9 +72,12 @@ function interval(
 )
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
-    if merge_tree || death_time - birth_time > cutoff || isnan(death_time - birth_time)
+    persistence = death_time - birth_time
+    # If computing merge tree, we need all intervals, however we don't want to store
+    # the representatives of the intervals we'll eventually remove.
+    if merge_tree || persistence > cutoff && !isnan(persistence)
         birth_simplex = simplex(filtration, Val(0), (birth_vertex,))
-        if reps
+        if reps && (!merge_tree || persistence > cutoff && !isnan(persistence))
             rep = (;
                 representative=sort!([
                     simplex(filtration, Val(0), (v,)) for v in find_leaves!(dset, vertex)
@@ -108,7 +104,7 @@ function interval(
 end
 
 function _build_merge_tree!(diagram, cutoff)
-    sort!(diagram, by=persistence, rev=true)
+    sort!(diagram, by=x -> (persistence(x), birth_simplex(x)), rev=true)
     filtration = diagram.filtration
     interval_map = Dict(birth_simplex(int) => int for int in diagram)
 
