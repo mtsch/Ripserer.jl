@@ -5,9 +5,7 @@ Almost identical to `DataStructures.IntDisjointSets`, but keeps track of vertex 
 and birth vertices.
 Has no `num_groups` method.
 """
-struct DisjointSetsWithBirth{
-    I<:AbstractArray,A<:AbstractArray,B<:AbstractArray
-}
+struct DisjointSetsWithBirth{I<:AbstractArray,A<:AbstractArray,B<:AbstractArray}
     vertices::I
     parents::A
     births::B
