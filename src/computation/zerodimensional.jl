@@ -104,7 +104,7 @@ function interval(
 end
 
 function _build_merge_tree!(diagram, cutoff)
-    sort!(diagram, by=x -> (persistence(x), birth_simplex(x)), rev=true)
+    sort!(diagram; by=x -> (persistence(x), birth_simplex(x)), rev=true)
     filtration = diagram.filtration
     interval_map = Dict(birth_simplex(int) => int for int in diagram)
 
