@@ -79,7 +79,7 @@ function interval(
 )
     birth_time, birth_vertex = birth(dset, vertex)
     death_time = isnothing(edge) ? Inf : birth(edge)
-    if merge_tree || death_time - birth_time > cutoff
+    if merge_tree || death_time - birth_time > cutoff || isnan(death_time - birth_time)
         birth_simplex = simplex(filtration, Val(0), (birth_vertex,))
         if reps
             rep = (;
@@ -108,33 +108,37 @@ function interval(
 end
 
 function _build_merge_tree!(diagram, cutoff)
+    sort!(diagram, by=persistence, rev=true)
     filtration = diagram.filtration
     interval_map = Dict(birth_simplex(int) => int for int in diagram)
 
+    # walk top-down adding parents to all intervals and removing ones below the cutoff
     curr_i = 0
     for i in eachindex(diagram)
         int = diagram[i]
-        if persistence(int) ≤ cutoff
+        if persistence(int) ≤ cutoff || isnan(persistence(int))
             continue
         end
         if !isnothing(int.parent_simplex)
             parent = interval_map[int.parent_simplex]
-
-            while persistence(parent) ≤ cutoff
+            while persistence(parent) ≤ cutoff || isnan(persistence(int))
                 parent = interval_map[parent.parent_simplex]
             end
-
-            int = PersistenceInterval(int.birth, int.death, (; int.meta..., parent))
-            push!(parent.children, int)
-            interval_map[int.birth_simplex] = int
         else
-            int = PersistenceInterval(int.birth, int.death, (; int.meta..., parent=nothing))
-            interval_map[int.birth_simplex] = int
+            parent = nothing
         end
+        int = PersistenceInterval(int.birth, int.death, (; int.meta..., parent))
+        interval_map[int.birth_simplex] = int
         curr_i += 1
         diagram[curr_i] = int
     end
     resize!(diagram.intervals, curr_i)
+    reverse!(diagram.intervals)
+
+    # add children to their parent's children list
+    for int in diagram
+        !isnothing(int.parent) && push!(int.parent.children, int)
+    end
     return diagram
 end
 
