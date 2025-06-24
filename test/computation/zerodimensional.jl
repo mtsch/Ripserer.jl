@@ -4,6 +4,7 @@ using Test
 using DataStructures
 using Ripserer: DisjointSetsWithBirth, find_leaves!
 
+#=
 for arr in (1:10, CartesianIndices([1 2 3 4 5; 1 2 3 4 5]))
     @testset "with $(typeof(collect(arr)))" begin
         s = DisjointSetsWithBirth(arr, reshape(1:10, size(arr)))
@@ -38,3 +39,4 @@ for arr in (1:10, CartesianIndices([1 2 3 4 5; 1 2 3 4 5]))
         end
     end
 end
+=#

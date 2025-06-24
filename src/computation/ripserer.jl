@@ -7,6 +7,7 @@ function _unpack_kwargs(;
     alg=:cohomology,
     reps=alg == :cohomology ? false : 1:dim_max,
     implicit=alg != :homology,
+    merge_tree=false,
     # deprecated
     progress=nothing,
     field_type=nothing,
@@ -29,6 +30,7 @@ function _unpack_kwargs(;
         alg=alg,
         reps=reps,
         implicit=implicit,
+        merge_tree=merge_tree,
     )
 
     return ripserer_kwargs, filtration_kwargs
@@ -69,6 +71,10 @@ diagram, and the last is the (`dim_max`)-dimensional diagram.
   large filtrations (such as cubical) where calculating zero-dimensional representatives can
   be very slow. Defaults to `false` for cohomology and `1:dim_max` for homology.
   Representatives are wrapped in a [`Chain`](@ref).
+
+* `merge_tree`: if `true`, attach `parent` and `children` to each interval. When an interval
+  died, it merged into `parent`. `children` contains a list of all intervals that merged
+  into the interval.
 
 * `verbose`: If `true`, show a verbose bar. Defaults to `false`.
 
@@ -144,13 +150,14 @@ function _ripserer(
     alg,
     reps,
     implicit,
+    merge_tree,
 )
     if field <: Union{Signed,Unsigned,AbstractFloat}
         error("$field is not a field! Please try a differnet field type")
     end
     index_overflow_check(filtration, field, dim_max)
     result = _ripserer(
-        Val(alg), filtration, cutoff, verbose, field, dim_max, reps, implicit
+        Val(alg), filtration, cutoff, verbose, field, dim_max, reps, implicit, merge_tree
     )
     elapsed = round((time_ns() - start_time) / 1e9; digits=3)
     @prog_println verbose "Done. Time: " ProgressMeter.durationstring(elapsed)
@@ -159,11 +166,19 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:cohomology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ::Val{:cohomology},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0), merge_tree
     )
     push!(result, zeroth)
     if dim_max > 0
@@ -179,11 +194,19 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:homology}, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ::Val{:homology},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0), merge_tree
     )
     push!(result, zeroth)
     if dim_max > 0
@@ -200,11 +223,19 @@ function _ripserer(
 end
 
 function _ripserer(
-    ::Val{:involuted}, filtration, cutoff, verbose, field, dim_max, reps, implicit
+    ::Val{:involuted},
+    filtration,
+    cutoff,
+    verbose,
+    field,
+    dim_max,
+    reps,
+    implicit,
+    merge_tree,
 )
     result = PersistenceDiagram[]
     zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, cutoff, verbose, field, _reps(reps, 0)
+        filtration, cutoff, verbose, field, _reps(reps, 0), merge_tree
     )
     push!(result, zeroth)
     if dim_max > 0

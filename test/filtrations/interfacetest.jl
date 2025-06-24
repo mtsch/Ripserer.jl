@@ -60,5 +60,20 @@ function test_filtration(F, args...; test_verbose=true, flt_kwargs=(), kwargs...
                 @test representative.(hom_inv[i]) == representative.(hom_exp[i])
             end
         end
+        @testset "Merge trees" begin
+            res = ripserer(flt; merge_tree=true, dim_max=0)[1]
+            for interval in res
+                @test all(child.parent ≡ interval for child in interval.children)
+                @test all(birth(child) ≥ birth(interval) for child in interval.children)
+                @test all(death(child) ≤ death(interval) for child in interval.children)
+                @test isnothing(interval.parent) || interval in interval.parent.children
+            end
+
+            res = ripserer(flt; merge_tree=true, dim_max=0, cutoff=-1)[1]
+            for interval in res
+                @test all(child.parent ≡ interval for child in interval.children)
+                @test isnothing(interval.parent) || interval in interval.parent.children
+            end
+        end
     end
 end

@@ -1,6 +1,7 @@
 # v0.16.13
 
-Fix performance issues with high-dimensional `Custom` filtrations.
+* Fix performance issues with high-dimensional `Custom` filtrations.
+* Implement merge trees.
 
 # v0.16.9
 

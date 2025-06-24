@@ -195,7 +195,7 @@ end
 
 function unsafe_simplex(cf::Cubical{N,T}, ::Val{D}, new_root, _) where {D,T,N}
     birth = get(cf.cubemap, new_root, missing)
-    if ismissing(birth) || birth > cf.threshold
+    if ismissing(birth) || birth == Inf || isnan(birth) || birth > cf.threshold
         return nothing
     else
         return Cube{D,T,N}(new_root, birth)
