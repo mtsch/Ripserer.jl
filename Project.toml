@@ -22,7 +22,7 @@ TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 [compat]
 Aqua = "0.8"
 Compat = "^3.10, 4"
-DataStructures = "0.17, 0.18"
+DataStructures = "0.17, 0.18, 0.19"
 Distances = "0.8, 0.9, 0.10"
 Documenter = "1"
 Graphs = "1"
