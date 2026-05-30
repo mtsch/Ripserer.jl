@@ -246,10 +246,15 @@ function _ripserer(
             reps_in_dim = _reps(reps, dim)
             diagram = compute_intervals!(matrix, cutoff, verbose, reps_in_dim)
             inf_representatives = if reps_in_dim && !isempty(inf_births)
+                last_inf_birth = maximum(abs.(inf_births))
+                rep_columns = Iterators.filter(
+                    σ -> !isless(last_inf_birth, abs(σ)),
+                    Iterators.flatten((comatrix.columns_to_reduce, comatrix.columns_to_skip)),
+                )
                 rep_matrix = BoundaryMatrix{true}(
                     field,
                     filtration,
-                    Iterators.flatten((comatrix.columns_to_reduce, comatrix.columns_to_skip)),
+                    rep_columns,
                 )
                 compute_infinite_representatives!(rep_matrix, inf_births)
             else
