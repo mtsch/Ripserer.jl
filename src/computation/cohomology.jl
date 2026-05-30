@@ -330,26 +330,16 @@ function interval(matrix, column, pivot, cutoff, reps)
     end
 end
 
-function infinite_interval(birth_simplex, cutoff)
+function infinite_interval(birth_simplex)
     birth_time = Float64(birth(birth_simplex))
-    death_time = Inf
-    if death_time - birth_time > cutoff
-        meta = (; birth_simplex, death_simplex=nothing)
-        return PersistenceInterval(birth_time, death_time, meta)
-    else
-        return nothing
-    end
+    meta = (; birth_simplex, death_simplex=nothing)
+    return PersistenceInterval(birth_time, Inf, meta)
 end
 
-function infinite_interval(birth_simplex, cutoff, representative)
+function infinite_interval(birth_simplex, representative)
     birth_time = Float64(birth(birth_simplex))
-    death_time = Inf
-    if death_time - birth_time > cutoff
-        meta = (; birth_simplex, death_simplex=nothing, representative)
-        return PersistenceInterval(birth_time, death_time, meta)
-    else
-        return nothing
-    end
+    meta = (; birth_simplex, death_simplex=nothing, representative)
+    return PersistenceInterval(birth_time, Inf, meta)
 end
 
 """

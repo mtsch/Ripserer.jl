@@ -262,13 +262,11 @@ function _ripserer(
             end
             for birth_simplex in inf_births
                 int = if isnothing(inf_representatives)
-                    infinite_interval(birth_simplex, cutoff)
+                    infinite_interval(birth_simplex)
                 else
-                    infinite_interval(
-                        birth_simplex, cutoff, inf_representatives[birth_simplex]
-                    )
+                    infinite_interval(birth_simplex, inf_representatives[birth_simplex])
                 end
-                !isnothing(int) && push!(diagram.intervals, int)
+                push!(diagram.intervals, int)
             end
             push!(result, diagram)
             if dim < dim_max
