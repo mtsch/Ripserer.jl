@@ -323,6 +323,22 @@ end
             @test vertices.(simplex.(representative(res_hom[2][1]))) ==
                 sort!(vcat([(i + 1, i) for i in 1:17], [(18, 1)]))
         end
+        @testset "Involuted infinite representative cycle" begin
+            flt = Rips(cycle; threshold=1)
+            _, d1 = ripserer(flt; alg=:involuted, reps=true, field=Rational{Int})
+            int = only(d1)
+            rep = representative(int)
+            boundary = Chain{Rational{Int},R.simplex_type(flt, 0)}()
+            for element in rep
+                for facet in R.boundary(flt, simplex(element))
+                    push!(boundary, (facet, coefficient(element)))
+                end
+            end
+
+            @test birth_simplex(int) in simplex.(rep)
+            @test rep isa Chain{Rational{Int},Simplex{1,Int,Int}}
+            @test isempty(R.clean!(boundary, Base.Order.Reverse))
+        end
         @testset "Infinite intervals" begin
             @test_broken ripserer(
                 Rips(cycle; threshold=2); alg=:homology, implicit=true

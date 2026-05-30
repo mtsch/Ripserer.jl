@@ -277,6 +277,29 @@ function collect_cocycle!(matrix, column, pivot)
     end
 end
 
+function compute_infinite_representatives!(matrix::BoundaryMatrix{true}, birth_simplices)
+    representatives = Dict{eltype(birth_simplices),typeof(matrix.buffer)}()
+    isempty(birth_simplices) && return representatives
+
+    targets = Set(abs.(birth_simplices))
+    columns = matrix.columns_to_reduce
+    sort!(columns)
+    for column in columns
+        pivot = reduce_column!(matrix, column)
+        if isnothing(pivot) && column in targets
+            representative = copy(matrix.buffer)
+            push!(representative, column)
+            representatives[column] = clean!(representative, ordering(matrix))
+            delete!(targets, column)
+            isempty(targets) && break
+        end
+    end
+    if !isempty(targets)
+        error("could not reconstruct representatives for $(length(targets)) infinite bars")
+    end
+    return representatives
+end
+
 """
     interval(matrix, column, pivot, cutoff, reps)
 
@@ -301,6 +324,28 @@ function interval(matrix, column, pivot, cutoff, reps)
             rep = NamedTuple()
         end
         meta = (; birth_simplex=birth_simplex, death_simplex=death_simplex, rep...)
+        return PersistenceInterval(birth_time, death_time, meta)
+    else
+        return nothing
+    end
+end
+
+function infinite_interval(birth_simplex, cutoff)
+    birth_time = Float64(birth(birth_simplex))
+    death_time = Inf
+    if death_time - birth_time > cutoff
+        meta = (; birth_simplex, death_simplex=nothing)
+        return PersistenceInterval(birth_time, death_time, meta)
+    else
+        return nothing
+    end
+end
+
+function infinite_interval(birth_simplex, cutoff, representative)
+    birth_time = Float64(birth(birth_simplex))
+    death_time = Inf
+    if death_time - birth_time > cutoff
+        meta = (; birth_simplex, death_simplex=nothing, representative)
         return PersistenceInterval(birth_time, death_time, meta)
     else
         return nothing
