@@ -249,13 +249,11 @@ function _ripserer(
                 last_inf_birth = maximum(abs.(inf_births))
                 rep_columns = Iterators.filter(
                     σ -> !isless(last_inf_birth, abs(σ)),
-                    Iterators.flatten((comatrix.columns_to_reduce, comatrix.columns_to_skip)),
+                    Iterators.flatten((
+                        comatrix.columns_to_reduce, comatrix.columns_to_skip
+                    )),
                 )
-                rep_matrix = BoundaryMatrix{true}(
-                    field,
-                    filtration,
-                    rep_columns,
-                )
+                rep_matrix = BoundaryMatrix{true}(field, filtration, rep_columns)
                 compute_infinite_representatives!(rep_matrix, inf_births)
             else
                 nothing
