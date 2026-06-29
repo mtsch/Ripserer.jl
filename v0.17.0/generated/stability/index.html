@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Stability · Ripserer.jl</title><meta name="title" content="Stability · Ripserer.jl"/><meta property="og:title" content="Stability · Ripserer.jl"/><meta property="twitter:title" content="Stability · Ripserer.jl"/><meta name="description" content="Documentation for Ripserer.jl."/><meta property="og:description" content="Documentation for Ripserer.jl."/><meta property="twitter:description" content="Documentation for Ripserer.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="Ripserer.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Ripserer.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../basics/">Usage Guide</a></li><li><a class="tocitem" href="../../api/">API</a></li><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href>Stability</a></li><li><a class="tocitem" href="../cocycles/">Cohomology, Homology, and Representatives</a></li><li><a class="tocitem" href="../cubical/">Cubical Persistent Homology</a></li></ul></li><li><a class="tocitem" href="../../benchmarks/">Benchmarks</a></li><li><a class="tocitem" href="../../related-work/">Related Julia Packages</a></li><li><a class="tocitem" href="../../references/">Acknowledgements and References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Stability</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Stability</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/mtsch/Ripserer.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/mtsch/Ripserer.jl/blob/master/docs/src/examples/stability.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Stability"><a class="docs-heading-anchor" href="#Stability">Stability</a><a id="Stability-1"></a><a class="docs-heading-anchor-permalink" href="#Stability" title="Permalink"></a></h1><p>In this example, we will demonstrate the stability of persistent homology. The stability theorem roughly states that a small change in the input data will result in a small change in the resulting persistence diagram. In other words, persistent homology is very tolerant of noisy data. Also, see the <a href="https://mtsch.github.io/PersistenceDiagrams.jl/dev/generated/distances/">Distances</a> example in <a href="https://github.com/mtsch/PersistenceDiagrams.jl">PersistenceDiagrams.jl</a>.</p><p>Again, start with loading some packages.</p><pre><code class="language-julia hljs">using Ripserer
+using Plots</code></pre><p>As in the Basics example, we will look at the persistent homology of a noisy circle.</p><pre><code class="language-julia hljs">function noisy_circle(n; r1=1, r2=1, noise=0.1)
+    points = NTuple{2,Float64}[]
+    for _ in 1:n
+        θ = 2π * rand()
+        point = (
+            r1 * sin(θ) + noise * rand() - noise / 2,
+            r2 * cos(θ) + noise * rand() - noise / 2,
+        )
+        push!(points, point)
+    end
+    return points
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">noisy_circle (generic function with 1 method)</code></pre><p>We will look at the first persistent homology group of this space.</p><p>First, let&#39;s see what happens if we repeatedly sample 100 random points from a circle.</p><pre><code class="language-julia hljs">anim = @animate for _ in 1:200
+    points = noisy_circle(100; noise=0)
+    result = ripserer(points)
+
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title=&quot;Data&quot;,
+    )
+    plt_diag = plot(result; infinity=3)
+
+    plot(plt_pts, plt_diag; size=(800, 400))
+end</code></pre><img src="ebb4ec92.gif" alt="Example block output"/><p>We notice that an interval in <span>$H_1$</span> always stands out and that its death remains constant. The only thing that changes is the birth time. The birth time is equal to the largest distance between adjacent points in the circle. At the birth time, the circle is connected.</p><p>Now, let&#39;s add some noise!</p><pre><code class="language-julia hljs">anim = @animate for _ in 1:200
+    points = noisy_circle(100; noise=0.2)
+    result = ripserer(points)
+
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title=&quot;Data&quot;,
+    )
+    plt_diag = plot(result; infinity=3)
+
+    plot(plt_pts, plt_diag; size=(800, 400))
+end</code></pre><img src="225d253f.gif" alt="Example block output"/><p>The interval is jumping around a lot more now, but it hovers around the same general area. It&#39;s still clearly the most persistent feature of our space.</p><p>Next, let&#39;s look at how adding more and more noise affects the diagram.</p><pre><code class="language-julia hljs">anim = @animate for noise in vcat(0:0.01:1, 1:-0.01:0)
+    points = noisy_circle(100; noise=noise)
+    result = ripserer(points)
+
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title=&quot;Data&quot;,
+    )
+    plt_diag = plot(result; infinity=3)
+
+    plot(plt_pts, plt_diag; size=(800, 400))
+end</code></pre><img src="9f1895ce.gif" alt="Example block output"/><p>We see we have to add quite a bit of noise to destroy the diagram. Notice how the death time of the interval decreases as we add noise. This is the result of the diameter of the hole in our circle shrinking.</p><p>Finally, let&#39;s stretch our circle.</p><pre><code class="language-julia hljs">anim = @animate for r in vcat(0.0:0.02:2, 2:-0.02:0.0)
+    points = noisy_circle(100; noise=0.1, r1=r)
+    result = ripserer(points)
+
+    plt_pts = scatter(
+        points;
+        legend=false,
+        aspect_ratio=1,
+        xlim=(-2.2, 2.2),
+        ylim=(-2.2, 2.2),
+        title=&quot;Data&quot;,
+    )
+    plt_diag = plot(result; infinity=3)
+
+    plot(plt_pts, plt_diag; size=(800, 400))
+end</code></pre><img src="d6ebcf4f.gif" alt="Example block output"/><p>Again, we see the persistent homology stays stable, as long as the data at least somewhat resembles a circle.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../api/">« API</a><a class="docs-footer-nextpage" href="../cocycles/">Cohomology, Homology, and Representatives »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 29 June 2026 12:13">Monday 29 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
