@@ -1,3 +1,7 @@
+# v0.17.0
+
+* Involtued homology now returns correct infinite intervals.
+
 # v0.16.13
 
 * Fix performance issues with high-dimensional `Custom` filtrations.
