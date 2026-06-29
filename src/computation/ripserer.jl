@@ -243,12 +243,30 @@ function _ripserer(
         for dim in 1:dim_max
             columns, inf_births = compute_death_simplices!(comatrix, verbose, cutoff)
             matrix = BoundaryMatrix{implicit}(field, filtration, columns)
-            diagram = compute_intervals!(matrix, cutoff, verbose, _reps(reps, dim))
-            for birth_simplex in inf_births
-                push!(
-                    diagram.intervals,
-                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim)),
+            reps_in_dim = _reps(reps, dim)
+            diagram = compute_intervals!(matrix, cutoff, verbose, reps_in_dim)
+            inf_representatives = if reps_in_dim && !isempty(inf_births)
+                last_inf_birth = maximum(abs.(inf_births))
+                rep_columns = Iterators.filter(
+                    σ -> !isless(last_inf_birth, abs(σ)),
+                    Iterators.flatten((comatrix.columns_to_reduce, comatrix.columns_to_skip)),
                 )
+                rep_matrix = BoundaryMatrix{true}(
+                    field,
+                    filtration,
+                    rep_columns,
+                )
+                compute_infinite_representatives!(rep_matrix, inf_births)
+            else
+                nothing
+            end
+            for birth_simplex in inf_births
+                int = if isnothing(inf_representatives)
+                    infinite_interval(birth_simplex)
+                else
+                    infinite_interval(birth_simplex, inf_representatives[birth_simplex])
+                end
+                push!(diagram.intervals, int)
             end
             push!(result, diagram)
             if dim < dim_max
